@@ -96,7 +96,6 @@ size_flags_vertical = 3
 mouse_filter = 2
 
 [node name="Bar" type="HBoxContainer" parent="Hud/Box"]
-visible = false
 layout_mode = 2
 mouse_filter = 2
 alignment = 1

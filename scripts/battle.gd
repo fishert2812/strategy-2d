@@ -1,8 +1,10 @@
 extends Control
-## Экран партии: поле, здания, конец партии.
+## Экран партии: поле, здания, постройка перетягиванием кнопки, конец партии.
 
 const TEX := {
 	"home": preload("res://art/rts/medievalStructure_05.png"),
+	"camp": preload("res://art/rts/medievalStructure_10.png"),
+	"barracks": preload("res://art/rts/medievalStructure_02.png"),
 	"small": preload("res://art/rts/medievalEnvironment_17.png"),
 	"rich": preload("res://art/rts/medievalEnvironment_19.png"),
 }
@@ -13,9 +15,12 @@ const BOTTOM := 190.0
 
 var sim: Sim
 var _sprites := {}
+var _drag := {}
 
 @onready var world: Node2D = $World
 @onready var things: Node2D = $World/Things
+@onready var ghost: Sprite2D = $World/Ghost
+@onready var buttons := {"camp": $Hud/Box/Bar/camp, "barracks": $Hud/Box/Bar/barracks}
 
 
 func _ready() -> void:
@@ -29,6 +34,8 @@ func restart() -> void:
 	for c in things.get_children():
 		c.free()
 	_sprites.clear()
+	_drag = {}
+	ghost.hide()
 	sim = Sim.new()
 	sim.changed.connect(_on_sim)
 	for b in sim.buildings:
@@ -44,6 +51,8 @@ func _process(dt: float) -> void:
 	world.position = Vector2((size.x - field.x) / 2, TOP + (size.y - TOP - BOTTOM - field.y) / 2)
 	$Hud/Box/Top/Gold.text = "Золото %d" % sim.gold[Sim.PLAYER]
 	$Hud/Box/Top/Time.text = "%d:%02d" % [int(sim.time) / 60, int(sim.time) % 60]
+	for kind in buttons:
+		buttons[kind].modulate.a = 1.0 if sim.gold[Sim.PLAYER] >= sim.cfg.buildings[kind].cost else 0.45
 	for d in sim.deposits:
 		var s: Node2D = _sprites[d.id]
 		s.visible = d.gold > 0
@@ -52,6 +61,50 @@ func _process(dt: float) -> void:
 		var bar: ProgressBar = _sprites[b.id].get_node("Hp")
 		bar.value = b.hp / b.max_hp * 100.0
 		bar.visible = b.hp < b.max_hp
+
+
+func _unhandled_input(e: InputEvent) -> void:
+	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
+		if e.pressed:
+			_press(e.position)
+		elif not _drag.is_empty():
+			_release(e.position)
+	elif e is InputEventMouseMotion and not _drag.is_empty():
+		ghost.position = world.to_local(e.position)
+		var ok: bool = sim.can_build(Sim.PLAYER, _drag.what, ghost.position) == ""
+		ghost.modulate = Color(1, 1, 1, 0.7) if ok else Color(1, 0.3, 0.3, 0.7)
+
+
+func _press(pos: Vector2) -> void:
+	if sim.winner != -1:
+		return
+	for kind in buttons:
+		if buttons[kind].get_global_rect().has_point(pos):
+			_drag = {"what": kind}
+			ghost.texture = TEX[kind]
+			ghost.position = world.to_local(pos)
+			ghost.show()
+
+
+func _release(pos: Vector2) -> void:
+	ghost.hide()
+	var at := world.to_local(pos)
+	var kind: String = _drag.what
+	_drag = {}
+	if pos.y > size.y - BOTTOM:
+		return
+	var why := sim.can_build(Sim.PLAYER, kind, at)
+	if why != "":
+		hint(why)
+	else:
+		sim.build(Sim.PLAYER, kind, at)
+
+
+func hint(text: String) -> void:
+	var label: Label = $Hud/Box/Hint
+	label.text = text
+	label.modulate.a = 1.0
+	create_tween().tween_property(label, "modulate:a", 0.0, 1.2).set_delay(0.6)
 
 
 func _on_sim(what: String, data: Dictionary) -> void:
