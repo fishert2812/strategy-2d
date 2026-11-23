@@ -14,9 +14,9 @@ func test_barracks_path_destroys_enemy_home() -> String:
 	var barracks := sim.build(Sim.PLAYER, "barracks", Vector2(360, 760))
 	if not sim.set_path(barracks, Vector2(380, 130)):
 		return "тропа казармы не прилипла к дому врага"
-	_run(sim, 120.0)
+	_run(sim, 300.0)
 	if sim.winner != Sim.PLAYER:
-		return "за 120 с дом врага не разрушен (победитель %d)" % sim.winner
+		return "за 300 с дом врага не разрушен (победитель %d)" % sim.winner
 	return ""
 
 

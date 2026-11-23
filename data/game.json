@@ -1,114 +1,29 @@
 {
   "_": "Числа партии. Стартовые, подбираем на живой игре. Координаты поля: 720 x 1000, низ — игрок.",
-  "field": [
-    720,
-    1000
-  ],
+  "field": [720, 1000],
   "start_gold": 100,
-  "home_drip": {
-    "gold": 1,
-    "every": 1.5
-  },
+  "home_drip": {"gold": 1, "every": 1.5},
   "build_radius": 170,
   "build_gap": 70,
   "snap": 110,
   "buildings": {
-    "home": {
-      "hp": 400,
-      "cost": 0,
-      "size": 46
-    },
-    "camp": {
-      "hp": 120,
-      "cost": 40,
-      "size": 34
-    },
-    "barracks": {
-      "hp": 160,
-      "cost": 60,
-      "size": 38
-    }
+    "home": {"hp": 2000, "cost": 0, "size": 46},
+    "camp": {"hp": 200, "cost": 40, "size": 34},
+    "barracks": {"hp": 300, "cost": 60, "size": 38}
   },
-  "homes": [
-    [
-      360,
-      900
-    ],
-    [
-      360,
-      100
-    ]
-  ],
+  "homes": [[360, 900], [360, 100]],
   "deposits": [
-    {
-      "pos": [
-        170,
-        760
-      ],
-      "gold": 240
-    },
-    {
-      "pos": [
-        550,
-        760
-      ],
-      "gold": 240
-    },
-    {
-      "pos": [
-        170,
-        240
-      ],
-      "gold": 240
-    },
-    {
-      "pos": [
-        550,
-        240
-      ],
-      "gold": 240
-    },
-    {
-      "pos": [
-        110,
-        500
-      ],
-      "gold": 600
-    },
-    {
-      "pos": [
-        360,
-        500
-      ],
-      "gold": 600
-    },
-    {
-      "pos": [
-        610,
-        500
-      ],
-      "gold": 600
-    }
+    {"pos": [170, 760], "gold": 240},
+    {"pos": [550, 760], "gold": 240},
+    {"pos": [170, 240], "gold": 240},
+    {"pos": [550, 240], "gold": 240},
+    {"pos": [110, 500], "gold": 600},
+    {"pos": [360, 500], "gold": 600},
+    {"pos": [610, 500], "gold": 600}
   ],
-  "camp": {
-    "carriers": 3,
-    "spawn_every": 1.0
-  },
-  "carrier": {
-    "speed": 110,
-    "load": 2,
-    "hp": 20
-  },
-  "barracks": {
-    "every": 4,
-    "max": 6
-  },
-  "warrior": {
-    "speed": 75,
-    "hp": 60,
-    "damage": 10,
-    "hit_every": 0.8,
-    "reach": 26,
-    "aggro": 90
-  }
+  "camp": {"carriers": 3, "spawn_every": 1.0},
+  "carrier": {"speed": 110, "load": 2, "hp": 20},
+  "barracks": {"every": 5, "max": 4},
+  "warrior": {"speed": 75, "hp": 60, "damage": 10, "hit_every": 0.8, "reach": 26, "aggro": 90, "siege": 3},
+  "enemy": {"think": 2.0, "camps": 2, "extra_camp_every": 120, "barracks_after": 20, "extra_barracks_every": 45, "max_barracks": 4, "raid_after": 90, "guards": 1}
 }

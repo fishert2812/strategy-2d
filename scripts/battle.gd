@@ -20,6 +20,7 @@ const TOP := 90.0
 const BOTTOM := 190.0
 
 var sim: Sim
+var enemy: Enemy
 var _sprites := {}
 var _drag := {}
 var _units := {}
@@ -48,6 +49,7 @@ func restart() -> void:
 	ghost.hide()
 	sim = Sim.new()
 	sim.changed.connect(_on_sim)
+	enemy = Enemy.new(sim)
 	for b in sim.buildings:
 		_on_sim("built", b)
 	for d in sim.deposits:
@@ -56,6 +58,7 @@ func restart() -> void:
 
 
 func _process(dt: float) -> void:
+	enemy.step(dt)
 	sim.step(dt)
 	var field := Sim._v(sim.cfg.field)
 	world.position = Vector2((size.x - field.x) / 2, TOP + (size.y - TOP - BOTTOM - field.y) / 2)
