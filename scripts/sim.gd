@@ -42,15 +42,23 @@ func step(dt: float) -> void:
 	for b in buildings.duplicate():
 		if b.kind == "camp":
 			_camp(b, dt)
+		elif b.kind == "barracks":
+			_barracks(b, dt)
 	for u in units.duplicate():
+		if u.hp <= 0:
+			continue
 		if u.kind == "carrier":
 			_carrier(u, dt)
+		else:
+			_warrior(u, dt)
 
 
-## Тропа от здания к точке: прилипает к ближайшей цели в радиусе snap. Лагерь — к залежи.
+## Тропа от здания к точке: прилипает к ближайшей цели в радиусе snap.
+## Лагерь — к залежи, казарма — к зданию врага.
 func set_path(b: Dictionary, point: Vector2) -> bool:
 	var best := {}
-	for c in deposits.filter(func(d): return d.gold > 0):
+	var choices := deposits.filter(func(d): return d.gold > 0) if b.kind == "camp" else of_side(1 - b.side)
+	for c in choices:
 		if c.pos.distance_to(point) <= cfg.snap and (best.is_empty() or c.pos.distance_to(point) < best.pos.distance_to(point)):
 			best = c
 	if best.is_empty():
@@ -67,6 +75,57 @@ func _camp(b: Dictionary, dt: float) -> void:
 		return
 	b.timer = 0.0
 	units.append({"id": _id(), "side": b.side, "kind": "carrier", "pos": b.pos, "hp": cfg.carrier.hp, "home": b, "out": true, "carry": 0.0})
+
+
+func _barracks(b: Dictionary, dt: float) -> void:
+	b.timer += dt
+	var mine := units.filter(func(u): return is_same(u.home, b))
+	if mine.size() >= cfg.barracks.max or b.timer < cfg.barracks.every:
+		return
+	b.timer = 0.0
+	var post := Vector2((b.id % 5 - 2) * 14, 44 + (b.id % 3) * 10)
+	units.append({"id": _id(), "side": b.side, "kind": "warrior", "pos": b.pos + post, "hp": cfg.warrior.hp, "home": b, "cd": 0.0, "post": post})
+
+
+## Воин: дерётся с ближним чужим, иначе идёт по тропе и ломает здание в её конце, без тропы стоит у казармы.
+func _warrior(u: Dictionary, dt: float) -> void:
+	var w: Dictionary = cfg.warrior
+	u.cd = maxf(0.0, u.cd - dt)
+	var foe := {}
+	for o in units:
+		if o.side != u.side and o.hp > 0 and o.pos.distance_to(u.pos) <= w.aggro:
+			if foe.is_empty() or o.pos.distance_to(u.pos) < foe.pos.distance_to(u.pos):
+				foe = o
+	var t: Dictionary = u.home.target
+	if not foe.is_empty():
+		if _reach(u, foe.pos, w.reach, w.speed * dt):
+			_hit(u, foe)
+	elif not t.is_empty() and t.hp > 0:
+		if _reach(u, t.pos, w.reach + cfg.buildings[t.kind].size, w.speed * dt):
+			_hit(u, t)
+	else:
+		_walk(u, u.home.pos + u.post, w.speed * dt)
+
+
+func _reach(u: Dictionary, to: Vector2, r: float, dist: float) -> bool:
+	if u.pos.distance_to(to) <= r:
+		return true
+	_walk(u, to, dist)
+	return false
+
+
+func _hit(u: Dictionary, x: Dictionary) -> void:
+	if u.cd > 0:
+		return
+	u.cd = cfg.warrior.hit_every
+	changed.emit("hit", {"side": u.side, "pos": x.pos})
+	if x.has("max_hp"):
+		damage(x, cfg.warrior.damage)
+		return
+	x.hp -= cfg.warrior.damage
+	if x.hp <= 0:
+		units = units.filter(func(o): return not is_same(o, x))
+		changed.emit("killed", x)
 
 
 ## Носильщик: к залежи, взял золото, обратно в лагерь, сдал.
