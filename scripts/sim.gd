@@ -14,6 +14,7 @@ var gold := [0, 0]
 var winner := -1
 var buildings: Array = []
 var deposits: Array = []
+var units: Array = []
 var _drip := 0.0
 var _next_id := 1
 
@@ -38,6 +39,58 @@ func step(dt: float) -> void:
 		for side in [PLAYER, ENEMY]:
 			if not of_side(side, "home").is_empty():
 				gold[side] += cfg.home_drip.gold
+	for b in buildings.duplicate():
+		if b.kind == "camp":
+			_camp(b, dt)
+	for u in units.duplicate():
+		if u.kind == "carrier":
+			_carrier(u, dt)
+
+
+## Тропа от здания к точке: прилипает к ближайшей цели в радиусе snap. Лагерь — к залежи.
+func set_path(b: Dictionary, point: Vector2) -> bool:
+	var best := {}
+	for c in deposits.filter(func(d): return d.gold > 0):
+		if c.pos.distance_to(point) <= cfg.snap and (best.is_empty() or c.pos.distance_to(point) < best.pos.distance_to(point)):
+			best = c
+	if best.is_empty():
+		return false
+	b.target = best
+	changed.emit("path", b)
+	return true
+
+
+func _camp(b: Dictionary, dt: float) -> void:
+	b.timer += dt
+	var mine := units.filter(func(u): return is_same(u.home, b))
+	if b.target.is_empty() or b.target.gold <= 0 or mine.size() >= cfg.camp.carriers or b.timer < cfg.camp.spawn_every:
+		return
+	b.timer = 0.0
+	units.append({"id": _id(), "side": b.side, "kind": "carrier", "pos": b.pos, "hp": cfg.carrier.hp, "home": b, "out": true, "carry": 0.0})
+
+
+## Носильщик: к залежи, взял золото, обратно в лагерь, сдал.
+func _carrier(u: Dictionary, dt: float) -> void:
+	var dep: Dictionary = u.home.target
+	if u.out:
+		if dep.is_empty() or dep.gold <= 0:
+			u.out = false
+		elif _walk(u, dep.pos, cfg.carrier.speed * dt):
+			u.carry = minf(cfg.carrier.load, dep.gold)
+			dep.gold -= u.carry
+			u.out = false
+	elif _walk(u, u.home.pos, cfg.carrier.speed * dt):
+		if u.carry > 0:
+			gold[u.side] += u.carry
+			changed.emit("gold", {"side": u.side, "amount": u.carry, "pos": u.home.pos})
+			u.carry = 0.0
+		u.out = true
+
+
+## Шаг к точке; true — дошёл.
+func _walk(u: Dictionary, to: Vector2, dist: float) -> bool:
+	u.pos = u.pos.move_toward(to, dist)
+	return u.pos.distance_to(to) < 1.0
 
 
 ## Пустая строка, если строить можно; иначе причина для игрока.
@@ -68,7 +121,8 @@ func damage(b: Dictionary, amount: float) -> void:
 	b.hp -= amount
 	if b.hp > 0:
 		return
-	buildings.erase(b)
+	buildings = buildings.filter(func(x): return not is_same(x, b))
+	units = units.filter(func(u): return not is_same(u.home, b))
 	changed.emit("destroyed", b)
 	for side in [PLAYER, ENEMY]:
 		if of_side(side).is_empty() and winner == -1:
@@ -96,7 +150,7 @@ func _near_own(side: int, pos: Vector2) -> bool:
 
 func _add_building(side: int, kind: String, pos: Vector2) -> Dictionary:
 	var hp: float = cfg.buildings[kind].hp
-	var b := {"id": _id(), "side": side, "kind": kind, "pos": pos, "hp": hp, "max_hp": hp}
+	var b := {"id": _id(), "side": side, "kind": kind, "pos": pos, "hp": hp, "max_hp": hp, "target": {}, "timer": 0.0}
 	buildings.append(b)
 	changed.emit("built", b)
 	return b
