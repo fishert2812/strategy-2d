@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle.gd" id="1"]
 [ext_resource type="Texture2D" path="res://art/rts/medievalTile_01.png" id="2"]
 [ext_resource type="Texture2D" path="res://art/rts/medievalStructure_10.png" id="3"]
 [ext_resource type="Texture2D" path="res://art/rts/medievalStructure_02.png" id="4"]
+[ext_resource type="Script" path="res://scripts/feedback.gd" id="5"]
 
 [node name="Battle" type="Control"]
 layout_mode = 3
@@ -156,3 +157,6 @@ custom_minimum_size = Vector2(340, 110)
 layout_mode = 2
 theme_override_font_sizes/font_size = 44
 text = "Ещё раз"
+
+[node name="Feedback" type="Node" parent="."]
+script = ExtResource("5")
