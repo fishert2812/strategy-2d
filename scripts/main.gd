@@ -11,6 +11,7 @@ const MIN_BUTTON := 44.0 * 720.0 / 390.0
 func _ready() -> void:
 	sha_label.text = Version.sha()
 	play_button.custom_minimum_size = Vector2(ceilf(MIN_BUTTON * 4.0), ceilf(MIN_BUTTON))
+	play_button.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/battle.tscn"))
 	_apply_safe_area()
 
 

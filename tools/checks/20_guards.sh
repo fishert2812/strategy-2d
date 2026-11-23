@@ -33,10 +33,12 @@ for id in $(grep -oE '\bL[0-9]{3}\b' lessons.md 2>/dev/null | sort -u); do
 done
 
 # 6. Не больше 300 строк кода в PR (метка big снимает предел; CI передаёт PR_LABELS).
-if git rev-parse -q --verify origin/main >/dev/null && [[ "${PR_LABELS:-}" != *big* ]]; then
-  lines=$(git diff --numstat origin/main...HEAD -- '*.gd' '*.sh' '*.py' '*.yml' | awk '{s+=$1+$2} END {print s+0}')
+# Считаем против базы PR: в CI это GITHUB_BASE_REF (PR цепочкой стоит на другой ветке), иначе main.
+base=origin/${BASE_REF:-${GITHUB_BASE_REF:-main}}
+if git rev-parse -q --verify "$base" >/dev/null && [[ "${PR_LABELS:-}" != *big* ]]; then
+  lines=$(git diff --numstat "$base"...HEAD -- '*.gd' '*.sh' '*.py' '*.yml' | awk '{s+=$1+$2} END {print s+0}')
   [ "$lines" -gt 300 ] && bad "в PR $lines строк кода, больше 300"
-  echo "  строк кода против main: $lines"
+  echo "  строк кода против ${base#origin/}: $lines"
 fi
 
 [ $fail -eq 0 ] && echo "  сторожа: все чисто"
