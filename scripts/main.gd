@@ -16,6 +16,13 @@ func _ready() -> void:
 		modes[m].text = "%s\n%s" % [info[m].title, info[m].hint]
 		modes[m].custom_minimum_size = Vector2(ceilf(MIN_BUTTON * 7.8), ceilf(MIN_BUTTON * 2.2))
 		modes[m].pressed.connect(start.bind(m))
+	# Кто против тебя сегодня: первая партия — спокойный Хомяк, дальше по очереди.
+	var foe := Label.new()
+	foe.text = "Сегодня против тебя: %s" % Enemy.title(Enemy.upcoming())
+	foe.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	foe.add_theme_font_size_override("font_size", 40)
+	$Safe/Center/Box.add_child(foe)
+	$Safe/Center/Box.move_child(foe, 0)
 	SafeArea.apply($Safe)
 
 
