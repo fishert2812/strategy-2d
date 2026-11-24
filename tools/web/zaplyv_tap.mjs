@@ -60,6 +60,16 @@ await p.evaluate(() => [...document.querySelectorAll('#ring .slot')].find(s => s
 await p.waitForTimeout(300);
 say(await p.evaluate(() => { const i = document.querySelector('#gcard .gicon'); return !!i && i.getBoundingClientRect().width >= 60 && i.src.length > 3000; }), 'test_L021: в карточке гена — значок');
 if (await tap('#gon', '«Плыть дальше»')) { await p.waitForTimeout(500); say(!(await on('genome')) && await p.evaluate(() => zaplyvWorld().stats.time) > t0, '«Плыть дальше» закрывает геном, мир идёт'); }
+// test_L023 (Б16, Роман: «куда я его могу поставить чтобы игра вырезала…»): флажок тянут пальцем на место — игра вырезает кусок кадра и спрашивает словами.
+{ const fb = await p.locator('#flag').boundingBox(), sx = fb.x + fb.width / 2, sy = fb.y + fb.height / 2; m = await marks();
+  await p.mouse.move(sx, sy); await p.mouse.down(); for (let i = 1; i <= 10; i++) await p.mouse.move(sx + (195 - sx) * i / 10, sy + (430 - sy) * i / 10);
+  const frozen = await p.evaluate(() => { const t = zaplyvWorld().stats.time; return new Promise(r => setTimeout(() => r(zaplyvWorld().stats.time === t), 300)); });
+  await p.mouse.up(); await p.waitForTimeout(400);
+  const img = await p.evaluate(() => document.getElementById('fsheet').classList.contains('on') ? document.getElementById('fimg').src.length : 0);
+  say(frozen && img > 3000, 'test_L023: флажок тянется на место, мир замер, кусок кадра вырезан (' + img + ' байт)');
+  await p.fill('#ftext', 'тут странно'); if (await tap('#fsave', '«Записать» отметку с картинкой')) {
+    const last = await p.evaluate(() => { const q = JSON.parse(localStorage.getItem('zaplyv.marks') || '[]'); return q[q.length - 1] || {}; });
+    say(await marks() === m + 1 && (last.text || '').includes('тут странно') && (last.img || '').length > 3000 && !(await on('fsheet')), 'test_L023: отметка со словами и картинкой записана, лист закрыт'); } }
 // Выбор дочки при делении: касание самой дочки берёт её ген.
 await p.evaluate(() => { const w = zaplyvWorld(), all = Object.keys(w.cfg.genes).filter(g => !w.genes[g]); w.choice = all.slice(0, 2); });
 await p.waitForTimeout(600);

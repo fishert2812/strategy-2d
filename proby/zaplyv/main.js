@@ -411,13 +411,47 @@ function flag(screen, btn) {
 async function send() {
   const text = message(marks);
   try {
-    if (navigator.share) await navigator.share({ text });
+    const files = []; for (const [i, m] of marks.entries()) if (m.img) try { files.push(new File([await (await fetch(m.img)).blob()], `ne_tak_${i + 1}.jpg`, { type: 'image/jpeg' })); } catch (_) {}
+    if (navigator.share && files.length && navigator.canShare?.({ files })) await navigator.share({ text, files }); // картинки мест — вместе со словами
+    else if (navigator.share) await navigator.share({ text });
     else { await navigator.clipboard.writeText(text); say('Скопировано — вставь в чат', 2200); }
     marks = []; try { localStorage.removeItem('zaplyv.marks'); } catch (_) {}
     showMarks();
   } catch (e) { if (e?.name !== 'AbortError') say('Не отправилось — отметки целы, попробуй ещё', 2200); } /* отменил отправку — отметки остаются */
 }
-$('flag').onclick = e => flag('игра', e.currentTarget);
+$('flag').onclick = e => { if (fdrag.used) { fdrag.used = false; return; } flag('игра', e.currentTarget); };
+// Флажок пальцем (Б16, Роман 24.11: «куда я его могу поставить чтобы игра вырезала…»): тянешь флажок на то место, где не так,
+// мир замирает, игра вырезает кусок кадра вокруг флажка и спрашивает словами, что не так. Отметка — строка с моментом и картинка.
+let frozen = false; const fdrag = { on: false, used: false, x0: 0, y0: 0 };
+$('flag').addEventListener('pointerdown', e => { if (ended || paused) return; fdrag.on = true; fdrag.drag = false; fdrag.x0 = e.clientX; fdrag.y0 = e.clientY; try { $('flag').setPointerCapture(e.pointerId); } catch (_) {} });
+$('flag').addEventListener('pointermove', e => {
+  if (!fdrag.on) return;
+  if (!fdrag.drag && Math.hypot(e.clientX - fdrag.x0, e.clientY - fdrag.y0) > 14) { fdrag.drag = true; frozen = true; $('fpin').hidden = false; }
+  if (fdrag.drag) { const f = $('fpin'); f.style.left = e.clientX + 'px'; f.style.top = e.clientY + 'px'; }
+});
+$('flag').addEventListener('pointerup', e => { if (!fdrag.on) return; fdrag.on = false; if (fdrag.drag) { fdrag.used = true; flagAt(e.clientX, e.clientY); } });
+$('flag').addEventListener('pointercancel', () => { fdrag.on = false; if (fdrag.drag) { $('fpin').hidden = true; frozen = false; } });
+function flagAt(cx, cy) { // вырезаем кусок кадра вокруг флажка: 220 точек, флажок в нём
+  $('fpin').hidden = true;
+  render(paint.t || performance.now() / 1000); // свежий кадр в буфере — сразу снимаем
+  const k = canvas.width / innerWidth, S = cfg.flag_cut, c = document.createElement('canvas'); c.width = c.height = 320;
+  const x0 = Math.max(0, Math.min(innerWidth - S, cx - S / 2)), y0 = Math.max(0, Math.min(innerHeight - S, cy - S / 2));
+  const g = c.getContext('2d'); g.drawImage(canvas, x0 * k, y0 * k, S * k, S * k, 0, 0, 320, 320);
+  const fx = (cx - x0) / S * 320, fy = (cy - y0) / S * 320; g.strokeStyle = '#ffb48a'; g.lineWidth = 3; g.beginPath(); g.arc(fx, fy, 22, 0, 6.283); g.stroke(); // где стоял флажок
+  const [ux, uy] = unit({ clientX: cx, clientY: cy }), wp = toWorld(ux, uy);
+  FLAG.img = c.toDataURL('image/jpeg', 0.8); FLAG.wp = wp;
+  $('fimg').src = FLAG.img; $('ftext').value = ''; $('fsheet').classList.add('on');
+}
+const FLAG = {};
+$('fsave').onclick = () => {
+  const words = $('ftext').value.trim(), now = new Date(), at = `${now.getDate()}.${String(now.getMonth() + 1).padStart(2, '0')} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+  let text; try { text = mark(world, cards, $('ver').textContent.replace('Заплыв ', ''), 'флажок на месте', cfg.flag_pin_r, FLAG.wp); } catch (e) { text = $('ver').textContent + ' · флажок на месте'; }
+  marks.push({ at, text: (words ? '«' + words + '» · ' : '') + text, img: FLAG.img });
+  try { localStorage.setItem('zaplyv.marks', JSON.stringify(marks)); } catch (_) { marks[marks.length - 1].img = ''; try { localStorage.setItem('zaplyv.marks', JSON.stringify(marks)); } catch (_) {} } // место кончилось — оставим слова
+  showMarks(); fclose(); const n = $('note'); n.textContent = `⚑ Отметка ${marks.length} записана с картинкой · отправить — на паузе`; n.classList.add('on'); clearTimeout(noteT); noteT = setTimeout(() => n.classList.remove('on'), 2200);
+};
+const fclose = () => { $('fsheet').classList.remove('on'); frozen = false; };
+$('fcancel').onclick = fclose;
 $('gflag').onclick = $('gno').onclick = e => flag('геном', e.currentTarget);
 $('eno').onclick = e => flag('экран гибели', e.currentTarget);
 $('esend').onclick = send;
@@ -834,7 +868,7 @@ function frame(now) {
   if (play) { acc.push(now - last); if (acc.length > 300) acc.shift(); }
   last = now;
   const t0 = performance.now();
-  if (!ended && !paused) tick(dt);
+  if (!ended && !paused && !frozen) tick(dt);
   if (paused && world.me.length) { // клетка — в середину кольца, крупно
     const c = world.me.reduce((b, a) => a.m > b.m ? a : b), [fx, fy] = genome.center(), k = Math.min(1, dt * 4);
     const z = cfg.genome_zoom * genome.inner() * W / innerWidth / (25 * Math.pow(c.m, 0.3)); // полклетки ≈ 25·m^0.3 единиц мира

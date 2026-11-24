@@ -41,6 +41,7 @@ ONLY=L019 case_ "test_L019: существо без места в Альмана
 case_ "test_L017: невидимый слой поверх кнопок «Заплыва»" 52_zaplyv_tap.sh red "sed -i 's|<div id=\"note\"|<div style=\"position:fixed;inset:0;z-index:99\"></div>&|' proby/zaplyv/index.html"
 case_ "test_L017: флажок молчит после касания" 52_zaplyv_tap.sh red "sed -i 's|n.classList.add(.on.);|/* нет отклика */|' proby/zaplyv/main.js"
 ONLY=L021 case_ "test_L021: значки генов пропали" 52_zaplyv_tap.sh red "sed -i 's/^function icon(g) {/function icon(g) { return String();/' $Z/main.js"
+ONLY=L023 case_ "test_L023: флажок не вырезает кадр" 52_zaplyv_tap.sh red "sed -i 's/^function flagAt(cx, cy) {/function flagAt(cx, cy) { return;/' $Z/main.js"
 ONLY=L020 case_ "test_L020: зелёные жгутики" 50_zaplyv.sh red "sed -i 's/\"color\": \[0.74, 0.87, 1.0\]/\"color\": [0.3, 1.0, 0.4]/' $Z/data.json"
 # Остановка: открытая issue stop делает PR красным, метка fix пропускает.
 GITHUB_BASE_REF=main STOP_ISSUES="#0 проба" PR_LABELS= bash tools/checks/05_stop.sh >/dev/null 2>&1 &&
