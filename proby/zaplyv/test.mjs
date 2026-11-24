@@ -10,6 +10,7 @@ import { entries, shelf, page } from './almanah.js';
 import * as karta from './karta.js';
 import { readFileSync } from 'node:fs';
 import { night } from './night.js';
+import { M } from './mutacii.js';
 const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
 let bad = 0;
 // ONLY=L014 — запустить только проверки с этим номером урока (так selftest ломает игру и ждёт красного у нужной проверки).
@@ -468,7 +469,7 @@ check('геном на паузе: у каждого гена из игры св
   const blink = Object.keys(cfg.genes).filter(g => JSON.stringify(look({ [g]: true }, cfg.look)) === JSON.stringify(look({}, cfg.look)));
   console.log('    паспорт: своих мест', own.length, 'в дугах', G.arcs.map(a => a.slots.length).join('/'), '| без места', lost.join(',') || '—',
     '| быстрый рост:', c.have, c.sub, '| хемотаксис:', s.have, s.sub, '| ген без вида на теле', blink.join(',') || '—');
-  if (own.length !== 12 || G.arcs.some(a => a.slots.length !== 4)) return 'на кольце не 12 мест по 4';
+  if (own.length < 12 || own.some(p => p.a1 - p.a0 < 15)) return 'на кольце меньше 12 мест или место уже 15° — значок не влезет'; // мест столько, сколько генов (шаг 360/N)
   if (lost.length) return 'нет места на кольце: ' + lost;
   if (!c.have || !c.sub.includes('от дочки') || c.lines[0][1] !== BOOK.rrn.daet) return 'полученный ген не показан включённым';
   if (s.have || !s.lines.some(l => l[0] === 'Откуда')) return 'невыбранная дочка показана как полученная';
@@ -629,7 +630,7 @@ check('test_L020: жгутики в цвете оболочки — светло
 });
 
 // «Ночь рода» (design/zaplyv_noch_roda_spec.md, книга В18–В22): гибель не стирает всё — за ночь род прорывается через полосы опасности.
-const NJ = JSON.parse(readFileSync(new URL('./night.json', import.meta.url))), ALL = Object.keys(cfg.genes);
+const NJ = JSON.parse(readFileSync(new URL('./night.json', import.meta.url))), ALL = Object.keys(cfg.genes).filter(g => !(g in M.genes)); // мутации режима «Мутации» ночь не знает
 check('test_night_breakthrough: род без генов против фагов — выше всех доходит ветка с замком или CRISPR', () => {
   const o = night({ genes: [], n: 1 }, 'phage', 1, NJ, ALL).run(), res = o.result(), b = res.picks.find(p => p.id === res.best);
   console.log(`    паспорт: поколений ${o.gen}, веток ${o.branches.length}, лучшая дошла до ряда ${b.top} из ${o.rows} (полоса ${b.band + 1} из ${NJ.bands.length}), гены: ${b.genes.join(', ') || 'нет'}, отличий ${b.diff}`);
@@ -809,7 +810,8 @@ check('умения: обещание = поведение [flagellum] [fast] �
   if (!(b1 > b0)) return 'быстрый рост не худеет быстрее без еды';
 });
 check('test_L024: у каждого умения есть тест «сделал → случилось» с [ключом] в названии', () => {
-  const none = Object.keys(cfg.genes).filter(k => !TITLES.some(t => t.includes('[' + k + ']')));
+  const mut = readFileSync(new URL('./test_mutacii.mjs', import.meta.url), 'utf8'); // новые мутации проверяет свой файл (шаг zaplyv_mut)
+  const none = Object.keys(cfg.genes).filter(k => !TITLES.some(t => t.includes('[' + k + ']')) && !mut.includes("check('[" + k + ']'));
   console.log('    паспорт: умений без теста-обещания', none.length, none.join(', '));
   if (none.length) return 'обещание умения не проверено поведением: ' + none;
 });
