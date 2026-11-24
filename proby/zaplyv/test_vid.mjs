@@ -87,5 +87,20 @@ check('test_vid_ill: заражённая фагом клетка мутнеет
   const murk = sick.filter(v => Math.abs(v[3] - vid.V.ill.color[0]) < 0.01 && Math.abs(v[4] - vid.V.ill.color[1]) < 0.01).length;
   return murk >= 8 ? '' : 'муть внутри не видна: ' + murk + ' точек';
 });
+check('test_vid_eat_melts: съеденное зерно тает на месте, а не летит в рот', () => {
+  const C = { r: 1, g: 1, b: 1 }, fx = new Fx({}, [C, C, C]); fx.reset(); fx.on('eat', 30, 40, 2);
+  const size = () => { let r = []; const b = { put: (x, y, rr) => r.push([x, y, rr]) }; fx.drawOver({ scr: (x, y) => [x, y], z: 1, time: 0, glow: b, ink: b }); return r[0]; };
+  const a = size(); fx.step(0.25); const b = size();
+  if (!a || !b) return 'зерна не видно';
+  if (a[0] !== 30 || b[0] !== 30 || b[1] !== 40) return 'зерно сдвинулось';
+  if (b[2] >= a[2]) return 'зерно не уменьшается';
+  fx.step(0.3); return fx.melts.length ? 'зерно не растаяло за ' + vid.V.eat.melt + ' с' : '';
+});
+check('test_vid_zap_instant: гарпун бьёт мгновенно — штрих гаснет за доли секунды, чехол сжимается', () => {
+  const C = { r: 1, g: 1, b: 1 }, fx = new Fx({}, [C, C, C]); fx.reset(); fx.on('zap', 0, 0, 100, 0);
+  const strokes = () => { let n = 0; const b = { put: (x, y) => { if (x > 20 && x < 90 && Math.abs(y) < 1) n++; } }; fx.drawUnder({ scr: (x, y) => [x, y], z: 1, time: 0, glow: b, ink: b }); return n; };
+  const first = strokes(); for (let i = 0; i < 9; i++) strokes(); // drawUnder сам продвигает гарпун на 1/60 с
+  return first < 5 ? 'удара не видно' : strokes() ? 'штрих висит дольше ' + vid.V.zap.flash + ' с — это летящий снаряд, а не выстрел' : '';
+});
 console.log(bad ? 'ВИД: провалов ' + bad : 'ВИД: все проверки прошли');
 process.exit(bad ? 1 : 0);
