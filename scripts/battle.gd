@@ -24,6 +24,8 @@ var taps := {"touch": 0, "mouse": 0, "emulated": 0}
 var _last := ""
 var _units := {}
 var _lines := {}
+## Тропа, которая после отпускания подтягивается в чистую форму: казарма и линия под пальцем.
+var _settle := {}
 
 @onready var world: Node2D = $World
 @onready var things: Node2D = $World/Things
@@ -120,7 +122,7 @@ func _sync_paths() -> void:
 	var seen := {}
 	for b in sim.buildings:
 		var pts: Array = [b.pos] + b.route if b.kind == "barracks" else [b.pos, b.target.get("pos")]
-		if pts.size() < 2 or pts[-1] == null or b.target.get("gold", 1) <= 0 or b.target.get("hp", 1) <= 0 or is_same(_drag.get("from"), b):
+		if pts.size() < 2 or pts[-1] == null or b.target.get("gold", 1) <= 0 or b.target.get("hp", 1) <= 0 or is_same(_drag.get("from"), b) or is_same(_settle.get("from"), b):
 			continue
 		seen[b.id] = true
 		if not _lines.has(b.id):
@@ -181,7 +183,35 @@ func _stroke(color: Color, width: float) -> Line2D:
 	line.default_color = color
 	line.begin_cap_mode = Line2D.LINE_CAP_ROUND
 	line.end_cap_mode = Line2D.LINE_CAP_ROUND
+	line.joint_mode = Line2D.LINE_JOINT_ROUND
+	line.antialiased = true
 	return line
+
+
+## Отпустил — нарисованная линия за look.route_settle с плавно подтягивается в чистую форму тропы.
+func _settle_line(d: Dictionary, ok: bool) -> void:
+	if not _settle.is_empty():
+		_settle.line.queue_free()
+	_settle = d if ok else {}
+	if not ok:
+		d.line.queue_free()
+		return
+	var from := _resample(Array(d.line.points), 64)
+	var to := _resample([d.from.pos] + d.from.route, 64)
+	var t := create_tween()
+	t.tween_method(func(k): _points(d.line, range(64).map(func(i): return from[i].lerp(to[i], k))), 0.0, 1.0, look.route_settle).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	t.tween_callback(func():
+		if is_same(_settle, d):
+			_settle = {}
+		d.line.queue_free())
+
+
+## n точек на ломаной через равные доли длины.
+static func _resample(pts: Array, n: int) -> Array:
+	var c := Curve2D.new()
+	for p in pts:
+		c.add_point(p)
+	return range(n).map(func(i): return c.sample_baked(c.get_baked_length() * i / (n - 1.0)))
 
 
 ## Круг обстрела башни: тонкая светлая линия радиусом tower.range.
@@ -269,9 +299,8 @@ func _move(pos: Vector2) -> void:
 		var at := world.to_local(pos)
 		if _drag.trail.is_empty() or _drag.trail[-1].distance_to(at) >= sim.cfg.route.step:
 			_drag.trail.append(at)
-		# Тропа казармы — натянутая нитка уже под пальцем: что видно сейчас, то и ляжет при отпускании.
-		var shown: Array = sim.thread(_drag.from, _drag.trail + [at]).route if _drag.from.kind == "barracks" else [at]
-		_points(_drag.line, [_drag.from.pos] + shown)
+		# Под пальцем — живая линия ровно по пальцу, без пересчёта: чистая форма считается при отпускании.
+		_points(_drag.line, [_drag.from.pos] + (_drag.trail + [at] if _drag.from.kind == "barracks" else [at]))
 	elif _drag.has("what"):
 		if pos.distance_to(_drag.start) >= TAP:
 			_drag.moved = true
@@ -313,7 +342,7 @@ func _release(pos: Vector2) -> void:
 	var tap: bool = pos.distance_to(_drag.start) < TAP and not _drag.has("moved")
 	var d := _drag
 	_drag = {}
-	if d.has("line"):
+	if d.has("line") and not (d.has("trail") and d.from.kind == "barracks"):
 		d.line.queue_free()
 	if d.has("tap"):
 		d = _picked
@@ -323,6 +352,8 @@ func _release(pos: Vector2) -> void:
 		return
 	if d.has("from"):
 		var ok := sim.set_route(d.from, d.trail + [at]) if d.has("trail") and d.from.kind == "barracks" else sim.set_path(d.from, at)
+		if d.has("trail") and d.from.kind == "barracks":
+			_settle_line(d, ok)
 		if not ok and (tap or d.from.pos.distance_to(at) > 60):
 			hint("тяни тропу к залежи" if d.from.kind == "camp" else "тяни тропу дальше от казармы")
 		return

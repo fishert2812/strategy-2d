@@ -1,6 +1,6 @@
 extends RefCounted
-## Натянутая нитка (design/natyanutaya_nitka.md). Роман 24.11.2026: «Какой смысл ты рисуешь тропу если она
-## все равно становится прямой?» Нитка цепляется за печенье с той стороны, где шёл палец.
+## Тропа по пальцу. Роман 24.11.2026: «ты рисуешь она просто выпрямлять после того как ты нарисовал. Рисуется
+## плавно не ломано красиво профессионально». Чистая форма огибает печенье с той стороны, где шёл палец.
 
 const BARRACKS := Vector2(360, 900 - 140)
 
@@ -36,8 +36,7 @@ func _around(cookie: Vector2, side: float) -> Array:
 	return trail
 
 
-## Урок L006: обход печенья слева и справа — нитка с той же стороны, не заходит в круг, длиннее прямой,
-## а нитка под пальцем на последнем кадре та же, что легла при отпускании.
+## Урок L006: обход печенья слева и справа — тропа с той же стороны, не заходит в круг, длиннее прямой.
 func test_L006() -> String:
 	for side in [-1.0, 1.0, 0.0]:
 		var made := _sim()
@@ -46,31 +45,44 @@ func test_L006() -> String:
 		var cookie: Vector2 = sim.deposits[5].pos
 		# Третий след — дуга справа с поворотом в чистом поле (так вёл палец игрок).
 		var trail := _around(cookie, side) if side != 0.0 else [Vector2(500, 560), Vector2(500, 460), Vector2(440, 330), Vector2(360, 130)]
-		var shown: Array = sim.thread(b, trail).route
 		if not sim.set_route(b, trail):
 			return "обход %s: тропа не легла" % side
-		if b.route != shown:
-			return "обход %s: под пальцем %s, а легла %s" % [side, shown, b.route]
 		var r: float = sim.cfg.deposit_r + sim.cfg.route.margin
 		if _closest(b.route, b.pos, cookie) < r - 1.0:
 			return "обход %s: нитка зашла в печенье на %.0f из %.0f" % [side, _closest(b.route, b.pos, cookie), r]
-		# Углы нитки только там, где она упирается в печенье, а не там, где повернул палец.
-		for p in b.route.slice(0, -1):
-			if not sim.solids().any(func(c): return p.distance_to(c[0]) < c[1] + 6.0):
-				return "обход %s: угол нитки в воздухе в %s" % [side, p]
 		var mid: Vector2 = b.route.reduce(func(a, p): return p if absf(p.y - cookie.y) < absf(a.y - cookie.y) else a, b.route[0])
 		if side != 0.0 and signf(mid.x - cookie.x) != side:
 			return "обход %s: нитка легла с другой стороны печенья (%s)" % [side, mid]
 		var straight: float = b.pos.distance_to(b.route[-1])
 		var length: float = _length([b.pos] + b.route)
-		if side != 0.0 and length < straight + 4.0 or length > _length([b.pos] + trail) + 1.0:
-			return "обход %s: длина нитки %.0f при прямой %.0f и следе %.0f" % [side, length, straight, _length([b.pos] + trail)]
+		var drawn := _length([b.pos] + trail + [b.route[-1]])  # конец прилипает к дому врага
+		if side != 0.0 and length < straight + 4.0 or length > drawn + 1.0:
+			return "обход %s: длина тропы %.0f при прямой %.0f и следе %.0f" % [side, length, straight, drawn]
+	return ""
+
+
+## Урок L007, форма: после отпускания дрожь пальца уходит, нарочные повороты остаются, углов нет —
+## тропа идёт плавно и не дальше round_r + jitter от нарисованного там, где нет печенья.
+func test_L007() -> String:
 	var made := _sim()
-	var wave := []
-	for i in range(1, 30):
-		wave.append(Vector2(470 + 20 * sin(i * 1.3), 740 - i * 9))
-	made[0].set_route(made[1], wave)
-	return "" if made[1].route.size() == 1 else "в чистом поле нитка не прямая: %s" % [made[1].route]
+	var sim: Sim = made[0]
+	var trail := []  # змейка в чистом поле справа: два нарочных поворота и дрожь пальца
+	for i in range(1, 60):
+		var y := 740.0 - i * 8.0
+		trail.append(Vector2(560.0 + (90.0 if y < 560 and y > 400 else 0.0) + 6.0 * sin(i * 2.1), y))
+	sim.set_route(made[1], trail)
+	var pts: Array = [made[1].pos] + made[1].route
+	for i in range(1, pts.size() - 1):
+		var turn := rad_to_deg(absf((pts[i] - pts[i - 1]).angle_to(pts[i + 1] - pts[i])))
+		if turn > sim.cfg.route.max_turn:
+			return "угол тропы %.0f° в %s (можно до %d°)" % [turn, pts[i], sim.cfg.route.max_turn]
+	for p in trail:
+		var gap := INF
+		for i in pts.size() - 1:
+			gap = minf(gap, p.distance_to(Geometry2D.get_closest_point_to_segment(p, pts[i], pts[i + 1])))
+		if gap > sim.cfg.route.round_r + sim.cfg.route.jitter:
+			return "тропа ушла от нарисованного на %.0f в %s" % [gap, p]
+	return "" if pts.any(func(p): return p.x > 630) else "нарочный поворот пальца пропал: %s" % [pts]
 
 
 ## След прямо сквозь печенье: нитка внутрь не заходит, и отряд после свистка по ней не входит в круг.
