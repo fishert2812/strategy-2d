@@ -32,6 +32,18 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 #card p, #path p { margin: 0 0 6px; font-size: 15px; line-height: 1.35; text-align: left; opacity: 0.85; }
 #cfact::before { content: "Удивительно: "; font-weight: 600; }
 #ctip { color: #9ff5d8; }
+#cabinet { background: rgba(2, 4, 10, 0.94); justify-content: flex-start; overflow-y: auto; padding: calc(env(safe-area-inset-top) + 24px) 20px calc(env(safe-area-inset-bottom) + 24px); gap: 8px; }
+#shelf { display: flex; flex-direction: column; gap: 10px; width: min(380px, 100%); }
+.cardk { border-radius: 18px; padding: 12px 16px; background: rgba(120, 220, 255, 0.07); border: 1px solid rgba(120, 220, 255, 0.25); }
+.cardk h2 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+.cardk p { margin: 0 0 6px; font-size: 15px; line-height: 1.35; text-align: left; opacity: 0.85; }
+.cardk .f::before { content: "Удивительно: "; font-weight: 600; }
+.cardk.no { opacity: 0.45; border-style: dashed; }
+button.ghost { background: transparent; min-height: 52px; font-size: 18px; }
+#toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 44px); transform: translate(-50%, -10px); padding: 8px 16px; border-radius: 16px;
+  background: rgba(120, 220, 255, 0.16); border: 1px solid rgba(120, 220, 255, 0.4); font-size: 15px; white-space: nowrap;
+  opacity: 0; transition: opacity 0.3s, transform 0.3s; pointer-events: none; }
+#toast.on { opacity: 0.95; transform: translate(-50%, 0); }
 button { width: min(340px, 86vw); min-height: 64px; border-radius: 22px; border: 1px solid rgba(120, 255, 210, 0.45);
   background: rgba(60, 255, 200, 0.12); color: #fff; font: inherit; font-size: 21px; padding: 10px 16px; }
 button small { display: block; font-size: 15px; opacity: 0.7; margin-top: 3px; }
@@ -48,7 +60,10 @@ button:active { background: rgba(60, 255, 200, 0.3); }
   <div id="card"><div id="who"></div><h2 id="cname"></h2><p id="ctext"></p><p id="cfact"></p><p id="ctip"></p></div>
   <div id="path"><h3>Твой путь</h3><p id="stats"></p></div>
   <button id="again">Плыть снова</button>
+  <button id="cab" class="ghost"></button>
 </div>
+<div class="layer" id="cabinet"><h1>Кабинет</h1><p>Кого ты встречал в капле</p><div id="shelf"></div><button id="back">Назад</button></div>
+<div id="toast"></div>
 <script type="module" src="main.js"></script>
 </body>
 </html>

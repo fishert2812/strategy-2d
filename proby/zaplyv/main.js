@@ -136,6 +136,34 @@ function start() {
   $('end').classList.remove('on');
 }
 $('again').onclick = start;
+
+// Кабинет: кого встречал, карточки с настоящими фактами. Память — в этом браузере (только удобство).
+const KEYS = Object.keys(cards).filter(k => k !== '_');
+let met = new Set(['me']);
+try { for (const k of JSON.parse(localStorage.getItem('zaplyv.met') || '[]')) met.add(k); } catch (_) {}
+const saveMet = () => { try { localStorage.setItem('zaplyv.met', JSON.stringify([...met])); } catch (_) {} };
+const cabLabel = () => { $('cab').textContent = `Кабинет · ${KEYS.filter(k => met.has(k)).length} из ${KEYS.length}`; };
+cabLabel();
+$('cab').onclick = () => {
+  const shelf = $('shelf'); shelf.innerHTML = '';
+  for (const k of KEYS) {
+    const c = cards[k], d = document.createElement('div');
+    d.className = 'cardk' + (met.has(k) ? '' : ' no');
+    if (met.has(k)) { d.innerHTML = '<h2></h2><p class="t"></p><p class="f"></p>'; d.querySelector('h2').textContent = c.name; d.querySelector('.t').textContent = c.text; d.querySelector('.f').textContent = c.fact; }
+    else d.innerHTML = '<h2>???</h2><p>Ещё не встречал. Плыви дальше.</p>';
+    shelf.appendChild(d);
+  }
+  $('cabinet').classList.add('on');
+};
+$('back').onclick = () => $('cabinet').classList.remove('on');
+let toastT = 0;
+function meet(k) { // первая встреча: на секунду имя у края экрана, без паузы и без нажатий
+  if (met.has(k) || !cards[k]) return;
+  met.add(k); saveMet(); cabLabel();
+  $('toast').textContent = 'Новая карточка · ' + cards[k].name; $('toast').classList.add('on');
+  clearTimeout(toastT); toastT = setTimeout(() => $('toast').classList.remove('on'), 1600);
+  beep(990, 0.12, 0.03, 'sine', 1.3);
+}
 start();
 
 const toWorld = (sx, sy) => ({ x: (sx - W / 2) / view.z + view.x, y: (sy - H / 2) / view.z + view.y });
@@ -192,6 +220,7 @@ function events() {
   for (const [k, x, y] of world.events) {
     if (k === 'eat') { ring(x, y, 2, 40); const n = performance.now(); if (n - lastEat > 60) { beep(300 + Math.random() * 200, 0.09, 0.04); lastEat = n; } }
     if (k === 'split') ring(x, y, 0, 70);
+    if (k === 'meet') meet(x);
     if (k === 'stick') { ring(x, y, 1, 22); beep(520, 0.06, 0.04, 'square'); } // прилип фаг: резко развернись — стряхнёшь
     if (k === 'shake') { ring(x, y, 0, 30); beep(700, 0.07, 0.03); }
     if (k === 'cut') ring(x, y, 2, 26);
