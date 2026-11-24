@@ -2,3 +2,4 @@
 out/
 version.txt
 *.tmp
+__pycache__/
