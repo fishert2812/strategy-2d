@@ -31,12 +31,13 @@ const { webkit, devices } = require('playwright');
   await p.goto(process.argv[2], { timeout: 60000 });
   await p.waitForTimeout(20000);
   await p.screenshot({ path: 'webkit.png', timeout: 20000 }).catch(e => console.log('снимок не снят', e.message));
-  await p.touchscreen.tap(195, 422);
-  await p.waitForTimeout(3000);
+  // Касание «Играть» (середина экрана 390×664 у iPhone 13) и 28 с самой партии: падения бывают только в партии.
+  await p.touchscreen.tap(195, 332);
+  await p.waitForTimeout(28000);
   await b.close();
   if (bad) { console.log('ПАСПОРТ: игра упала, ошибок ' + bad); process.exit(1); }
   if (!started) { console.log('ПАСПОРТ: до игры не дошёл (движок не запустился)'); process.exit(2); }
   console.log('ПАСПОРТ: дошёл до игры, ошибок 0'); process.exit(0);
 })();
 JS
-timeout -k 10 240 node t.js "$URL/" || { rc=$?; [ $rc -ge 124 ] && echo "ПАСПОРТ: WebKit завис, до конца не дошёл"; exit 1; }
+timeout -k 10 300 node t.js "$URL/" || { rc=$?; [ $rc -ge 124 ] && echo "ПАСПОРТ: WebKit завис, до конца не дошёл"; exit 1; }
