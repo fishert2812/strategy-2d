@@ -649,7 +649,8 @@ addEventListener('error', () => probe.errors++);
 let last = performance.now(), acc = [], js = [];
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
-  acc.push(now - last); if (acc.length > 300) acc.shift();
+  const play = !ended; // замер «средний кадр» — только пока плывёшь; экран гибели в него не подмешивается
+  if (play) { acc.push(now - last); if (acc.length > 300) acc.shift(); }
   last = now;
   const t0 = performance.now();
   if (!ended) tick(dt);
@@ -657,6 +658,10 @@ function frame(now) {
   rings = rings.filter(r => r.t < 0.6);
   shake = Math.max(0, shake - dt * 0.9);
   sway = [Math.sin(now / 1000 * 5) * 6 * shake, Math.sin(now / 1000 * 3.7 + 1) * 4 * shake];
+  // Экран гибели или кабинет закрыли мир: кадр не перерисовываем (раньше мир под ними рисовался дальше, и в WebKit без видеокарты кадр рос с 27 до 50 мс).
+  const covered = $('end').classList.contains('on') || $('cabinet').classList.contains('on');
+  probe.covered = covered;
+  if (covered) { probe.frames++; requestAnimationFrame(frame); return; }
   U.time.value = now / 1000;
   paint(now / 1000);
   if (!ended) { js.push(performance.now() - t0); if (js.length > 300) js.shift(); }
@@ -670,7 +675,7 @@ function frame(now) {
   probe.frames++; probe.cells = world.me.length;
   probe.js = js.reduce((s, v) => s + v, 0) / Math.max(js.length, 1); probe.jsWorst = Math.max(0, ...js.slice(5)); probe.path = Math.max(probe.path || 0, world.stats.path);
   probe.dots = world.food.length + world.prey.length + world.phages.length;
-  probe.worst = Math.max(...acc.slice(5)); probe.avg = acc.reduce((s, v) => s + v, 0) / acc.length;
+  probe.worst = Math.max(...acc.slice(5)); probe.avg = acc.reduce((s, v) => s + v, 0) / Math.max(acc.length, 1); probe.ended = ended;
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
