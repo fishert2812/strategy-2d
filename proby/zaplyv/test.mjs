@@ -3,6 +3,7 @@ import { World, radius } from './sim.js';
 import { Stick } from './controls.js';
 import { follow } from './soft.js';
 import { look } from './look.js';
+import { whip } from './whip.js';
 import { layout, card } from './genome.js';
 import { mark, message } from './feedback.js';
 import { readFileSync } from 'node:fs';
@@ -541,6 +542,18 @@ check('test_L014: бот-путешественник за 4 заплыва вс
   const miss = keys.filter(k => !met.has(k));
   console.log('    паспорт: встретил', keys.filter(k => met.has(k)).length, 'из', keys.length, '| не встретил', miss.join(',') || '—');
   if (miss.length) return 'в мире не встретились: ' + miss.join(', ');
+});
+
+check('жгутики (Роман 24.11: «реалистичную физику жгутиков в работе и в покое, переход плавно»): на ходу пучок собирается за полсекунды, в кувырке за долю секунды расходится веером, в покое расходятся; ни одно состояние и скорость вращения не прыгают за кадр', () => {
+  const F = { b: 0, fan: 0, ph: 0, om: 3, t: 0 }, S = cfg.flag, beat = cfg.look.beat[0], dt = 1 / 60; let jump = 0, last = { ...F };
+  const go = (mode, sec) => { for (let t = 0; t < sec; t += dt) { whip(F, mode, dt, beat, S); jump = Math.max(jump, Math.abs(F.b - last.b), Math.abs(F.fan - last.fan), Math.abs(F.om - last.om) / beat); last = { ...F }; } return { ...F }; };
+  const run = go('run', 0.6), tum = go('tumble', 0.15), back = go('run', 0.6), rest = go('rest', 2);
+  console.log('    паспорт: пучок через 0.6 с хода', run.b.toFixed(2), '| веер через 0.15 с кувырка', tum.fan.toFixed(2), '| снова пучок через 0.6 с', back.b.toFixed(2), 'веер', back.fan.toFixed(2), '| в покое 2 с пучок', rest.b.toFixed(2), 'вращение', rest.om.toFixed(1), '| наибольший шаг за кадр', jump.toFixed(3));
+  if (run.b < 0.7) return 'пучок не собирается на ходу';
+  if (tum.fan < 0.8) return 'в кувырке пучок не расходится';
+  if (back.fan > 0.3 || back.b < 0.85) return 'после кувырка пучок не собирается снова';
+  if (rest.b > 0.2 || rest.om > S.rest_spin + 1) return 'в покое нити не расходятся или крутятся как на ходу';
+  if (jump > 0.25) return 'скачок за кадр ' + jump.toFixed(2);
 });
 
 check('мир без краёв: уплыл далеко — вокруг снова еда, позади забыто', () => {
