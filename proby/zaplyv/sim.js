@@ -194,8 +194,11 @@ export class World {
         const dx = a.x - o.x, dy = a.y - o.y, d = len(dx, dy) || 0.01, rr = radius(a.m) + radius(o.m);
         if (d < rr) { a.vx += dx / d * (rr - d) * 6 * Math.min(1, 4 * dt); a.vy += dy / d * (rr - d) * 6 * Math.min(1, 4 * dt); }
       }
+      // Фимбрии (fimH): отпустил палец у водоросли — прилип. Липучка FimH держит тем крепче, чем сильнее рвёт поток: вихри и снос не тянут.
+      a.stuck = !!(this.genes.fim && !thrust && !(a.spore > 0) && this.plants.some(p => dist(a, p) < radius(a.m) + radius(p.m) + c.fim_reach));
+      if (a.stuck) { a.vx = 0; a.vy = 0; }
       a.x += a.vx * dt; a.y += a.vy * dt;
-      const [sx, sy] = this.suck(a.x, a.y); a.x += sx * dt; a.y += sy * dt; // течение воронок туфелек и вихрей сувоек
+      if (!a.stuck) { const [sx, sy] = this.suck(a.x, a.y); a.x += sx * dt; a.y += sy * dt; } // течение воронок туфелек и вихрей сувоек
       a.w = wrap(a.a - a0) / dt; // скорость поворота — по ней тело и пучок жгутиков гнутся дугой
       if (a.sick >= 0) a.sick -= dt;
       if (a.stun > 0) a.stun -= dt;
