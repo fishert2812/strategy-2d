@@ -9,7 +9,7 @@ import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 // по методике kniga/teksty.md, и машина это держит. test_L018 — случаи самопроверки ниже.
 const ZAPRET = ['crispr', 'персистер', 'плазмид', 'фимбри', 'рецептор', 'рибосом', 'хемотакс', 'колицин', 'конъюг', 'фаг', 'штамм', 'мутаци', 'фенотип', 'экспресс'];
 const POLYA = { imya: 3, daet: 12, priroda: 60 };
-const POLYA_S = { imya: 3, ubil: 6, kto: 18, sovet: 12, priroda: 60, korotko: 8, znachit: 8 }, OTN = ['opasen', 'eda', 'ne_tronet'], MOZHNO_BEZ = ['ubil', 'sovet'];
+const POLYA_S = { imya: 3, ubil: 6, kto: 18, sovet: 12, priroda: 60, korotko: 8, znachit: 8, boy: 8 }, OTN = ['opasen', 'eda', 'ne_tronet'], MOZHNO_BEZ = ['ubil', 'sovet', 'boy'];
 export function tekst(who, k, polya = POLYA) {
   const bad = [];
   for (const [f, max] of Object.entries(polya)) {
