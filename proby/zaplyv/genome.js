@@ -56,7 +56,7 @@ export function genomeScreen({ G, cfg, world, onOpen, onClose, onCabinet, onSend
       const t = el('text', { x: tx, y: ty + 5, 'text-anchor': 'middle', 'font-size': 14, 'font-style': 'italic', 'font-weight': have ? 700 : 400,
         fill: have && !p.plasmid ? '#02040a' : p.color, opacity: have ? 1 : 0.75, 'font-family': 'ui-monospace, Menlo, monospace' }, s);
       t.textContent = p.slot.gene;
-      el('circle', { cx: tx, cy: ty, r: 26, fill: 'transparent' }, s); // касание: не меньше 44 pt
+      el('circle', { cx: tx, cy: ty, r: 32, fill: 'transparent' }, s); // касание: не меньше 44 pt и в Safari, где кольцо мельче (урок L017); соседние места не налезают: между центрами 67
       s.onclick = e => { e.stopPropagation(); select(p.slot, p.arc); };
     }
     G.arcs.forEach((arc, k) => { // подписи дуг снаружи
