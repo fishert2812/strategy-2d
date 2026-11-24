@@ -68,3 +68,31 @@ func test_simple_player_wins() -> String:
 		return "простой игрок не победил за 10 минут (итог %.0f)" % t
 	print("    победа простого игрока на %d:%02d" % [int(-t) / 60, int(-t) % 60])
 	return ""
+
+
+## Зачем игроку: башня у вражеского печенья отбивает его — лагерь врага, потерявший трёх носильщиков
+## за свисток, уводит тропу на залежь мимо башен или затихает, а не кормит башню людьми (было 42 за 3 минуты).
+func test_tower_drives_enemy_camp_off_cookie() -> String:
+	var sim := Sim.new()
+	var enemy := Enemy.new(sim)
+	sim.gold[Sim.PLAYER] = 10000.0
+	sim.set_path(sim.build(Sim.PLAYER, "camp", Vector2(250, 830)), Vector2(170, 760))
+	var tower := {}
+	var camp := {}
+	var cookie := {}
+	for i in int(240 / DT):
+		enemy.step(DT)
+		sim.step(DT)
+		if tower.is_empty() and sim.time > 60:
+			camp = sim.of_side(Sim.ENEMY, "camp")[0]
+			cookie = camp.target
+			var mid: Vector2 = camp.pos.lerp(cookie.pos, 0.5)
+			for off in [Vector2(40, 80), Vector2(80, 40), Vector2(0, 100), Vector2(100, 80)]:
+				if tower.is_empty() and sim.can_build(Sim.PLAYER, "tower", mid + off) == "":
+					tower = sim.build(Sim.PLAYER, "tower", mid + off)
+			if tower.is_empty():
+				return "башню у лагеря врага не поставить"
+	if is_same(camp.target, cookie) or tower.get("kills", 0) > 20:
+		return "лагерь врага кормит башню людьми: сбито %d за 3 минуты (можно до 20), тропа на прежнее печенье: %s" % [tower.get("kills", 0), is_same(camp.target, cookie)]
+	print("    башня у лагеря врага за 3 минуты сбила %d, дальше лагерь затих или ушёл" % tower.kills)
+	return ""
