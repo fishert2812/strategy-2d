@@ -5,7 +5,7 @@ import { whip } from './whip.js';
 const flags = new Map(); // состояние жгутиков каждой клетки между кадрами (whip.js)
 export function whips(a, run, dt, beat, cfg, alive) {
   let F = flags.get(a.id); if (!F) { F = { b: run ? 1 : 0, fan: 0, ph: 0, om: 4, t: Math.random() * 9 }; flags.set(a.id, F); }
-  whip(F, a.tumble ? 'tumble' : run ? 'run' : 'rest', dt, beat, cfg.flag);
+  whip(F, a.tumble || a.snap > 0 ? 'tumble' : run ? 'run' : 'rest', dt, beat, cfg.flag); // щелчок разворота (ген snap, один хвост): нить на миг изгибается вбок, как в кувырке
   if (flags.size > 64) for (const k of flags.keys()) { if (!alive.some(c => c.id === k)) flags.delete(k); }
   return F;
 }
