@@ -78,3 +78,34 @@ func test_simple_player_wins() -> String:
 	if wins <= 6 or median > 600.0:
 		return "простой игрок: побед %d из 12, медиана конца %d с (ждали больше 6 и не дольше 600)" % [wins, median]
 	return ""
+
+
+## Зачем игроку (Роман 24.11: «игры одинаковые, бот ведет себя одинаково, не пользуется башнями»): у врага характер.
+## Простой игрок против спокойной Тихони (первая партия новичка) живёт хотя бы вдвое дольше, чем против Охотника;
+## Тихоня и Ползун ставят башни.
+func test_enemy_characters_play_differently() -> String:
+	var ends := {}
+	var towers := {}
+	for who in ["tihonya", "ohotnik", "polzun"]:
+		var sim := Sim.new()
+		var enemy := Enemy.new(sim, who)
+		var think := 0.0
+		while sim.winner == -1 and sim.time < 900:
+			enemy.step(DT)
+			sim.step(DT)
+			think += DT
+			if think >= 2.0:
+				think = 0.0
+				_rush(sim)
+			towers[who] = maxi(towers.get(who, 0), enemy.towers_built)
+		ends[who] = sim.time
+		if who == "tihonya" and sim.winner != Sim.PLAYER:
+			return "простой игрок не победил Тихоню (%d с)" % sim.time
+	print("    простой игрок: против Тихони %d с, против Охотника %d с; башен у Тихони %d, у Ползуна %d" % [ends.tihonya, ends.ohotnik, towers.tihonya, towers.polzun])
+	if ends.tihonya >= 600 or ends.tihonya < ends.ohotnik + 30:
+		return "против Тихони простой игрок не победил до 10:00 или партия не на полминуты длиннее, чем с Охотником: %d с и %d с" % [ends.tihonya, ends.ohotnik]
+	if towers.tihonya == 0 or towers.polzun == 0:
+		return "башни не ставит: Тихоня %d, Ползун %d" % [towers.tihonya, towers.polzun]
+	if Enemy.new(Sim.new()).who != "zadira" or JSON.parse_string(FileAccess.get_file_as_string(Enemy.CHARS)).order[0] != "tihonya":
+		return "первая партия не против Тихони или проверки не против Задиры"
+	return ""

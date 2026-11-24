@@ -382,6 +382,9 @@ func can_build(side: int, kind: String, pos: Vector2) -> String:
 	var field := _v(cfg.field)
 	if pos.x < 30 or pos.y < 30 or pos.x > field.x - 30 or pos.y > field.y - 30:
 		return "вне поля"
+	# Разбитая кружка — некому строить: в «Разгроме» сторона без кружки доживает тем, что стоит.
+	if of_side(side, "home").is_empty():
+		return "без кружки не строят"
 	if gold[side] < cfg.buildings[kind].cost:
 		return "мало крошек"
 	# Ставить можно где угодно на столе; нельзя только поверх другой постройки или печенья.

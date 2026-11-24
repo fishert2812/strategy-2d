@@ -47,7 +47,7 @@ func test_same_outcome_with_and_without_motion() -> String:
 	var battle := _battle()
 	var shown: Sim = battle.sim
 	var bare := Sim.new()
-	var enemy := Enemy.new(bare)
+	var enemy := Enemy.new(bare, battle.enemy.who)  # тот же характер врага, что на экране
 	for i in int(240 / DT):
 		battle._process(DT)
 		enemy.step(DT)

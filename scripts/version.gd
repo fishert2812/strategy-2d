@@ -21,3 +21,8 @@ static func number() -> String:
 ## Подпись в углу экрана: «Версия 0.21 · 3f2a9c1».
 static func label() -> String:
 	return "Версия %s · %s" % [number(), sha()]
+
+
+## Короткая подпись для шапки боя, где мало места: «0.21 · 3f2a9c1».
+static func short() -> String:
+	return "%s · %s" % [number(), sha()]
