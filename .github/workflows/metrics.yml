@@ -1,0 +1,22 @@
+# Раз в день: черновики уроков, остановки и страница «Мерила» (tools/metrics.sh, М7–М9 справочника).
+name: metrics
+on:
+  schedule:
+    - cron: "17 1 * * *"
+  workflow_dispatch:
+permissions:
+  issues: write
+  contents: read
+  actions: read
+  checks: read
+  pull-requests: read
+jobs:
+  metrics:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash tools/metrics.sh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
