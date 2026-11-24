@@ -82,7 +82,14 @@ func test_L007() -> String:
 			gap = minf(gap, p.distance_to(Geometry2D.get_closest_point_to_segment(p, pts[i], pts[i + 1])))
 		if gap > sim.cfg.route.round_r + sim.cfg.route.jitter:
 			return "тропа ушла от нарисованного на %.0f в %s" % [gap, p]
-	return "" if pts.any(func(p): return p.x > 630) else "нарочный поворот пальца пропал: %s" % [pts]
+	if not pts.any(func(p): return p.x > 630):
+		return "нарочный поворот пальца пропал: %s" % [pts]
+	var zig := []  # зигзаг через среднее печенье (так вёл палец игрок): скруглённая тропа в печенье не заходит
+	for k in 5:
+		zig.append_array(range(1, 11).map(func(i): return [BARRACKS, Vector2(200, 650), Vector2(500, 580), Vector2(230, 420), Vector2(480, 320), Vector2(360, 130)][k].lerp([Vector2(200, 650), Vector2(500, 580), Vector2(230, 420), Vector2(480, 320), Vector2(360, 130)][k], i / 10.0)))
+	sim.set_route(made[1], zig)
+	var gap := _closest(made[1].route, made[1].pos, sim.deposits[5].pos)
+	return "" if gap >= sim.cfg.deposit_r + sim.cfg.route.margin - 1.0 else "зигзаг: тропа зашла в печенье, до центра %.0f" % gap
 
 
 ## След прямо сквозь печенье: нитка внутрь не заходит, и отряд после свистка по ней не входит в круг.

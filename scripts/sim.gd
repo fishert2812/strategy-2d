@@ -166,6 +166,11 @@ static func pull(trail: Array, circles: Array, r: Dictionary) -> Array:
 	for c in circles:
 		for i in range(1, pts.size() - 1):
 			pts[i] = _out(pts[i], c, pts[-1] - pts[0], 0.0)
+	var j := 0  # отрезок между точками режет печенье — ближайшую к центру точку отрезка на край
+	while j < pts.size() - 1 and pts.size() < 600:
+		var hit: Array = circles.filter(func(c): return _seg_dist(c[0], pts[j], pts[j + 1]) < c[1] - 1.0)
+		if hit.is_empty(): j += 1
+		else: pts.insert(j + 1, _out(Geometry2D.get_closest_point_to_segment(hit[0][0], pts[j], pts[j + 1]), hit[0], pts[j + 1] - pts[j], 0.0))
 	return pts
 
 
