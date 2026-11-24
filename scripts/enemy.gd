@@ -1,7 +1,7 @@
 class_name Enemy
 extends RefCounted
 ## Враг играет по тем же правилам и ценам. Характер (data/enemies.json) — как он строит, когда и куда нападает,
-## ставит ли башни. Первая партия — спокойный Хомяк, дальше по очереди (Роман 24.11: «бот ведет себя одинаково»).
+## ставит ли башни. Первая партия — спокойная Тихоня, дальше по очереди (Роман 24.11: «бот ведет себя одинаково»).
 
 const CHARS := "res://data/enemies.json"
 static var played := 0  # сколько партий сыграно с запуска: по нему следующий характер
@@ -37,7 +37,7 @@ func step(dt: float) -> void:
 		return
 	_wait = sim.cfg.enemy.think
 	if p.has("late_after") and sim.time >= p.late_after and p.target != "home":
-		p.merge(p.late, true)  # Хомяк к пятой минуте наелся и идёт на кружку всем
+		p.merge(p.late, true)  # Тихоня к пятой минуте накопила и идёт на кружку всем
 		for b in sim.of_side(side, "barracks"):
 			b.target = {}
 	for camp in sim.of_side(side, "camp"):

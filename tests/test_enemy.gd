@@ -81,12 +81,12 @@ func test_simple_player_wins() -> String:
 
 
 ## Зачем игроку (Роман 24.11: «игры одинаковые, бот ведет себя одинаково, не пользуется башнями»): у врага характер.
-## Простой игрок против спокойного Хомяка (первая партия новичка) живёт хотя бы вдвое дольше, чем против Охотника;
-## Хомяк и Каменщик ставят башни.
+## Простой игрок против спокойной Тихони (первая партия новичка) живёт хотя бы вдвое дольше, чем против Охотника;
+## Тихоня и Ползун ставят башни.
 func test_enemy_characters_play_differently() -> String:
 	var ends := {}
 	var towers := {}
-	for who in ["homyak", "ohotnik", "kamen"]:
+	for who in ["tihonya", "ohotnik", "polzun"]:
 		var sim := Sim.new()
 		var enemy := Enemy.new(sim, who)
 		var think := 0.0
@@ -99,11 +99,11 @@ func test_enemy_characters_play_differently() -> String:
 				_rush(sim)
 			towers[who] = maxi(towers.get(who, 0), enemy.towers_built)
 		ends[who] = sim.time
-	print("    простой игрок: против Хомяка %d с, против Охотника %d с; башен у Хомяка %d, у Каменщика %d" % [ends.homyak, ends.ohotnik, towers.homyak, towers.kamen])
-	if ends.homyak < ends.ohotnik * 2.0:
-		return "Хомяк и Охотник играют похоже: партии %d с и %d с" % [ends.homyak, ends.ohotnik]
-	if towers.homyak == 0 or towers.kamen == 0:
-		return "башни не ставит: Хомяк %d, Каменщик %d" % [towers.homyak, towers.kamen]
-	if Enemy.new(Sim.new()).who != "zadira" or JSON.parse_string(FileAccess.get_file_as_string(Enemy.CHARS)).order[0] != "homyak":
-		return "первая партия не против Хомяка или проверки не против Задиры"
+	print("    простой игрок: против Тихони %d с, против Охотника %d с; башен у Тихони %d, у Ползуна %d" % [ends.tihonya, ends.ohotnik, towers.tihonya, towers.polzun])
+	if ends.tihonya < ends.ohotnik * 2.0:
+		return "Тихоня и Охотник играют похоже: партии %d с и %d с" % [ends.tihonya, ends.ohotnik]
+	if towers.tihonya == 0 or towers.polzun == 0:
+		return "башни не ставит: Тихоня %d, Ползун %d" % [towers.tihonya, towers.polzun]
+	if Enemy.new(Sim.new()).who != "zadira" or JSON.parse_string(FileAccess.get_file_as_string(Enemy.CHARS)).order[0] != "tihonya":
+		return "первая партия не против Тихони или проверки не против Задиры"
 	return ""
