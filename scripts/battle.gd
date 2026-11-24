@@ -98,13 +98,12 @@ func _process(dt: float) -> void:
 func _sync_paths() -> void:
 	var seen := {}
 	for b in sim.buildings:
-		var pts: Array = [b.pos] + b.route if b.kind == "barracks" else [b.pos, b.target.get("pos")]
-		if pts.size() < 2 or pts[-1] == null or b.target.get("gold", 1) <= 0 or b.target.get("hp", 1) <= 0:
+		if b.target.is_empty() or b.target.get("gold", 1) <= 0 or b.target.get("hp", 1) <= 0:
 			continue
 		seen[b.id] = true
 		if not _lines.has(b.id):
 			_lines[b.id] = _line(Color(look.path_colors[b.side]))
-		_points(_lines[b.id], pts)
+		_points(_lines[b.id], [b.pos, b.target.pos])
 	_drop_missing(_lines, seen)
 
 
@@ -199,11 +198,7 @@ func debug_text() -> String:
 
 func _move(pos: Vector2) -> void:
 	if _drag.has("from"):
-		# След пальца: точка каждые route.step единиц поля.
-		var at := world.to_local(pos)
-		if _drag.trail.is_empty() or _drag.trail[-1].distance_to(at) >= sim.cfg.route.step:
-			_drag.trail.append(at)
-		_points(_drag.line, [_drag.from.pos] + _drag.trail + [at])
+		_points(_drag.line, [_drag.from.pos, world.to_local(pos)])
 	elif _drag.has("what"):
 		ghost.position = world.to_local(pos)
 		var ok: bool = sim.can_build(Sim.PLAYER, _drag.what, ghost.position) == ""
@@ -230,7 +225,7 @@ func _press(pos: Vector2) -> void:
 		return
 	var b := sim.building_at(world.to_local(pos), Sim.PLAYER)
 	if b.get("kind") in ["camp", "barracks"]:
-		_drag = {"from": b, "line": _line(Color(look.path_colors[Sim.PLAYER]).lightened(0.4)), "start": pos, "trail": []}
+		_drag = {"from": b, "line": _line(Color(look.path_colors[Sim.PLAYER]).lightened(0.4)), "start": pos}
 
 
 func _release(pos: Vector2) -> void:
@@ -248,9 +243,8 @@ func _release(pos: Vector2) -> void:
 		_pick(d)
 		return
 	if d.has("from"):
-		var ok := sim.set_route(d.from, d.trail + [at]) if d.has("trail") and d.from.kind == "barracks" else sim.set_path(d.from, at)
-		if not ok and (tap or d.from.pos.distance_to(at) > 60):
-			hint("тяни тропу к залежи" if d.from.kind == "camp" else "тяни тропу дальше от казармы")
+		if not sim.set_path(d.from, at) and (tap or d.from.pos.distance_to(at) > 60):
+			hint("тяни тропу к залежи" if d.from.kind == "camp" else "тяни тропу к зданию врага")
 		return
 	if pos.y > _bar_top():
 		return
