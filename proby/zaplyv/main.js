@@ -6,6 +6,7 @@ import * as THREE from './three.module.min.js';
 import { World, radius } from './sim.js';
 import { Stick } from './controls.js';
 import { follow } from './soft.js';
+import { look } from './look.js';
 import { Bodies } from './body3d.js';
 
 const cfg = await (await fetch('data.json')).json();
@@ -301,6 +302,9 @@ function paint(time) {
     bubbles.put(x - hx * r * 0.45 - hy * r * 0.2, y - hy * r * 0.45 + hx * r * 0.2, r * 0.18 * Math.sqrt(v) + 1, 0.85, 0.95, 1, 0.3 * (1 - v * v * v));
   }
   const [cr, cg, cb] = [CELL[0].r, CELL[0].g, CELL[0].b];
+  const lk = look(world.genes, cfg.look);
+  const phageNear = world.phages.some(g => g.host === 'me' && Math.hypot(g.x - view.x, g.y - view.y) < 220);
+  const foodNear = world.food.some(f => Math.hypot(f.x - view.x, f.y - view.y) < 120);
   for (const a of world.me) { // палочка: мягкое тело — перёд ведёт, корма и пучок жгутиков идут по его следу
     const w = 8.5 * Math.pow(a.m, 0.3) * z, sp = Math.hypot(a.vx, a.vy);
     const run = sp > 25 && !a.tumble, wob = run ? 0.05 : 0.02; // встречное вращение тела к пучку: 3 раза в секунду
@@ -318,7 +322,23 @@ function paint(time) {
       const t = k / 16 * 6.283, c = Math.cos(t), s = Math.sin(t), l = 1 + 0.25 * Math.sin(time * 3 + k * 1.7 + a.id);
       for (const e of [1.08, 1.32 * l]) { const u = c * (half - w * 0.2) + c * w * (e - 1), [px, py] = along(u, s * w * e + arc(u / z)); ink.put(px, py, 0.9 * z + 0.4, 0.55, 0.9, 1, 0.55); }
     }
-    for (let k = 0; k < 7; k++) { // содержимое: розовые зёрна рибосом
+    if (lk.halo) for (let k = 0; k < 30; k++) { // капсула: прозрачный ореол слизи вокруг тела, слегка колышется
+      const t = k / 30 * 6.283, c = Math.cos(t), s = Math.sin(t), e = 1.55 + 0.08 * Math.sin(time * 2 + k * 0.9), u = c * (half - w * 0.2) + c * w * (e - 1);
+      const [px, py] = along(u, s * w * e + arc(u / z)); glow.put(px, py, w * 0.5, 0.75, 0.95, 1, 0.09);
+    }
+    for (let k = 0; k < lk.stripes; k++) { // CRISPR: полоски-штрихкод поперёк тела, вспыхивают, когда рядом знакомый фаг
+      const u = (k - (lk.stripes - 1) / 2) * w * (0.32 + 0.1 * (k % 2)), al = phageNear ? 0.55 + 0.35 * Math.sin(time * 12) : 0.3;
+      for (let j = -3; j <= 3; j++) { const [px, py] = along(u, j * w * 0.2 + arc(u / z)); glow.put(px, py, 0.9 * z + 0.3, 0.7, 1, 0.8, al); }
+    }
+    for (let k = 0; k < lk.toxin; k++) { // токсин: тёмные точки у края
+      const t = k / lk.toxin * 6.283 + a.id, u = Math.cos(t) * (half - w * 0.45), [px, py] = along(u, Math.sin(t) * w * 0.78 + arc(u / z));
+      ink.put(px, py, 1.3 * z + 0.4, 0.12, 0.02, 0.1, 0.75);
+    }
+    for (let k = 0; k < lk.receptors; k++) { // хемотаксис: рецепторы на переднем конце мигают, когда чуют еду
+      const t = (k - 2) * 0.35, [px, py] = along(half - w * 0.15 + Math.cos(t) * w * 0.1, Math.sin(t) * w * 0.85 + arc(half / z));
+      glow.put(px, py, 1.4 * z + 0.4, 1, 0.95, 0.5, foodNear ? 0.5 + 0.45 * Math.sin(time * 14 + k) : 0.25);
+    }
+    for (let k = 0; k < lk.ribosomes; k++) { // содержимое: розовые зёрна рибосом (быстрый рост — их вдвое больше)
       const t = k * 2.4 + a.id, u = Math.sin(t + time * 0.2) * (half - w * 0.8), [px, py] = along(u, Math.cos(t * 1.7 + time * 0.25) * w * 0.45 + arc(u / z));
       glow.put(px, py, 1.6 * z + 0.6, 1, 0.35, 0.75, 0.35);
     }
@@ -328,21 +348,22 @@ function paint(time) {
     }
     // жгутики: на бегу — пучок за кормой, ложится по дуге пути; в кувырке — веером, два кудрявые; на месте — врозь и медленно
     const fan = a.tumble ? a.tumble / cfg.swim.tumble_time : 0;
-    for (let f = 0; f < 5; f++) {
+    const mid = (lk.flagella - 1) / 2, sp5 = 5 / lk.flagella; // пучок той же толщины, нитей больше
+    for (let f = 0; f < lk.flagella; f++) {
       let bx, by, dx, dy;
       if (run || a.tumble) {
-        const spread = fan * (f - 2) * 0.55;
-        [bx, by] = along(-half + w * 0.3, (f - 2) * w * 0.22 + arc(half / z));
+        const spread = fan * (f - mid) * 0.55 * sp5;
+        [bx, by] = along(-half + w * 0.3, (f - mid) * w * 0.22 * sp5 + arc(half / z));
         dx = -Math.cos(ang + spread); dy = -Math.sin(ang + spread);
-      } else { const t = f * 1.257 + 0.6 + a.id, c = Math.cos(t), s = Math.sin(t); [bx, by] = along(c * (half - w * 0.5), s * w * 0.9); const l = Math.hypot(c * 1.2, s * 1.8); dx = (ax * c * 1.2 - ay * s * 1.8) / l; dy = (ay * c * 1.2 + ax * s * 1.8) / l; }
-      const curly = fan > 0 && f % 2 === 1; // вышедший из пучка жгутик перекручивается
+      } else { const t = f * 6.283 / lk.flagella + 0.6 + a.id, c = Math.cos(t), s = Math.sin(t); [bx, by] = along(c * (half - w * 0.5), s * w * 0.9); const l = Math.hypot(c * 1.2, s * 1.8); dx = (ax * c * 1.2 - ay * s * 1.8) / l; dy = (ay * c * 1.2 + ax * s * 1.8) / l; }
+      const curly = fan > 0 && f % 3 === 1; // вышедший из пучка жгутик перекручивается
       for (let k = 1; k <= 40; k++) {
         const s = k / 40, back = s * w * (run ? 7 : 5.5), amp = w * (curly ? 0.8 : 0.42) * Math.min(1, s * 3);
-        const wv = Math.sin(s * (curly ? 22 : 10) - time * (run ? 16 : 4) + f * 0.5) * amp, conv = run ? (f - 2) * w * 0.22 * (s * 0.9) : 0;
+        const wv = Math.sin(s * (curly ? 22 : 10) - time * (run ? lk.beat : 4) + f * 0.5) * amp, conv = run ? (f - mid) * sp5 * w * 0.22 * (s * 0.9) : 0;
         let px = bx + dx * back, py = by + dy * back, nx = dy, ny = -dx;
         if (run) { // пучок лежит на следе клетки: где она прошла, там и хвост
           const [qx, qy] = scr(...body.at(2 * half / z + back / z)), [rx, ry] = scr(...body.at(2 * half / z + back / z + 2));
-          const ox = -ay * (f - 2) * w * 0.22, oy = ax * (f - 2) * w * 0.22; // свой сдвиг жгутика в пучке
+          const ox = -ay * (f - mid) * sp5 * w * 0.22, oy = ax * (f - mid) * sp5 * w * 0.22; // свой сдвиг жгутика в пучке
           const tl = Math.hypot(rx - qx, ry - qy) || 1; nx = -(ry - qy) / tl; ny = (rx - qx) / tl;
           px = qx + ox * (1 - s * 0.9); py = qy + oy * (1 - s * 0.9);
         }

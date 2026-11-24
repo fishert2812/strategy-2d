@@ -31,6 +31,7 @@
 	"amoeba_chance": [0.12, 0.18, 0.55],
 	"phage_chance": 0.4,
 	"danger_growth": 0.08,
+	"look": { "flagella": [5, 8], "beat": [16, 24], "stripes": 5, "ribosomes": [7, 16], "toxin": 10, "receptors": 5 },
 	"gene_steps": [2, 4, 8, 12, 16, 24, 32],
 	"genes": {
 		"flagellum": ["Жгутик", "плывёшь быстрее"],
