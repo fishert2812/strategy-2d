@@ -392,6 +392,8 @@ function events() {
     if (k === 'learn') { ring(x, y, 2, 80); beep(620, 0.4, 0.05, 'sine', 1.4); say('Пережила фага! Его кусок — новая полоска CRISPR: теперь T4 не страшен', 3000); }
     if (k === 'sit') ring(x, y, 0, 46); // коловратка присела на ногу: сейчас раскрутит колёса
     if (k === 'snap') { ring(x, y, 0, 60); beep(1200, 0.06, 0.04, 'square', 0.3); } // сувойка сжалась пружиной
+    if (k === 'slip') { ring(x, y, 0, 70); beep(900, 0.08, 0.03, 'sine', 1.5); } // капсула сработала
+    if (k === 'shrug') { ring(x, y, 0, 30); beep(1100, 0.05, 0.03); } // замок сработал
     if (k === 'bump') { ring(x, y, 0, 24); beep(880, 0.05, 0.03); } // капсула: хищник отскочил
     if (k === 'pop') { ring(x, y, 2, 90); beep(260, 0.25, 0.06, 'triangle', 0.6); } // чужая клетка лопнула
     if (k === 'pinch') { ring(x, y, 1, 50); beep(1400, 0.05, 0.03, 'square', 0.6); tell('pinch', 'Кокк щиплет своим ядом — отплыви'); }
@@ -409,11 +411,12 @@ function tick(dt) {
   if (!world.me.length) {
     if (!ended) {
       ended = true;
-      const k = cards[world.stats.killer] || cards.me;
-      $('who').textContent = k.who; $('cname').textContent = k.name; $('ctext').textContent = k.text;
-      $('cfact').textContent = k.fact; $('ctip').textContent = k.tip || '';
+      const kk = world.stats.killer, k = cards[kk] || cards.me, t = TEKSTY[kk] || {}; // кто убил — словами книги и его моделью (урок L022)
+      $('who').textContent = t.ubil || k.who; $('cname').textContent = t.imya || k.name; $('ctext').textContent = t.kto || k.text;
+      $('cfact').textContent = t.priroda || k.fact; $('ctip').textContent = t.sovet || k.tip || '';
+      $('ckill').src = KAB.items[kk] ? snap(kk, KAB.items[kk]) : ''; $('ckill').hidden = !KAB.items[kk];
       $('stats').innerHTML = pathText(world);
-      setTimeout(() => $('end').classList.add('on'), 700);
+      setTimeout(() => { $('end').classList.add('on'); $('toast').classList.remove('on'); }, 700); // подсказка заплыва не ложится на экран гибели
     }
     return;
   }
@@ -589,7 +592,7 @@ function paint(time) {
   for (const b of world.bdellos) { // бделловибрион: запятая вдвое мельче тебя, один толстый жгутик; на рывке — след
     const [x, y] = scr(b.x, b.y); if (!on(x, y)) continue;
     const w = 4.2 * z, sp = Math.hypot(b.vx, b.vy), ang = b.a, ux = Math.cos(ang), uy = Math.sin(ang);
-    bodies.rod(x, y, ang, w * 1.5, w, 0, [1, 0.38, 0.15], [0.75, 0.12, 0.08], b.id, w * 0.35); // слегка изогнутая запятая
+    bodies.rod(x, y, ang, w * 1.5, w, 0, cfg.danger.bdello, [0.75, 0.12, 0.08], b.id, w * 0.35); // слегка изогнутая запятая
     glow.put(x, y, w * 4, 1, 0.3, 0.1, 0.12 + (b.on ? 0.1 * Math.sin(time * 16) : 0));
     for (let k = 1; k <= 22; k++) { const s = k / 22, wv = Math.sin(s * 9 - time * 30) * w * 0.5 * s;
       glow.put(x - ux * (w * 1.5 + s * w * 6) - uy * wv, y - uy * (w * 1.5 + s * w * 6) + ux * wv, 1.1 * Math.max(z, 0.7), 1, 0.55, 0.3, 0.6 * (1 - s * 0.6)); }
@@ -727,7 +730,7 @@ function paint(time) {
     const P = (a, b) => [x + ux * a - uy * b, y + uy * a + ux * b];
     const pink = (p, r, al = 0.95) => ink.put(p[0], p[1], r, 0.82, 0.8, 0.92, al); // серебристый, как на снимках
     bodies.phage(x, y, d, s);
-    if (g.host === 'me') glow.put(...P(-2.1 * s, 0), s * 1.8, 1, 0.3, 0.4, g.on ? 0.25 + 0.15 * Math.sin(time * 14) : 0.1); // красное свечение: опасен тебе
+    if (g.host === 'me') glow.put(...P(-2.1 * s, 0), s * 1.8, ...cfg.danger.phage, g.on ? 0.3 + 0.2 * Math.sin(time * 14) : 0.12); // белёсое свечение: опасен тебе; красный — только у хищной запятой (урок L022)
     pink(P(0.85 * s, -0.35 * s), s * 0.22); pink(P(0.85 * s, 0.35 * s), s * 0.22);
     for (let k = 0; k < 6; k++) {
       const sd = k < 3 ? -1 : 1, i = k % 3, wig = Math.sin(time * 9 + k + g.x) * s * 0.15;
