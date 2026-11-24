@@ -86,12 +86,26 @@ func restart() -> void:
 	sim = Sim.new()
 	sim.changed.connect(_on_sim)
 	sim.changed.connect($Feedback.on_sim)
-	enemy = Enemy.new(sim)
+	enemy = Enemy.new(sim, Enemy.upcoming())
+	Enemy.played += 1
 	box = BlackBox.new()
 	sim.changed.connect(box.on_sim)
 	flag_button.text = "не так"
 	for b in sim.buildings:
 		_on_sim("built", b)
+	# Кто против тебя: имя характера под кружкой врага.
+	var mug: Sprite2D = _sprites[sim.of_side(Sim.ENEMY, "home")[0].id]
+	var who := Label.new()
+	who.name = "Who"
+	who.text = Enemy.title(enemy.who)
+	who.add_theme_font_size_override("font_size", look.enemy_name.size)
+	who.add_theme_color_override("font_color", Color(look.path_colors[Sim.ENEMY]).lightened(0.5))
+	who.add_theme_constant_override("outline_size", look.enemy_name.outline)
+	who.add_theme_color_override("font_outline_color", Color.BLACK)
+	who.size = who.get_minimum_size()
+	who.scale = Vector2.ONE / mug.scale
+	who.position = Vector2(-who.size.x / 2, look.enemy_name.below) / mug.scale
+	mug.add_child(who)
 	for d in sim.deposits:
 		_add_sprite(d.id, look.deposit, _tex(look.deposit.states[0][1]), d.pos)
 	$End.hide()
@@ -586,10 +600,10 @@ func _on_sim(what: String, data: Dictionary) -> void:
 				t.tween_property(tw, "position", home, 0.15)
 				t.parallel().tween_property(tw, "scale", tw.get_meta("size", tw.scale), 0.15)
 				# Кадр выстрела со стрелой на время отдачи, потом обычная башня.
-				var shot: String = look.tower.get("shot", ["", ""])[Sim.PLAYER]
+				var shot: String = look.tower.get("shot", ["", ""])[data.side]
 				if not shot.is_empty():
 					tw.texture = _tex(shot)
-					t.tween_callback(func(): tw.texture = _tex(look.tower.files[Sim.PLAYER])).set_delay(0.1)
+					t.tween_callback(func(): tw.texture = _tex(look.tower.files[data.side])).set_delay(0.1)
 		"killed":
 			motion.hop(_units.get(data.get("by")), 2)
 		"whistle":
