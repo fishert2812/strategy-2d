@@ -68,3 +68,35 @@ func test_simple_player_wins() -> String:
 		return "простой игрок не победил за 10 минут (итог %.0f)" % t
 	print("    победа простого игрока на %d:%02d" % [int(-t) / 60, int(-t) % 60])
 	return ""
+
+
+## Зачем игроку: башня у вражеского лагеря не бесплатна — враг замечает, кто бьёт его носильщиков,
+## и шлёт на неё две казармы разом. Башня у лагеря врага падает в первую минуту после первой жертвы
+## (раньше стояла почти две минуты и сбивала 40 носильщиков).
+func test_tower_at_enemy_camp_gets_raided() -> String:
+	var sim := Sim.new()
+	var enemy := Enemy.new(sim)
+	sim.gold[Sim.PLAYER] = 10000.0
+	sim.set_path(sim.build(Sim.PLAYER, "camp", Vector2(250, 830)), Vector2(170, 760))  # набег обычно идёт на добычу
+	var tower := {}
+	var first := -1.0
+	for i in int(300 / DT):
+		enemy.step(DT)
+		sim.step(DT)
+		if tower.is_empty() and sim.time > 60:
+			var camp: Dictionary = sim.of_side(Sim.ENEMY, "camp")[0]
+			var mid: Vector2 = camp.pos.lerp(camp.target.pos, 0.5)
+			for off in [Vector2(40, 80), Vector2(80, 40), Vector2(0, 100), Vector2(100, 80)]:
+				if tower.is_empty() and sim.can_build(Sim.PLAYER, "tower", mid + off) == "":
+					tower = sim.build(Sim.PLAYER, "tower", mid + off)
+			if tower.is_empty():
+				return "башню у лагеря врага не поставить"
+		if first < 0 and tower.get("kills", 0) > 0:
+			first = sim.time
+		if not tower.is_empty() and tower.hp <= 0:
+			if sim.time - first > 60:
+				return "башня у лагеря врага сбила %d и простояла после первой жертвы %d с (ждали минуту)" % [tower.kills, sim.time - first]
+			print("    башня у лагеря врага сбила %d, первая жертва %d с, пала на %d с" % [tower.kills, first, sim.time])
+			return ""
+	var on := sim.of_side(Sim.ENEMY, "barracks").filter(func(b): return is_same(b.target, tower)).size()
+	return "башня у лагеря врага стоит 4 минуты, сбила %d, на неё идут казарм: %d" % [tower.get("kills", 0), on]
