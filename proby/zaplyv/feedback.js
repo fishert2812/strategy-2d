@@ -9,7 +9,7 @@ export function nearby(w, cards, r, c) {
   const out = [];
   for (const [list, key] of LISTS) for (const e of w[list] || []) {
     const [x, y] = key === 'bell' ? w.bell(e) : [e.x, e.y], d = Math.hypot(x - c.x, y - c.y);
-    if (d < r) out.push([d, cards[key]?.name || key]);
+    const k = e.strain ? 'strain' : key; if (d < r) out.push([d, cards[k]?.name || k]);
   }
   out.sort((a, b) => a[0] - b[0]);
   return [...new Set(out.map(o => o[1]))];

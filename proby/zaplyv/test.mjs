@@ -53,20 +53,25 @@ check('амёба глотает клетку без капсулы и не мо
   if (res[1] !== 1) return 'с капсулой клетку всё равно съели';
 });
 
-check('фаг прилипает и впрыскивает, клетка лопается облаком новых фагов; с CRISPR цела', () => {
+check('фаг прилипает и впрыскивает, клетка лопается облаком новых фагов; CRISPR помнит только пережитых: первый фаг стоит сил и даёт полоску, второй режется даром', () => {
   const res = [];
   for (const crispr of [false, true]) {
     const w = new World(cfg, 5);
-    w.food = []; w.prey = []; w.amoebas = []; w.slippers = []; w.bells = []; w.plants = [];
+    w.food = []; w.prey = []; w.amoebas = []; w.slippers = []; w.bells = []; w.plants = []; w.bdellos = []; w.pseudos = []; w.rotis = [];
     w.phages = []; w.cloud(radius(1) + 1, 0, 'me', 0);
     if (crispr) w.genes.crispr = true;
-    w.tidy = 1e9;
+    w.tidy = 1e9; const m0 = w.me[0].m;
     run(w, cfg.inject + cfg.sick + 1, null);
-    res.push([w.me.length, w.phages.length]);
+    const first = [w.me.length, w.phages.length, w.me[0] ? +(w.me[0].m / m0).toFixed(2) : 0, w.spacers.size, look(w.genes, cfg.look, w.spacers.size).stripes];
+    if (crispr) { const a = w.me[0], m1 = a.m; w.phages = []; w.cloud(a.x + radius(a.m) + 1, a.y, 'me', 0); run(w, cfg.inject + cfg.sick + 1, null); first.push(w.me.length, +(a.m / m1).toFixed(2)); }
+    res.push(first);
   }
-  console.log('    паспорт: без защиты клеток/фагов', res[0].join('/'), ', с CRISPR', res[1].join('/'));
+  console.log('    паспорт: без защиты клеток/фагов', res[0].slice(0, 2).join('/'), '| CRISPR, первый фаг: клеток', res[1][0], 'масса ×', res[1][2], 'полосок', res[1][4], '| второй фаг: клеток', res[1][5], 'масса ×', res[1][6]);
   if (res[0][0] !== 0 || res[0][1] < cfg.burst) return 'без защиты клетка не лопнула облаком фагов';
-  if (res[1][0] !== 1) return 'с CRISPR клетка погибла';
+  if (res[1][0] !== 1) return 'с CRISPR клетка погибла от первого фага';
+  if (res[1][2] > 0.8 || res[1][3] !== 1) return 'первый фаг прошёл даром или не оставил полоску';
+  if (res[1][4] <= look({ crispr: true }, cfg.look, 0).stripes) return 'новая полоска не видна на теле';
+  if (res[1][5] !== 1 || res[1][6] < 0.95) return 'знакомый фаг не режется даром';
 });
 
 check('фаг не гонится за клеткой: его носит вода, опасно только влететь в облако (замечание Романа 24.11)', () => {
@@ -404,7 +409,7 @@ check('обмен генами касанием: побыл рядом с сор
   if (long.length !== 1) return 'за 2 с рядом ген не передан';
 });
 
-check('спора: последняя клетка с геном «Спора» не гибнет, а пережидает в споре и прорастает; второй раз — уже нет', () => {
+check('сон-персистер: последняя клетка с геном сна не гибнет, а засыпает, пережидает беду и просыпается; второй раз — уже нет', () => {
   const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
   const eatBy = w => { const a = w.me[0]; w.amoebas = [{ x: a.x + 5, y: a.y, vx: 0, vy: 0, m: 9, id: 50 }]; w.step(1 / 30, null); };
   const no = bare(121); eatBy(no);
@@ -418,18 +423,26 @@ check('спора: последняя клетка с геном «Спора» 
   if (yes.me.length) return 'спора спасла дважды';
 });
 
-check('по сверке биолога: кокков не глотаешь (токсин убивает касанием, кокк лопается едой); новый замок — T4 не садится; хемотаксис ведёт клетку, а не еду; быстрый рост — деление раньше; по плазмиде только токсин, капсула, CRISPR', () => {
+check('по сверке биолога: кокков не глотаешь и токсин их не берёт (CDI бьёт только чужих палочек, они лопаются едой; свои и синегнойка целы); долго вплотную к кокку — щиплет, замедляет; новый замок — T4 не садится; хемотаксис ведёт клетку, а не еду; быстрый рост — деление раньше; по плазмиде только токсин, капсула, CRISPR', () => {
   const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
-  const touch = tox => { const w = bare(131), a = w.me[0]; w.genes.toxin = tox; w.prey = [{ x: a.x + 8, y: a.y, vx: 0, vy: 0, m: 0.5, a: 0, id: 4 }]; w.step(1 / 30, null); return [w.prey.length, w.food.length]; };
+  const touch = tox => { const w = bare(131), a = w.me[0]; w.genes.toxin = tox; const at = (dx, o) => ({ x: a.x + dx, y: a.y, vx: 0, vy: 0, a: 0, t: 9, rest: 9, cool: 0, ...o });
+    w.prey = [{ ...at(8), m: 0.5, id: 4 }]; w.pseudos = [at(10, { strain: true, id: 5 }), at(-10, { id: 6 })]; w.donors = [{ ...at(0, { id: 7 }), y: a.y + 10, link: 0 }];
+    w.step(1 / 30, null); return [w.prey.length, w.food.length, w.pseudos.filter(q => q.strain).length, w.pseudos.filter(q => !q.strain).length, w.donors.length]; };
   const plain = touch(false), tox = touch(true);
+  const pinch = (() => { const w = bare(134), a = w.me[0]; a.a = 0; w.prey = [{ x: a.x + 10, y: a.y, vx: 0, vy: 0, m: 0.6, a: 0, id: 4 }]; let n = 0;
+    for (let t = 0; t < 2; t += 1 / 30) { w.prey[0].x = a.x + 10; w.prey[0].y = a.y; w.step(1 / 30, null); n += w.events.filter(e => e[0] === 'pinch').length; w.events.length = 0; }
+    return [n, w.me.length, a.pinch > 0 || n > 0]; })();
   const ph = lock => { const w = bare(132), a = w.me[0]; w.genes.lock = lock; w.phages = [{ x: a.x + 6, y: a.y, vx: 0, vy: 0, host: 'me', d: 0 }]; run(w, 0.5, null); return w.phages.some(g => g.on); };
   const sn = sense => { const w = bare(133), a = w.me[0]; a.a = 0; w.genes.sense = sense; w.food = [{ x: 140, y: 90, vx: 0, vy: 0, s: 1 }]; const f0 = { ...w.food[0] }; run(w, 0.5, { dx: 1, dy: 0, p: 1 }); return [a.y, w.food[0] ? Math.hypot(w.food[0].x - f0.x, w.food[0].y - f0.y) : 0]; };
   const [y0] = sn(false), [y1, moved] = sn(true);
   const gs = new Set(); for (let s = 0; s < 12; s++) { const w = bare(140 + s), a = w.me[0]; w.donors = [{ x: a.x + 15, y: a.y, a: 0, link: 0, id: 3 }]; for (let t = 0; t < 2; t += 1 / 30) { w.donors[0].x = a.x + 15; w.donors[0].y = a.y; w.step(1 / 30, null); } Object.keys(w.genes).forEach(g => gs.add(g)); }
   const fastW = new World(cfg, 150); fastW.genes.fast = true;
-  console.log('    паспорт: без токсина — кокков', plain[0], '| с токсином — кокков', tox[0], ', еды', tox[1], '| T4 сел: обычный', ph(false), ', новый замок', ph(true), '| к еде сбоку подрулила на', Math.round(y1 - y0), ', еда сдвинулась на', Math.round(moved), '| деление: обычное', cfg.split, ', быстрый рост', fastW.split().toFixed(2), '| по плазмиде пришли', [...gs].join());
+  console.log('    паспорт: без токсина — кокков/чужих/синегноек/сородичей', plain.slice(0, 1).concat(plain.slice(2)).join('/'), '| с CDI —', [tox[0], ...tox.slice(2)].join('/'), ', еды', tox[1], '| у кокка 2 с — щипков', pinch[0], ', клеток', pinch[1], '| T4 сел: обычный', ph(false), ', новый замок', ph(true), '| к еде сбоку подрулила на', Math.round(y1 - y0), ', еда сдвинулась на', Math.round(moved), '| деление: обычное', cfg.split, ', быстрый рост', fastW.split().toFixed(2), '| по плазмиде пришли', [...gs].join());
   if (plain[0] !== 1) return 'кокк проглочен без токсина';
-  if (tox[0] !== 0 || tox[1] < cfg.spill) return 'токсин не убил кокка или он не лопнул едой';
+  if (plain[2] !== 1) return 'чужая палочка погибла без токсина';
+  if (tox[2] !== 0 || tox[1] < 1) return 'CDI не убил чужую палочку или она не лопнула едой';
+  if (tox[0] !== 1 || tox[3] !== 1 || tox[4] !== 1) return 'CDI убил не родню: кокка, синегнойку или своего сородича';
+  if (pinch[0] < 1 || pinch[1] !== 1) return 'кокк вплотную не щиплет или убивает';
   if (!ph(false) || ph(true)) return 'новый замок не спасает от T4';
   if (!(y1 - y0 > 3) || moved > 0.5) return 'хемотаксис не ведёт клетку или двигает еду';
   if (!(fastW.split() < cfg.split)) return 'быстрый рост не ускоряет деление';
@@ -467,6 +480,18 @@ check('«Не так»: отметка сама называет версию, �
   if (live.includes('Фаг')) return 'далёкий фаг попал в «рядом»';
   if (!dead.includes('убил: Акантамёба')) return 'после гибели не сказано, кто убил';
   if (!msg.includes('отметок 2') || !msg.includes('2) 24.11 21:41')) return 'сообщение не собрало отметки';
+});
+
+check('фимбрии: отпустил палец у водоросли — прилип, поток воронки не тянет; повёл пальцем — плывёшь; без гена поток сносит', () => {
+  const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
+  const pull = (fim, finger) => { const w = bare(161), a = w.me[0]; w.genes.fim = fim; w.plants = [{ x: a.x, y: a.y + radius(a.m) + 18, m: 4, id: 2, t: 0 }];
+    w.suck = () => [60, 0]; // поток воронки/вихря рядом: 60 ед/с вбок
+    const x0 = a.x, y0 = a.y; run(w, 1, finger); return [Math.round(Math.hypot(a.x - x0, a.y - y0)), a.stuck]; };
+  const free = pull(false, null), held = pull(true, null), swim = pull(true, { dx: 0, dy: -1, p: 1 });
+  console.log('    паспорт: поток 60 ед/с — без гена снесло на', free[0], '| с фимбриями', held[0], 'прилип', held[1], '| повёл пальцем — проплыл', swim[0]);
+  if (free[0] < 10) return 'воронка не тянет — проверка ничего не доказывает';
+  if (held[0] > 2 || !held[1]) return 'с фимбриями всё равно снесло';
+  if (swim[0] < 50) return 'прилипшая клетка не уплывает пальцем';
 });
 
 check('мир без краёв: уплыл далеко — вокруг снова еда, позади забыто', () => {

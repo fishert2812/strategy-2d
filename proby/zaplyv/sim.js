@@ -35,7 +35,7 @@ export class World {
     this.r = rng(seed);
     this.me = [{ x: 0, y: 0, vx: 0, vy: 0, m: 1, a: -Math.PI / 2, sick: -1, id: 1 }];
     this.food = []; this.prey = []; this.amoebas = []; this.phages = []; this.plants = []; this.crumbs = []; this.bdellos = []; this.slime = []; this.slippers = []; this.bells = []; this.rotis = []; this.pseudos = []; this.donors = [];
-    this.genes = {}; this.from = {}; // откуда пришёл ген: kid — дочка, pipe — трубочка
+    this.genes = {}; this.from = {}; this.spacers = new Set(); // полоски CRISPR: каких фагов пережил // откуда пришёл ген: kid — дочка, pipe — трубочка
     this.choice = []; // три гена на выбор; пока не пусто — мир стоит
     this.rush = 0; this.lastEat = -9; // разгон роста от серии
     this.stats = { eaten: 0, most: 1, path: 0, time: 0, gen: 0, lost: {}, killer: null };
@@ -89,10 +89,11 @@ export class World {
       const at = pt(), R = 30 + r() * 50;
       for (let i = 0; i < c.patch_food; i++) { const t = r() * 6.283, d = R * Math.sqrt(r()); this.food.push({ x: at.x + Math.cos(t) * d, y: at.y + Math.sin(t) * d, vx: 0, vy: 0, s: c.grain[0] + (c.grain[1] - c.grain[0]) * (1 - d / R) * r() }); } // в середине пятна куски крупнее
     }
-    if (far > c.bdello_from && this.stats.gen > 0 && r() < c.bdello_chance[b] * (1 + far * c.danger_growth) * Math.min(2, this.me.length / 2)) // хищник идёт на густую добычу: пока ты один, его нет this.bdellos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: r(), id: ++this.ids });
+    if (far > c.bdello_from && this.stats.gen > 0 && r() < c.bdello_chance[b] * (1 + far * c.danger_growth) * Math.min(2, this.me.length / 2)) /* хищник идёт на густую добычу: пока ты один, его нет */ this.bdellos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: r(), id: ++this.ids });
     if (far > c.slipper_from && r() < c.slipper_chance[b]) this.slippers.push({ ...pt(), a: r() * 6.283, back: 0, id: ++this.ids });
     if (far > c.donor_from && r() < c.donor_chance[b]) this.donors.push({ ...pt(), a: r() * 6.283, link: 0, gave: false, id: ++this.ids });
     if (!safe && far > c.pseudo_from && r() < c.pseudo_chance[b]) this.pseudos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: 0, cool: 0, id: ++this.ids });
+    if (!safe && far > c.strain_from && r() < c.strain_chance[b]) this.pseudos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: 0, cool: 0, strain: true, id: ++this.ids }); // чужой штамм кишечной палочки: серая соперница за еду
     if (!safe && far > c.roti_from && r() < c.roti_chance[b]) this.rotis.push({ ...pt(), a: r() * 6.283, sit: false, t: r() * c.roti_swim, id: ++this.ids });
     if (r() < c.slime_chance[b]) { const at = pt(); this.slime.push({ ...at, a: r() * 3.14, len: 160 + r() * 220, w: 22 + r() * 22, id: ++this.ids }); } // тяж слизи: вязкий гель
     if (r() < c.crumb_chance[b]) this.crumbs.push({ ...pt(), m: 2 + r() * 3, id: ++this.ids }); // детрит: бурый комок, медленно тонет
@@ -176,7 +177,7 @@ export class World {
         const turn = a.tumble ? sw.tumble_turn : sw.turn, wantW = Math.max(-turn, Math.min(turn, d * sw.ease));
         a.om = (a.om || 0) + Math.max(-sw.spin_acc * dt, Math.min(sw.spin_acc * dt, wantW - (a.om || 0)));
         a.a += Math.abs(a.om * dt) > Math.abs(d) ? d : a.om * dt;
-        thrust = (this.inSlime(a.x, a.y) && !this.genes.flagellum ? c.slime_slow : 1) /* много жгутиков пробивают слизь */ * (a.tumble ? s * 0.12 : s * Math.max(0.25, Math.cos(wrap(want - a.a)))) * (a.held > 0 ? 0.3 : 1) * (a.stun > 0 || a.spore > 0 ? 0 : 1); // в шарике почти не плывёт; после гарпуна миг оглушена
+        thrust = (this.inSlime(a.x, a.y) && !this.genes.flagellum ? c.slime_slow : 1) /* много жгутиков пробивают слизь */ * (a.tumble ? s * 0.12 : s * Math.max(0.25, Math.cos(wrap(want - a.a)))) * (a.held > 0 ? 0.3 : 1) * (a.stun > 0 || a.spore > 0 ? 0 : 1) * (a.pinch > 0 ? c.pinch_slow : 1); // в шарике почти не плывёт; после гарпуна миг оглушена
       } else { // палец отпущен: в воде клетка встаёт сразу (вязкость); её медленно сносит и поворачивает (~90° за 10 с)
         a.drift = (a.drift ?? r() * 6.283) + (r() - 0.5) * dt * 1.5;
         a.om = (a.om || 0) * Math.max(0, 1 - 6 * dt);
@@ -193,11 +194,15 @@ export class World {
         const dx = a.x - o.x, dy = a.y - o.y, d = len(dx, dy) || 0.01, rr = radius(a.m) + radius(o.m);
         if (d < rr) { a.vx += dx / d * (rr - d) * 6 * Math.min(1, 4 * dt); a.vy += dy / d * (rr - d) * 6 * Math.min(1, 4 * dt); }
       }
+      // Фимбрии (fimH): отпустил палец у водоросли — прилип. Липучка FimH держит тем крепче, чем сильнее рвёт поток: вихри и снос не тянут.
+      a.stuck = !!(this.genes.fim && !thrust && !(a.spore > 0) && this.plants.some(p => dist(a, p) < radius(a.m) + radius(p.m) + c.fim_reach));
+      if (a.stuck) { a.vx = 0; a.vy = 0; }
       a.x += a.vx * dt; a.y += a.vy * dt;
-      const [sx, sy] = this.suck(a.x, a.y); a.x += sx * dt; a.y += sy * dt; // течение воронок туфелек и вихрей сувоек
+      if (!a.stuck) { const [sx, sy] = this.suck(a.x, a.y); a.x += sx * dt; a.y += sy * dt; } // течение воронок туфелек и вихрей сувоек
       a.w = wrap(a.a - a0) / dt; // скорость поворота — по ней тело и пучок жгутиков гнутся дугой
       if (a.sick >= 0) a.sick -= dt;
       if (a.stun > 0) a.stun -= dt;
+      if (a.pinch > 0) a.pinch -= dt;
       if (this.genes.fast) a.m = Math.max(0.6, a.m - c.fast_burn * dt); // …но и голодаешь быстрее: рибосомы едят силы
       if (a.spore > 0) { a.spore -= dt; if (a.spore <= 0) this.events.push(['sprout', a.x, a.y]); } // спора проросла
     }
@@ -219,7 +224,7 @@ export class World {
     if (this.look <= 0 && this.me.length) { // встречи: кого увидел впервые — в кабинет (событие 'meet' без паузы)
       this.look = 0.5;
       const R = this.cfg.meet;
-      for (const [k, list] of [['coccus', this.prey], ['plant', this.plants], ['crumb', this.crumbs], ['phage', this.phages], ['amoeba', this.amoebas], ['bdello', this.bdellos], ['slipper', this.slippers], ['bell', this.bells], ['roti', this.rotis], ['pseudo', this.pseudos], ['donor', this.donors]])
+      for (const [k, list] of [['coccus', this.prey], ['plant', this.plants], ['crumb', this.crumbs], ['phage', this.phages], ['amoeba', this.amoebas], ['bdello', this.bdellos], ['slipper', this.slippers], ['bell', this.bells], ['roti', this.rotis], ['pseudo', this.pseudos.filter(q => !q.strain)], ['strain', this.pseudos.filter(q => q.strain)], ['donor', this.donors]])
         if (!this.met.has(k) && list.some(o => this.me.some(a => dist(a, o) < R))) { this.met.add(k); this.events.push(['meet', k]); }
     }
     this.tidy -= dt;
@@ -294,17 +299,22 @@ export class World {
   }
 
   eat(dt) {
-    const sense = this.genes.sense;
+    const sense = this.genes.sense, c = this.cfg;
     for (const a of this.me) {
       const r = radius(a.m);
       for (const f of this.food) {
         const dx = a.x - f.x, dy = a.y - f.y, d = len(dx, dy);
         if (d < r + 6 && !f.gone) { f.gone = true; const z = f.s || 1; this.grow(a, this.cfg.food * z); this.fed(f.x, f.y, z); } // кусок кормит по размеру
       }
-      // Бактерии клетки не глотают. С геном токсина касание убивает соседа-соперника: кокк лопается облаком еды.
-      // Сородичи с плазмидой сами носят этот токсин и к нему устойчивы.
-      if (this.genes.toxin) for (const q of this.prey) if (!q.gone && dist(a, q) < r + radius(q.m) * 0.6 + 4) {
+      // Бактерии клетки не глотают. Ген CDI (cdiA): нить с ядом на кончике бьёт при касании только родню — чужой штамм
+      // кишечной палочки, он лопается облаком еды. Свои сородичи защищены противоядием CdiI, кокки — толстой стенкой (сверка биолога, Г18).
+      if (this.genes.toxin) for (const q of this.pseudos) if (q.strain && !q.gone && !(q.held > 0) && dist(a, q) < r + c.pseudo_r) {
         q.gone = true; this.spill(q.x, q.y); this.events.push(['pop', q.x, q.y]);
+      }
+      for (const q of this.prey) { // кокк: долго висишь вплотную — выпускает бактериоцин, щиплет (замедление, не смерть)
+        if (dist(a, q) > r + radius(q.m) * 0.6 + 4) continue;
+        q.touch = (q.touch || 0) + dt;
+        if (q.touch > c.pinch_t) { q.touch = 0; a.pinch = c.pinch; this.events.push(['pinch', q.x, q.y]); }
       }
       for (const k of this.crumbs) if (dist(a, k) < r + radius(k.m) * 0.8) { // детрит растворяется медленно
         const bite = Math.min(k.m, 0.4 * dt); k.m -= bite; this.grow(a, bite);
@@ -389,7 +399,7 @@ export class World {
         for (const f of this.food) { const d = Math.hypot(f.x - q.x, f.y - q.y); if (d < bd) { bd = d; best = f; } }
         q.a = best ? Math.atan2(best.y - q.y, best.x - q.x) : q.a + (r() - 0.5) * 3; q.t = 0.25 + r() * 1.2; q.rest = 0.25;
       }
-      const go = q.t > q.rest ? c.pseudo_speed : 0, k = Math.min(1, 6 * dt);
+      const go = q.t > q.rest ? (q.strain ? c.strain_speed : c.pseudo_speed) : 0, k = Math.min(1, 6 * dt);
       q.vx += (Math.cos(q.a) * go - q.vx) * k; q.vy += (Math.sin(q.a) * go - q.vy) * k; q.x += q.vx * dt; q.y += q.vy * dt;
       for (const f of this.food) if (!f.gone && Math.hypot(f.x - q.x, f.y - q.y) < 14) f.gone = true;
       for (const a of [...this.me]) {
@@ -397,7 +407,7 @@ export class World {
         if (d > radius(a.m) + c.pseudo_r || a.spore > 0) continue;
         const mine = (a.vx * dx + a.vy * dy) / d, its = -(q.vx * dx + q.vy * dy) / d; // кто на кого налетел
         a.vx -= dx / d * 120; a.vy -= dy / d * 120; q.vx += dx / d * 120; q.vy += dy / d * 120;
-        if (mine > its && q.cool <= 0) {
+        if (mine > its && q.cool <= 0 && !q.strain) { // у чужого штамма гарпуна нет — только толкнёт
           q.cool = c.pseudo_cool; a.stun = c.pseudo_stun; a.m *= c.pseudo_hit; this.events.push(['zap', q.x, q.y, a.x, a.y]);
           if (a.m < c.pseudo_min) this.lose(a, a.x, a.y, 'pseudo');
         }
@@ -516,7 +526,8 @@ export class World {
         g.t -= dt;
         if (g.t <= 0) {
           g.gone = true;
-          if (g.host === 'me' && this.genes.crispr) { this.events.push(['cut', g.x, g.y]); continue; }
+          // CRISPR — память: знакомого фага режет без вреда. Незнакомого клетка переживает ценой сил и вписывает его кусок новой полоской (упрощение: в природе так выживают немногие).
+          if (g.host === 'me' && this.genes.crispr) { if (this.spacers.has('T4')) this.events.push(['cut', g.x, g.y]); else { this.spacers.add('T4'); h.m = Math.max(0.6, h.m * c.crispr_cost); this.events.push(['learn', g.x, g.y]); } continue; }
           if (h.sick === undefined || h.sick < 0) { h.sick = c.sick; if (g.host === 'me') this.events.push(['sick', h.x, h.y]); }
         }
         continue;
