@@ -345,7 +345,6 @@ $('mcv').addEventListener('click', e => { // касание отметки — �
     const wy = Math.abs(dy) > 400 ? (dy > 0 ? 'вниз' : 'вверх') : '', wx = Math.abs(dx) > 400 ? (dx > 0 ? 'вправо' : 'влево') : '';
     const p4 = document.createElement('p'); p4.className = 'mway'; p4.textContent = !wy && !wx ? 'Ты рядом с этим местом' : 'Плыть ' + [wy, wx].filter(Boolean).join(' и ') + ', ' + (sec < 20 ? 'несколько секунд' : sec < 45 ? 'примерно полминуты' : sec < 90 ? 'около минуты' : 'около ' + Math.round(sec / 60) + ' минут');
     card.insertBefore(p4, go); }
-  const p3 = document.createElement('p'); p3.style.opacity = 0.7; p3.textContent = 'Слой: ' + { film: 'плёнка', light: 'светлая толща', oxy: 'граница кислорода', silt: 'ил' }[world.layer(m.y)]; card.appendChild(p3);
   card.hidden = false;
 });
 // «Не так»: одно касание — отметка с моментом игры. Копятся здесь, «Отправить» — меню «Поделиться» телефона.
