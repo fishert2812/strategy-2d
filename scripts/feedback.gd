@@ -2,9 +2,9 @@ extends Node
 ## Отклик на действия: звук, вспышка, дрожь здания, тряска экрана, всплывающее золото.
 ## Звуки — наборы Kenney (CC0), список в art/LICENSES.md.
 
-const SOUNDS := ["path", "built", "gold", "hit", "destroyed", "win", "lose", "error"]
+const SOUNDS := ["path", "built", "gold", "hit", "destroyed", "win", "lose", "error", "whistle", "clash"]
 const FILES := {"path": "click", "built": "build", "gold": "coin", "hit": "hit", "destroyed": "crash"}
-const QUIET := {"gold": -8.0, "hit": -6.0}
+const QUIET := {"gold": -8.0, "hit": -6.0, "clash": -4.0}
 
 var played := {}
 var _players := {}
@@ -37,6 +37,13 @@ func on_sim(what: String, data: Dictionary) -> void:
 		"hit":
 			play("hit")
 			_flash(battle.sprite_of(data.id), data.max_hp > 0)
+		"whistle":
+			play("whistle")
+			battle.shake = 6.0
+			var ring: Control = battle.get_node("Hud/Box/Top/Whistle")
+			var t := ring.create_tween()
+			t.tween_property(ring, "scale", Vector2.ONE * 1.35, 0.08)
+			t.tween_property(ring, "scale", Vector2.ONE, 0.2)
 		"destroyed":
 			play("destroyed")
 			battle.shake = 16.0

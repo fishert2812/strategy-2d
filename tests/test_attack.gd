@@ -27,9 +27,10 @@ func test_warriors_kill_carriers_on_the_way() -> String:
 	sim.set_path(camp, Vector2(170, 240))
 	var barracks := sim.build(Sim.PLAYER, "barracks", Vector2(360, 760))
 	sim.set_path(barracks, camp.pos)
-	_run(sim, 60.0)
+	# Отряд выходит на первый свисток (20 с), ломает лагерь к ~62 с.
+	_run(sim, 90.0)
 	if camp.hp > 0:
-		return "лагерь врага цел через 60 с"
+		return "лагерь врага цел через 90 с"
 	if sim.units.any(func(u): return u.side == Sim.ENEMY):
 		return "у врага остались носильщики"
 	return ""

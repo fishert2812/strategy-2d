@@ -43,3 +43,6 @@
 | art/table/porter_red.png | «Маленькие работяги» v1, файл porter_red.png; нарисовал Роман в GPT 24.11.2026 для этой игры | права у Романа, для Strategy 2d |
 | art/table/warrior_blue.png | «Маленькие работяги» v1, файл warrior_blue.png; нарисовал Роман в GPT 24.11.2026 для этой игры | права у Романа, для Strategy 2d |
 | art/table/warrior_red.png | «Маленькие работяги» v1, файл warrior_red.png; нарисовал Роман в GPT 24.11.2026 для этой игры | права у Романа, для Strategy 2d |
+| audio/whistle.ogg | Kenney «Digital Audio», файл highUp.ogg (kenney.nl; копия набора — github.com/eturner58/game-assets, `kenney/Audio/Digital Audio`) | CC0 1.0 (текст в audio/License_digital.txt) |
+| audio/License_digital.txt | текст лицензии набора Kenney «Digital Audio» | CC0 1.0 |
+| audio/clash.ogg | Kenney «Impact Sounds», файл impactMetal_light_000.ogg (kenney.nl; копия набора — github.com/eturner58/game-assets, `kenney/Audio/Impact Sounds`) | CC0 1.0 (текст в audio/License_impact.txt) |
