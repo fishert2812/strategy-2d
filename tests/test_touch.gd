@@ -73,3 +73,31 @@ func test_L001() -> String:
 		if why != "":
 			return "%s (экран %dx%d)" % [why, size.x, size.y]
 	return ""
+
+
+func test_buttons_in_thumb_corner_and_off_the_field() -> String:
+	for size in SIZES:
+		var battle: Control = await _battle(size)
+		var field := Rect2(battle.world.to_global(Vector2.ZERO), Vector2(battle.sim.cfg.field[0], battle.sim.cfg.field[1]) * battle.world.scale)
+		var why := ""
+		for kind in battle.buttons:
+			var r: Rect2 = battle.buttons[kind].get_global_rect()
+			if r.position.x < size.x / 2 or r.end.y < size.y - 200:
+				why = "кнопка «%s» не в правом нижнем углу: %s" % [kind, r]
+			elif r.intersects(field):
+				why = "кнопка «%s» закрывает поле" % kind
+		battle.get_parent().free()
+		if why != "":
+			return "%s (экран %dx%d)" % [why, size.x, size.y]
+	return ""
+
+
+## В браузере окно ниже экрана на панели браузера: отступ снизу не должен поднимать кнопки.
+func test_safe_area_counts_from_window() -> String:
+	var web := SafeArea.insets(Rect2(0, 0, 390, 664), Rect2(0, 0, 390, 844), 720)
+	if web[3] != SafeArea.EDGE:
+		return "в браузере отступ снизу %d, ждали %d" % [web[3], SafeArea.EDGE]
+	var phone := SafeArea.insets(Rect2(0, 0, 390, 844), Rect2(0, 47, 390, 763), 720)
+	if phone[1] != 86 or phone[3] != 62:
+		return "на iPhone отступы сверху %d и снизу %d, ждали 86 и 62" % [phone[1], phone[3]]
+	return ""

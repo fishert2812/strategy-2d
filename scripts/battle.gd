@@ -16,8 +16,6 @@ const UNIT := {
 const PATH_COLOR := [Color(0.2, 0.45, 1.0, 0.75), Color(0.95, 0.2, 0.15, 0.75)]
 ## Цвет стороны: синие мы, красные враг.
 const TINT := [Color(0.6, 0.78, 1.0), Color(1.0, 0.6, 0.55)]
-const TOP := 90.0
-const BOTTOM := 190.0
 ## Сдвиг пальца меньше этого — касание, а не перетягивание.
 const TAP := 24.0
 
@@ -67,7 +65,12 @@ func _process(dt: float) -> void:
 	enemy.step(dt)
 	sim.step(dt)
 	var field := Sim._v(sim.cfg.field)
-	world.position = Vector2((size.x - field.x) / 2, TOP + (size.y - TOP - BOTTOM - field.y) / 2)
+	# Поле целиком между полоской сверху и кнопками снизу, на любом экране.
+	var top: float = $Hud/Box/Top.get_global_rect().end.y + 4
+	var room := Vector2(size.x, _bar_top() - 4 - top)
+	var k := minf(room.x / field.x, room.y / field.y)
+	world.scale = Vector2(k, k)
+	world.position = Vector2((size.x - field.x * k) / 2, top + (room.y - field.y * k) / 2)
 	world.position += Vector2(randf_range(-shake, shake), randf_range(-shake, shake))
 	shake = move_toward(shake, 0.0, dt * 40.0)
 	$Hud/Box/Top/Gold.text = "Золото %d" % sim.gold[Sim.PLAYER]
@@ -190,7 +193,7 @@ func _release(pos: Vector2) -> void:
 		if not sim.set_path(d.from, at) and (tap or d.from.pos.distance_to(at) > 60):
 			hint("тяни тропу к залежи" if d.from.kind == "camp" else "тяни тропу к зданию врага")
 		return
-	if pos.y > size.y - BOTTOM:
+	if pos.y > _bar_top():
 		return
 	var why := sim.can_build(Sim.PLAYER, d.what, at)
 	if why != "":
@@ -241,6 +244,10 @@ func _on_sim(what: String, data: Dictionary) -> void:
 		"ended":
 			$End/Center/Box/Title.text = "Победа!" if data.winner == Sim.PLAYER else "Поражение"
 			$End.show()
+
+
+func _bar_top() -> float:
+	return $Hud/Box/Bar.get_global_rect().position.y
 
 
 func sprite_of(id: int) -> Node2D:
