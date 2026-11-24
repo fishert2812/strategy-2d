@@ -9,7 +9,7 @@ func _flag(battle: Control) -> Vector2:
 
 ## Польза: флажок, перетянутый пальцем на стол, попадает в разбор с местом, секундой и тем, что не вышло перед ним.
 func test_flag_on_spot_lands_in_report() -> String:
-	var battle := await t._battle(t.SIZES[0])
+	var battle: Control = await t._battle(t.SIZES[0])
 	t._tap(battle, _flag(battle))
 	battle.hint("занято: мешает казарма")
 	t._drag(battle, _flag(battle), battle.world.to_global(Vector2(360, 500)))
@@ -30,7 +30,7 @@ func test_flag_on_spot_lands_in_report() -> String:
 
 ## Флажок посреди выбора постройки не ставит здание, а постройка и тропы после флажков работают.
 func test_flag_does_not_break_building_and_paths() -> String:
-	var battle := await t._battle(t.SIZES[0])
+	var battle: Control = await t._battle(t.SIZES[0])
 	var sim: Sim = battle.sim
 	t._tap(battle, battle.buttons.camp.get_global_rect().get_center())
 	t._tap(battle, _flag(battle))
@@ -52,7 +52,7 @@ func test_flag_does_not_break_building_and_paths() -> String:
 
 ## Конец партии: флажки на экране итога, «Отправить разбор» одним касанием готовит заявку с ящиком.
 func test_end_screen_sends_in_one_tap() -> String:
-	var battle := await t._battle(t.SIZES[0])
+	var battle: Control = await t._battle(t.SIZES[0])
 	var sim: Sim = battle.sim
 	sim.build(Sim.PLAYER, "camp", Vector2(250, 830))
 	battle.hint("тяни тропу к залежи")
