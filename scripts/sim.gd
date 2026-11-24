@@ -154,13 +154,14 @@ static func pull(trail: Array, circles: Array, step: float) -> Array:
 	# Угол в воздухе тянется к соседям, пока не упрётся в печенье: нитка ложится по краю, а не по пальцу.
 	for pass_ in 24:
 		for k in range(1, pts.size() - 1):
-			var f := 1.0
-			while f > 0.01:
-				var to: Vector2 = pts[k].lerp((pts[k - 1] + pts[k + 1]) / 2.0, f)
-				if circles.all(func(c): return not _touches(c, pts[k - 1], pts[k], to) and not _touches(c, pts[k + 1], pts[k], to)):
-					pts[k] = to
-					break
-				f /= 2.0
+			for aim in [(pts[k - 1] + pts[k + 1]) / 2.0, pts[k - 1], pts[k + 1]]:  # к соседям и вдоль отрезков
+				var f := 1.0
+				while f > 0.01:
+					var to: Vector2 = pts[k].lerp(aim, f)
+					if circles.all(func(c): return not _touches(c, pts[k - 1], pts[k], to) and not _touches(c, pts[k + 1], pts[k], to)):
+						pts[k] = to
+						break
+					f /= 2.0
 	return pts
 
 

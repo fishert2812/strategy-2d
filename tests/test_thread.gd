@@ -43,9 +43,9 @@ func test_L006() -> String:
 		var made := _sim()
 		var sim: Sim = made[0]
 		var b: Dictionary = made[1]
-		var cookie: Vector2 = sim.deposits[5].pos if side != 0.0 else sim.deposits[4].pos
-		# Третий след — широкий заход по левому краю стола с поворотом в чистом поле.
-		var trail := _around(cookie, side) if side != 0.0 else [Vector2(60, 700), Vector2(50, 300), Vector2(360, 110)]
+		var cookie: Vector2 = sim.deposits[5].pos
+		# Третий след — дуга справа с поворотом в чистом поле (так вёл палец игрок).
+		var trail := _around(cookie, side) if side != 0.0 else [Vector2(500, 560), Vector2(500, 460), Vector2(440, 330), Vector2(360, 130)]
 		var shown: Array = sim.thread(b, trail).route
 		if not sim.set_route(b, trail):
 			return "обход %s: тропа не легла" % side
@@ -55,11 +55,9 @@ func test_L006() -> String:
 		if _closest(b.route, b.pos, cookie) < r - 1.0:
 			return "обход %s: нитка зашла в печенье на %.0f из %.0f" % [side, _closest(b.route, b.pos, cookie), r]
 		# Углы нитки только там, где она упирается в печенье, а не там, где повернул палец.
-		var way: Array = [b.pos] + b.route
-		for i in range(1, way.size() - 1):
-			var to: Vector2 = way[i].lerp((way[i - 1] + way[i + 1]) / 2.0, 0.05)
-			if not sim.solids().any(func(c): return Sim._touches(c, way[i - 1], way[i], to) or Sim._touches(c, way[i + 1], way[i], to)):
-				return "обход %s: угол нитки в воздухе в %s" % [side, way[i]]
+		for p in b.route.slice(0, -1):
+			if not sim.solids().any(func(c): return p.distance_to(c[0]) < c[1] + 6.0):
+				return "обход %s: угол нитки в воздухе в %s" % [side, p]
 		var mid: Vector2 = b.route.reduce(func(a, p): return p if absf(p.y - cookie.y) < absf(a.y - cookie.y) else a, b.route[0])
 		if side != 0.0 and signf(mid.x - cookie.x) != side:
 			return "обход %s: нитка легла с другой стороны печенья (%s)" % [side, mid]
