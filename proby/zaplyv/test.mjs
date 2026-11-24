@@ -64,6 +64,14 @@ check('фаг заражает клетку, она лопается новым�
   if (res[1][0] !== 1) return 'с CRISPR клетка погибла';
 });
 
+check('джойстик: сдвиг пальца вправо ведёт клетку вправо, слабый сдвиг — медленнее', () => {
+  const go = p => { const w = new World(cfg, 9); w.amoebas = []; w.phages = []; w.prey = []; w.tidy = 1e9; run(w, 3, { dx: 1, dy: 0, p }); return w.me[0].x; };
+  const full = go(1), half = go(0.4);
+  console.log('    паспорт: за 3 с полный ход', Math.round(full), ', слабый', Math.round(half));
+  if (full < 300) return 'полный ход увёл только на ' + Math.round(full);
+  if (half > full * 0.6) return 'слабый ход почти как полный';
+});
+
 check('мир без краёв: уплыл далеко — вокруг снова еда, позади забыто', () => {
   const w = new World(cfg, 11);
   w.genes.capsule = w.genes.crispr = true;
