@@ -35,7 +35,7 @@ export const sobrat = records => Object.fromEntries(records.filter(r => r.kartoc
 export const SHAGI = ['nauka', 'adaptaciya', 'biolog', 'gotov', 'stroyka', 'v_igre'];
 const at = s => SHAGI.indexOf(s);
 
-export function sverka({ records, cards, genes, slots, pages, files, spisok, ring, teksty, problemy }) {
+export function sverka({ records, cards, genes, slots, pages, files, spisok, ring, teksty, problemy, kto }) {
   const bad = [], seen = new Map();
   const have = k => { const [t, key] = k.split(':'); return t === 'cards' ? cards[key] : t === 'gene' ? genes[key] && { name: genes[key][0], chto: genes[key][1] } : null; };
   if ([...files].sort().join() !== [...spisok].sort().join()) bad.push('zapisi/spisok.json не совпадает с файлами записей: ' + files.join(' ') + ' / ' + spisok.join(' '));
@@ -51,6 +51,8 @@ export function sverka({ records, cards, genes, slots, pages, files, spisok, rin
     if (!v && s >= at('adaptaciya') && !r.nauka) bad.push(who + ': шаг «' + r.shag + '», а слоя науки нет');
     if (!v && s >= at('biolog') && !r.igra) bad.push(who + ': шаг «' + r.shag + '», а слоя «в игре» нет');
     if (!v && s >= at('gotov') && !(r.stroit && r.proverka)) bad.push(who + ': готов к стройке без слоёв «как строить» и «проверка»');
+    if (r.novaya && !r.roman && s >= at('stroyka')) bad.push(who + ': новая механика ушла в стройку без «да» Романа (поле roman: «да, дата»)');
+    if (r.roman && !/^да, \d\d\.\d\d/.test(r.roman)) bad.push(who + ': поле roman пишется «да, ДД.ММ» со слов Романа');
     if (!v && s >= at('gotov') && !(r.krugi && r.krugi.biolog)) bad.push(who + ': готов к стройке, а круг биолога не пройден');
     if (v && !r.versiya) bad.push(who + ': «в игре» без номера версии');
     if (v && !(r.kod && r.kod.length)) bad.push(who + ': «в игре», а ссылки на код нет');
@@ -84,6 +86,18 @@ export function sverka({ records, cards, genes, slots, pages, files, spisok, rin
     if (p.status === 'vyshlo' && !p.versiya) bad.push('проблема ' + p.id + ': «вышло» без номера версии');
     if (!p.slova || !p.chto) bad.push('проблема ' + p.id + ': нет слов Романа или строки «что с этим»');
   }
+  if (kto) { // сетка «Кто с кем»: существа из игры, связь «в игре» только между ними, «задумано» ссылается на запись
+    const keys = kto.kto.map(k => k[0]), ids = new Set(records.map(r => r.id));
+    for (const k of keys) if (!cards[k]) bad.push('кто с кем: существа «' + k + '» нет в cards.json');
+    for (const k of Object.keys(cards)) if (!k.startsWith('_') && !keys.includes(k)) bad.push('кто с кем: карточка игры «' + k + '» не стоит в сетке');
+    for (const s of kto.svyazi) {
+      if (!keys.includes(s.a) || !keys.includes(s.b)) bad.push('кто с кем: связь ' + s.a + ' → ' + s.b + ' с неизвестным существом');
+      if (!['igra', 'zapis', 'nauka', 'pusto'].includes(s.st) || !['est', 'byot', 'zarazhaet', 'pomogaet', 'sopernik', 'nichego', 'vopros'].includes(s.z) || !s.t) bad.push('кто с кем: связь ' + s.a + ' → ' + s.b + ' без знака, статуса или текста');
+      if ((s.st === 'pusto') !== (s.z === 'vopros')) bad.push('кто с кем: связь ' + s.a + ' → ' + s.b + ': вопрос биологу и статус «пусто» ходят только вместе');
+      if (s.gde && !ids.has(s.gde)) bad.push('кто с кем: связь ' + s.a + ' → ' + s.b + ' ссылается на запись ' + s.gde + ', а её нет');
+      if (s.st === 'zapis' && !s.gde) bad.push('кто с кем: «задумано» без номера записи: ' + s.a + ' → ' + s.b);
+    }
+  }
   for (const k of slots) if (!genes[k]) bad.push('на кольце генома место «' + k + '», а такого гена в data.json нет');
   return bad;
 }
@@ -96,7 +110,7 @@ function load() {
   const g = j('../genome.json');
   const slots = [...g.arcs.flatMap(a => a.slots), ...g.plasmids].map(s => s.id).filter(Boolean);
   const ring = [...g.arcs.flatMap(a => a.slots), ...g.plasmids].map(s => s.gene).filter(x => x && x !== '?');
-  return { records, cards: j('../cards.json'), genes: j('../data.json').genes, slots, pages, files, spisok: j('zapisi/spisok.json'), ring, teksty: { ...j('teksty_genov.json'), sushchestva: j('teksty_sushchestv.json').sushchestva }, problemy: j('problemy.json') };
+  return { records, cards: j('../cards.json'), genes: j('../data.json').genes, slots, pages, files, spisok: j('zapisi/spisok.json'), ring, teksty: { ...j('teksty_genov.json'), sushchestva: j('teksty_sushchestv.json').sushchestva }, problemy: j('problemy.json'), kto: j('kto_s_kem.json') };
 }
 
 const S = load();
@@ -117,6 +131,8 @@ if (process.argv.includes('--selftest')) {
     ['текст карточки в игре изменили мимо книги', s => { s.cards.phage.name = 'Другой'; return s; }, true],
     ['один номер у двух записей', s => { s.records.push({ ...s.records[0] }); return s; }, true],
     ['проба: полная запись у биолога', s => { s.records.push(proba()); return s; }, false],
+    ['новая механика в стройке без «да» Романа', s => { s.records.push({ ...proba(), shag: 'stroyka', stroit: 'с', proverka: 'п', krugi: { biolog: 'б' }, novaya: true, roman: '' }); return s; }, true],
+    ['новая механика в стройке с «да» Романа', s => { s.records.push({ ...proba(), shag: 'stroyka', stroit: 'с', proverka: 'п', krugi: { biolog: 'б' }, novaya: true, roman: 'да, 24.11' }); return s; }, false],
     ['готов к стройке без биолога', s => { s.records.push({ ...proba(), shag: 'gotov' }); return s; }, true],
     ['запись без слоя науки ушла дальше', s => { s.records.push({ ...proba(), nauka: '' }); return s; }, true],
     ['запись не показана в книге', s => { s.pages = {}; return s; }, true],
@@ -129,6 +145,8 @@ if (process.argv.includes('--selftest')) {
     ['test_L018: в карточке существа термин', s => { s.records.find(r => r.sushchestva).sushchestva.phage = { imya: 'Фаг', kto: 'Вирус', priroda: 'Вирус', kopirayter: 'да' }; return s; }, true],
     ['test_L018: существо без карточки от копирайтера', s => { delete s.records.find(r => r.sushchestva && r.sushchestva.amoeba).sushchestva.amoeba.kopirayter; return s; }, true],
     ['test_L018: блок «в природе» ужат до одной фразы', s => { kart(s).priroda = 'Одна фраза.'; return s; }, true],
+    ['кто с кем: связь ссылается на запись, которой нет', s => { s.kto.svyazi[0].gde = 'Щ1'; return s; }, true],
+    ['кто с кем: карточка игры не стоит в сетке', s => { s.kto.kto.pop(); return s; }, true],
     ['проблема «вышло» без версии', s => { s.problemy[0].versiya = ''; s.problemy[0].status = 'vyshlo'; return s; }, true],
     ['test_L018: ген в игре без карточки', s => { delete s.records.find(r => r.kartochka && r.kod).kartochka; return s; }, true],
     ['test_L018: файл текстов для игры отстал от книги', s => { s.teksty.geny = { net: 1 }; return s; }, true],
@@ -144,7 +162,7 @@ if (process.argv.includes('--selftest')) {
 const bad = sverka(S);
 const n = s => S.records.filter(r => r.shag === s).length;
 const wait = S.records.filter(r => !(r.krugi && r.krugi.biolog));
-console.log('  паспорт: записей ' + S.records.length + '; в игре ' + n('v_igre') + ', строим ' + n('stroyka') + ', готово к стройке ' + n('gotov') +
+console.log('  паспорт: записей ' + S.records.length + '; в игре ' + n('v_igre') + ', строим ' + n('stroyka') + ', готово к стройке ' + S.records.filter(r => r.shag === 'gotov' && !(r.novaya && !r.roman)).length + ', ждёт Романа ' + S.records.filter(r => r.novaya && !r.roman).length +
   ', у биолога ' + n('biolog') + ', адаптация ' + n('adaptaciya') + ', база науки ' + n('nauka') + '; карточек игры ' + (Object.keys(S.cards).length - 1) +
   ', генов игры ' + Object.keys(S.genes).length + '; ждут биолога: ' + (wait.map(r => r.id).join(' ') || 'нет'));
 for (const b of bad) console.log('  КНИГА: ' + b);
