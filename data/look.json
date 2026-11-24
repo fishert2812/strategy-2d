@@ -1,0 +1,47 @@
+{
+  "_": "Вид поля: картинки Романа «Маленькие работяги». width — ширина холста PNG в точках поля 720. Постройки и печенье ставим центром картинки (видимая часть у них по центру холста), людей — точкой опоры anchor (доли от левого верхнего угла). deposit.states — порог доли оставшихся крошек и картинка.",
+  "dir": "res://art/table/",
+  "home": {
+    "files": ["hq_blue", "hq_red"],
+    "width": 173
+  },
+  "camp": {
+    "files": ["camp_blue", "camp_red"],
+    "width": 140
+  },
+  "barracks": {
+    "files": ["barracks_blue", "barracks_red"],
+    "width": 140
+  },
+  "carrier": {
+    "files": ["porter_blue", "porter_red"],
+    "width": 56,
+    "anchor": [0.5, 0.8672]
+  },
+  "warrior": {
+    "files": ["warrior_blue", "warrior_red"],
+    "width": 56,
+    "anchor": [0.5, 0.8477]
+  },
+  "deposit": {
+    "width": 133,
+    "states": [
+      [0.6, "gold_full"],
+      [0.2, "gold_half"],
+      [0.0, "gold_low"]
+    ]
+  },
+  "background": "background_table",
+  "_background_tint": "Стол приглушён, чтобы печенье, тропы и люди читались на нём.",
+  "background_tint": "#C9C0B8",
+  "icons": {
+    "camp": "icon_camp",
+    "barracks": "icon_barracks"
+  },
+  "path_colors": ["#6DA8F4", "#E97062"],
+  "path_width": 7,
+  "path_edge": {
+    "color": "#3B2414",
+    "width": 11
+  }
+}

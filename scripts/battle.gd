@@ -1,25 +1,13 @@
 extends Control
 ## Экран партии: поле, здания, постройка и тропы касанием или перетягиванием, конец партии.
 
-const TEX := {
-	"home": preload("res://art/rts/medievalStructure_05.png"),
-	"camp": preload("res://art/rts/medievalStructure_10.png"),
-	"barracks": preload("res://art/rts/medievalStructure_02.png"),
-	"small": preload("res://art/rts/medievalEnvironment_17.png"),
-	"rich": preload("res://art/rts/medievalEnvironment_19.png"),
-}
-## Люди по сторонам: [наш, врага].
-const UNIT := {
-	"carrier": [preload("res://art/rts/medievalUnit_23.png"), preload("res://art/rts/medievalUnit_05.png")],
-	"warrior": [preload("res://art/rts/medievalUnit_03.png"), preload("res://art/rts/medievalUnit_09.png")],
-}
-const PATH_COLOR := [Color(0.2, 0.45, 1.0, 0.75), Color(0.95, 0.2, 0.15, 0.75)]
-## Цвет стороны: синие мы, красные враг.
-const TINT := [Color(0.6, 0.78, 1.0), Color(1.0, 0.6, 0.55)]
+## Вид поля: картинки, размеры и цвета троп — data/look.json.
+const LOOK := "res://data/look.json"
 ## Сдвиг пальца меньше этого — касание, а не перетягивание.
 const TAP := 24.0
 
 var sim: Sim
+var look: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(LOOK))
 var shake := 0.0
 var enemy: Enemy
 var _sprites := {}
@@ -40,6 +28,10 @@ var _lines := {}
 
 func _ready() -> void:
 	$Hud/Box/Top/Sha.text = Version.sha()
+	$Grass.texture = _tex(look.background)
+	$Grass.modulate = Color(look.background_tint)
+	for kind in buttons:
+		buttons[kind].icon = _tex(look.icons[kind])
 	$End/Center/Box/Again.pressed.connect(restart)
 	SafeArea.apply($Hud)
 	if OS.has_feature("web"):
@@ -63,7 +55,7 @@ func restart() -> void:
 	for b in sim.buildings:
 		_on_sim("built", b)
 	for d in sim.deposits:
-		_add_sprite(d.id, TEX.rich if d.max >= 400 else TEX.small, d.pos)
+		_add_sprite(d.id, look.deposit, _tex(look.deposit.states[0][1]), d.pos)
 	$End.hide()
 
 
@@ -79,14 +71,17 @@ func _process(dt: float) -> void:
 	world.position = Vector2((size.x - field.x * k) / 2, top + (room.y - field.y * k) / 2)
 	world.position += Vector2(randf_range(-shake, shake), randf_range(-shake, shake))
 	shake = move_toward(shake, 0.0, dt * 40.0)
-	$Hud/Box/Top/Gold.text = "Золото %d" % sim.gold[Sim.PLAYER]
+	$Hud/Box/Top/Gold.text = "Крошки %d" % sim.gold[Sim.PLAYER]
 	$Hud/Box/Top/Time.text = "%d:%02d" % [int(sim.time) / 60, int(sim.time) % 60]
 	for kind in buttons:
 		buttons[kind].modulate.a = 1.0 if sim.gold[Sim.PLAYER] >= sim.cfg.buildings[kind].cost else 0.45
 	for d in sim.deposits:
 		var s: Node2D = _sprites[d.id]
 		s.visible = d.gold > 0
-		s.scale = Vector2.ONE * lerpf(1.0, 2.2, d.gold / 600.0)
+		for st in look.deposit.states:
+			if d.gold / d.max > st[0]:
+				s.texture = _tex(st[1])
+				break
 	for b in sim.buildings:
 		var bar: ProgressBar = _sprites[b.id].get_node("Hp")
 		bar.value = b.hp / b.max_hp * 100.0
@@ -103,8 +98,8 @@ func _sync_paths() -> void:
 			continue
 		seen[b.id] = true
 		if not _lines.has(b.id):
-			_lines[b.id] = _line(PATH_COLOR[b.side])
-		_lines[b.id].points = [b.pos, b.target.pos]
+			_lines[b.id] = _line(Color(look.path_colors[b.side]))
+		_points(_lines[b.id], [b.pos, b.target.pos])
 	_drop_missing(_lines, seen)
 
 
@@ -114,12 +109,14 @@ func _sync_units() -> void:
 		seen[u.id] = true
 		if not _units.has(u.id):
 			var s := Sprite2D.new()
-			s.texture = UNIT[u.kind][u.side]
-			s.scale = Vector2.ONE * 1.6
-			s.offset.y = -12
+			_fit(s, look[u.kind], _tex(look[u.kind].files[u.side]))
 			things.add_child(s)
 			_units[u.id] = s
-		_units[u.id].position = u.pos
+		var sprite: Sprite2D = _units[u.id]
+		# Люди нарисованы лицом влево: идёт вправо — отражаем.
+		if absf(u.pos.x - sprite.position.x) > 0.01:
+			sprite.flip_h = u.pos.x > sprite.position.x
+		sprite.position = u.pos
 	_drop_missing(_units, seen)
 
 
@@ -130,14 +127,28 @@ func _drop_missing(nodes: Dictionary, seen: Dictionary) -> void:
 			nodes.erase(id)
 
 
+## Тропа: цветная линия с тёмной каймой, чтобы читалась на дереве стола.
 func _line(color: Color) -> Line2D:
+	var line := _stroke(color, look.path_width)
+	var edge := _stroke(Color(look.path_edge.color), look.path_edge.width)
+	edge.show_behind_parent = true
+	line.add_child(edge)
+	$World/Paths.add_child(line)
+	return line
+
+
+func _stroke(color: Color, width: float) -> Line2D:
 	var line := Line2D.new()
-	line.width = 10
+	line.width = width
 	line.default_color = color
 	line.begin_cap_mode = Line2D.LINE_CAP_ROUND
 	line.end_cap_mode = Line2D.LINE_CAP_ROUND
-	$World/Paths.add_child(line)
 	return line
+
+
+func _points(line: Line2D, pts: Array) -> void:
+	line.points = PackedVector2Array(pts)
+	line.get_child(0).points = line.points
 
 
 ## Палец на телефоне: касание и перетягивание. Берём первое пришедшее событие нажатия —
@@ -183,7 +194,7 @@ func debug_text() -> String:
 
 func _move(pos: Vector2) -> void:
 	if _drag.has("from"):
-		_drag.line.points = [_drag.from.pos, world.to_local(pos)]
+		_points(_drag.line, [_drag.from.pos, world.to_local(pos)])
 	elif _drag.has("what"):
 		ghost.position = world.to_local(pos)
 		var ok: bool = sim.can_build(Sim.PLAYER, _drag.what, ghost.position) == ""
@@ -197,7 +208,7 @@ func _press(pos: Vector2) -> void:
 		if buttons[kind].get_global_rect().has_point(pos):
 			_pick({})
 			_drag = {"what": kind, "start": pos}
-			ghost.texture = TEX[kind]
+			_fit(ghost, look[kind], _tex(look[kind].files[Sim.PLAYER]))
 			ghost.position = world.to_local(pos)
 			ghost.show()
 			return
@@ -206,7 +217,7 @@ func _press(pos: Vector2) -> void:
 		return
 	var b := sim.building_at(world.to_local(pos), Sim.PLAYER)
 	if b.get("kind") in ["camp", "barracks"]:
-		_drag = {"from": b, "line": _line(PATH_COLOR[Sim.PLAYER].lightened(0.4)), "start": pos}
+		_drag = {"from": b, "line": _line(Color(look.path_colors[Sim.PLAYER]).lightened(0.4)), "start": pos}
 
 
 func _release(pos: Vector2) -> void:
@@ -262,14 +273,14 @@ func hint(text: String, error := true) -> void:
 func _on_sim(what: String, data: Dictionary) -> void:
 	match what:
 		"built":
-			var s := _add_sprite(data.id, TEX[data.kind], data.pos)
-			s.scale = Vector2.ONE * (1.9 if data.kind == "home" else 1.5)
-			s.modulate = TINT[data.side]
+			var l: Dictionary = look[data.kind]
+			var s := _add_sprite(data.id, l, _tex(l.files[data.side]), data.pos)
 			var bar := ProgressBar.new()
 			bar.name = "Hp"
 			bar.show_percentage = false
 			bar.size = Vector2(44, 6)
-			bar.position = Vector2(-22, -30)
+			bar.scale = Vector2.ONE / s.scale
+			bar.position = Vector2(-22, -l.width * 0.4) / s.scale
 			bar.hide()
 			s.add_child(bar)
 		"destroyed":
@@ -288,9 +299,20 @@ func sprite_of(id: int) -> Node2D:
 	return _sprites.get(id, _units.get(id))
 
 
-func _add_sprite(id: int, tex: Texture2D, pos: Vector2) -> Sprite2D:
-	var s := Sprite2D.new()
+func _tex(file: String) -> Texture2D:
+	return load(look.dir + file + ".png")
+
+
+## Размер картинки по ширине из look.json; у людей точка опоры — ноги.
+func _fit(s: Sprite2D, l: Dictionary, tex: Texture2D) -> void:
 	s.texture = tex
+	s.scale = Vector2.ONE * l.width / tex.get_width()
+	s.offset.y = (0.5 - l.anchor[1]) * tex.get_height() if l.has("anchor") else 0.0
+
+
+func _add_sprite(id: int, l: Dictionary, tex: Texture2D, pos: Vector2) -> Sprite2D:
+	var s := Sprite2D.new()
+	_fit(s, l, tex)
 	s.position = pos
 	things.add_child(s)
 	_sprites[id] = s
