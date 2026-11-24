@@ -12,7 +12,7 @@ const check = (name, f) => { let r; try { r = f(); } catch (e) { r = 'ошибк
 check('test_vid_events: у каждого события мира есть своя анимация', () => {
   if (kinds.length < 10) return 'не нашёл события в sim.js: ' + kinds;
   const fx = new Fx({}, [{ r: 1, g: 1, b: 1 }, { r: 1, g: 1, b: 1 }, { r: 1, g: 1, b: 1 }]), miss = [];
-  for (const k of kinds) { if (quiet.has(k)) continue; fx.reset(); fx.on(k, 0, 0, 1, 0); if (!fx.rings.length && !fx.zaps.length) miss.push(k); }
+  for (const k of kinds) { if (quiet.has(k)) continue; fx.reset(); fx.on(k, 0, 0, 1, 0); if (!fx.busy()) miss.push(k); }
   console.log('    паспорт: событий ' + kinds.length + ': ' + kinds.join(' '));
   return miss.length ? 'без анимации: ' + miss.join(', ') : '';
 });
@@ -38,7 +38,7 @@ const cfgD = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
 const paint = (genes, opt = {}) => { const pts = [], brush = { put: (x, y, r, cr, cg, cb, ca) => pts.push([x, y, r, cr, cg, cb, ca].map(v => Math.round(v * 100) / 100).join()) };
   const a = { id: 1, m: 1, a: 0, vx: 0, vy: 0, stuck: !!opt.stuck }, lk = look(genes, cfgD.look, opt.spacers || 0);
   vid.skin({ a, lk, x: 0, y: 0, ang: 0, ax: 1, ay: 0, half: 20, w: 9, z: 1, along: (u, o) => [u, o], arc: () => 0, body: { at: () => [0, 0] }, scr: (x, y) => [x, y],
-    time: opt.time ?? 1, pdt: 0.5, run: false, phageNear: false, foodNear: !!opt.food, spacers: opt.spacers || 0, plasmid: false, cfg: cfgD, alive: [a], glow: brush, ink: brush });
+    time: opt.time ?? 1, pdt: opt.pdt ?? 0, run: false, phageNear: false, foodNear: !!opt.food, spacers: opt.spacers || 0, plasmid: false, cfg: cfgD, alive: [a], glow: brush, ink: brush });
   const fl = ',' + cfgD.flag.color.join() + ','; return pts.filter(p => !p.includes(fl)); }; // жгутики живут своим ходом между кадрами (whip.js)
 check('test_vid_skills_seen: каждое умение видно на теле своими точками', () => {
   const base = new Set(paint({})), miss = [];
@@ -62,6 +62,30 @@ check('test_vid_capsule_dent: капсула прогибается от уда�
   vid.stepVid(5); const was = paint({ capsule: true }).join('|'); vid.poke(-15, 13); const hit = paint({ capsule: true }).join('|');
   vid.stepVid(5); const after = paint({ capsule: true }).join('|');
   return hit === was ? 'удар не виден' : after !== was ? 'плёнка не вернулась' : '';
+});
+check('test_vid_lysis: клетка от фага лопается прорывом — брызги вязко гаснут, остаётся пустая оболочка с дырой', () => {
+  const C = { r: 1, g: 1, b: 1 }, fx = new Fx({}, [C, C, C]); fx.reset();
+  // клетка плыла здесь (vid помнит форму), потом лопнула
+  paint({ capsule: false }); fx.on('burst', 0, 0);
+  if (!fx.ghosts.length) return 'нет оболочки-призрака';
+  if (fx.drops.length < 20) return 'нет брызг сока: ' + fx.drops.length;
+  const far = () => Math.max(...fx.drops.map(p => Math.hypot(p.x, p.y)));
+  for (let i = 0; i < 30; i++) fx.step(1 / 30); const d1 = far();
+  for (let i = 0; i < 9; i++) fx.step(1 / 30); const d2 = far();
+  if (d2 - d1 > d1 * 0.08) return 'брызги катятся после секунды: ' + d1.toFixed(0) + ' → ' + d2.toFixed(0) + ' (в вязкой воде выката нет)';
+  for (let i = 0; i < 150; i++) fx.step(1 / 30);
+  if (!fx.ghosts.length) return 'призрак пропал раньше 6 с';
+  const n = { k: 0 }, b = { put: () => n.k++ }; fx.drawUnder({ scr: (x, y) => [x, y], z: 1, time: 0, glow: b, ink: b });
+  if (n.k < 30 || n.k >= 40) return 'у призрака нет дыры прорыва или он не нарисован: точек ' + n.k;
+  for (let i = 0; i < 150; i++) fx.step(1 / 30);
+  return fx.ghosts.length ? 'призрак не тает' : '';
+});
+check('test_vid_ill: заражённая фагом клетка мутнеет и замирает внутри', () => {
+  const healthy = paint({}), sick = (() => { const pts = [], brush = { put: (...v) => pts.push(v) }, a = { id: 7, m: 1, a: 0, vx: 0, vy: 0, sick: cfgD.sick * 0.1 };
+    vid.skin({ a, lk: look({}, cfgD.look), x: 0, y: 0, ang: 0, ax: 1, ay: 0, half: 20, w: 9, z: 1, along: (u, o) => [u, o], arc: () => 0, body: { at: () => [0, 0] }, scr: (x, y) => [x, y],
+      time: 1, pdt: 0, run: false, phageNear: false, foodNear: false, spacers: 0, plasmid: false, cfg: cfgD, alive: [a], glow: brush, ink: brush }); return pts; })();
+  const murk = sick.filter(v => Math.abs(v[3] - vid.V.ill.color[0]) < 0.01 && Math.abs(v[4] - vid.V.ill.color[1]) < 0.01).length;
+  return murk >= 8 ? '' : 'муть внутри не видна: ' + murk + ' точек';
 });
 console.log(bad ? 'ВИД: провалов ' + bad : 'ВИД: все проверки прошли');
 process.exit(bad ? 1 : 0);
