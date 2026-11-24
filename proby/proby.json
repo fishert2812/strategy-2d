@@ -1,0 +1,19 @@
+{
+	"streams": {
+		"start": 20,
+		"neutrals": 10,
+		"gap": 150,
+		"neutral_min": 4,
+		"neutral_max": 22,
+		"r0": 18,
+		"rk": 5.2,
+		"cap": 80,
+		"grow": 0.45,
+		"grow_k": 0.012,
+		"flow": 1.6,
+		"flow_k": 0.09,
+		"speed": 160,
+		"step": 12,
+		"hit": 15
+	}
+}
