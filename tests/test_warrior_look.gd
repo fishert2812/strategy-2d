@@ -92,3 +92,16 @@ func test_home_cracks_when_beaten() -> String:
 	if not beaten.resource_path.contains("cracked"):
 		return "побитая кружка не треснула: %s" % beaten.resource_path
 	return ""
+
+
+## Все кадры воина рисуются один раз при входе в партию, а не впервые посреди боя (рывок кадра в браузере).
+func test_warrior_frames_drawn_at_start() -> String:
+	var battle := _battle()
+	var warm: Node = battle.get_node_or_null("Warm")
+	var drawn := [] if warm == null else warm.get_children().map(func(s): return s.texture.resource_path)
+	var missing: Array = battle.look.warrior.frames[0] + battle.look.warrior.frames[1]
+	missing = missing.filter(func(f): return not drawn.has(battle.look.dir + f + ".png"))
+	battle.free()
+	if missing.size() > 0:
+		return "при входе не нарисованы: %s" % [missing]
+	return ""

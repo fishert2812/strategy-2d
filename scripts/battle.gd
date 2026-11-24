@@ -42,6 +42,7 @@ var _glow := Node2D.new()
 
 func _ready() -> void:
 	_preload(look)
+	_warm_up()
 	$Hud/Box/Top/Sha.text = Version.label()
 	$Grass.texture = _tex(look.background)
 	$Grass.modulate = Color(look.background_tint)
@@ -591,6 +592,24 @@ func _preload(v) -> void:
 			_preload(x)
 	elif v is String and not v.is_empty() and ResourceLoader.exists(look.dir + v + ".png"):
 		_loaded.append(_tex(v))
+
+
+## Каждую картинку один раз нарисовать при входе, крошечной и почти прозрачной: в браузере первая
+## отрисовка картинки (кадр удара посреди боя) давала рывок кадра. Через два кадра прогрев убираем.
+func _warm_up() -> void:
+	var warm := Node2D.new()
+	warm.name = "Warm"
+	warm.modulate.a = 0.01
+	for t in _loaded:
+		var s := Sprite2D.new()
+		s.texture = t
+		s.scale = Vector2.ONE * 8.0 / t.get_width()
+		s.position = Vector2(8, 8)
+		warm.add_child(s)
+	add_child(warm)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	warm.queue_free()
 
 
 func _tex(file: String) -> Texture2D:
