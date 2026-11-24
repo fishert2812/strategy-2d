@@ -7,9 +7,10 @@ const R0 = 110, R1 = 148, GAP = 1.5;
 // Все места по порядку: { slot, arc, color, a0, a1 (градусы) | x, y для чужих }. Без DOM — проверяется тестом.
 export function layout(G) {
   const out = [];
-  G.arcs.forEach((arc, k) => arc.slots.forEach((slot, i) => {
-    const a0 = -90 + (k * 4 + i) * 30; // сверху метка ori — с неё начинается копирование кольца, дальше по часовой
-    out.push({ slot, arc: k, color: arc.color, a0: a0 + GAP, a1: a0 + 30 - GAP, plasmid: false });
+  const N = G.arcs.reduce((n, a) => n + a.slots.length, 0), step = 360 / N; let j = 0; // мест столько, сколько генов: шаг 360/N
+  G.arcs.forEach((arc, k) => arc.slots.forEach((slot) => {
+    const a0 = -90 + j++ * step; // сверху метка ori — с неё начинается копирование кольца, дальше по часовой
+    out.push({ slot, arc: k, color: arc.color, a0: a0 + GAP, a1: a0 + step - GAP, plasmid: false });
   }));
   G.plasmids.forEach((slot, i) => out.push({ slot, arc: -1, color: slot.color, x: 205, y: 70 + i * 66, plasmid: true }));
   return out;
@@ -66,8 +67,8 @@ export function genomeScreen({ G, cfg, world, icon = () => '', onOpen, onClose, 
       el('circle', { cx: tx, cy: ty, r: 36, fill: 'transparent' }, s); // касание: не меньше 44 pt и в Safari, где кольцо мельче (урок L017); соседние места не налезают: между центрами 67
       s.onclick = e => { e.stopPropagation(); select(p.slot, p.arc); };
     }
-    G.arcs.forEach((arc, k) => { // подписи дуг снаружи
-      const m = (-90 + k * 120 + 60) * Math.PI / 180, r = R1 + 20;
+    G.arcs.forEach((arc, k) => { // подписи дуг снаружи, у середины своей дуги
+      const mine = all.filter(p => p.arc === k), m = (mine[0].a0 + mine[mine.length - 1].a1) / 2 * Math.PI / 180, r = R1 + 20;
       el('text', { x: r * Math.cos(m) + (k === 0 ? 8 : k === 2 ? -8 : 0), y: r * Math.sin(m) + 5, 'text-anchor': k === 0 ? 'start' : k === 2 ? 'end' : 'middle', fill: arc.color, 'font-size': 12, 'letter-spacing': 2 }, svg).textContent = arc.name.toUpperCase();
     });
     el('text', { x: 205, y: 28, 'text-anchor': 'middle', fill: '#7dffb0', 'font-size': 12, 'letter-spacing': 2 }, svg).textContent = 'ЧУЖИЕ';

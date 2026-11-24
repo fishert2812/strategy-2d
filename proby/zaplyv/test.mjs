@@ -467,7 +467,7 @@ check('геном на паузе: у каждого гена из игры св
   const blink = Object.keys(cfg.genes).filter(g => JSON.stringify(look({ [g]: true }, cfg.look)) === JSON.stringify(look({}, cfg.look)));
   console.log('    паспорт: своих мест', own.length, 'в дугах', G.arcs.map(a => a.slots.length).join('/'), '| без места', lost.join(',') || '—',
     '| быстрый рост:', c.have, c.sub, '| хемотаксис:', s.have, s.sub, '| ген без вида на теле', blink.join(',') || '—');
-  if (own.length !== 12 || G.arcs.some(a => a.slots.length !== 4)) return 'на кольце не 12 мест по 4';
+  if (own.length < 12 || own.some(p => p.a1 - p.a0 < 18)) return 'на кольце меньше 12 мест или место уже 18° — значок и палец не влезут'; // мест столько, сколько генов (шаг 360/N)
   if (lost.length) return 'нет места на кольце: ' + lost;
   if (!c.have || !c.sub.includes('от дочки') || c.lines[0][1] !== cfg.genes.fast[1]) return 'полученный ген не показан включённым';
   if (s.have || !s.lines.some(l => l[0] === 'Откуда')) return 'невыбранная дочка показана как полученная';
