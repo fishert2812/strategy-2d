@@ -323,10 +323,55 @@ check('коловратка по часам: плывёт — колёса вп�
   if (!(d < 160)) return 'поток не несёт еду к рту';
 });
 
+check('новичок, который не знает про касание и не уворачивается, доходит до первой мутации (клетка делится сама; хищник-запятая приходит, когда добычи стало много)', () => {
+  const novice = w => { const c = w.center(); let best = null, bd = 260; for (const f of w.food) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } }
+    return best ? { x: best.x, y: best.y } : { dx: Math.cos(w.dir), dy: Math.sin(w.dir), p: 1 }; };
+  const first = [], killers = {}; let bdelloEarly = 0;
+  for (let s = 1; s <= 12; s++) {
+    const w = new World(cfg, s * 53); w.dir = s * 1.3; let t = null;
+    for (let i = 0; i < 30 * 60 && w.me.length && t === null; i++) { if (w.stats.gen === 0 && w.bdellos.length) bdelloEarly++; w.step(1 / 30, novice(w)); if (w.choice.length) t = w.stats.time; }
+    first.push(t ?? 999); if (t === null && !w.me.length) killers[w.stats.killer] = (killers[w.stats.killer] || 0) + 1;
+  }
+  first.sort((a, b) => a - b); const got = first.filter(t => t < 999).length;
+  console.log('    паспорт: первая мутация, с', first.map(t => t < 999 ? Math.round(t) : '—').join(' '), '| дошли', got, 'из 12 | погибли раньше от', JSON.stringify(killers), '| кадров с запятой до деления', bdelloEarly);
+  if (got < 10) return 'до первой мутации дошли только ' + got + ' из 12';
+  if (first[5] > 20) return 'медианная первая мутация на ' + Math.round(first[5]) + ' с';
+  if (bdelloEarly) return 'бделловибрион есть рядом до первого деления';
+});
+
+check('пасть держит, а не глотает сразу: кувырок вырывает (ценой куска оболочки); прилипшую запятую стряхнёшь, пока она не вошла', () => {
+  const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis']) w[k] = []; w.tidy = 1e9; return w; };
+  const caught = (s, flip) => { const w = bare(s), p = { x: 0, y: 0, a: 0, back: 0, id: 1 }; w.slippers = [p]; const [mx, my] = w.mouth(p);
+    const a = w.me[0]; a.x = mx; a.y = my; a.a = 0; a.m = 1.6; let grabbed = false;
+    for (let i = 0; i < 90; i++) { w.step(1 / 30, flip && grabbed ? { dx: -1, dy: 0.2, p: 1 } : null); grabbed ||= !!(w.me[0] && w.me[0].grab); }
+    w.slippers = []; run(w, 1, null); return [grabbed, w.me.length, w.me[0] ? w.me[0].m.toFixed(2) : '-']; };
+  const idle = caught(81, false), flip = caught(82, true);
+  const bd = (s, flip) => { const w = bare(s), a = w.me[0]; a.a = 0; w.bdellos = [{ x: a.x - 40, y: a.y, vx: 0, vy: 0, a: 0, t: 5, rest: 0, id: 9 }]; let on = false;
+    for (let i = 0; i < 90; i++) { w.step(1 / 30, flip && on ? { dx: -1, dy: 0.2, p: 1 } : { dx: 1, dy: 0, p: 0.01 }); on ||= a.held > 0; } return [on, w.me.length]; };
+  const bIdle = bd(83, false), bFlip = bd(84, true);
+  console.log('    паспорт: туфелька поймала', idle[0], '— стоял: клеток', idle[1], '| развернулся: клеток', flip[1], 'масса', flip[2], '| запятая прилипла', bIdle[0], '— стоял: клеток', bIdle[1], '| развернулся: клеток', bFlip[1]);
+  if (!idle[0] || idle[1] !== 0) return 'пойманная и неподвижная клетка не съедена';
+  if (flip[1] !== 1) return 'кувырок в пасти не вырвал клетку';
+  if (!(+flip[2] < 1.6)) return 'вырвалась даром — без потери';
+  if (!bIdle[0] || bIdle[1] !== 0) return 'запятая не убила неподвижную клетку';
+  if (bFlip[1] !== 1) return 'кувырок не стряхнул только что прилипшую запятую';
+});
+
+check('крупный кусок кормит больше мелкого; куски подряд разгоняют рост', () => {
+  const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis']) w[k] = []; w.tidy = 1e9; return w; };
+  const one = size => { const w = bare(91), a = w.me[0]; w.food = [{ x: a.x, y: a.y, vx: 0, vy: 0, s: size }]; w.step(1 / 30, null); return a.m - 1; };
+  const small = one(0.6), big = one(2.4);
+  const w = bare(92), a = w.me[0], gains = [];
+  for (let k = 0; k < 6; k++) { const m0 = a.m; w.food = [{ x: a.x, y: a.y, vx: 0, vy: 0, s: 1 }]; w.step(1 / 30, null); gains.push(a.m - m0); run(w, 0.5, null); }
+  console.log('    паспорт: мелкий кусок +', small.toFixed(3), '| крупный +', big.toFixed(3), '| серия из 6: прирост', gains.map(g => g.toFixed(3)).join(' '), '| разгон', w.rush.toFixed(2));
+  if (!(big > small * 3)) return 'крупный кусок кормит не больше мелкого';
+  if (!(gains[5] > gains[0] * 1.3)) return 'серия не разгоняет рост';
+});
+
 check('мир без краёв: уплыл далеко — вокруг снова еда, позади забыто', () => {
   const w = new World(cfg, 11);
   w.genes.capsule = w.genes.crispr = true;
-  run(w, 60, w => { w.slippers = []; w.bells = []; w.rotis = []; w.bdellos = []; w.amoebas = []; return { x: w.center().x + 500, y: w.center().y }; }); // проверяем мир, а не опасности
+  run(w, 60, w => { if (w.choice.length) w.pick(w.choice[0]); w.slippers = []; w.bells = []; w.rotis = []; w.bdellos = []; w.amoebas = []; return { x: w.center().x + 500, y: w.center().y }; }); // проверяем мир, а не опасности
   const c = w.center();
   const near = w.food.filter(f => Math.hypot(f.x - c.x, f.y - c.y) < 700).length;
   console.log('    паспорт: уплыл на', Math.round(c.x), 'еды рядом', near, 'всего еды', w.food.length, 'квадратов', w.chunks.size);
