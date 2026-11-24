@@ -31,10 +31,19 @@ grow_vertical = 2
 [node name="Center" type="CenterContainer" parent="Safe"]
 layout_mode = 2
 
-[node name="Play" type="Button" parent="Safe/Center"]
+[node name="Box" type="VBoxContainer" parent="Safe/Center"]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Play" type="Button" parent="Safe/Center/Box"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 40
 text = "Играть"
+
+[node name="Mate" type="Button" parent="Safe/Center/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "Шах и мат"
 
 [node name="Sha" type="Label" parent="Safe"]
 layout_mode = 2

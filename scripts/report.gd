@@ -58,6 +58,7 @@ func facts() -> String:
 	var lines := [Version.label(), "экран %s, окно %dx%d" % [scene.name if scene else "?", w.x, w.y]]
 	var sim = scene.get("sim") if scene else null
 	if sim is Sim:
+		lines.append("вариант «%s»" % sim.mode.title)
 		lines.append("партия %d:%02d, крошки %d (враг %d)%s" % [int(sim.time) / 60, int(sim.time) % 60,
 			sim.gold[Sim.PLAYER], sim.gold[Sim.ENEMY], "" if sim.winner == -1 else ", конец"])
 		for side in [Sim.PLAYER, Sim.ENEMY]:

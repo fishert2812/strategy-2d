@@ -12,7 +12,7 @@ func _make() -> Control:
 
 func test_button_is_finger_size() -> String:
 	var main := _make()
-	var button: Button = main.get_node("Safe/Center/Play")
+	var button: Button = main.get_node("Safe/Center/Box/Play")
 	var need: float = main.MIN_BUTTON
 	var got := button.get_combined_minimum_size().y
 	main.free()
