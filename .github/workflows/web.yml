@@ -1,5 +1,5 @@
 # Постоянный адрес игры: каждый коммит в main собирается в веб и выкладывается в ветку Pages,
-# затем адрес проверяется снаружи (tools/web/check_site.sh).
+# затем адрес проверяется снаружи в WebKit (tools/web/check_site.sh) в готовом образе Playwright, без apt.
 name: web
 on:
   push:
@@ -10,13 +10,13 @@ concurrency:
   cancel-in-progress: true
 permissions:
   contents: write
+env:
+  PAGES_BRANCH: claude/project-thread-8epzcj-web
+  SITE: https://fishert2812.github.io/strategy-2d
 jobs:
   web:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    env:
-      PAGES_BRANCH: claude/project-thread-8epzcj-web
-      SITE: https://fishert2812.github.io/strategy-2d
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - run: bash tools/install_godot.sh
@@ -28,5 +28,22 @@ jobs:
           git add -A
           git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com commit -q -m "Веб-сборка $(cat version.txt) из main"
           git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" "$PAGES_BRANCH"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: out/site
+          include-hidden-files: true
+  webkit:
+    needs: web
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    container: mcr.microsoft.com/playwright:v1.56.1-noble
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: out/site
+      - run: command -v python3 >/dev/null && command -v curl >/dev/null || { apt-get update -qq && apt-get install -y -qq python3 curl >/dev/null; }
       - run: bash tools/web/test_L002.sh out/site
-      - run: bash tools/web/check_site.sh "$SITE" "$(git rev-parse --short HEAD)"
+      - run: bash tools/web/check_site.sh "$SITE" "$(cat out/site/version.txt)"
