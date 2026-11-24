@@ -2,6 +2,7 @@
 import { World, radius } from './sim.js';
 import { Stick } from './controls.js';
 import { follow } from './soft.js';
+import { look } from './look.js';
 import { readFileSync } from 'node:fs';
 const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
 let bad = 0;
@@ -220,6 +221,14 @@ check('враги как настоящие: хищник мчится прям�
   if (cap.me.length !== 1) return 'капсула не спасла от хищника';
   if (big.me.length !== 1) return 'крупный кокк съел клетку — бактерии так не едят';
   if (crawl > 60) return 'амёба гонится в открытой воде';
+});
+
+check('каждая мутация видна на теле: облик клетки меняется от каждого гена', () => {
+  const base = JSON.stringify(look({}, cfg.look)), same = [];
+  for (const g of Object.keys(cfg.genes)) if (JSON.stringify(look({ [g]: true }, cfg.look)) === base) same.push(g);
+  const all = look(Object.fromEntries(Object.keys(cfg.genes).map(g => [g, true])), cfg.look);
+  console.log('    паспорт: без мутаций', base, '| со всеми', JSON.stringify(all));
+  if (same.length) return 'не видно на теле: ' + same.join(', ');
 });
 
 check('мир без краёв: уплыл далеко — вокруг снова еда, позади забыто', () => {
