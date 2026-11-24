@@ -103,6 +103,11 @@ export class Bodies {
     this.put(this.core, x, y, ang, w * 0.7, sy * 0.86, w * 0.7, [core[0], core[1], core[2], 1], glow(core), [pinch * 0.95, seed, bend / (4 * 0.7 * w), 0]);
     this.put(this.skin, x, y, ang, w, sy, w, [skin[0], skin[1], skin[2], 1], glow(skin), [pinch, seed, bend / (4 * w), 0]);
   }
+  // Только прозрачная оболочка без содержимого: сквозь неё видны органы (коловратка).
+  shell(x, y, ang, half, w, skin, seed, bend = 0) {
+    const glow = c => [c[0] * 0.5 + 0.5, c[1] * 0.5 + 0.5, c[2] * 0.5 + 0.5];
+    this.put(this.skin, x, y, ang, w, half / 2, w, [skin[0], skin[1], skin[2], 1], glow(skin), [0, seed, bend / (4 * w), 0]);
+  }
   sphere(x, y, r, col, rim, seed, zs = 1) { this.put(this.ball, x, y, -Math.PI / 2, r, r, r * zs, [col[0], col[1], col[2], 1], rim, [0, seed, 0, 0]); }
   spike(x, y, r, col) { this.put(this.knob, x, y, -Math.PI / 2, r, r, r, [col[0], col[1], col[2], 1], [1, 1, 1], [0, 0, 0, 0]); }
   blobby(x, y, r, heading, moving, col, rim, seed) { this.put(this.amoeba, x, y, -Math.PI / 2, r, r, r * 0.5, [col[0], col[1], col[2], 1], rim, [moving, seed, -heading, 0]); }

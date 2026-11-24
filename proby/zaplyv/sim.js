@@ -34,7 +34,7 @@ export class World {
     this.seed = seed >>> 0;
     this.r = rng(seed);
     this.me = [{ x: 0, y: 0, vx: 0, vy: 0, m: 1, a: -Math.PI / 2, sick: -1, id: 1 }];
-    this.food = []; this.prey = []; this.amoebas = []; this.phages = []; this.plants = []; this.crumbs = []; this.bdellos = []; this.slime = []; this.slippers = []; this.bells = [];
+    this.food = []; this.prey = []; this.amoebas = []; this.phages = []; this.plants = []; this.crumbs = []; this.bdellos = []; this.slime = []; this.slippers = []; this.bells = []; this.rotis = [];
     this.genes = {};
     this.choice = []; // три гена на выбор; пока не пусто — мир стоит
     this.stats = { eaten: 0, most: 1, path: 0, time: 0, gen: 0, lost: {}, killer: null };
@@ -90,6 +90,7 @@ export class World {
     }
     if (far > c.bdello_from && r() < c.bdello_chance[b] * (1 + far * c.danger_growth)) this.bdellos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: r(), id: ++this.ids });
     if (far > c.slipper_from && r() < c.slipper_chance[b]) this.slippers.push({ ...pt(), a: r() * 6.283, back: 0, id: ++this.ids });
+    if (!safe && far > c.roti_from && r() < c.roti_chance[b]) this.rotis.push({ ...pt(), a: r() * 6.283, sit: false, t: r() * c.roti_swim, id: ++this.ids });
     if (r() < c.slime_chance[b]) { const at = pt(); this.slime.push({ ...at, a: r() * 3.14, len: 160 + r() * 220, w: 22 + r() * 22, id: ++this.ids }); } // тяж слизи: вязкий гель
     if (r() < c.crumb_chance[b]) this.crumbs.push({ ...pt(), m: 2 + r() * 3, id: ++this.ids }); // детрит: бурый комок, медленно тонет
     const np = 1 + Math.floor(r() * c.prey_per_chunk[b]);
@@ -200,7 +201,7 @@ export class World {
     if (this.look <= 0 && this.me.length) { // встречи: кого увидел впервые — в кабинет (событие 'meet' без паузы)
       this.look = 0.5;
       const R = this.cfg.meet;
-      for (const [k, list] of [['coccus', this.prey], ['plant', this.plants], ['crumb', this.crumbs], ['phage', this.phages], ['amoeba', this.amoebas], ['bdello', this.bdellos], ['slipper', this.slippers], ['bell', this.bells]])
+      for (const [k, list] of [['coccus', this.prey], ['plant', this.plants], ['crumb', this.crumbs], ['phage', this.phages], ['amoeba', this.amoebas], ['bdello', this.bdellos], ['slipper', this.slippers], ['bell', this.bells], ['roti', this.rotis]])
         if (!this.met.has(k) && list.some(o => this.me.some(a => dist(a, o) < R))) { this.met.add(k); this.events.push(['meet', k]); }
     }
     this.tidy -= dt;
@@ -210,6 +211,10 @@ export class World {
   // Рот туфельки: сбоку у переднего конца. Рот сувойки: верх колокольчика на стебле.
   mouth(p) { const c = this.cfg, u = [Math.cos(p.a), Math.sin(p.a)], L = c.slipper_len; return [p.x + u[0] * L * 0.15 - u[1] * L * 0.22, p.y + u[1] * L * 0.15 + u[0] * L * 0.22]; }
   bell(v) { const L = this.cfg.bell_stalk * (v.shut > 0 ? 0.25 : 1); return [v.x + Math.cos(v.dir) * L, v.y + Math.sin(v.dir) * L]; }
+  // Коловратка: рот между двумя колёсами на переднем конце. Сила колёс: плывёт — вполсилы; присела на ногу —
+  // за секунду раскручивает колёса до полной (видно заранее, можно успеть уйти).
+  head(q) { const L = this.cfg.roti_len * 0.5; return [q.x + Math.cos(q.a) * L, q.y + Math.sin(q.a) * L]; }
+  wheels(q) { const c = this.cfg; return q.sit ? Math.max(c.roti_swim_k, Math.min(1, q.t / c.roti_spin)) : c.roti_swim_k; }
   // Течение в точке от всех воронок и вихрей: тянет к рту, у сувойки ещё и закручивает.
   suck(x, y) {
     const c = this.cfg; let fx = 0, fy = 0;
@@ -221,6 +226,10 @@ export class World {
       if (v.shut > 0) continue;
       const [bx, by] = this.bell(v), dx = bx - x, dy = by - y, d = len(dx, dy);
       if (d < c.vortex_r && d > 0.1) { const k = c.vortex * (1 - d / c.vortex_r); fx += (dx / d - dy / d * 0.6) * k; fy += (dy / d + dx / d * 0.6) * k; }
+    }
+    for (const q of this.rotis) { // два колеса крутятся навстречу: поток прямо в рот, без закрутки
+      const [hx, hy] = this.head(q), dx = hx - x, dy = hy - y, d = len(dx, dy);
+      if (d < c.roti_r && d > 0.1) { const k = c.roti_vortex * this.wheels(q) * (1 - d / c.roti_r); fx += dx / d * k; fy += dy / d * k; }
     }
     return [fx, fy];
   }
@@ -376,6 +385,20 @@ export class World {
         if (d < c.mouth_r) this.lose(a, bx, by, 'bell');
       }
     }
+    // Коловратка то плывёт колёсами вперёд, то присаживается на ногу и фильтрует — по часам, предсказуемо.
+    // Поток несёт к рту и еду: у края потока сытно, в середине — челюсти.
+    for (const q of this.rotis) {
+      q.t += dt;
+      if (q.sit) { if (q.t > c.roti_sit) { q.sit = false; q.t = 0; q.a += (this.r() - 0.5) * 2.5; } }
+      else {
+        q.a += Math.sin(this.stats.time * 0.4 + q.id) * 0.3 * dt;
+        q.x += Math.cos(q.a) * c.roti_speed * dt; q.y += Math.sin(q.a) * c.roti_speed * dt;
+        if (q.t > c.roti_swim) { q.sit = true; q.t = 0; this.events.push(['sit', q.x, q.y]); }
+      }
+      const [hx, hy] = this.head(q), pw = this.wheels(q);
+      for (const a of [...this.me]) if (Math.hypot(a.x - hx, a.y - hy) < c.roti_mouth) this.lose(a, hx, hy, 'roti');
+      for (const f of this.food) { const d = Math.hypot(f.x - hx, f.y - hy) || 1; if (d < c.roti_r) { const k = c.roti_vortex * pw * (1 - d / c.roti_r) * dt; f.x += (hx - f.x) / d * k; f.y += (hy - f.y) / d * k; if (d < c.roti_mouth) f.gone = true; } }
+    }
     this.food = this.food.filter(f => !f.gone);
     for (const m of this.amoebas) { // амёба ползёт только по дну и нитям; в открытой воде почти стоит
       const a = this.nearest(m, 340);
@@ -432,7 +455,7 @@ export class World {
   forget(x, y) {
     const C = this.cfg.chunk, kx = Math.floor(x / C), ky = Math.floor(y / C);
     const near = o => Math.abs(Math.floor(o.x / C) - kx) <= 2 && Math.abs(Math.floor(o.y / C) - ky) <= 2;
-    for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'crumbs', 'bdellos', 'slime', 'slippers', 'bells']) this[k] = this[k].filter(near);
+    for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'crumbs', 'bdellos', 'slime', 'slippers', 'bells', 'rotis']) this[k] = this[k].filter(near);
     for (const key of [...this.chunks]) {
       const [a, b] = key.split(',').map(Number);
       if (Math.abs(a - kx) > 2 || Math.abs(b - ky) > 2) this.chunks.delete(key);
