@@ -510,6 +510,11 @@ func _on_sim(what: String, data: Dictionary) -> void:
 				t.parallel().tween_property(tw, "scale", tw.get_meta("size", tw.scale) * Vector2(1.15, 0.85), 0.05)
 				t.tween_property(tw, "position", home, 0.15)
 				t.parallel().tween_property(tw, "scale", tw.get_meta("size", tw.scale), 0.15)
+				# Кадр выстрела со стрелой на время отдачи, потом обычная башня.
+				var shot: String = look.tower.get("shot", ["", ""])[Sim.PLAYER]
+				if not shot.is_empty():
+					tw.texture = _tex(shot)
+					t.tween_callback(func(): tw.texture = _tex(look.tower.files[Sim.PLAYER])).set_delay(0.1)
 		"killed":
 			motion.hop(_units.get(data.get("by")), 2)
 		"whistle":
