@@ -21,6 +21,7 @@ export function zhizn(w, dt, radius) {
   if (w.zhizn === false) return; // выключатель для самопроверки
   const c = w.cfg, P = Z.pasport, size = o => o.m ? radius(o.m) * 0.6 : 10;
   const alive = (kind, o) => !o.gone && !(o.held > 0) && !(o.sick >= 0);
+  const safe = (v, who) => v.genes && Object.keys(v.genes).some(g => (Z.geny[g]?.ne_berut || []).includes(who)); // ген от соседки защищает и соперницу
 
   // 1. Едоки едят всех подходящих, не только тебя (С25): поток тянет к рту, у рта — внутри. Сытый какое-то время не ест.
   for (const [who, p] of Object.entries(P)) {
@@ -33,7 +34,7 @@ export function zhizn(w, dt, radius) {
       for (const kind of p.est) {
         if (!LIST[kind]) continue;
         for (const v of LIST[kind](w)) {
-          if (!alive(kind, v) || e.syt > 0) continue;
+          if (!alive(kind, v) || e.syt > 0 || safe(v, who)) continue;
           const dx = mx - v.x, dy = my - v.y, d = Math.hypot(dx, dy) || 0.1;
           if (d > reach) continue;
           if (p.rot === 'body') { if (d < bd) { bd = d; best = [v, kind]; } continue; } // амёба ползёт к ближнему
@@ -67,12 +68,31 @@ export function zhizn(w, dt, radius) {
     }
     if (g.cool > 0) continue;
     for (const kind of hosts) for (const h of LIST[kind](w)) {
-      if (g.ride || !alive(kind, h) || Math.hypot(h.x - g.x, h.y - g.y) > size(h) + ph.lipnet) continue;
+      if (g.ride || !alive(kind, h) || safe(h, 'phage') || Math.hypot(h.x - g.x, h.y - g.y) > size(h) + ph.lipnet) continue;
       if (h.zamok ??= w.r() < ph.zamok) continue;
       g.ride = h; g.t = c.inject; g.off = Math.atan2(g.y - h.y, g.x - h.x) - (h.a || 0);
     }
   }
   w.phages = w.phages.filter(g => !g.gone);
+
+  // 2б. Соседка учит и твоих врагов (С27): трубочка тянется к ближайшей сопернице, если тебя рядом нет; ген виден и работает.
+  for (const d of w.donors) {
+    if (d.held > 0 || d.rest > 0 || d.to) { d.pull = 0; continue; } // с тобой она занята сама (sim.js)
+    let q = null, bd = c.donor_r + Z.uchit_r;
+    for (const kind of P.donor.uchit) for (const o of LIST[kind] ? LIST[kind](w) : []) { const dd = Math.hypot(o.x - d.x, o.y - d.y); if (alive(kind, o) && dd < bd) { bd = dd; q = o; } }
+    d.pull = q ? (d.pull || 0) + dt : Math.max(0, (d.pull || 0) - 2 * dt); d.toOther = q;
+    if (!q) continue;
+    q.x += (d.x - q.x) * Math.min(1, 2 * dt); q.y += (d.y - q.y) * Math.min(1, 2 * dt); q.vx *= 0.5; q.vy *= 0.5; // трубочка подтягивает
+    if (d.pull < c.conj) continue;
+    d.pull = 0; d.rest = c.donor_rest[0] + w.r() * (c.donor_rest[1] - c.donor_rest[0]);
+    const left = c.plasmid_genes.filter(g => !(q.genes && q.genes[g]));
+    if (left.length) { const g = left[Math.floor(w.r() * left.length)]; q.genes = { ...q.genes, [g]: true }; w.events.push(['gene_other', q.x, q.y, g, 'strain']); }
+  }
+  for (const b of w.bdellos) if (b.on && !w.me.includes(b.on) && safe(b.on, 'bdello')) { b.on.held = 0; b.on = null; b.t = 0; w.events.push(['bump', b.x, b.y]); } // в шубе запятая не держится
+  for (const q of w.pseudos) if (Object.keys(q.genes || {}).some(g => Z.geny[g]?.bet?.includes('me')) && !q.gone && !(q.held > 0)) for (const a of w.me) { // соперница с ядом бьёт тебя касанием
+    if (a.spore > 0 || (q.cool || 0) > 0 || Math.hypot(a.x - q.x, a.y - q.y) > radius(a.m) + c.pseudo_r) continue;
+    q.cool = c.pseudo_cool; a.m = Math.max(c.pseudo_min, a.m * c.pseudo_hit); w.events.push(['zap', q.x, q.y, a.x, a.y]);
+  }
 
   // 3. Гибель оставляет еду: заражённая лопается соком и новыми вирусами, съеденная изнутри запятой — соком.
   for (const kind of ['strain', 'pseudo', 'donor']) for (const h of LIST[kind](w)) {
