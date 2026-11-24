@@ -98,33 +98,6 @@ const waterShow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.Shader
   fragmentShader: 'uniform sampler2D t; varying vec2 v; void main(){ gl_FragColor = texture2D(t, v); }' }));
 waterShow.renderOrder = 0; waterShow.frustumCulled = false; waterShow.scale.y = -1; back.add(waterShow);
 
-// Передний план (по референсам Романа): одна-две огромные клетки в расфокусе проплывают у края кадра, ближе нас.
-// Считаются в четверть разрешения — они размыты; к середине экрана гаснут, чтобы не закрывать опасности.
-const rtFront = new THREE.WebGLRenderTarget(4, 4, { depthBuffer: false }), frontScene = new THREE.Scene(), frontShow = new THREE.Scene();
-const UF = { res: { value: new THREE.Vector2() }, time: U.time, drift: U.drift, tint: U.tint };
-const fg = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShaderMaterial({ uniforms: UF, depthTest: false, depthWrite: false, side: THREE.DoubleSide,
-  vertexShader: 'void main(){ gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-  fragmentShader: `uniform vec2 res; uniform float time; uniform vec2 drift; uniform vec3 tint;
-float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-float sdCap(vec2 p, vec2 a, vec2 b){ vec2 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); return length(pa - ba * h); }
-void main(){
-  vec2 uv = gl_FragCoord.xy / res, asp = vec2(1.0, res.y / res.x), s = uv * asp;
-  vec2 g = (s + drift * 1.8) * 1.1 + vec2(time * 0.006, 0.0), c = floor(g); float a = 0.0, rim = 0.0;
-  float h = h2(c + 3.3);
-  if (h < 0.6) {
-    vec2 o = c + 0.5; float an = h2(c + 4.4) * 6.283 + sin(time * 0.05 + h * 9.0) * 0.2;
-    vec2 u = vec2(cos(an), sin(an)) * 0.16; float d = sdCap(g, o - u, o + u) - 0.13;
-    a = 1.0 - smoothstep(-0.1, 0.1, d); rim = a * (0.35 + 0.65 * smoothstep(-0.13, 0.0, d)) * (0.6 + 0.4 * dot(normalize(g - o + vec2(0.001)), vec2(-0.6, 0.8)));
-  }
-  vec2 e = abs(uv - 0.5) * 2.0; float edge = smoothstep(0.45, 0.85, max(e.x, e.y));
-  vec3 col = tint * 3.0 + vec3(0.12, 0.28, 0.34) + vec3(0.25, 0.45, 0.5) * rim;
-  gl_FragColor = vec4(col, a * edge * 0.7);
-}` }));
-fg.frustumCulled = false; frontScene.add(fg);
-const fgShow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShaderMaterial({ uniforms: { t: { value: rtFront.texture } }, transparent: true, depthTest: false, depthWrite: false, side: THREE.DoubleSide,
-  vertexShader: 'varying vec2 v; void main(){ v = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-  fragmentShader: 'uniform sampler2D t; varying vec2 v; void main(){ gl_FragColor = texture2D(t, v); }' }));
-fgShow.frustumCulled = false; frontShow.add(fgShow);
 
 // Слой мягких точек на инстансах: одна отрисовка на слой, сколько бы точек ни было.
 class Dots {
@@ -170,7 +143,7 @@ class Dots {
 const far = new Dots(80, back, 1, 'ring', 0);
 const glow = new Dots(3000, scene, 3, true, 0.6);
 const ink = new Dots(3000, scene, 4, false, 0.8);
-const near = new Dots(12, scene, 5, 'ring', 0);
+const near = new Dots(12, scene, 5, false, 0); // передний план: размытые клетки у края кадра
 const dust = new Dots(120, scene, 3, true, 0.9);
 const bubbles = new Dots(60, scene, 4, 'ring', 0);
 const wake = new Dots(240, scene, 3, true, 0.9); // след в воде: частицы, которые клетка расталкивает
@@ -181,12 +154,11 @@ function resize() {
   H = W * h / w;
   gl.setSize(w, h, false);
   const px = gl.getDrawingBufferSize(new THREE.Vector2());
-  rt.setSize(Math.max(4, Math.round(px.x / 3)), Math.max(4, Math.round(px.y / 3)));
+  rt.setSize(Math.max(4, Math.round(px.x / 4)), Math.max(4, Math.round(px.y / 4))); // толща мягкая: хватает четверти
   U.res.value.set(rt.width, rt.height);
-  rtFront.setSize(Math.max(4, Math.round(px.x / 4)), Math.max(4, Math.round(px.y / 4))); UF.res.value.set(rtFront.width, rtFront.height);
   cam.left = 0; cam.right = W; cam.top = 0; cam.bottom = H; cam.updateProjectionMatrix();
   bodies.resize(W, H);
-  for (const m of [bg, waterShow, fg, fgShow]) { m.scale.set(W, m === waterShow || m === fgShow ? -H : H, 1); m.position.set(W / 2, H / 2, 0); }
+  for (const m of [bg, waterShow]) { m.scale.set(W, m === waterShow ? -H : H, 1); m.position.set(W / 2, H / 2, 0); }
 }
 addEventListener('resize', resize);
 resize();
@@ -651,9 +623,13 @@ function paint(time) {
     const jx = Math.sin(time * 13 + i * 7) * 1.2 + Math.sin(time * 0.3 + i) * 6, jy = Math.cos(time * 11 + i * 5) * 1.2 + Math.cos(time * 0.27 + i) * 6;
     dust.put(wrap(h * 1000 - (view.x - cur[0]) * z, 1000) - 140 + jx, wrap(h2 * 1900 - (view.y - cur[1]) * z, 1900) - 170 + jy, 1 + h * 1.6, 0.9, 0.95, 1, 0.22);
   }
-  for (let i = 0; i < 5; i++) { // вблизи: крупные размытые соринки проплывают перед объективом
-    const h = Math.abs(Math.sin(i * 47.3) * 3758.5) % 1;
-    near.put(wrap(h * 2400 - view.x * 1.7, 2400) - 840, wrap(h * 7.1 % 1 * 3000 - view.y * 1.7, 3000) - 800, 140 + h * 120, 0.7, 0.85, 1, 0.03);
+  for (let i = 0; i < 3; i++) { // передний план (референсы Романа): огромная клетка в расфокусе ближе нас, только у края кадра —
+    // три мягких пятна вдоль оси; к середине экрана гаснет, чтобы не закрывать опасности. Пятна, а не экранный проход — так дёшево
+    const h = Math.abs(Math.sin(i * 47.3) * 3758.5) % 1, x = wrap(h * 1800 - view.x * 1.7, 1800) - 540, y = wrap(h * 7.1 % 1 * 2600 - view.y * 1.7, 2600) - 650;
+    const e = Math.max(Math.abs(x / W - 0.5), Math.abs(y / H - 0.5)) * 2, al = 0.3 * Math.min(1, Math.max(0, (e - 0.55) / 0.4));
+    if (al <= 0.01) continue;
+    const a = h * 6.3 + time * 0.03, L = 60 + h * 40, r = 70 + h * 30;
+    for (const s of [-1, 0, 1]) near.put(x + Math.cos(a) * s * L, y + Math.sin(a) * s * L, r, 0.35 + view.tint[0] * 3, 0.6 + view.tint[1] * 3, 0.68 + view.tint[2] * 3, al);
   }
   bodies.end(time);
   $('scale').style.width = (260 * z * innerWidth / W) + 'px';
@@ -687,8 +663,6 @@ function frame(now) {
   gl.clearDepth();
   gl.render(bodies.scene, bodies.cam);
   gl.render(scene, cam);
-  gl.setRenderTarget(rtFront); gl.setClearColor(0, 0); gl.clear(); gl.render(frontScene, cam); gl.setRenderTarget(null);
-  gl.render(frontShow, cam);
   probe.frames++; probe.cells = world.me.length;
   probe.js = js.reduce((s, v) => s + v, 0) / Math.max(js.length, 1); probe.jsWorst = Math.max(0, ...js.slice(5)); probe.path = Math.max(probe.path || 0, world.stats.path);
   probe.dots = world.food.length + world.prey.length + world.phages.length;
