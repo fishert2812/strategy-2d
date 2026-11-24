@@ -242,11 +242,22 @@ function paint(time) {
   for (const p of world.plants) { // водоросль-нить: цепочка клеток, внутри зелёные хлоропласты
     const [x, y] = scr(p.x, p.y); if (!on(x, y, 220)) continue;
     const r = radius(p.m) * z, a0 = p.id * 1.7;
+    glow.put(x, y, r * 3.2, 1, 0.85, 0.45, 0.11 + 0.03 * Math.sin(time * 0.8 + p.id)); // ореол: водоросль кормит сахаром вокруг себя
     for (let k = -2; k <= 2; k++) {
       const a = a0 + Math.sin(time * 0.5 + k * 0.6 + p.id) * 0.12, cx = x + Math.cos(a) * k * r * 0.72, cy = y + Math.sin(a) * k * r * 0.72;
-      bodies.rod(cx, cy, a, r * 0.4, r * 0.34, 0, [0.5, 0.95, 0.35], [0.25, 0.65, 0.18], p.id * 7 + k);
-      ink.put(cx, cy, r * 0.17, 0.35, 0.85, 0.3, 0.6);
+      const het = k === (p.id % 3) - 1; // гетероциста: крупнее и бледнее, ловит азот воздуха
+      bodies.rod(cx, cy, a, r * (het ? 0.44 : 0.4), r * (het ? 0.4 : 0.34), 0, het ? [0.85, 0.95, 0.7] : [0.5, 0.95, 0.35], het ? [0.7, 0.8, 0.5] : [0.25, 0.65, 0.18], p.id * 7 + k);
+      if (!het) ink.put(cx, cy, r * 0.17, 0.35, 0.85, 0.3, 0.6);
     }
+  }
+  for (const k of world.crumbs) { // детрит: бурый рыхлый комок отмершего растения, на нём колонии
+    const [x, y] = scr(k.x, k.y); if (!on(x, y, 120)) continue;
+    const r = radius(k.m) * z;
+    for (let i = 0; i < 6; i++) {
+      const t = i * 2.4 + k.id, d = i ? r * 0.45 * (0.6 + 0.4 * ((i * 0.37) % 1)) : 0;
+      bodies.sphere(x + Math.cos(t) * d, y + Math.sin(t) * d, r * (i ? 0.42 : 0.55), [0.42, 0.28, 0.16], [0.75, 0.55, 0.35], k.id + i, 0.6);
+    }
+    for (let i = 0; i < 10; i++) { const t = i * 0.628 + k.id, d = r * (0.55 + 0.2 * Math.sin(i * 1.7 + time * 0.3)); ink.put(x + Math.cos(t) * d, y + Math.sin(t) * d, 1.1 * z + 0.4, 0.95, 0.85, 0.6, 0.55); }
   }
   for (const q of world.prey) { // кокки; крупнее тебя — красные, их не тронь
     const [x, y] = scr(q.x, q.y); if (!on(x, y)) continue;

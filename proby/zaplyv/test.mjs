@@ -179,6 +179,29 @@ check('джойстик под большой палец: кольцо едет 
   if (!tap) return 'обычное касание не делит';
 });
 
+check('мир живой: еда пятнами, водоросль кормит вокруг себя, лопнувшая клетка разливает еду, детрит тонет и кормит', () => {
+  const w = new World(cfg, 21);
+  // пятна: у половины еды сосед ближе 25, при ровном рассыпании таких было бы мало
+  const close = w.food.filter(f => w.food.some(g => g !== f && Math.hypot(g.x - f.x, g.y - f.y) < 25)).length / w.food.length;
+  const e = new World(cfg, 22); e.food = []; e.prey = []; e.amoebas = []; e.phages = []; e.crumbs = []; e.tidy = 1e9;
+  e.plants = [{ x: 400, y: 0, m: 5, id: 3, t: 0 }];
+  run(e, 15, null);
+  const halo = e.food.filter(f => Math.hypot(f.x - 400, f.y) < 100).length;
+  e.food = []; e.prey = [{ x: -400, y: 0, vx: 0, vy: 0, m: 0.8, a: 0, id: 5, sick: 0.05 }]; e.plants = [];
+  run(e, 1, null);
+  const spilled = e.food.filter(f => Math.hypot(f.x + 400, f.y) < 80).length;
+  const d = new World(cfg, 23); d.food = []; d.prey = []; d.amoebas = []; d.phages = []; d.plants = []; d.tidy = 1e9;
+  d.crumbs = [{ x: 0, y: 30, m: 4, id: 7 }]; const m0 = d.me[0].m, y0 = d.crumbs[0].y;
+  run(d, 4, w => ({ x: w.crumbs[0]?.x ?? 0, y: w.crumbs[0]?.y ?? 0 }));
+  const sank = (d.crumbs[0]?.y ?? 1e9) - y0, fed = d.me[0].m - m0;
+  console.log('    паспорт: еды с соседом ближе 25 —', Math.round(close * 100) + '%', '| у водоросли за 15 с', halo, '| лопнул кокк — еды', spilled, '| детрит опустился на', Math.round(sank), ', клетка выросла на', fed.toFixed(2));
+  if (close < 0.45) return 'еда рассыпана ровно, пятен нет';
+  if (halo < 4) return 'водоросль не кормит вокруг себя';
+  if (spilled < 5) return 'лопнувшая клетка не разлила еду';
+  if (sank < 5) return 'детрит не тонет';
+  if (fed < 0.3) return 'детрит не кормит';
+});
+
 check('мир без краёв: уплыл далеко — вокруг снова еда, позади забыто', () => {
   const w = new World(cfg, 11);
   w.genes.capsule = w.genes.crispr = true;

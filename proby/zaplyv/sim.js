@@ -34,7 +34,7 @@ export class World {
     this.seed = seed >>> 0;
     this.r = rng(seed);
     this.me = [{ x: 0, y: 0, vx: 0, vy: 0, m: 1, a: -Math.PI / 2, sick: -1, id: 1 }];
-    this.food = []; this.prey = []; this.amoebas = []; this.phages = []; this.plants = [];
+    this.food = []; this.prey = []; this.amoebas = []; this.phages = []; this.plants = []; this.crumbs = [];
     this.genes = {};
     this.choice = []; // три гена на выбор; пока не пусто — мир стоит
     this.stats = { eaten: 0, most: 1, path: 0, time: 0, gen: 0, lost: {}, killer: null };
@@ -81,10 +81,17 @@ export class World {
     const far = Math.hypot(cx + 0.5, cy + 0.5);
     const safe = far < c.safe_chunks;
     const pt = () => ({ x: ox + r() * C, y: oy + r() * C });
+    // Еда пятнами: растворённого сахара везде чуть-чуть, а густо — только в пятнах (наше по биологу).
     for (let i = 0; i < c.food_per_chunk[b]; i++) this.food.push({ ...pt(), vx: 0, vy: 0 });
+    for (let k = 0; k < c.food_patches[b]; k++) {
+      const at = pt(), R = 30 + r() * 50;
+      for (let i = 0; i < c.patch_food; i++) { const t = r() * 6.283, d = R * Math.sqrt(r()); this.food.push({ x: at.x + Math.cos(t) * d, y: at.y + Math.sin(t) * d, vx: 0, vy: 0 }); }
+    }
+    if (r() < c.crumb_chance[b]) this.crumbs.push({ ...pt(), m: 2 + r() * 3, id: ++this.ids }); // детрит: бурый комок, медленно тонет
     const np = 1 + Math.floor(r() * c.prey_per_chunk[b]);
     for (let i = 0; i < np; i++) this.prey.push({ ...pt(), vx: 0, vy: 0, m: 0.3 + r() * (0.9 + far * 0.5), a: r() * 6.3, id: ++this.ids, pair: r() < 0.4 });
-    if (b === 2) for (let i = 0, n = 1 + Math.floor(r() * 3); i < n; i++) this.plants.push({ ...pt(), m: 3 + r() * 5, id: ++this.ids });
+    if (b === 2) for (let i = 0, n = 1 + Math.floor(r() * 3); i < n; i++) this.plants.push({ ...pt(), m: 3 + r() * 5, id: ++this.ids, t: r() });
+    else if (r() < c.plant_chance) this.plants.push({ ...pt(), m: 3 + r() * 4, id: ++this.ids, t: r() });
     if (!safe && r() < c.amoeba_chance[b] * (1 + far * c.danger_growth))
       this.amoebas.push({ ...pt(), vx: 0, vy: 0, m: 3 + r() * (3 + far), id: ++this.ids });
     if (!safe && b === 1 && r() < c.phage_chance) {
@@ -169,11 +176,12 @@ export class World {
     }
     const c1 = this.center();
     this.stats.path += dist(c0, c1);
+    this.life(dt);
     this.eat(dt);
     this.hunters(dt);
     for (const a of this.me.filter(a => a.sick >= 0 && a.sick < dt)) {
       this.lose(a, a.x, a.y, 'phage');
-      this.events.push(['burst', a.x, a.y]);
+      this.events.push(['burst', a.x, a.y]); this.spill(a.x, a.y);
       for (let i = 0; i < c.burst; i++) this.cloud(a.x, a.y, 'me', 40);
     }
     this.tidy -= dt;
@@ -181,12 +189,31 @@ export class World {
   }
 
   // Фаг: точка облака; v — с какой силой разлетаются новые фаги из лопнувшей клетки.
+  // Лопнувшая клетка разливает своё содержимое: кольцо еды (а рядом — новые фаги).
+  spill(x, y) { for (let i = 0; i < this.cfg.spill; i++) { const t = i / this.cfg.spill * 6.283 + this.r(); this.food.push({ x: x + Math.cos(t) * 14, y: y + Math.sin(t) * 14, vx: Math.cos(t) * 50, vy: Math.sin(t) * 50 }); } }
+
   cloud(x, y, host, v) { const t = this.r() * 6.283; this.phages.push({ x, y, vx: Math.cos(t) * v, vy: Math.sin(t) * v, host, d: t }); }
 
   // Медленное течение воды: у каждого места своё направление, меняется во времени.
   flow(x, y) { const t = hash(Math.floor(x / 500), Math.floor(y / 500), 77) * 6.283 + this.stats.time * 0.05; return [Math.cos(t) * this.cfg.flow, Math.sin(t) * this.cfg.flow]; }
 
   grow(a, v) { a.m = Math.min(this.cfg.max_m, a.m + v * (this.genes.fast ? 2 : 1)); }
+
+  // Неживое и соседи: водоросль понемногу выделяет сахар вокруг себя (фикосфера), детрит тонет,
+  // разлитая еда тормозит в вязкой воде.
+  life(dt) {
+    const c = this.cfg, r = this.r;
+    for (const p of this.plants) {
+      p.t = (p.t || 0) + dt / c.exude;
+      if (p.t < 1) continue;
+      p.t -= 1;
+      let near = 0;
+      for (const f of this.food) if (Math.abs(f.x - p.x) < 90 && Math.abs(f.y - p.y) < 90) near++;
+      if (near < c.halo_max) { const t = r() * 6.283, d = radius(p.m) * 1.6 + r() * 40; this.food.push({ x: p.x + Math.cos(t) * d, y: p.y + Math.sin(t) * d, vx: 0, vy: 0 }); }
+    }
+    for (const k of this.crumbs) k.y += c.sink * dt;
+    for (const f of this.food) if (f.vx || f.vy) { const q = Math.max(0, 1 - 4 * dt); f.vx *= q; f.vy *= q; f.x += f.vx * dt; f.y += f.vy * dt; if (Math.abs(f.vx) + Math.abs(f.vy) < 1) f.vx = f.vy = 0; }
+  }
 
   eat(dt) {
     const sense = this.genes.sense;
@@ -200,6 +227,9 @@ export class World {
       for (const q of this.prey) if (!q.gone && q.m < a.m * 0.8 && dist(a, q) < r + radius(q.m) * 0.4) {
         q.gone = true; this.grow(a, q.m * 0.5); this.stats.eaten++; this.events.push(['eat', q.x, q.y]);
       }
+      for (const k of this.crumbs) if (dist(a, k) < r + radius(k.m) * 0.8) { // детрит растворяется медленно
+        const bite = Math.min(k.m, 0.4 * dt); k.m -= bite; this.grow(a, bite);
+      }
       for (const p of this.plants) if (dist(a, p) < r + radius(p.m)) {
         const bite = Math.min(p.m, 0.5 * dt); p.m -= bite; this.grow(a, bite);
       }
@@ -210,6 +240,7 @@ export class World {
     this.food = this.food.filter(f => !f.gone);
     this.prey = this.prey.filter(q => !q.gone);
     this.plants = this.plants.filter(p => p.m > 0.3);
+    this.crumbs = this.crumbs.filter(k => k.m > 0.2);
     this.amoebas = this.amoebas.filter(m => !m.gone);
   }
 
@@ -285,7 +316,7 @@ export class World {
       } else for (const q of this.prey) if (dist(q, g) < radius(q.m) * 0.5 + 2) { g.on = q; g.t = c.inject; g.off = Math.atan2(g.y - q.y, g.x - q.x) - q.a; break; }
     }
     for (const q of this.prey) if (q.sick >= 0 && (q.sick -= dt) < 0) { // заражённый кокк лопается своим облаком
-      q.gone = true; this.events.push(['pop', q.x, q.y]);
+      q.gone = true; this.events.push(['pop', q.x, q.y]); this.spill(q.x, q.y);
       for (let i = 0; i < c.burst; i++) this.cloud(q.x, q.y, 'prey', 40);
     }
     this.prey = this.prey.filter(q => !q.gone);
@@ -296,7 +327,7 @@ export class World {
   forget(x, y) {
     const C = this.cfg.chunk, kx = Math.floor(x / C), ky = Math.floor(y / C);
     const near = o => Math.abs(Math.floor(o.x / C) - kx) <= 2 && Math.abs(Math.floor(o.y / C) - ky) <= 2;
-    for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants']) this[k] = this[k].filter(near);
+    for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'crumbs']) this[k] = this[k].filter(near);
     for (const key of [...this.chunks]) {
       const [a, b] = key.split(',').map(Number);
       if (Math.abs(a - kx) > 2 || Math.abs(b - ky) > 2) this.chunks.delete(key);
