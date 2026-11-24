@@ -9,6 +9,7 @@ import { follow } from './soft.js';
 import { look } from './look.js';
 import { Bodies } from './body3d.js';
 import { genomeScreen } from './genome.js';
+import { mark, message } from './feedback.js';
 
 const cfg = await (await fetch('data.json')).json();
 const cards = await (await fetch('cards.json')).json();
@@ -216,7 +217,36 @@ let paused = false;
 const genome = genomeScreen({ G: genomeData, cfg, world: () => world,
   onOpen: () => { paused = true; document.body.classList.add('paused'); pad.end(0); down = null; finger = null; },
   onClose: () => { paused = false; document.body.classList.remove('paused'); },
-  onCabinet: () => $('cab').onclick() });
+  onCabinet: () => $('cab').onclick(), onSend: () => send(), onDraw: () => showMarks() });
+// «Не так»: одно касание — отметка с моментом игры. Копятся здесь, «Отправить» — меню «Поделиться» телефона.
+let marks = [];
+try { marks = JSON.parse(localStorage.getItem('zaplyv.marks') || '[]'); } catch (_) {}
+function showMarks() {
+  const n = marks.length, label = `Отправить отметки · ${n}`;
+  $('esend').style.display = n ? '' : 'none'; $('esend').textContent = label;
+  const g = $('gsend'); if (g) { g.style.display = n ? '' : 'none'; g.textContent = `Отправить · ${n}`; }
+}
+function flag(screen) {
+  const now = new Date(), at = `${now.getDate()}.${String(now.getMonth() + 1).padStart(2, '0')} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+  marks.push({ at, text: mark(world, cards, $('ver').textContent.replace('Заплыв ', ''), screen, cfg.flag_r, { x: view.x, y: view.y }) });
+  try { localStorage.setItem('zaplyv.marks', JSON.stringify(marks)); } catch (_) {}
+  showMarks(); beep(880, 0.08, 0.04, 'sine', 0.8);
+  say(`Отметка ${marks.length} записана` + (screen === 'игра' ? ' · отправить — на паузе' : ''), 1800);
+}
+async function send() {
+  const text = message(marks);
+  try {
+    if (navigator.share) await navigator.share({ text });
+    else { await navigator.clipboard.writeText(text); say('Скопировано — вставь в чат', 2200); }
+    marks = []; try { localStorage.removeItem('zaplyv.marks'); } catch (_) {}
+    showMarks();
+  } catch (_) { /* отменил отправку — отметки остаются */ }
+}
+$('flag').onclick = () => flag('игра');
+$('gflag').onclick = $('gno').onclick = () => flag('геном');
+$('eno').onclick = () => flag('экран гибели');
+$('esend').onclick = send;
+showMarks();
 function meet(k) { // первая встреча: на секунду имя у края экрана, без паузы и без нажатий
   if (met.has(k) || !cards[k]) return;
   met.add(k); saveMet(); cabLabel();
@@ -668,7 +698,7 @@ function frame(now) {
     view.z += (z - view.z) * k;
     view.x += (c.x - (fx - 0.5) * W / view.z - view.x) * k; view.y += (c.y - (fy - 0.5) * H / view.z - view.y) * k;
   }
-  { const hide = ended || paused || !!kids; if (hide !== frame.hid) { frame.hid = hide; $('pause').style.display = hide ? 'none' : ''; } }
+  { const hide = ended || paused || !!kids; if (hide !== frame.hid) { frame.hid = hide; $('pause').style.display = $('flag').style.display = hide ? 'none' : ''; } }
   for (const r of rings) r.t += dt;
   rings = rings.filter(r => r.t < 0.6);
   shake = Math.max(0, shake - dt * 0.9);
