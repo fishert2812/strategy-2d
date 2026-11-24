@@ -8,7 +8,7 @@ import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 // Урок L017 (Роман 24.11: описания генов «непонятный нелогичный непонятно для кого»): карточка гена пишется
 // по методике kniga/teksty.md, и машина это держит. test_L017 — случаи самопроверки ниже.
 const ZAPRET = ['crispr', 'персистер', 'плазмид', 'фимбри', 'рецептор', 'рибосом', 'хемотакс', 'колицин', 'конъюг', 'фаг', 'штамм', 'мутаци', 'фенотип', 'экспресс'];
-const POLYA = { imya: 3, daet: 12, vid: 25, priroda: 25 };
+const POLYA = { imya: 3, daet: 12, priroda: 25 };
 export function tekst(who, k) {
   const bad = [];
   for (const [f, max] of Object.entries(POLYA)) {
@@ -16,15 +16,17 @@ export function tekst(who, k) {
     if (!v) { bad.push(who + ': в карточке нет строки «' + f + '»'); continue; }
     const n = v.split(/\s+/).filter(w => /[а-яё0-9]/i.test(w)).length;
     if (n > max) bad.push(who + ': строка «' + f + '» длиной ' + n + ' слов, можно ' + max);
+    if (/ [—–-] /.test(v)) bad.push(who + ': в строке «' + f + '» тире, пиши запятой или двумя фразами');
     if (/[a-z]/i.test(v)) bad.push(who + ': в строке «' + f + '» латиница: «' + v + '»');
     const t = ZAPRET.find(z => v.toLowerCase().includes(z));
     if (t) bad.push(who + ': в строке «' + f + '» термин «' + t + '»');
     const ab = v.match(/(?<![а-яёА-ЯЁ])[А-ЯЁ]{2,}(?![а-яё])/g);
     if (ab && ab.some(x => x !== 'ДНК')) bad.push(who + ': в строке «' + f + '» сокращение ' + ab.join(' '));
   }
+  if (k && k.vid) bad.push(who + ': строка «как выглядит» не пишется, это показывает значок (Роман 24.11)');
   return bad;
 }
-export const sobrat = records => Object.fromEntries(records.filter(r => r.kartochka).map(r => [r.latin, { nomer: r.id, klyuch: (r.kod || []).map(k => k.split(':')).filter(k => k[0] === 'gene').map(k => k[1])[0] || null, ...r.kartochka }]));
+export const sobrat = records => Object.fromEntries(records.filter(r => r.kartochka && r.kartochka.kopirayter).map(r => [r.latin, { nomer: r.id, klyuch: (r.kod || []).map(k => k.split(':')).filter(k => k[0] === 'gene').map(k => k[1])[0] || null, imya: r.kartochka.imya, daet: r.kartochka.daet, priroda: r.kartochka.priroda }]));
 
 export const SHAGI = ['nauka', 'adaptaciya', 'biolog', 'gotov', 'stroyka', 'v_igre'];
 const at = s => SHAGI.indexOf(s);
@@ -66,7 +68,7 @@ export function sverka({ records, cards, genes, slots, pages, files, spisok, rin
     if (r.kartochka) bad.push(...tekst(r.id + ' ' + r.name, r.kartochka));
   }
   const kart = sobrat(records);
-  for (const g of ring) if (!kart[g]) bad.push('на кольце генома ген ' + g + ', а карточки для игрока в книге нет');
+  for (const g of ring) if (!kart[g]) bad.push('на кольце генома ген ' + g + ', а карточки, прошедшей копирайтера, в книге нет');
   if (teksty.geny && JSON.stringify(kart) !== JSON.stringify(teksty.geny)) bad.push('teksty_genov.json отстал от записей: запусти node proby/zaplyv/kniga/sverka.mjs --teksty');
   for (const [k, v] of Object.entries(teksty.otkuda)) if (/[a-z]/i.test(v) || ZAPRET.some(z => v.toLowerCase().includes(z))) bad.push('teksty_genov.json otkuda.' + k + ': термин или латиница');
   for (const k of slots) if (!genes[k]) bad.push('на кольце генома место «' + k + '», а такого гена в data.json нет');
@@ -108,6 +110,8 @@ if (process.argv.includes('--selftest')) {
     ['test_L017: в строке «что даёт» термин', s => { kart(s).daet = 'Фаги тебя не берут'; return s; }, true],
     ['test_L017: «что даёт» длиннее 12 слов', s => { kart(s).daet = 'один два три четыре пять шесть семь восемь девять десять одиннадцать двенадцать тринадцать'; return s; }, true],
     ['test_L017: в карточке нет строки «в природе»', s => { delete kart(s).priroda; return s; }, true],
+    ['test_L017: текст не читал копирайтер', s => { delete kart(s).kopirayter; s.teksty.geny = null; return s; }, true],
+    ['test_L017: в карточке строка «как выглядит»', s => { kart(s).vid = 'полоски'; return s; }, true],
     ['test_L017: ген в игре без карточки', s => { delete s.records.find(r => r.kartochka && r.kod).kartochka; return s; }, true],
     ['test_L017: файл текстов для игры отстал от книги', s => { s.teksty.geny = { net: 1 }; return s; }, true],
   ];

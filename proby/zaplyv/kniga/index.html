@@ -104,7 +104,7 @@ function render(md) {
     if ((m = l.match(/^\{\{zapisi:([a-z_]+)(?::(.+))?\}\}$/))) { out.push(Z.filter(r => r.file === m[1] && (!m[2] || r.gruppa === m[2])).map(zapis).join('')); continue; }
     if (l.trim() === '{{ochered}}') { out.push(ochered()); continue; }
     if (l.trim() === '{{kartochki}}') { out.push(Z.filter(r => r.kartochka).map(r => `<div class="card"><div class="t"><span class="code">${r.id}</span>${esc(r.kartochka.imya)} <em>${esc(r.latin)}</em></div>` +
-      `<div class="step s${SHAG[r.shag][0]}">${r.shag === 'v_igre' ? 'в игре' : 'спит на кольце'}</div>` + row('Что даёт', r.kartochka.daet) + row('Как выглядит', r.kartochka.vid) + row('В природе', r.kartochka.priroda) + '</div>').join('')); continue; }
+      `<div class="step s${SHAG[r.shag][0]}">${r.shag === 'v_igre' ? 'в игре' : 'спит на кольце'}</div>` + row('Что даёт', r.kartochka.daet) + row('В природе', r.kartochka.priroda) + '</div>').join('')); continue; }
     if (l.startsWith('|')) { // таблица → карточки: первая ячейка — заголовок, остальные — «шапка: значение»
       const head = cells(l); i += 2;
       while (i < L.length && L[i].startsWith('|')) {
