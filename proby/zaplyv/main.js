@@ -203,7 +203,11 @@ $('again').onclick = () => start();
 // «Ночь рода» (night.js; design/zaplyv_noch_roda_spec.md): после гибели род живёт 1000 поколений, игрок выбирает опасность, потом ветку.
 let NT = null, ntT = 0, ntPick = null;
 const geneName = g => (Object.values(GENY.geny || {}).find(q => q.klyuch === g) || {}).imya || g;
-$('nightgo').onclick = () => { NT = null; ntPick = null; $('night').classList.add('on'); $('ndanger').hidden = $('nask').hidden = false; $('npicks').innerHTML = ''; $('ngo').disabled = true; $('ngen').textContent = 'Ночь рода'; drawNight(); };
+$('nightgo').onclick = () => { nightIcons(); NT = null; ntPick = null; $('night').classList.add('on'); $('ndanger').hidden = $('nask').hidden = false; $('npicks').innerHTML = ''; $('ngo').disabled = true; $('ngen').textContent = 'Ночь рода'; drawNight(); };
+function nightIcons() { // значки опасностей — снимки самой опасности из той же студии, что Альманах (правило дизайнера)
+  const im = $('ndanger').querySelectorAll('img'); if (im[0].src) return;
+  [['phage', 'phage'], ['maw', 'amoeba'], ['hunger', 'me']].forEach(([d, k], i) => { try { im[i].src = snap(k, KAB.items[k]); } catch (e) { im[i].remove(); } });
+}
 $('nback').onclick = () => { $('night').classList.remove('on'); NT = null; };
 $('nflag').onclick = e => flag('ночь рода', e.currentTarget);
 for (const b of $('ndanger').children) b.onclick = () => {
@@ -221,8 +225,9 @@ function nightEnd() {
   const res = NT.result(), box = $('npicks'); NT.res = res; box.innerHTML = '';
   res.picks.forEach((q, k) => {
     const b = document.createElement('button'), i = document.createElement('i'); b.className = 'ghost'; i.style.background = q.color; b.appendChild(i);
-    const t = document.createElement('span'); t.textContent = [q.id === res.best ? 'Выше всех' : '', q.id === 0 ? 'Твой род' : '', k === 1 && q.id !== 0 ? 'Больше всех' : ''].filter(Boolean).join(' · ') + ': ' + (q.genes.map(geneName).join(', ') || 'без генов');
-    const sm = document.createElement('small'); sm.textContent = 'Отличий от предка: ' + q.diff + ' · клеток ' + q.alive; t.appendChild(sm); b.appendChild(t);
+    const t = document.createElement('span'), role = q.id === res.best ? 'Выше всех' : q.id === 0 ? 'Твой род' : 'Больше всех', nb = NJ.bands.length - 1;
+    t.textContent = role + ' — ' + (q.band ? 'прошла ' + q.band + ' ' + (q.band === 1 ? 'полосу' : 'полосы') + ' из ' + nb : 'не прошла ни одной полосы');
+    const sm = document.createElement('small'); sm.textContent = 'Гены: ' + (q.genes.map(geneName).join(', ') || 'нет') + ' · отличий от предка ' + q.diff + ' · клеток ' + q.alive; t.appendChild(sm); b.appendChild(t);
     b.onclick = () => { ntPick = q; for (const x of box.children) x.classList.toggle('on', x === b); $('ngo').disabled = false; };
     box.appendChild(b);
   });
@@ -232,16 +237,19 @@ function drawNight() {
   if (cv.width !== Math.round(r.width * d) || cv.height !== Math.round(r.height * d)) { cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d); }
   const x = cv.getContext('2d'); x.setTransform(d, 0, 0, d, 0, 0); x.clearRect(0, 0, r.width, r.height);
   const C = NT ? NT.cols : NJ.cols, R = NJ.rows, s = Math.min(r.width / C, r.height / R), w = s * C, h = s * R, ox = (r.width - w) / 2, oy = (r.height - h) / 2, nb = NJ.bands.length;
-  for (let k = 0; k < nb; k++) { x.fillStyle = `rgba(255,120,90,${0.04 + NJ.bands[k] * 0.3})`; x.fillRect(ox, oy + h - (k + 1) * h / nb, w, h / nb); } // полосы опасности: чем выше, тем гуще
-  x.strokeStyle = 'rgba(207,227,230,0.25)'; x.strokeRect(ox, oy, w, h);
-  if (!NT) return;
-  const best = NT.res ? NT.res.best : -1;
-  for (let i = 0; i < NT.grid.length; i++) { const v = NT.grid[i]; if (v < 0) continue; const cx = i % C, cy = (i / C) | 0;
-    x.fillStyle = NT.branches[v].color; x.globalAlpha = best < 0 || v === best ? 1 : 0.45; x.fillRect(ox + cx * s, oy + h - (cy + 1) * s, s - 0.5, s - 0.5); }
-  x.globalAlpha = 1;
-  if (best >= 0) { x.strokeStyle = '#fff'; x.lineWidth = 1; for (let i = 0; i < NT.grid.length; i++) if (NT.grid[i] === best) { const cx = i % C, cy = (i / C) | 0; // ветка, дошедшая выше всех, обведена
-    if (cx === 0 || NT.grid[i - 1] !== best) x.strokeRect(ox + cx * s, oy + h - (cy + 1) * s, 0.01, s); if (cx === C - 1 || NT.grid[i + 1] !== best) x.strokeRect(ox + (cx + 1) * s, oy + h - (cy + 1) * s, 0.01, s);
-    if (cy === R - 1 || NT.grid[i + C] !== best) x.strokeRect(ox + cx * s, oy + h - (cy + 1) * s, s, 0.01); if (cy === 0 || NT.grid[i - C] !== best) x.strokeRect(ox + cx * s, oy + h - cy * s, s, 0.01); } }
+  const bandsOver = () => { for (let k = 1; k < nb; k++) { const y0 = oy + h - (k + 1) * h / nb; // полосы опасности поверх колоний: гуще кверху, тонкая линия на границе
+    x.fillStyle = `rgba(255,120,90,${0.06 + NJ.bands[k] * 0.16})`; x.fillRect(ox, y0, w, h / nb); x.fillStyle = 'rgba(255,170,140,0.6)'; x.fillRect(ox, y0 + h / nb - 0.75, w, 1.5); } };
+  x.fillStyle = '#071a22'; x.fillRect(ox, oy, w, h);
+  if (NT) {
+    const d2 = d, oc = drawNight.oc || (drawNight.oc = document.createElement('canvas')); oc.width = Math.round(r.width * d2); oc.height = Math.round(r.height * d2);
+    const o = oc.getContext('2d'); o.setTransform(d2, 0, 0, d2, 0, 0); const best = NT.res ? NT.res.best : -1;
+    if (best >= 0) { o.fillStyle = '#fff'; o.globalAlpha = 0.9; for (let i = 0; i < NT.grid.length; i++) if (NT.grid[i] === best) { const cx = i % C, cy = (i / C) | 0; // ветка, дошедшая выше всех, обведена светлой каймой (после размытия)
+      o.beginPath(); o.arc(ox + (cx + 0.5) * s, oy + h - (cy + 0.5) * s, s * 1.05, 0, 6.283); o.fill(); } }
+    for (let i = 0; i < NT.grid.length; i++) { const v = NT.grid[i]; if (v < 0) continue; const cx = i % C, cy = (i / C) | 0, hsh = Math.sin(i * 12.9898) * 43758.5 % 1, j2 = Math.sin(i * 78.233) * 43758.5 % 1; // клетка — мягкое пятно, внахлёст, разного размера
+      o.globalAlpha = best < 0 || v === best ? 1 : 0.4; o.fillStyle = NT.branches[v].color; o.beginPath(); o.arc(ox + (cx + 0.5 + hsh * 0.25) * s, oy + h - (cy + 0.5 + j2 * 0.25) * s, s * (0.62 + 0.18 * Math.abs(hsh)), 0, 6.283); o.fill(); }
+    x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.filter = `blur(${1.7 * d}px)`; x.drawImage(oc, 0, 0); x.filter = 'none'; x.restore();
+  }
+  bandsOver(); x.strokeStyle = 'rgba(207,227,230,0.25)'; x.lineWidth = 1; x.strokeRect(ox, oy, w, h);
 }
 window.zaplyvNight = () => NT; // для обхода касаниями
 
