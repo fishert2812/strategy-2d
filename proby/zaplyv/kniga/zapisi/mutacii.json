@@ -27,7 +27,7 @@
   "kod": [
    "gene:snap"
   ],
-  "versiya": "0.50"
+  "versiya": "0.51"
  },
  {
   "id": "Г28",
@@ -60,7 +60,7 @@
   "kod": [
    "gene:abort"
   ],
-  "versiya": "0.50"
+  "versiya": "0.51"
  },
  {
   "id": "Г29",
@@ -91,7 +91,7 @@
   "kod": [
    "gene:gas"
   ],
-  "versiya": "0.50"
+  "versiya": "0.51"
  },
  {
   "id": "Г30",
@@ -125,7 +125,7 @@
   "kod": [
    "gene:door"
   ],
-  "versiya": "0.50"
+  "versiya": "0.51"
  },
  {
   "id": "Г31",
@@ -157,7 +157,7 @@
   "kod": [
    "gene:decoy"
   ],
-  "versiya": "0.50"
+  "versiya": "0.51"
  },
  {
   "id": "Г32",
