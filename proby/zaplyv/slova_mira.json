@@ -1,0 +1,47 @@
+{
+ "_": "Слова мира (урок L024, «антибред»): основа слова в тексте карточки → существо или вещь игры (ключ Альманаха; slime — тяж слизи, список мира sim.js). Слово годится, только если оно часть имени из Альманаха или в том же тексте стоит имя его хозяина. Каждого хозяина бот-новичок обязан встретить в заплыве. Дополняет тред книги.",
+ "lists": {
+  "plant": "plants",
+  "bell": "bells",
+  "slipper": "slippers",
+  "roti": "rotis",
+  "phage": "phages",
+  "amoeba": "amoebas",
+  "bdello": "bdellos",
+  "strain": "pseudos",
+  "pseudo": "pseudos",
+  "coccus": "prey",
+  "donor": "donors",
+  "crumb": "crumbs",
+  "slime": "slime"
+ },
+ "slova": {
+  "водоросл": "plant",
+  "нит": "plant",
+  "вихр": "bell",
+  "сувойк": "bell",
+  "колокольчик": "bell",
+  "воронк": "slipper",
+  "туфельк": "slipper",
+  "инфузори": "slipper",
+  "коловратк": "roti",
+  "колёс": "roti",
+  "вирус": "phage",
+  "фаг": "phage",
+  "амёб": "amoeba",
+  "пасть": "amoeba",
+  "пасти": "amoeba",
+  "запят": "bdello",
+  "соперниц": "strain",
+  "гарпун": "pseudo",
+  "кокк": "coccus",
+  "соседк": "donor",
+  "детрит": "crumb",
+  "комок": "crumb",
+  "комк": "crumb",
+  "слиз": "slime"
+ },
+ "imena": {
+  "slime": "Слизь"
+ }
+}
