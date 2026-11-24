@@ -1,5 +1,6 @@
 extends Control
-## Репорт Романа из игры (просьба 24.11.2026, issue #34): кнопка в углу, окно с текстом, партия на паузе.
+## Разбор партии для команды (просьба Романа 24.11.2026): открывается кнопкой «Отправить разбор»
+## на экране итога; в нём флажки и сводка чёрного ящика, по желанию одна фраза, партия на паузе.
 ## «Отправить» копирует репорт в буфер и открывает страницу новой issue с готовым текстом (без сервера и ключей).
 ## В браузере окно — обычное поле страницы: так на iPhone работают клавиатура, диктовка и вставка.
 ## Вне браузера (тесты, компьютер) — такое же окно средствами Godot.
@@ -11,20 +12,21 @@ var cfg: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(DATA))
 var sent := {}
 var _js_done: JavaScriptObject
 var _js_send: JavaScriptObject
+var _js_quick: JavaScriptObject
+
+## Разбор ушёл кнопкой одного касания.
+signal sent_out
 var opened := false
 var _was_paused := false
 
-@onready var open_button: Button = $Safe/Open
 @onready var panel: Control = $Panel
 @onready var text_edit: TextEdit = $Panel/Margin/Box/Text
 
 
 func _ready() -> void:
-	open_button.pressed.connect(open)
 	$Panel/Margin/Box/Buttons/Send.pressed.connect(func(): send(text_edit.text))
 	$Panel/Margin/Box/Buttons/Close.pressed.connect(close)
 	panel.hide()
-	SafeArea.apply($Safe)
 	SafeArea.apply($Panel/Margin)
 
 
@@ -53,7 +55,7 @@ func close() -> void:
 func facts() -> String:
 	var scene := get_parent()
 	var w := DisplayServer.window_get_size()
-	var lines := ["версия %s" % Version.label(), "экран %s, окно %dx%d" % [scene.name if scene else "?", w.x, w.y]]
+	var lines := [Version.label(), "экран %s, окно %dx%d" % [scene.name if scene else "?", w.x, w.y]]
 	var sim = scene.get("sim") if scene else null
 	if sim is Sim:
 		lines.append("партия %d:%02d, крошки %d (враг %d)%s" % [int(sim.time) / 60, int(sim.time) % 60,
@@ -65,13 +67,16 @@ func facts() -> String:
 					count[b.kind] = count.get(b.kind, 0) + 1
 			lines.append(("наши: " if side == Sim.PLAYER else "враг: ") + ", ".join(count.keys().map(func(k): return "%s %d" % [cfg.names.get(k, k), count[k]])))
 	lines.append(Time.get_datetime_string_from_system(false, true))
+	var box = scene.get("box") if scene else null
+	if box is BlackBox:
+		lines = [box.summary(sim), "", "Техника:"] + lines
 	return "\n".join(lines)
 
 
 ## Текст репорта и адрес страницы новой issue. Длинный текст в адрес не влезает — тогда он только в буфере.
 func compose(text: String, about: String) -> Dictionary:
 	var words := text.strip_edges().replace("\n", " ")
-	var title := "Репорт: " + (words.left(cfg.title_chars) + ("…" if words.length() > cfg.title_chars else "") if words != "" else "без текста")
+	var title := "Разбор: " + (words.left(cfg.title_chars) + ("…" if words.length() > cfg.title_chars else "") if words != "" else "партия без слов")
 	var body := text.strip_edges() + "\n\n---\n" + about
 	var url := _url(title, body)
 	if url.length() > cfg.max_url:
@@ -92,11 +97,40 @@ func send(text: String) -> void:
 		close()
 
 
-func _open_web() -> void:
+## Отправка одним касанием кнопки на экране итога: разбор готовится заранее. В браузере поверх кнопки
+## кладём прозрачную кнопку страницы: iPhone открывает GitHub только из касания самой страницы.
+func arm(button: Button) -> void:
+	$Panel/Margin/Box/Facts.text = facts()
+	sent = compose("", $Panel/Margin/Box/Facts.text)
+	if OS.has_feature("web"):
+		_js()
+		var r := button.get_global_rect()
+		var v := get_viewport_rect().size
+		JavaScriptBridge.get_interface("window")._reportQuick(r.position.x / v.x, r.position.y / v.y, r.size.x / v.x, r.size.y / v.y, sent.url, sent.body, _js_quick)
+
+
+func disarm() -> void:
+	if _js_quick != null:
+		JavaScriptBridge.eval("window._reportQuick(0,0,0,0,'')")
+
+
+## Касание кнопки вне браузера (тесты, компьютер): уходит то, что приготовил arm().
+func quick() -> void:
+	$Panel/Margin/Box/Facts.text = facts()
+	send("")
+	sent_out.emit()
+
+
+func _js() -> void:
 	if _js_done == null:
 		_js_done = JavaScriptBridge.create_callback(func(_a): close())
 		_js_send = JavaScriptBridge.create_callback(_web_send)
+		_js_quick = JavaScriptBridge.create_callback(func(_a): sent_out.emit())
 		JavaScriptBridge.eval(FORM_JS, true)
+
+
+func _open_web() -> void:
+	_js()
 	var win := JavaScriptBridge.get_interface("window")
 	win._reportOpen($Panel/Margin/Box/Facts.text, _js_send, _js_done)
 
@@ -106,6 +140,7 @@ func _web_send(args: Array) -> void:
 	var win := JavaScriptBridge.get_interface("window")
 	win._reportUrl = sent.url
 	win._reportBody = sent.body
+	sent_out.emit()
 
 
 ## Окно репорта в браузере: поле страницы поверх игры. Отправить: Godot собирает адрес, страница копирует и открывает.
@@ -115,8 +150,8 @@ const FORM_JS := """
     + 'padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));'
     + 'background:#1e232b;color:#fff;font:17px -apple-system,system-ui,sans-serif;';
   var f = document.createElement('div'); f.id = 'report'; f.style.cssText = css;
-  f.innerHTML = '<b style="font-size:22px">Репорт</b>'
-    + '<textarea id="report-text" placeholder="Что заметил? Можно надиктовать." style="flex:1;min-height:120px;font:17px -apple-system,system-ui,sans-serif;padding:10px;border-radius:10px;border:0;user-select:text;-webkit-user-select:text;touch-action:auto"></textarea>'
+  f.innerHTML = '<b style="font-size:22px">Разбор партии</b>'
+    + '<textarea id="report-text" placeholder="Одна фраза о партии, если хочешь. Можно надиктовать или сразу отправить." style="flex:1;min-height:120px;font:17px -apple-system,system-ui,sans-serif;padding:10px;border-radius:10px;border:0;user-select:text;-webkit-user-select:text;touch-action:auto"></textarea>'
     + '<div id="report-facts" style="font-size:13px;opacity:.7;white-space:pre-wrap"></div>'
     + '<div id="report-status" style="font-size:15px;min-height:1em"></div>'
     + '<div style="display:flex;gap:12px"><button id="report-send" style="flex:1;min-height:52px;font-size:19px;border-radius:12px;border:0;background:#3a7be0;color:#fff">Отправить</button>'
@@ -139,6 +174,17 @@ const FORM_JS := """
     var w = window.open(window._reportUrl, '_blank');
     if (w) { t.value = ''; hide(); return; }
     st.innerHTML = 'Текст скопирован. <a style="color:#8cf" target="_blank" href="' + window._reportUrl + '">Открыть GitHub</a> или вставь его в чат.';
+  };
+  var q = document.createElement('button'); q.id = 'report-quick';
+  q.style.cssText = 'position:fixed;z-index:98;display:none;background:transparent;border:0;color:transparent;touch-action:manipulation';
+  document.body.appendChild(q);
+  ['pointerdown', 'touchstart', 'mousedown'].forEach(function (k) { q.addEventListener(k, function (e) { e.stopPropagation(); }); });
+  window._reportQuick = function (x, y, w, h, url, body, cb) {
+    if (!url) { q.style.display = 'none'; return; }
+    var c = document.getElementById('canvas').getBoundingClientRect();
+    q.style.left = (c.left + x * c.width) + 'px'; q.style.top = (c.top + y * c.height) + 'px';
+    q.style.width = (w * c.width) + 'px'; q.style.height = (h * c.height) + 'px'; q.style.display = 'block';
+    q.onclick = function () { copy(body); window.open(url, '_blank'); q.style.display = 'none'; cb(); };
   };
   window._reportOpen = function (facts, send, done) {
     cbs = {send: send, done: done}; st.textContent = '';

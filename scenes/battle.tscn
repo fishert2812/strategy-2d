@@ -142,6 +142,21 @@ custom_minimum_size = Vector2(0, 110)
 layout_mode = 2
 mouse_filter = 2
 
+[node name="Flag" type="Button" parent="Hud/Box/Bar"]
+custom_minimum_size = Vector2(130, 150)
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 36
+text = "0"
+icon_alignment = 1
+vertical_icon_alignment = 0
+expand_icon = true
+
+[node name="Gap" type="Control" parent="Hud/Box/Bar"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
 [node name="camp" type="Button" parent="Hud/Box/Bar"]
 custom_minimum_size = Vector2(110, 150)
 layout_mode = 2
@@ -185,6 +200,7 @@ horizontal_alignment = 1
 
 [node name="End" type="ColorRect" parent="."]
 visible = false
+z_index = 2
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -211,6 +227,26 @@ theme_override_font_sizes/font_size = 72
 text = "Победа!"
 horizontal_alignment = 1
 
+[node name="Flags" type="Label" parent="End/Center/Box"]
+custom_minimum_size = Vector2(560, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Флажков нет"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Send" type="Button" parent="End/Center/Box"]
+custom_minimum_size = Vector2(340, 110)
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "Отправить разбор"
+
+[node name="Phrase" type="Button" parent="End/Center/Box"]
+custom_minimum_size = Vector2(340, 88)
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Добавить фразу"
+
 [node name="Again" type="Button" parent="End/Center/Box"]
 custom_minimum_size = Vector2(340, 110)
 layout_mode = 2
@@ -221,4 +257,5 @@ text = "Ещё раз"
 script = ExtResource("5")
 
 [node name="Report" parent="." instance=ExtResource("9")]
+z_index = 2
 layout_mode = 1
