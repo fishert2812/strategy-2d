@@ -256,7 +256,8 @@ function icon(g) {
   if (!icons.has(g)) { let url = ''; try { url = geneShot(g, 128, 128); } catch (e) { url = ''; } icons.set(g, url); }
   return icons.get(g);
 }
-setTimeout(function warm(i = 0) { const g = Object.keys(cfg.genes)[i]; if (!g) return; icon(g); setTimeout(() => warm(i + 1), 250); }, 1500); // значки заранее, по одному: без рывка при первом гене
+const idle = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 2000 }) : setTimeout(f, 300));
+setTimeout(function warm(i = 0) { const g = Object.keys(cfg.genes)[i]; if (!g) return; idle(() => { if (!paused && !ended) icon(g); setTimeout(() => warm(i + 1), 400); }); }, 6000); // значки заранее, по одному в свободную минуту: без рывка при первом гене и под пальцем
 GENY.gruppa = Object.fromEntries([...genomeData.arcs.flatMap(a => a.slots.map(x => [x.id, a.name])), ...genomeData.plasmids.map(x => [x.id, 'Чужие'])].filter(x => x[0])); // группа гена — дуга кольца
 const kab = almanahScreen({ K: KAB, cards, T: TEKSTY, G: GENY, met, snap, onSwim: () => { if (ended) start(); else if (paused) genome.close(); } });
 const cabLabel = () => { $('cab').textContent = $('gcab').textContent = kab.label(); };
