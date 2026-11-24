@@ -249,6 +249,7 @@ function events() {
     if (k === 'stick') { ring(x, y, 1, 22); beep(520, 0.06, 0.04, 'square'); } // прилип фаг: резко развернись — стряхнёшь
     if (k === 'shake') { ring(x, y, 0, 30); beep(700, 0.07, 0.03); }
     if (k === 'cut') ring(x, y, 2, 26);
+    if (k === 'snap') { ring(x, y, 0, 60); beep(1200, 0.06, 0.04, 'square', 0.3); } // сувойка сжалась пружиной
     if (k === 'bump') { ring(x, y, 0, 24); beep(880, 0.05, 0.03); } // капсула: хищник отскочил
     if (k === 'pop') ring(x, y, 2, 90); // чужая клетка лопнула облаком фагов
     if (k === 'sick') { ring(x, y, 1, 50); beep(180, 0.3, 0.05, 'sawtooth', 0.7); }
@@ -305,6 +306,36 @@ function paint(time) {
       glow.put(px, py, g.w * z * (0.7 + 0.5 * edge), 0.55, 0.8, 0.95, 0.045 * Math.min(1, edge * 3));
       if (i % 3 === 0) ink.put(px + Math.sin(i * 7.1) * g.w * 0.5 * z, py + Math.cos(i * 5.3) * g.w * 0.5 * z, 0.8 * z + 0.3, 0.8, 0.9, 1, 0.35);
     }
+  }
+  for (const p of world.slippers) { // туфелька: огромная клетка в ресничках, воронка-рот на боку, поток в рот виден
+    const [x, y] = scr(p.x, p.y), L = cfg.slipper_len * z; if (!on(x, y, L)) continue;
+    const ux = Math.cos(p.a), uy = Math.sin(p.a), w = L * 0.27;
+    bodies.rod(x, y, p.a, L / 2, w, 0, [0.72, 0.95, 0.85], [0.32, 0.6, 0.48], p.id, Math.sin(time * 1.3 + p.id) * w * 0.15);
+    for (let k = 0; k < 72; k++) { // реснички: волна бежит по краю
+      const t = k / 72 * 6.283, c = Math.cos(t), s = Math.sin(t), e = 1.12 + 0.06 * Math.sin(t * 8 - time * 9);
+      const px = x + ux * c * (L / 2) * e * 0.98 - uy * s * w * e, py = y + uy * c * (L / 2) * e * 0.98 + ux * s * w * e;
+      ink.put(px, py, 0.9 * z + 0.3, 0.8, 1, 0.9, 0.45);
+    }
+    for (let k = 0; k < 6; k++) { const t = k * 1.9 + p.id, px = x + ux * Math.sin(t + time * 0.2) * L * 0.3 - uy * Math.cos(t * 1.3) * w * 0.5, py = y + uy * Math.sin(t + time * 0.2) * L * 0.3 + ux * Math.cos(t * 1.3) * w * 0.5;
+      glow.put(px, py, w * 0.18, 1, 0.75, 0.4, 0.35); } // пищеварительные пузырьки
+    const [mx, my] = scr(...world.mouth(p));
+    for (let k = 0; k < 24; k++) { // поток в воронку: крупинки по спирали к рту
+      const f = (time * 0.6 + k / 24) % 1, R = cfg.funnel_r * z * (1 - f), t = k * 2.4 + f * 3;
+      glow.put(mx + Math.cos(t) * R, my + Math.sin(t) * R, 1.2 * z + 0.4, 0.8, 0.95, 1, 0.35 * f);
+    }
+    ink.put(mx, my, cfg.mouth_r * z * 0.8, 0.1, 0.2, 0.18, 0.6);
+  }
+  for (const v of world.bells) { // сувойка: колокольчик на стебле-пружине, венчик ресничек крутит вихрь
+    const [x, y] = scr(v.x, v.y); if (!on(x, y, 200)) continue;
+    const [bx, by] = scr(...world.bell(v)), r = cfg.bell_r * z, dx = Math.cos(v.dir), dy = Math.sin(v.dir), Ls = Math.hypot(bx - x, by - y);
+    for (let k = 0; k <= 30; k++) { const f = k / 30, coil = v.shut > 0 ? Math.sin(f * 40) * 5 * z : Math.sin(f * 5 + time) * 2 * z;
+      ink.put(x + dx * Ls * f - dy * coil, y + dy * Ls * f + dx * coil, 0.9 * z + 0.4, 0.7, 0.85, 0.8, 0.6); }
+    bodies.sphere(bx, by, r, [0.75, 0.9, 0.88], [0.9, 1, 1], v.id, 0.7);
+    if (v.shut > 0) continue;
+    for (let k = 0; k < 20; k++) { const t = k / 20 * 6.283 + time * 6, cx = bx + dx * r * 0.9, cy = by + dy * r * 0.9;
+      ink.put(cx + Math.cos(t) * r * 0.8, cy + Math.sin(t) * r * 0.35 * Math.abs(dx) + Math.sin(t) * r * 0.35, 0.9 * z + 0.3, 0.85, 1, 0.95, 0.6); }
+    for (let k = 0; k < 18; k++) { const f = (time * 0.5 + k / 18) % 1, R = cfg.vortex_r * z * (1 - f), t = k * 2.1 - f * 6;
+      glow.put(bx + Math.cos(t) * R, by + Math.sin(t) * R, 1.1 * z + 0.4, 0.7, 0.95, 1, 0.3 * f); } // вихрь
   }
   for (const p of world.plants) { // водоросль-нить: цепочка клеток, внутри зелёные хлоропласты
     const [x, y] = scr(p.x, p.y); if (!on(x, y, 220)) continue;
