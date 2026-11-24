@@ -75,7 +75,7 @@ func test_L001() -> String:
 	return ""
 
 
-func test_buttons_in_thumb_corner_and_off_the_field() -> String:
+func test_buttons_whole_on_screen_in_thumb_corner() -> String:
 	for size in SIZES:
 		var battle: Control = await _battle(size)
 		var why := _buttons_why(battle, size)
