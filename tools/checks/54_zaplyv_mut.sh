@@ -3,4 +3,4 @@
 # живёт только в режиме «Мутации», бот встречает, где она важна.
 set -u
 command -v node >/dev/null || { echo "  нет node — мутации проверить нечем"; exit 1; }
-timeout 120 node proby/zaplyv/test_mutacii.mjs
+timeout 180 node proby/zaplyv/test_mutacii.mjs

@@ -75,16 +75,18 @@ check('[decoy] отвлекает вирусы пузырьками: за кле
 const family = (genes, n = 6) => { const w = mw(21, genes, 'swim'); const a = w.me[0]; a.m = 1.5;
   for (let i = 1; i < n; i++) w.me.push({ ...a, id: 10 + i, x: (i % 3) * 40 - 40, y: Math.floor(i / 3) * 40, vx: 0, vy: 0, sick: -1 }); return w; };
 const spread = w => { const c = w.center(); return Math.max(...w.me.map(b => Math.hypot(b.x - c.x, b.y - c.y))); };
-check('[flu] сцепка: сёстры держатся плотом за пальцем, без гена расплываются (Роман 25.11: «все расплывается сильно по экрану»)', () => {
-  const go = genes => { const arr = [];
-    for (const seed of [1, 2, 3]) { const w = new World(cfg, seed); w.mode = 'swim'; for (const g of genes) w.genes[g] = true;
-      for (let t = 0; t < 40 && w.me.length; t += 1 / 30) { if (w.choice.length) w.pick(w.choice[0]); if (w.readyToSplit() && w.me.length < 8) w.divide();
+check('[flu] сцепка: сёстры держатся строем за пальцем, без гена расплываются (Роман 25.11: «все расплывается сильно по экрану»)', () => {
+  const go = genes => { let far = 0, dis = 0, n = 0;
+    for (const seed of [1, 2, 3, 4, 5, 6]) { const w = new World(cfg, seed); w.mode = 'swim'; for (const g of genes) w.genes[g] = true;
+      for (let t = 0; t < 50 && w.me.length; t += 1 / 30) { if (w.choice.length) w.pick(w.choice[0]); if (w.readyToSplit() && w.me.length < 8) w.divide();
         const ang = Math.floor(t / 1.5) * 2.1; w.step(1 / 30, { dx: Math.cos(ang), dy: Math.sin(ang), p: 1 }); // палец водит зигзагом
-        if (w.me.length > 2) arr.push(spread(w)); } }
-    arr.sort((a, b) => a - b); return arr[Math.floor(arr.length * 0.95)]; };
+        if (w.me.length > 2) { far = Math.max(far, spread(w)); let vx = 0, vy = 0; for (const b of w.me) { vx += b.vx; vy += b.vy; } vx /= w.me.length; vy /= w.me.length;
+          dis += w.me.reduce((s, b) => s + Math.hypot(b.vx - vx, b.vy - vy), 0) / w.me.length; n++; } } }
+    return { far, dis: dis / n }; };
   const a = go(['flu']), b = go([]);
-  console.log(`    паспорт: 3 заплыва по 40 с, палец зигзагом, клеток до 8 — дальняя сестра от середины семьи (95 %): со сцепкой ${a.toFixed(0)}, без ${b.toFixed(0)}`);
-  if (!(a < b * 0.7)) return 'со сцепкой семья не плотнее';
+  console.log(`    паспорт: 6 заплывов по 50 с, палец зигзагом, клеток до 8 — дальше всех от середины семьи: со сцепкой ${a.far.toFixed(0)}, без ${b.far.toFixed(0)} | разнобой хода сестёр: ${a.dis.toFixed(1)} и ${b.dis.toFixed(1)}`);
+  if (!(a.far < b.far * 0.5)) return 'со сцепкой семья не держится вместе';
+  if (!(a.dis < b.dis * 0.6)) return 'со сцепкой сёстры плывут вразнобой';
 });
 check('[flu] сцепка: туфелька не втягивает сестру из плота, одиночку втягивает', () => {
   const hold = (genes, n) => { const w = family(genes, n); run(w, 3, null); const a = w.me[0]; w.grab(a, 'slipper', {}); return !!a.grab; };
