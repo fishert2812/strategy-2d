@@ -174,7 +174,7 @@ const near = new Dots(12, scene, 5, 'ring', 0);
 const dust = new Dots(120, scene, 3, true, 0.9);
 const bubbles = new Dots(60, scene, 4, 'ring', 0);
 const wake = new Dots(240, scene, 3, true, 0.9); // след в воде: частицы, которые клетка расталкивает
-let puffs = [], cur = [0, 0], zaps = [];
+let puffs = [], cur = [0, 0], zaps = [], kids = null;
 
 function resize() {
   const w = innerWidth, h = innerHeight;
@@ -274,13 +274,14 @@ canvas.addEventListener('pointercancel', up);
 
 function ask() {
   if ($('genes').classList.contains('on')) return;
-  const box = $('cards'); box.innerHTML = '';
-  for (const g of world.choice) {
+  const box = $('cards'); box.innerHTML = ''; $('genes').querySelectorAll('.kid').forEach(e => e.remove());
+  kids = world.choice.map((g, i) => ({ g, x: 0, y: 0, vx: 0, vy: 0, m: 1.7, a: -Math.PI / 2, id: 900 + i, sick: -1 })); // две дочки крупно: мутация видна на теле
+  world.choice.forEach((g, i) => {
+    const go = () => { world.pick(g); kids = null; $('genes').classList.remove('on'); ring(world.center().x, world.center().y, 0, 300); beep(660, 0.4, 0.06, 'sine', 1.5); };
     const b = document.createElement('button');
-    b.innerHTML = cfg.genes[g][0] + '<small>' + cfg.genes[g][1] + '</small>';
-    b.onclick = () => { world.pick(g); $('genes').classList.remove('on'); ring(world.center().x, world.center().y, 0, 300); beep(660, 0.4, 0.06, 'sine', 1.5); };
-    box.appendChild(b);
-  }
+    b.innerHTML = cfg.genes[g][0] + '<small>' + cfg.genes[g][1] + '</small>'; b.onclick = go; box.appendChild(b);
+    const k = document.createElement('button'); k.className = 'kid'; k.style.left = i ? '52%' : '2%'; k.onclick = go; k.setAttribute('aria-label', cfg.genes[g][0]); $('genes').appendChild(k);
+  });
   $('genes').classList.add('on');
   beep(440, 0.5, 0.05, 'sine', 2);
 }
@@ -508,11 +509,12 @@ function paint(time) {
     bubbles.put(x - hx * r * 0.45 - hy * r * 0.2, y - hy * r * 0.45 + hx * r * 0.2, r * 0.18 * Math.sqrt(v) + 1, 0.85, 0.95, 1, 0.3 * (1 - v * v * v));
   }
   const [cr, cg, cb] = [CELL[0].r, CELL[0].g, CELL[0].b];
-  const lk = look(world.genes, cfg.look);
+  const lkAll = look(world.genes, cfg.look);
+  if (kids) kids.forEach((a, i) => { a.x = view.x + (i ? 1 : -1) * W * 0.24 / z; a.y = view.y - 20 / z; a.a = -Math.PI / 2 + Math.sin(time * 0.8 + i * 2) * 0.12; a.m = 1.7 + 0.1 * Math.sin(time * 1.3 + i); }); // дочки покачиваются на месте
   const phageNear = world.phages.some(g => g.host === 'me' && Math.hypot(g.x - view.x, g.y - view.y) < 220);
   const foodNear = world.food.some(f => Math.hypot(f.x - view.x, f.y - view.y) < 120);
-  for (const a of world.me) { // палочка: мягкое тело — перёд ведёт, корма и пучок жгутиков идут по его следу
-    const w = 8.5 * Math.pow(a.m, 0.3) * z, sp = Math.hypot(a.vx, a.vy);
+  for (const a of kids || world.me) { // палочка: мягкое тело — перёд ведёт, корма и пучок жгутиков идут по его следу
+    const lk = a.g ? look({ ...world.genes, [a.g]: true }, cfg.look) : lkAll, w = 8.5 * Math.pow(a.m, 0.3) * z * (a.g ? 1.9 : 1), sp = Math.hypot(a.vx, a.vy);
     const run = sp > 25 && !a.tumble, wob = run ? 0.035 : 0.015; // встречное вращение тела к пучку: 3 раза в секунду
     const half = a.held > 0 ? w * (1.05 + 0.6 * a.held / cfg.bdello_kill) : w * (1.6 + 1.0 * Math.min(a.m, cfg.split) / cfg.split), tailW = w * 7.5 / z; // хищник внутри — клетка округляется в шарик
     const body = follow(a, half / z, tailW);
