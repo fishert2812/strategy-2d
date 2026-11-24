@@ -174,7 +174,7 @@ const near = new Dots(12, scene, 5, 'ring', 0);
 const dust = new Dots(120, scene, 3, true, 0.9);
 const bubbles = new Dots(60, scene, 4, 'ring', 0);
 const wake = new Dots(240, scene, 3, true, 0.9); // след в воде: частицы, которые клетка расталкивает
-let puffs = [], cur = [0, 0];
+let puffs = [], cur = [0, 0], zaps = [];
 
 function resize() {
   const w = innerWidth, h = innerHeight;
@@ -299,7 +299,8 @@ function pathText(w) {
 function ring(x, y, side, r) { rings.push({ x, y, side, r, t: 0 }); }
 
 function events() {
-  for (const [k, x, y, size = 1] of world.events) {
+  for (const [k, x, y, size = 1, y2] of world.events) {
+    if (k === 'zap') { zaps.push({ x, y, x2: size, y2, t: 0 }); beep(1500, 0.05, 0.05, 'square', 0.4); } // выстрел гарпуна синегнойки
     if (k === 'grab') { ring(x, y, 1, 40); beep(240, 0.2, 0.05, 'sawtooth', 1.6); tell('grab', 'Схватили! Резко развернись — вырвешься'); }
     if (k === 'sick' && world.me.some(a => a.held > 0)) tell('bdello', 'Прилип хищник! Резко развернись — стряхнёшь');
     if (k === 'eat') { ring(x, y, 2, 26 + 14 * size); const n = performance.now(); if (n - lastEat > 60) { beep(300 + Math.random() * 200, 0.09, 0.04); lastEat = n; } }
@@ -471,6 +472,18 @@ function paint(time) {
       ball(x + ux * k * r * 0.55 - uy * w, y + uy * k * r * 0.55 + ux * w, r * 0.4, side, q.id + k);
     } else for (let k = 0; k < 5; k++) { const t = k * 1.2566 + q.id, d = k ? r * 0.42 : 0; ball(x + Math.cos(t) * d, y + Math.sin(t) * d, r * 0.43, side, q.id + k); } // гроздь
   }
+  for (const q of world.pseudos) { // синегнойка: палочка как ты, зеленоватая, один жгутик сзади
+    const [x, y] = scr(q.x, q.y); if (!on(x, y)) continue;
+    const w = 7.5 * z, ux = Math.cos(q.a), uy = Math.sin(q.a);
+    bodies.rod(x, y, q.a, w * 2.3, w, 0, [0.45, 0.95, 0.72], [0.15, 0.55, 0.42], q.id, Math.sin(time * 4 + q.id) * w * 0.2);
+    for (let k = 1; k <= 28; k++) { const f = k / 28, wv = Math.sin(f * 10 - time * 26) * w * 0.6 * f;
+      glow.put(x - ux * (w * 2.3 + f * w * 7) - uy * wv, y - uy * (w * 2.3 + f * w * 7) + ux * wv, 1.1 * Math.max(z, 0.7), 0.6, 1, 0.8, 0.55 * (1 - f * 0.5)); }
+    if (q.cool > 0) glow.put(x, y, w * 3.5, 0.5, 1, 0.75, 0.25 * q.cool); // только что стреляла
+  }
+  zaps = zaps.filter(p => (p.t += 1 / 60) < 0.35);
+  for (const p of zaps) { const [x1, y1] = scr(p.x, p.y), [x2, y2] = scr(p.x2, p.y2), f = 1 - p.t / 0.35; // гарпун: пружинный чехол выстреливает иглу
+    for (let k = 0; k <= 12; k++) { const u = k / 12; ink.put(x1 + (x2 - x1) * u, y1 + (y2 - y1) * u, 1.4 * z + 0.5, 0.7, 1, 0.8, 0.9 * f); }
+    glow.put(x2, y2, 14 * z * f + 2, 0.7, 1, 0.8, 0.5 * f); }
   for (const b of world.bdellos) { // бделловибрион: запятая вдвое мельче тебя, один толстый жгутик; на рывке — след
     const [x, y] = scr(b.x, b.y); if (!on(x, y)) continue;
     const w = 4.2 * z, sp = Math.hypot(b.vx, b.vy), ang = b.a, ux = Math.cos(ang), uy = Math.sin(ang);
