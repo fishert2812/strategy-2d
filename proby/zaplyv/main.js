@@ -326,7 +326,8 @@ function events() {
     if (k === 'sit') ring(x, y, 0, 46); // коловратка присела на ногу: сейчас раскрутит колёса
     if (k === 'snap') { ring(x, y, 0, 60); beep(1200, 0.06, 0.04, 'square', 0.3); } // сувойка сжалась пружиной
     if (k === 'bump') { ring(x, y, 0, 24); beep(880, 0.05, 0.03); } // капсула: хищник отскочил
-    if (k === 'pop') ring(x, y, 2, 90); // чужая клетка лопнула облаком фагов
+    if (k === 'pop') { ring(x, y, 2, 90); beep(260, 0.25, 0.06, 'triangle', 0.6); } // чужая клетка лопнула
+    if (k === 'pinch') { ring(x, y, 1, 50); beep(1400, 0.05, 0.03, 'square', 0.6); tell('pinch', 'Кокк щиплет своим ядом — отплыви'); }
     if (k === 'sick') { ring(x, y, 1, 50); beep(180, 0.3, 0.05, 'sawtooth', 0.7); }
     if (k === 'burst' || k === 'eaten') { ring(x, y, 1, 150); shake = 1; beep(110, 0.45, 0.09, 'triangle', 0.5); }
   }
@@ -471,7 +472,7 @@ function paint(time) {
   }
   for (const q of world.prey) { // кокки — соседи-соперники, сиреневые; с токсином зеленеют: касание их убьёт
     const [x, y] = scr(q.x, q.y); if (!on(x, y)) continue;
-    const side = world.genes.toxin ? 2 : 1, r = radius(q.m) * z, kind = q.id % 4, a = q.a + time * 0.2;
+    const side = 1, r = radius(q.m) * z, kind = q.id % 4, a = q.a + time * 0.2;
     const ux = Math.cos(a), uy = Math.sin(a);
     if (kind === 0) { // шар с шипами, у каждого свой цвет шипов
       ball(x, y, r * 0.9, side, q.id);
@@ -499,8 +500,16 @@ function paint(time) {
   for (const q of world.pseudos) { // синегнойка: палочка как ты, зеленоватая, один жгутик сзади
     const [x, y] = scr(q.x, q.y); if (!on(x, y)) continue;
     const w = 7.5 * z, ux = Math.cos(q.a), uy = Math.sin(q.a);
-    if (q.held > 0) { bodies.sphere(x, y, w * 1.5, [0.45, 0.95, 0.72], [1, 0.5, 0.3], q.id); glow.put(x, y, w * 3, 1, 0.3, 0.1, 0.15); continue; } // в ней хищник: шарик
-    bodies.rod(x, y, q.a, w * 2.3, w, 0, [0.45, 0.95, 0.72], [0.15, 0.55, 0.42], q.id, Math.sin(time * 4 + q.id) * w * 0.2);
+    const col = q.strain ? [0.66, 0.7, 0.76] : [0.45, 0.95, 0.72], rim = q.strain ? [0.32, 0.36, 0.44] : [0.15, 0.55, 0.42];
+    if (q.held > 0) { bodies.sphere(x, y, w * 1.5, col, [1, 0.5, 0.3], q.id); glow.put(x, y, w * 3, 1, 0.3, 0.1, 0.15); continue; } // в ней хищник: шарик
+    if (q.strain) { // чужой штамм кишечной палочки: серая, жгутики со всех сторон, как у тебя
+      bodies.rod(x, y, q.a, w * 2.4, w * 1.05, 0, col, rim, q.id, Math.sin(time * 3 + q.id) * w * 0.15);
+      for (let j = 0; j < 4; j++) for (let k = 1; k <= 12; k++) { const f = k / 12, s = j < 2 ? 1 : -1, b = (j % 2 ? 0.6 : -0.6) * w * 2;
+        const wv = Math.sin(f * 9 - time * 22 + j) * w * 0.6 * f, dx = -uy * s * 3.5 - ux * 2.5, dy = ux * s * 3.5 - uy * 2.5, L = Math.hypot(dx, dy); // нить отходит вбок-назад и вьётся
+        glow.put(x + ux * b - uy * s * w + dx * f * w - dy / L * wv, y + uy * b + ux * s * w + dy * f * w + dx / L * wv, Math.max(z, 0.7), 0.75, 0.8, 0.9, 0.4 * (1 - f * 0.5)); }
+      continue;
+    }
+    bodies.rod(x, y, q.a, w * 2.3, w, 0, col, rim, q.id, Math.sin(time * 4 + q.id) * w * 0.2);
     for (let k = 1; k <= 28; k++) { const f = k / 28, wv = Math.sin(f * 10 - time * 26) * w * 0.6 * f;
       glow.put(x - ux * (w * 2.3 + f * w * 7) - uy * wv, y - uy * (w * 2.3 + f * w * 7) + ux * wv, 1.1 * Math.max(z, 0.7), 0.6, 1, 0.8, 0.55 * (1 - f * 0.5)); }
     if (q.cool > 0) glow.put(x, y, w * 3.5, 0.5, 1, 0.75, 0.25 * q.cool); // только что стреляла
