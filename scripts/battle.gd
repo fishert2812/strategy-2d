@@ -46,7 +46,7 @@ var _glow := Node2D.new()
 func _ready() -> void:
 	_preload(look)
 	_warm_up()
-	$Hud/Box/Top/Sha.text = Version.label()
+	$Hud/Box/Top/Sha.text = Version.short()
 	$Grass.texture = _tex(look.background)
 	$Grass.modulate = Color(look.background_tint)
 	for kind in buttons:
