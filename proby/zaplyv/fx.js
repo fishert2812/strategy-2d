@@ -4,8 +4,8 @@
 import { poke, stepVid, seen, rim, V } from './vid.js';
 export class Fx {
   constructor(cfg, CELL) { this.cfg = cfg; this.CELL = CELL; this.reset(); }
-  reset() { this.rings = []; this.zaps = []; this.drops = []; this.ghosts = []; this.melts = []; }
-  busy() { return this.rings.length + this.zaps.length + this.drops.length + this.ghosts.length + this.melts.length; }
+  reset() { this.rings = []; this.zaps = []; this.drops = []; this.ghosts = []; this.melts = []; this.dead = []; }
+  busy() { return this.rings.length + this.zaps.length + this.drops.length + this.ghosts.length + this.melts.length + this.dead.length; }
   ring(x, y, side, r) { this.rings.push({ x, y, side, r, t: 0 }); }
   on(k, x, y, size = 1, y2) {
     const R = (s, r) => this.ring(x, y, s, r);
@@ -32,6 +32,7 @@ export class Fx {
     if (k === 'shrug') R(0, 30); // новая дверь: вирус отброшен
     if (k === 'eaten') R(1, 150);
     if (k === 'burst') this.lyse(x, y, seen(x, y));
+    if (k === 'abort') { const g = seen(x, y); this.dead.push({ x, y, ang: g ? g.ang : size, L: g ? g.L : 8, w: g ? g.w : 6, t: 0 }); } // умерла за своих: целая, без прорыва
   }
   // Лопание от фага (биолог, «Вирус: лопание»): стенка держит давление и в один миг прорывается в одном месте —
   // сок брызжет из прорыва и вязко гаснет за секунду (в такой воде нет выката), а пустая оболочка-призрак
@@ -59,6 +60,13 @@ export class Fx {
         glow.put(x2, y2, 8 * z * f + 2, 0.7, 1, 0.8, 0.6 * f); }
       ink.put(x2, y2, 1.6 * z + 0.5, 0.15, 0.1, 0.2, 0.7 * (1 - p.t / 0.35)); // прокол
     }
+    for (const g of this.dead) { // тихая гибель сестры (абортивная инфекция): тело темнеет и замирает целым, не вспухает, без брызг, гаснет
+      const D = V.abort, f = g.t / D.fade, e = Math.min(1, g.t / D.dark), ca = Math.cos(g.ang), sa = Math.sin(g.ang);
+      for (let k = 0; k < D.fill; k++) { const t = k * 2.39996, r = Math.sqrt((k + 0.5) / D.fill), u = Math.cos(t) * r * (g.L + g.w * 0.6), o = Math.sin(t) * r * g.w * 0.75;
+        const [sx, sy] = scr(g.x + ca * u - sa * o, g.y + sa * u + ca * o); ink.put(sx, sy, g.w * z * 0.45, D.color[0], D.color[1], D.color[2], D.alpha * e * (1 - f)); }
+      const n = 36, st = (4 * g.L + 2 * Math.PI * g.w) * z / n;
+      for (let k = 0; k < n; k++) { const [u, o] = rim(k / n, g.L, g.w), [sx, sy] = scr(g.x + ca * u - sa * o, g.y + sa * u + ca * o); glow.put(sx, sy, st * 1.3, 0.45, 0.55, 0.7, 0.12 * (1 - f)); }
+    }
     const P = V.lysis;
     for (const g of this.ghosts) { // призрак: пустая обвисшая оболочка с дырой на месте прорыва, мнётся и тает
       const f = g.t / P.ghost, ca = Math.cos(g.ang), sa = Math.sin(g.ang), n = 40, st = (4 * g.L + 2 * Math.PI * g.w) * z / n;
@@ -84,5 +92,7 @@ export class Fx {
     this.drops = this.drops.filter(p => p.t < P.life);
     for (const m of this.melts) m.t += dt; this.melts = this.melts.filter(m => m.t < V.eat.melt);
     for (const g of this.ghosts) { g.vx += (Math.random() - 0.5) * 20 * dt; g.vy += (Math.random() - 0.5) * 20 * dt; g.vx *= 0.98; g.vy *= 0.98; g.x += g.vx * dt; g.y += g.vy * dt; g.ang += (Math.random() - 0.5) * 0.6 * dt; g.t += dt; } // дрейф и дрожь воды
-    this.ghosts = this.ghosts.filter(g => g.t < P.ghost); for (const r of this.rings) r.t += dt; this.rings = this.rings.filter(r => r.t < 0.6); }
+    this.ghosts = this.ghosts.filter(g => g.t < P.ghost);
+    for (const g of this.dead) g.t += dt; this.dead = this.dead.filter(g => g.t < V.abort.fade); // целую не носит: замерла
+    for (const r of this.rings) r.t += dt; this.rings = this.rings.filter(r => r.t < 0.6); }
 }
