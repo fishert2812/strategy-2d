@@ -76,7 +76,11 @@ say(await p.evaluate(() => { const live = Object.keys(zaplyvWorld().cfg.genes).l
 await p.evaluate(() => [...document.querySelectorAll('#ring .slot')].find(s => s.querySelector('image')).dispatchEvent(new MouseEvent('click', { bubbles: true })));
 await p.waitForTimeout(300);
 say(await p.evaluate(() => { const i = document.querySelector('#gcard .gicon'); return !!i && i.getBoundingClientRect().width >= 60 && i.src.length > 3000; }), 'test_L021: в карточке гена — значок');
+await whole(['#gon', '#gmenu', '#gcab', '#gno', '#gflag'], 'пауза с выбранным геном');
 if (await tap('#gon', '«Плыть дальше»')) { await p.waitForTimeout(500); say(!(await on('genome')) && await p.evaluate(() => zaplyvWorld().stats.time) > t0, '«Плыть дальше» закрывает геном, мир идёт'); }
+// test_L031 (прогон 0.44: «из игры в меню режимов попасть нельзя»): из паузы «Меню» открывает меню режимов, «Плыть» возвращает в тот же заплыв.
+if (await tap('#pause', 'пауза снова') && await tap('#gmenu', '«Меню» в паузе')) { const t1 = await p.evaluate(() => zaplyvWorld().stats.time); say(await on('menu'), 'test_L031: «Меню» в паузе открывает меню режимов');
+  if (await tap('#mgo', '«Плыть» из меню паузы')) { await p.waitForTimeout(500); say(!(await on('menu')) && await p.evaluate(t => zaplyvWorld().stats.time > t, t1), 'test_L031: «Плыть» из меню паузы продолжает тот же заплыв'); } }
 // Выбор дочки при делении: касание самой дочки берёт её ген.
 await p.evaluate(() => { const w = zaplyvWorld(), all = Object.keys(w.cfg.genes).filter(g => !w.genes[g]); w.choice = all.slice(0, 2); });
 await p.waitForTimeout(600);
@@ -101,6 +105,7 @@ if (await tap('#cards button', 'карточка гена дочки')) say(awai
 await p.evaluate(() => { const w = zaplyvWorld(); w.genes.spore = false; w.stats.killer = 'amoeba'; w.me.length = 0; });
 await p.waitForTimeout(1200);
 await whole(['#again', '#tomenu', '#cab', '#eno'], 'экран гибели'); // до любых касаний: экран не прокручен
+say(await p.evaluate(() => ['hud', 'scalebox', 'ver'].every(i => getComputedStyle(document.getElementById(i)).visibility === 'hidden') && getComputedStyle(document.getElementById('end')).backgroundColor.startsWith('rgb(')), 'test_L031: лист гибели непрозрачный, надписи игры под ним скрыты');
 m = await marks();
 if (await tap('#eno', '«Не так» на экране гибели')) say(await seen('#note') && await marks() === m + 1, '«Не так» на экране гибели: отметка и надпись видна');
 // «Ночь рода» (спецификация design/zaplyv_noch_roda_spec.md): каждая кнопка ночи отвечает пальцу.
@@ -120,7 +125,11 @@ if (await toNight('снова') && await tap('#ndanger [data-d=phage]', 'опа�
   }
   await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 0; }); await p.waitForTimeout(1200);
 }
+await p.evaluate(() => { document.getElementById('end').scrollTop = 400; }); // игрок долистал лист гибели вниз
 if (await tap('#again', '«Плыть снова»')) say(!(await on('end')), '«Плыть снова» начинает заплыв');
+await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 0; }); await p.waitForTimeout(1200);
+say(await p.evaluate(() => document.getElementById('end').scrollTop === 0), 'test_L031: второй экран гибели открывается с начала, убийца сверху');
+if (await tap('#again', '«Плыть снова» ещё раз')) await p.waitForTimeout(300);
 // Меню-сценка (Э21): после гибели меню встречает при входе; объект выбирает режим, нижняя кнопка запускает.
 await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 0; }); await p.waitForTimeout(1200);
 await p.reload(); await p.waitForFunction(() => window.zaplyvProbe && zaplyvProbe.frames > 5, null, { timeout: 30000 }); await p.waitForTimeout(800);

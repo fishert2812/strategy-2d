@@ -237,7 +237,7 @@ function menuPick(m, quiet) {
   $('mscene').classList.toggle('picked', !quiet);
   mSel = m; $('mgo').textContent = M.go;
 }
-function menuGo() { if (mSel === 'night') { $('menu').classList.remove('on'); openNight(); } else start(); }
+function menuGo() { if (mSel === 'night') { $('menu').classList.remove('on'); openNight(); } else if (menuGo.back && !ended && world.me.length) { $('menu').classList.remove('on'); menuGo.back = false; } else start(); } // из паузы: «Плыть» возвращает в тот же заплыв
 for (const o of document.querySelectorAll('#mscene .mo')) { o.onclick = () => menuPick(o.dataset.m); o.ondblclick = () => { menuPick(o.dataset.m); if (!MODES[o.dataset.m].lock) menuGo(); }; }
 $('mgo').onclick = menuGo;
 $('mquiet').onclick = () => { ROD.quiet = !ROD.quiet; saveRod(); $('mquiet').textContent = ROD.quiet ? 'Звук' : 'Тише'; };
@@ -246,6 +246,7 @@ $('malm').onclick = () => kab.open();
 // «Ночь рода» (night.js; design/zaplyv_noch_roda_spec.md): после гибели род живёт 1000 поколений, игрок выбирает опасность, потом ветку.
 let NT = null, ntT = 0, ntPick = null;
 const geneName = g => (Object.values(GENY.geny || {}).find(q => q.klyuch === g) || {}).imya || g;
+$('gmenu').onclick = () => { genome.close(); menuOpen(); menuGo.back = true; }; // путь в меню из паузы (L031)
 $('tomenu').onclick = () => { $('end').classList.remove('on'); menuOpen(); }; // режимы — только в меню: заплыв остаётся заплывом (Роман: «мы тестируем разные режимы»)
 function openNight() { nightIcons(); NT = null; ntPick = null; $('night').classList.add('on'); $('ndanger').hidden = $('nask').hidden = false; $('npicks').innerHTML = ''; $('ngo').disabled = true; $('ngen').textContent = 'Ночь рода'; drawNight(); }
 function nightIcons() { // значки опасностей — снимки самой опасности из той же студии, что Альманах (правило дизайнера)
@@ -602,7 +603,7 @@ function tick(dt) {
       $('stats').innerHTML = pathText(world);
       ROD.deaths = (ROD.deaths || 0) + 1; ROD.genes = Object.keys(world.genes).filter(g => world.genes[g]); ROD.most = world.stats.most; ROD.seed = world.seed; // род для ночи и меню
       const kl = world.stats.killer || 'me'; ROD.killers = ROD.killers || {}; ROD.killers[kl] = (ROD.killers[kl] || 0) + 1; saveRod();
-      setTimeout(() => { $('end').classList.add('on'); $('toast').classList.remove('on'); }, 700); // подсказка заплыва не ложится на экран гибели
+      setTimeout(() => { $('end').classList.add('on'); $('end').scrollTop = 0; $('toast').classList.remove('on'); }, 700); // лист гибели всегда с начала: убийца сверху (L031) // подсказка заплыва не ложится на экран гибели
     }
     return;
   }
