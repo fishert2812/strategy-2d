@@ -2,9 +2,11 @@
 // замер — медианы. node proby/zaplyv/temp.mjs печатает замер; тест и шаг проверки берут corridor().
 import { World } from './sim.js';
 const DANGER = ['amoebas', 'bdellos', 'pseudos', 'phages', 'slippers']; // новичок видит хищника и уплывает от него, как живой игрок в первые минуты
-const novice = w => { const c = w.center(); let fx = 0, fy = 0;
+export const novice = w => { const c = w.center(); let fx = 0, fy = 0;
   for (const l of DANGER) for (const q of w[l]) { const d = Math.hypot(q.x - c.x, q.y - c.y); if (d < 220 && d > 1) { fx += (c.x - q.x) / d; fy += (c.y - q.y) / d; } }
-  const wn = w.warning && w.warning(); if (wn && wn.level > 0) { const d = Math.hypot(c.x - wn.zone[0], c.y - wn.zone[1]) || 1; fx += (c.x - wn.zone[0]) / d * 2; fy += (c.y - wn.zone[1]) / d * 2; } // видит признак — уплывает (L030)
+  const wn = w.warning && w.warning(); if (wn && wn.level > 0) { const d = Math.hypot(c.x - wn.zone[0], c.y - wn.zone[1]) || 1, ux = (c.x - wn.zone[0]) / d, uy = (c.y - wn.zone[1]) / d; // видит признак (L030)
+    if (wn.zone[3] === 'bdello') return { dx: -uy, dy: ux, p: 1 }; // линия прицела: уйти вбок с линии броска
+    fx += ux * 2; fy += uy * 2; } // край воронки: выплыть наружу
   if (fx || fy) return { dx: fx, dy: fy, p: 1 };
   let best = null, bd = 260; for (const f of w.food) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } }
   return best ? { x: best.x, y: best.y } : { dx: Math.cos(w.dir), dy: Math.sin(w.dir), p: 1 }; };
