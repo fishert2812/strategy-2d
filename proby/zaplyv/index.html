@@ -67,6 +67,7 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 #ngo { width: 100%; flex-shrink: 0; min-height: 52px; } #ngo:disabled { opacity: 0.45; }
 #ebtns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex-shrink: 0; position: sticky; bottom: 0; margin: 0 -20px; padding: 14px 20px 4px; background: linear-gradient(rgba(4, 14, 18, 0), rgba(4, 14, 18, 0.96) 22%); } /* кнопки всегда на экране, текст гибели прокручивается под ними (Роман не видел кнопку ниже края) */ /* кнопки одним столбиком: каждая на своём месте, не друг на друге (урок L017) */
 #end button { flex-shrink: 0; background: rgba(10, 60, 50, 0.92); }
+#end { padding-bottom: 0; } #end #ebtns { align-self: stretch; z-index: 3; padding-bottom: calc(env(safe-area-inset-bottom) + 14px); background: #040e12; box-shadow: 0 -16px 16px rgba(4, 14, 18, 0.9); } #end #ebtns button { width: 100%; } #end #tomenu { order: 1; } #end #eno { order: 2; } #end #cab { order: 3; } #end #esend { order: 4; } /* кнопки по сетке во всю ширину, не по общему правилу 340 */
 #card, #path { width: min(380px, 100%); box-sizing: border-box; border-radius: 20px; padding: 12px 16px; }
 #card { background: rgba(255, 90, 60, 0.1); border: 1px solid rgba(255, 140, 100, 0.35); }
 #path { background: rgba(80, 200, 255, 0.07); border: 1px solid rgba(120, 220, 255, 0.25); }
