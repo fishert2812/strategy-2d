@@ -240,7 +240,7 @@ autowrap_mode = 3
 custom_minimum_size = Vector2(560, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
-text = "Флажков нет"
+text = "Отметок нет"
 horizontal_alignment = 1
 autowrap_mode = 3
 
