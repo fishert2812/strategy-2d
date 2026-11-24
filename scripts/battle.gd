@@ -27,6 +27,7 @@ var _last := ""
 var _units := {}
 var _lines := {}
 var _meets := {}  # казарма игрока → метка встречи «мои : чужие»
+var _meet_until := {}  # казарма игрока → до какого времени держать метку после отпускания тропы
 var _whistled := -99.0  # когда был свисток: от него бежит волна по боевым тропам
 ## Тропа, которая после отпускания подтягивается в чистую форму: казарма и линия под пальцем.
 var _settle := {}
@@ -77,6 +78,7 @@ func restart() -> void:
 	_units.clear()
 	_lines.clear()
 	_meets.clear()
+	_meet_until.clear()
 	_whistled = -99.0
 	_drag = {}
 	_pick({})
@@ -192,13 +194,14 @@ func _sync_paths() -> void:
 
 
 ## Метка встречи: где отряд моей казармы на этом ходу встретит чужих и сколько их — «мои : чужие».
-## Видна перед свистком (look.meet.before секунд) и пока игрок тянет тропу; у отряда на марше её нет.
+## Видна перед свистком (look.meet.before секунд), пока игрок тянет тропу и look.meet.hold секунд после; у отряда на марше её нет.
 func _sync_meets() -> void:
 	var seen := {}
 	var show: bool = sim.whistle <= look.meet.before or not _drag.is_empty()
 	for b in sim.of_side(Sim.PLAYER, "barracks"):
-		var m: Dictionary = sim.meet(b) if show else {}
+		var m: Dictionary = sim.meet(b) if show or sim.time < _meet_until.get(b.id, -1.0) else {}
 		if is_same(_drag.get("from"), b):
+			_meet_until[b.id] = sim.time + look.meet.hold
 			m = sim.meet(b, _drag.trail + [_drag.at]) if _drag.has("at") else {}
 		if m.is_empty() or sim.units.any(func(u): return is_same(u.home, b) and u.go):
 			continue

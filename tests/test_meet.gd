@@ -74,5 +74,9 @@ func test_meet_mark_shown_before_whistle() -> String:
 	if why == "" and (l == null or l.text != "6 : 1" or absf(l.position.x + l.size.x / 2 - 150) > sim.cfg.warrior.march_aggro):
 		why = "пока тянешь тропу к чужому, метки «6 : 1» у него нет: %s" % (l.text if l else "нет")
 	battle._drag = {}
+	sim.set_route(b, [Vector2(250, 600), Vector2(150, 300)])
+	await tree.process_frame
+	if why == "" and not battle._meets.has(b.id):
+		why = "тропу отпустил — метка сразу пропала, не успел прочесть"
 	battle.get_parent().free()
 	return why
