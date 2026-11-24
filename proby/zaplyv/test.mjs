@@ -4,6 +4,7 @@ import { Stick } from './controls.js';
 import { follow } from './soft.js';
 import { look } from './look.js';
 import { layout, card } from './genome.js';
+import { mark, message } from './feedback.js';
 import { readFileSync } from 'node:fs';
 const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
 let bad = 0;
@@ -451,6 +452,21 @@ check('геном на паузе: у каждого гена из игры св
   if (!c.have || !c.sub.includes('от дочки') || c.lines[0][1] !== cfg.genes.fast[1]) return 'полученный ген не показан включённым';
   if (s.have || !s.lines.some(l => l[0] === 'Откуда')) return 'невыбранная дочка показана как полученная';
   if (blink.length) return 'касание гена ничего не меняет на клетке: ' + blink;
+});
+
+check('«Не так»: отметка сама называет версию, момент заплыва, экран, гены, кто был рядом и кто убил — Роману не надо ничего писать', () => {
+  const cards = JSON.parse(readFileSync(new URL('./cards.json', import.meta.url)));
+  const w = new World(cfg, 3); w.choice = ['capsule']; w.pick('capsule');
+  const c = w.center(); w.amoebas = [{ x: c.x + 120, y: c.y, m: 6, vx: 0, vy: 0 }]; w.phages = [{ x: c.x + 3000, y: c.y }];
+  run(w, 2, null);
+  const live = mark(w, cards, '0.26', 'игра', cfg.flag_r, c);
+  w.me.length = 0; w.stats.killer = 'amoeba';
+  const dead = mark(w, cards, '0.26', 'экран гибели', cfg.flag_r, c), msg = message([{ at: '24.11 21:40', text: live }, { at: '24.11 21:41', text: dead }]);
+  console.log('    паспорт:', live, '|', dead.split(' · ').pop());
+  for (const part of ['0.26', '0:02', 'игра', 'Капсула', 'Акантамёба']) if (!live.includes(part)) return 'в отметке нет «' + part + '»';
+  if (live.includes('Фаг')) return 'далёкий фаг попал в «рядом»';
+  if (!dead.includes('убил: Акантамёба')) return 'после гибели не сказано, кто убил';
+  if (!msg.includes('отметок 2') || !msg.includes('2) 24.11 21:41')) return 'сообщение не собрало отметки';
 });
 
 check('мир без краёв: уплыл далеко — вокруг снова еда, позади забыто', () => {

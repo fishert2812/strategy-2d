@@ -28,7 +28,7 @@ export function card(slot, genes, from, names, G, arcName) {
 const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent?.appendChild(e); return e; };
 const pt = (r, deg) => { const t = deg * Math.PI / 180; return `${(r * Math.cos(t)).toFixed(1)} ${(r * Math.sin(t)).toFixed(1)}`; };
 
-export function genomeScreen({ G, cfg, world, onOpen, onClose, onCabinet }) {
+export function genomeScreen({ G, cfg, world, onOpen, onClose, onCabinet, onSend = () => {}, onDraw = () => {} }) {
   const $ = id => document.getElementById(id);
   const svg = $('ring'), box = $('gcard');
   const S = { open: false, blink: null }; G.pipe = cfg.plasmid_genes;
@@ -68,6 +68,7 @@ export function genomeScreen({ G, cfg, world, onOpen, onClose, onCabinet }) {
     el('text', { x: 0, y: -R1 - 13, 'text-anchor': 'middle', fill: '#fff', 'font-size': 12, opacity: 0.6 }, svg).textContent = 'ori';
     const own = all.filter(p => !p.plasmid), n = own.filter(p => w.genes[p.slot.id]).length, np = all.filter(p => p.plasmid && w.genes[p.slot.id]).length;
     $('gchips').innerHTML = `<span>включено ${n} из ${own.length}</span><span>чужих ${np}</span>`;
+    const send = document.createElement('button'); send.id = 'gsend'; send.className = 'flag'; send.style.display = 'none'; send.onclick = onSend; $('gchips').appendChild(send); onDraw();
     $('gsub').textContent = `поколение ${w.stats.gen} · кишечная палочка`;
   }
 

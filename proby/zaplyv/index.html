@@ -11,7 +11,7 @@ html, body { margin: 0; height: 100%; background: #02040a; overflow: hidden; tou
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
   font-family: -apple-system, system-ui, sans-serif; color: #fff; }
 canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
-#hud { position: fixed; top: calc(env(safe-area-inset-top) + 10px); left: 68px; right: 16px; font-size: 17px;
+#hud { position: fixed; top: calc(env(safe-area-inset-top) + 10px); left: 68px; right: 68px; font-size: 17px;
   opacity: 0.75; pointer-events: none; display: flex; justify-content: space-between; }
 #scalebox { position: fixed; left: 16px; bottom: calc(env(safe-area-inset-bottom) + 8px); font-size: 12px; opacity: 0.45; pointer-events: none; }
 #scale { height: 3px; background: #fff; margin-bottom: 3px; border-radius: 2px; }
@@ -55,6 +55,13 @@ button:active { background: rgba(60, 255, 200, 0.3); }
 /* Пауза с геномом (макет design/zaplyv_genom_maket.png) */
 #pause { position: fixed; left: 10px; top: calc(env(safe-area-inset-top) + 2px); width: 48px; min-height: 48px; height: 48px; padding: 0; border-radius: 50%;
   background: rgba(2, 4, 10, 0.35); border: 1px solid rgba(120, 255, 210, 0.35); display: flex; align-items: center; justify-content: center; gap: 5px; }
+#flag { position: fixed; right: 10px; top: calc(env(safe-area-inset-top) + 2px); width: 48px; min-height: 48px; height: 48px; padding: 0; border-radius: 50%;
+  background: rgba(2, 4, 10, 0.35); border: 1px solid rgba(255, 170, 120, 0.45); color: #ffb48a; font-size: 20px; }
+button.flag { border-color: rgba(255, 170, 120, 0.55); color: #ffc9a8; background: transparent; }
+#gchips button { white-space: nowrap; width: auto; min-height: 32px; font-size: 14px; padding: 5px 12px; border-radius: 16px; }
+#grow { display: flex; gap: 10px; width: 100%; max-width: 420px; flex-shrink: 0; z-index: 1; }
+#grow button { flex: 1; width: auto; min-height: 46px; font-size: 17px; }
+body.paused #flag { visibility: hidden; }
 #pause i { display: block; width: 5px; height: 16px; border-radius: 2px; background: #fff; opacity: 0.85; }
 #genome { background: linear-gradient(rgba(2, 4, 10, 0.55), transparent 18%, transparent 55%, rgba(2, 4, 10, 0.7) 75%); justify-content: flex-start; gap: 8px;
   padding: calc(env(safe-area-inset-top) + 8px) 14px calc(env(safe-area-inset-bottom) + 12px); overflow: hidden; }
@@ -63,12 +70,11 @@ button:active { background: rgba(60, 255, 200, 0.3); }
 #ghead h1 { margin: 0; font-size: 28px; }
 #gsub { margin: -8px 0 0; font-size: 14px; opacity: 0.65; z-index: 1; }
 body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { visibility: hidden; }
-#ghead .sp { width: 92px; }
 #gback { width: 92px; min-height: 44px; font-size: 17px; border-radius: 22px; padding: 4px 8px; }
 #ring { width: 100%; max-width: 460px; flex: 1 1 0; min-height: 180px; overflow: visible; }
 #ring .slot { cursor: pointer; }
 #gchips { display: flex; gap: 8px; z-index: 1; }
-#gchips span { font-size: 14px; padding: 5px 12px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(2, 4, 10, 0.6); }
+#gchips span { white-space: nowrap; font-size: 14px; padding: 5px 12px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(2, 4, 10, 0.6); }
 #gcard { max-height: 34vh; overflow-y: auto; flex-shrink: 0; width: 100%; max-width: 420px; box-sizing: border-box; border-radius: 20px; padding: 10px 16px; background: rgba(8, 22, 34, 0.92); border: 1px solid rgba(120, 220, 255, 0.35); z-index: 1; }
 #gcard.no { border-style: dashed; }
 #gcard h2 { margin: 0; font-size: 21px; font-weight: 600; }
@@ -78,7 +84,6 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
 #gcard p b { font-weight: 400; opacity: 0.6; }
 #gcard p.hint { display: block; opacity: 0.75; }
 #gon { width: 100%; max-width: 420px; min-height: 56px; z-index: 1; flex-shrink: 0; }
-#gcab { width: 100%; max-width: 420px; min-height: 46px; font-size: 17px; z-index: 1; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -86,6 +91,7 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
 <div id="hud"><span id="count"></span><span id="eaten"></span></div>
 <div id="ver"></div>
 <button id="pause" aria-label="Пауза: геном"><i></i><i></i></button>
+<button id="flag" aria-label="Не так: поставить отметку">⚑</button>
 <div id="scalebox"><div id="scale"></div>10 мкм</div>
 <div class="layer" id="genes"><h1>Две дочки</h1><p>Они получились разными. Коснись той, кем плыть дальше</p><div id="cards"></div></div>
 <div class="layer" id="end">
@@ -93,15 +99,16 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
   <div id="path"><h3>Твой путь</h3><p id="stats"></p></div>
   <button id="again">Плыть снова</button>
   <button id="cab" class="ghost"></button>
+  <button id="eno" class="flag ghost">⚑ Не так</button><button id="esend" class="ghost" style="display:none"></button>
 </div>
 <div class="layer" id="genome">
-  <div id="ghead"><button id="gback" class="ghost">‹ Плыть</button><div><h1>Геном</h1></div><span class="sp"></span></div>
+  <div id="ghead"><button id="gback" class="ghost">‹ Плыть</button><div><h1>Геном</h1></div><button id="gflag" class="flag" style="width:48px;min-height:48px;padding:0;border-radius:50%;margin-left:44px" aria-label="Не так">⚑</button></div>
   <p id="gsub"></p>
   <svg id="ring" viewBox="-228 -190 468 375" preserveAspectRatio="xMidYMid meet"></svg>
   <div id="gchips"></div>
   <div id="gcard"></div>
   <button id="gon">Плыть дальше</button>
-  <button id="gcab" class="ghost">Кабинет</button>
+  <div id="grow"><button id="gcab" class="ghost">Кабинет</button><button id="gno" class="flag">⚑ Не так</button></div>
 </div>
 <div class="layer" id="cabinet"><h1>Кабинет</h1><p>Кого ты встречал в капле</p><div id="shelf"></div><button id="back">Назад</button></div>
 <div id="toast"></div>
