@@ -13,7 +13,7 @@ func test_flag_on_spot_lands_in_report() -> String:
 	t._tap(battle, _flag(battle))
 	t._drag(battle, battle.buttons.camp.get_global_rect().get_center(), battle.world.to_global(battle.sim.of_side(Sim.PLAYER)[0].pos + Vector2(0, battle.look.ghost_lift)))
 	t._drag(battle, _flag(battle), battle.world.to_global(Vector2(360, 500)))
-	var line := "- 0:00 %s: у тебя" % battle.box.flags[-1].where
+	var line := "- 0:00 %s: крошки" % battle.box.flags[-1].where
 	var report: String = battle.box.summary(battle.sim)
 	var flags: Array = battle.box.flags
 	var marks: int = battle.things.get_children().filter(func(s): return s is Sprite2D and s.texture.resource_path.ends_with("flag.png")).size()
@@ -62,17 +62,20 @@ func test_end_screen_sends_in_one_tap() -> String:
 		battle.put_flag(Vector2(100 + i, 200) if i % 2 else null)
 	for b in sim.of_side(Sim.ENEMY):
 		sim.damage(b, 1e9)
-	var flags: String = battle.get_node("End/Center/Box/Flags").text if battle.get_node("End").z_index > 1 else "флажки поверх итога"
+	var flags: String = battle.get_node("End/Center/Box/Who").text.get_slice("\n", 0) + " " + battle.get_node("End/Center/Box/Flags").text if battle.get_node("End").z_index > 1 else "флажки поверх итога"
 	await (Engine.get_main_loop() as SceneTree).process_frame
 	var report: Control = battle.get_node("Report")
+	var overlap: bool = battle.get_node("End/Center/Box/Again").get_global_rect().end.y > battle._bar_top()
 	battle.get_node("End/Center/Box/Send").pressed.emit()
 	var sent: Dictionary = report.sent
 	var send_text: String = battle.get_node("End/Center/Box/Send").text
 	var max_url: int = report.cfg.max_url
 	battle.get_parent().free()
-	if not flags.begins_with("Флажки: 0:00, 0:07"):
+	if overlap:
+		return "«Ещё раз» на экране итога лежит на нижней панели"
+	if not flags.begins_with("Сегодня ты Чистюля Флажки: 0:00, 0:07"):
 		return "на экране итога не те флажки: " + flags
-	for need in ["Флажков: 20", "победа", "«тяни тропу к залежи» ×1", "лагеря 30 с", "у печенья слева, у врага", "не вышло: «тяни"]:
+	for need in ["Флажков: 20. Звание: Чистюля.", "победа", "«тяни тропу к залежи» ×1", "лагеря 30 с", "у печенья слева, у врага", "не вышло: «тяни"]:
 		if not sent.get("body", "").contains(need):
 			return "в разборе нет «%s»: %s" % [need, sent.get("body", "").left(300)]
 	if sent.url.length() > max_url or not sent.url.contains("labels=feedback"):
