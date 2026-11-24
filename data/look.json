@@ -24,10 +24,16 @@
     "width": 56,
     "anchor": [0.5, 0.8672]
   },
+  "_warrior": "Вязаный воин: кадры из поз Романа (tools/art/warrior_frames.py). files — стойка; frames — все кадры по цветам. pose: run — порядок кадров бега, stride — путь в точках поля на один кадр, stand — кадр на месте, windup и thrust — замах и укол, blow — доли удара, когда замах сменяется уколом и укол стойкой.",
   "warrior": {
-    "files": ["warrior_blue", "warrior_red"],
-    "width": 56,
-    "anchor": [0.5, 0.8477]
+    "files": ["warrior_blue_1", "warrior_red_1"],
+    "frames": [
+      ["warrior_blue_0", "warrior_blue_1", "warrior_blue_2", "warrior_blue_3", "warrior_blue_4"],
+      ["warrior_red_0", "warrior_red_1", "warrior_red_2", "warrior_red_3", "warrior_red_4"]
+    ],
+    "pose": {"run": [0, 1, 2, 1], "stride": 8, "stand": 1, "windup": 3, "thrust": 4, "blow": [0.35, 0.8]},
+    "width": 64,
+    "anchor": [0.5, 0.9481]
   },
   "tower": {
     "files": ["tower_archer_blue", ""],
@@ -64,7 +70,7 @@
     "gait": {
       "carrier": {"hop": 7, "rate": 3.6, "squash": 0.14, "sway": 5},
       "carrier_loaded": {"hop": 2, "rate": 2.0, "squash": 0.06, "sway": 10},
-      "warrior": {"hop": 3, "rate": 2.6, "squash": 0.08, "sway": 2},
+      "warrior": {"hop": 1.5, "rate": 2.6, "squash": 0.04, "sway": 0},
       "fidget": {"hop": 2, "rate": 0.8, "squash": 0.05, "sway": 3}
     },
     "_fidget_max": "Во сколько раз чаще топчутся воины у коробка перед самым свистком.",

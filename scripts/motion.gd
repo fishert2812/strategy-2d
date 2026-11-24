@@ -20,8 +20,33 @@ func attach(s: Sprite2D) -> void:
 	s.set_meta("pulse", 0.0)
 
 
+## Кадры позы (вязаный воин): pics — картинки кадров, pose — порядок из look.json.
+## Бег меняет шаги по пройденному пути, удар — замах и укол; без кадров движется одна картинка.
+func frames(s: Sprite2D, pics: Array, pose: Dictionary) -> void:
+	s.set_meta("frames", pics)
+	s.set_meta("pose", pose)
+	s.set_meta("dist", 0.0)
+	s.set_meta("blow", -1.0)
+
+
+func _pose(s: Sprite2D, moved: float) -> void:
+	if not s.has_meta("frames"):
+		return
+	var p: Dictionary = s.get_meta("pose")
+	var blow: float = s.get_meta("blow")
+	var i: int = p.stand
+	if blow >= 0.0:
+		i = p.windup if blow < p.blow[0] else (p.thrust if blow < p.blow[1] else p.stand)
+	elif moved > 0.01:
+		var d: float = s.get_meta("dist") + moved
+		s.set_meta("dist", d)
+		i = p.run[int(d / p.stride) % p.run.size()]
+	s.texture = s.get_meta("frames")[i]
+
+
 ## Шаг вприпрыжку: прыжок, приземление со сплющиванием, покачивание. moved — путь за кадр.
 func walk(s: Sprite2D, gait: String, moved: float, dt: float) -> void:
+	_pose(s, 0.0 if gait == "fidget" else moved)
 	var g: Dictionary = cfg.gait[gait]
 	var ph: float = s.get_meta("phase")
 	ph = ph + dt * g.rate if moved > 0.01 else move_toward(ph, roundf(ph), dt * 4.0)
@@ -39,6 +64,13 @@ func walk(s: Sprite2D, gait: String, moved: float, dt: float) -> void:
 func strike(attacker: Sprite2D, target: Sprite2D, dir: Vector2) -> void:
 	var k: Dictionary = cfg.strike
 	if attacker != null and attacker.has_meta("kick"):
+		# Нарисован лицом влево: бьёт вправо — разворачивается к цели.
+		if absf(dir.x) > 0.01:
+			attacker.flip_h = dir.x > 0
+		if attacker.has_meta("frames"):
+			var b := attacker.create_tween()
+			b.tween_method(func(v): attacker.set_meta("blow", v), 0.0, 1.0, k.time)
+			b.tween_callback(func(): attacker.set_meta("blow", -1.0))
 		var t := attacker.create_tween()
 		t.tween_method(_kick.bind(attacker), Vector2.ZERO, -dir * k.windup, k.time * 0.35)
 		t.tween_method(_kick.bind(attacker), -dir * k.windup, dir * k.lunge, k.time * 0.2)

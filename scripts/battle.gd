@@ -158,6 +158,8 @@ func _sync_units(dt: float) -> void:
 			var s := Sprite2D.new()
 			_fit(s, look[u.kind], _tex(look[u.kind].files[u.side]))
 			motion.attach(s)
+			if look[u.kind].has("frames"):
+				motion.frames(s, look[u.kind].frames[u.side].map(_tex), look[u.kind].pose)
 			s.position = u.pos
 			things.add_child(s)
 			_units[u.id] = s
