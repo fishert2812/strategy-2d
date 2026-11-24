@@ -41,10 +41,10 @@
     "barracks": "icon_barracks"
   },
   "path_colors": ["#6DA8F4", "#E97062"],
-  "path_width": 7,
+  "path_width": 10,
   "path_edge": {
     "color": "#3B2414",
-    "width": 11
+    "width": 15
   },
   "_motion": "Движения готовых картинок, в точках поля. gait: hop — высота прыжка, rate — прыжков в секунду, squash — сплющивание при приземлении, sway — покачивание в градусах. strike: windup — замах назад, lunge — выпад, knock — отлёт цели, squash — сплющивание цели, time — длина удара в секундах.",
   "motion": {

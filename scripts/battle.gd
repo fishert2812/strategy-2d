@@ -107,7 +107,7 @@ func _sync_paths() -> void:
 	var seen := {}
 	for b in sim.buildings:
 		var pts: Array = [b.pos] + b.route if b.kind == "barracks" else [b.pos, b.target.get("pos")]
-		if pts.size() < 2 or pts[-1] == null or b.target.get("gold", 1) <= 0 or b.target.get("hp", 1) <= 0:
+		if pts.size() < 2 or pts[-1] == null or b.target.get("gold", 1) <= 0 or b.target.get("hp", 1) <= 0 or is_same(_drag.get("from"), b):
 			continue
 		seen[b.id] = true
 		if not _lines.has(b.id):
@@ -223,7 +223,9 @@ func _move(pos: Vector2) -> void:
 		var at := world.to_local(pos)
 		if _drag.trail.is_empty() or _drag.trail[-1].distance_to(at) >= sim.cfg.route.step:
 			_drag.trail.append(at)
-		_points(_drag.line, [_drag.from.pos] + _drag.trail + [at])
+		# Тропа казармы — натянутая нитка уже под пальцем: что видно сейчас, то и ляжет при отпускании.
+		var shown: Array = sim.thread(_drag.from, _drag.trail + [at]).route if _drag.from.kind == "barracks" else [at]
+		_points(_drag.line, [_drag.from.pos] + shown)
 	elif _drag.has("what"):
 		if pos.distance_to(_drag.start) >= TAP:
 			_drag.moved = true
