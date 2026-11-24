@@ -110,6 +110,8 @@ await p.evaluate(() => { const w = zaplyvWorld(), c = w.center(); w.events.push(
   say(zs < z1 * 0.8 && zd > z1 * 0.9 && zf > z1 * 0.9 && px, `test_L029: камера отъехала к расползшейся колонии (${z1.toFixed(2)} → ${zs.toFixed(2)}), вернулась после гибели дальних (${zd.toFixed(2)}) и не уходит к застрявшим вдали (${zf.toFixed(2)})`); }
 await p.evaluate(() => { const w = zaplyvWorld(); w.genes.spore = false; w.stats.killer = 'amoeba'; w.me.length = 0; });
 await p.waitForTimeout(1200); await notBook(await p.evaluate(() => ['who', 'cname', 'ctext', 'cfact', 'ctip'].map(i => document.getElementById(i).textContent)), 'экран гибели');
+say(await p.evaluate(async () => { const C = await (await fetch('cards.json')).json(), T = (await (await fetch('kniga/teksty_sushchestv.json')).json()).sushchestva, st = document.getElementById('stats').textContent;
+  return Object.keys(C).every(k => !T[k] || T[k].imya === C[k].name || !st.includes(C[k].name)); }), 'test_L018: в строке «кто забрал» на экране гибели имена только из книги (прогон 0.44: «Сувойка» вместо «Колокольчик»)');
 await whole(['#again', '#tomenu', '#cab', '#eno'], 'экран гибели'); // до любых касаний: экран не прокручен
 m = await marks();
 if (await tap('#eno', '«Не так» на экране гибели')) say(await seen('#note') && await marks() === m + 1, '«Не так» на экране гибели: отметка и надпись видна');

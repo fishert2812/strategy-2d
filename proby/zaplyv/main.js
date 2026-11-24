@@ -554,7 +554,7 @@ function pathText(w) {
   const s = w.stats, t = Math.round(s.time), mm = (s.gen * 20) | 0; // одно деление ≈ 20 минут при хорошей еде
   const nature = mm < 60 ? mm + ' мин' : Math.floor(mm / 60) + ' ч' + (mm % 60 ? ' ' + (mm % 60) + ' мин' : '');
   const genes = Object.keys(w.genes).map(geneName).join(', ') || 'пока нет';
-  const lost = Object.entries(s.lost).map(([k, n]) => (cards[k] ? cards[k].name : k) + ' — ' + n).join(', ');
+  const lost = Object.entries(s.lost).map(([k, n]) => (TEKSTY[k]?.imya || (cards[k] ? cards[k].name : k)) + ' — ' + n).join(', ');
   return `Плыл ${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}, проплыл ${Math.round(s.path / 26)} мкм<br>`
     + `Поколений: ${s.gen} — в природе это ≈ ${nature}<br>Клеток было до ${s.most}, съедено ${s.eaten}<br>`
     + `Мутации: ${genes}` + (lost ? `<br>Отняли клеток: ${lost}` : '');
