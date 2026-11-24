@@ -78,17 +78,36 @@ func test_L001() -> String:
 func test_buttons_in_thumb_corner_and_off_the_field() -> String:
 	for size in SIZES:
 		var battle: Control = await _battle(size)
-		var field := Rect2(battle.world.to_global(Vector2.ZERO), Vector2(battle.sim.cfg.field[0], battle.sim.cfg.field[1]) * battle.world.scale)
-		var why := ""
-		for kind in battle.buttons:
-			var r: Rect2 = battle.buttons[kind].get_global_rect()
-			if r.position.x < size.x / 2 or r.end.y < size.y - 200:
-				why = "кнопка «%s» не в правом нижнем углу: %s" % [kind, r]
-			elif r.intersects(field):
-				why = "кнопка «%s» закрывает поле" % kind
+		var why := _buttons_why(battle, size)
+		var sha: Label = battle.get_node("Hud/Box/Top/Sha")
+		var need := sha.get_theme_font("font").get_string_size(sha.text, 0, -1, sha.get_theme_font_size("font_size")).x
+		if why == "" and need > sha.size.x + 1:
+			why = "версия «%s» не влезает в шапку: %.0f из %.0f" % [sha.text, need, sha.size.x]
+		if why == "":
+			var before: Vector2 = battle.buttons["camp"].global_position
+			sha.text = "0.99 · mmmmmmmmmmmm"
+			await battle.get_tree().process_frame
+			await battle.get_tree().process_frame
+			why = _buttons_why(battle, size)
+			if why == "" and battle.buttons["camp"].global_position != before:
+				why = "длинная версия в шапке сдвинула кнопки"
 		battle.get_parent().free()
 		if why != "":
 			return "%s (экран %dx%d)" % [why, size.x, size.y]
+	return ""
+
+
+## Кнопки целиком на экране, в правой нижней четверти и не на поле.
+func _buttons_why(battle: Control, size: Vector2) -> String:
+	var field := Rect2(battle.world.to_global(Vector2.ZERO), Vector2(battle.sim.cfg.field[0], battle.sim.cfg.field[1]) * battle.world.scale)
+	for kind in battle.buttons:
+		var r: Rect2 = battle.buttons[kind].get_global_rect()
+		if not Rect2(Vector2.ZERO, size).encloses(r):
+			return "кнопка «%s» вылезает за экран: %s" % [kind, r]
+		if r.position.x < size.x / 2 or r.end.y < size.y - 200:
+			return "кнопка «%s» не в правом нижнем углу: %s" % [kind, r]
+		if r.intersects(field):
+			return "кнопка «%s» закрывает поле" % kind
 	return ""
 
 
