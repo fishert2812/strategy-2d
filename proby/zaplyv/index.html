@@ -50,7 +50,8 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 #card h2 { margin: 2px 0 6px; font-size: 23px; font-weight: 600; }
 #path h3 { margin: 0 0 6px; font-size: 17px; font-weight: 600; opacity: 0.8; }
 #card p, #path p { margin: 0 0 6px; font-size: 15px; line-height: 1.35; text-align: left; opacity: 0.85; }
-#cfact::before { content: "Удивительно: "; font-weight: 600; }
+#cfact::before { content: "В природе: "; font-weight: 600; }
+#ckill { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 14px; margin: 0 0 8px; border: 1.5px solid rgba(255, 140, 100, 0.5); } /* кто убил — его модель из игры */
 #ctip { color: #9ff5d8; }
 /* Альманах (макет design/zaplyv_almanah_maket.png): полка с разделами и страница по касанию */
 #cabinet { z-index: 30; background: radial-gradient(120% 80% at 50% 0%, #0a2832, #02040a 60%); justify-content: flex-start; align-items: stretch; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y;
@@ -138,6 +139,37 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
 #gcard p b { font-weight: 400; opacity: 0.6; }
 #gcard p.hint { display: block; opacity: 0.75; }
 #gon { width: 100%; max-width: 420px; min-height: 56px; z-index: 1; flex-shrink: 0; }
+
+/* Пауза — один экран с вкладками (Э17): Геном · Карта · Альманах, внизу одна «Плыть» 56. Карта — разрез пруда (Э18–Э19). */
+#ptabs { display: flex; gap: 8px; width: 100%; max-width: 420px; flex-shrink: 0; z-index: 1; }
+#ptabs button { flex: 1; width: auto; min-height: 44px; height: 44px; padding: 0; font-size: 16px; border-radius: 22px; background: rgba(2, 8, 12, 0.5); border-color: rgba(255, 255, 255, 0.22); color: rgba(255, 255, 255, 0.82); }
+#ptabs button.on { border-color: #3ee0a8; background: rgba(62, 224, 168, 0.16); color: #fff; }
+#genome.tab-map, #genome.tab-alm { background: radial-gradient(120% 80% at 50% 0%, #0a2832, #02040a 60%); }
+#genome.tab-map #gsub, #genome.tab-map #ring, #genome.tab-map #gchips, #genome.tab-map #gcard, #genome.tab-map #grow,
+#genome.tab-alm #gsub, #genome.tab-alm #ring, #genome.tab-alm #gchips, #genome.tab-alm #gcard, #genome.tab-alm #grow { display: none; }
+#genome #gon { margin-top: auto; }
+#map { display: flex; flex-direction: column; width: 100%; max-width: 420px; flex: 1; min-height: 0; gap: 6px; z-index: 1; }
+#map[hidden] { display: none; }
+#mhead { margin: 0; font-size: 14px; color: rgba(207, 227, 230, 0.85); text-align: center; }
+#mbox { position: relative; flex: 1; min-height: 0; border-radius: 16px; overflow: hidden; background: #04141a; }
+#mcv { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+#mcard { position: absolute; left: 8px; right: 8px; bottom: 8px; max-height: 54%; overflow-y: auto; border-radius: 16px; padding: 14px 14px 10px; background: rgba(8, 22, 30, 0.96); border: 1px solid rgba(255, 140, 100, 0.45); }
+#mcard::before { content: ""; display: block; width: 36px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.35); margin: -6px auto 8px; }
+#mcard img { float: left; width: 64px; height: 64px; border-radius: 12px; margin: 0 10px 4px 0; object-fit: cover; }
+#mcard h3 { margin: 0 0 4px; font-size: 18px; } #mcard p { margin: 0 0 4px; font-size: 14px; line-height: 1.35; opacity: 0.88; }
+#mcard p.mway { clear: both; padding-top: 6px; color: #9fe6ff; opacity: 1; font-weight: 600; }
+#mlegend { margin: 0; height: 24px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; color: rgba(207, 227, 230, 0.85); }
+.lg { display: inline-block; width: 14px; height: 14px; margin-left: 8px; } .lg.d { transform: rotate(45deg) scale(0.8); border: 2.5px solid #ff6e46; }
+.lg.g { border-radius: 50%; border: 2.5px solid #5ae696; } .lg.y { border-radius: 50%; border: 1.5px solid #a0ebff; }
+#mlegend .lg.c { border: 2px dashed #7cdcff; border-radius: 50%; }
+#cabinet.inpause #kshelf > .khead, #cabinet.inpause #kswim { display: none; }
+#genome #gcab { display: none; } /* Альманах — вкладка паузы, отдельная кнопка не нужна */
+#mcard, #mcard p, #mcard h3 { text-align: left; }
+#mgoal { display: block; width: 100%; min-height: 44px; margin: 6px 0 4px; font-size: 16px; }
+#goal { position: fixed; left: 0; top: 0; z-index: 5; pointer-events: none; margin: -12px 0 0 -12px; opacity: 0.45; color: #bff; text-align: center; font-size: 12px; }
+#goal i { display: block; font-style: normal; font-size: 24px; line-height: 24px; width: 24px; }
+#goal b { display: block; font-weight: 500; white-space: nowrap; margin-left: -12px; }
+#cabinet.inpause { padding-top: 8px; }
 </style>
 </head>
 <body>
@@ -149,7 +181,7 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
 <div id="scalebox"><div id="scale"></div>10 мкм</div>
 <div class="layer" id="genes"><h1>Две дочки</h1><p>Они получились разными. Коснись той, кем плыть дальше</p><div id="cards"></div></div>
 <div class="layer" id="end">
-  <div id="card"><div id="who"></div><h2 id="cname"></h2><p id="ctext"></p><p id="cfact"></p><p id="ctip"></p></div>
+  <div id="card"><img id="ckill" alt="" hidden><div id="who"></div><h2 id="cname"></h2><p id="ctext"></p><p id="ctip"></p><p id="cfact"></p></div>
   <div id="path"><h3>Твой путь</h3><p id="stats"></p></div>
   <div id="ebtns"><button id="nightgo">Ночь рода</button><button id="again" class="ghost">Плыть снова</button>
   <button id="cab" class="ghost"></button>
@@ -164,13 +196,17 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
   <div id="npicks"></div>
   <button id="ngo" disabled>Плыть этой веткой</button>
 </div>
+<div id="goal" hidden><i>➝</i><b></b></div>
 <div class="layer" id="genome">
-  <div id="ghead"><button id="gback" class="ghost">‹ Плыть</button><div><h1>Геном</h1></div><button id="gflag" class="flag" style="width:48px;min-height:48px;padding:0;border-radius:50%;margin-left:44px" aria-label="Не так">⚑</button></div>
+  <div id="ghead"><button id="gback" class="ghost" hidden>‹ Плыть</button><div><h1 id="gtitle">Пауза</h1></div><button id="gflag" class="flag" style="width:48px;min-height:48px;padding:0;border-radius:50%;margin-left:44px" aria-label="Не так">⚑</button></div>
+  <div id="ptabs" role="tablist"><button data-t="genome" role="tab">Геном</button><button data-t="map" role="tab">Карта</button><button data-t="alm" role="tab">Альманах</button></div>
   <p id="gsub"></p>
   <svg id="ring" viewBox="-228 -190 468 375" preserveAspectRatio="xMidYMid meet"></svg>
   <div id="gchips"></div>
   <div id="gcard"></div>
-  <button id="gon">Плыть дальше</button>
+  <div id="map" hidden><p id="mhead"></p><div id="mbox"><canvas id="mcv"></canvas><div id="mcard" hidden></div></div>
+    <p id="mlegend"><span class="lg d"></span>гибель<span class="lg g"></span>ген<span class="lg y"></span>ты<span class="lg c"></span>цель</p></div>
+  <button id="gon">Плыть</button>
   <div id="grow"><button id="gcab" class="ghost">Альманах</button><button id="gno" class="flag">⚑ Не так</button></div>
 </div>
 <div class="layer" id="cabinet">

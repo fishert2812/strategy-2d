@@ -37,7 +37,7 @@ m = await marks();
 if (await tap('#gflag', 'флажок в геноме')) say(await seen('#note') && await marks() === m + 1, 'флажок в геноме: отметка и надпись видна');
 m = await marks();
 if (await tap('#gno', '«Не так» в геноме')) say(await seen('#note') && await marks() === m + 1, '«Не так» в геноме: отметка и надпись видна');
-if (await tap('#gcab', 'Альманах из генома')) say(await on('cabinet'), 'Альманах открылся');
+if (await tap('#ptabs [data-t=alm]', 'вкладка «Альманах»')) say(await on('cabinet'), 'Альманах открылся вкладкой паузы');
 // test_L019: у каждой карточки полки — снимок живой модели (картинка не пустая), разделы и карточка отвечают пальцу
 await p.waitForTimeout(1500);
 say(await p.evaluate(() => [...document.querySelectorAll('#shelf .kc img')].every(i => i.naturalWidth > 100 && i.src.length > 5000)), 'test_L019: у каждой записи Альманаха — снимок модели из игры');
@@ -46,7 +46,18 @@ if (await tap('#kpills button:nth-child(1)', 'раздел «Обитатели�
 if (await tap('#shelf .kc[data-k=me]', 'карточка «Ты»')) say(await seen('#kcard') && await p.evaluate(() => document.querySelectorAll('#kblocks .kb').length >= 2 && document.getElementById('kimg').naturalWidth > 100), 'карточка открылась: модель и блоки текста');
 if (await tap('#knext', 'следующая карточка')) say(await p.evaluate(() => document.getElementById('kname').textContent !== 'Ты, кишечная палочка'), 'листается к следующей');
 if (await tap('#kback', 'назад к полке')) say(await seen('#kshelf'), 'полка снова видна');
-if (await tap('#back', 'назад из Альманаха')) say(!(await on('cabinet')) && await on('genome'), 'Альманах закрылся, геном на месте');
+if (await tap('#ptabs [data-t=genome]', 'вкладка «Геном»')) say(!(await on('cabinet')) && await on('genome') && await seen('#ring'), 'вкладка «Геном»: Альманах закрылся, кольцо на месте');
+// Карта на паузе (Э17–Э18): вкладка открывает разрез пруда, на нём нарисовано (не пустой холст), «ты» в шапке словами.
+if (await tap('#ptabs [data-t=map]', 'вкладка «Карта»')) { await p.waitForTimeout(400);
+  say(await seen('#mcv') && await p.evaluate(() => { const c = document.getElementById('mcv'), d = c.getContext('2d').getImageData(c.width / 2, c.height / 2, 1, 1).data; return c.width > 200 && d[3] > 0 && /слое/.test(document.getElementById('mhead').textContent); }), 'карта: разрез пруда нарисован, слой назван'); }
+// Отметка гибели на карте: касание — карточка места, «Запомнить это место» ставит метку-цель (Э19–Э20).
+await p.evaluate(() => { const c = zaplyvWorld().center(); zaplyvKarta.data().marks.push({ kind: 'death', x: c.x + 2500, y: c.y + 3000, who: 'amoeba', run: 0 }); });
+await p.waitForTimeout(300);
+const mk = await p.evaluate(() => { const h = zaplyvKarta.hits().find(q => q.kind === 'death'), r = document.getElementById('mcv').getBoundingClientRect(); return h && [r.left + h.x, r.top + h.y]; });
+if (mk) { await p.touchscreen.tap(mk[0], mk[1]); await p.waitForTimeout(300); say(await seen('#mcard') && /погиб/.test(await p.evaluate(() => document.getElementById('mcard').textContent)), 'карта: касание отметки гибели открывает карточку места'); }
+else say(false, 'карта: отметки гибели не видно');
+if (await tap('#mgoal', '«Запомнить это место»')) say(await p.evaluate(() => !!zaplyvKarta.data().goal), 'метка-цель запомнена');
+if (await tap('#ptabs [data-t=genome]', 'снова «Геном»')) say(await seen('#ring') && !(await seen('#mcv')), 'вкладка «Геном» вернулась');
 // «Отправить» в геноме: меню «Поделиться» телефона подменяем, отметки должны уйти одним сообщением.
 await p.evaluate(() => { navigator.share = async d => { window.shared = d.text; }; });
 m = await marks();
