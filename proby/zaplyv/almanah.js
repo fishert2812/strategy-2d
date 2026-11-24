@@ -30,7 +30,8 @@ export function page(k, K, E, cards, T, G, met) {
   if (!met.has(k)) return { name: it.sec === 'gene' ? 'Ещё не было' : 'Ещё не встречал', line: it.hint || 'Плыви дальше', color, met: false };
   if (it.sec === 'gene') {
     const g = Object.values(G.geny).find(x => x.klyuch === it.gene), P = G.podpisi;
-    return { name: g.imya, line: g.daet, size: '', color, met: true,
+    const grp = (G.gruppa || {})[it.gene]; // подзаголовок — группа и номер записи, текст только в блоке (приёмка дизайнера)
+    return { name: g.imya, line: (grp ? grp + ' · ' : '') + g.nomer, size: '', color, met: true,
       blocks: [[P[0].toUpperCase(), g.daet, '#7cc8ff'], [P[1].toUpperCase(), g.priroda, '#b79cff', `Запись ${g.nomer} в книге игры · проверено биологом`]] };
   }
   const c = cards[k], t = T[k] || {};
@@ -61,7 +62,7 @@ export function almanahScreen({ K, cards, T, G, met, snap, onSwim }) {
       const img = document.createElement('img'); img.alt = ''; b.appendChild(img);
       if (shots.has(k)) img.src = shots.get(k); else queue.push({ k, img });
       const n = document.createElement('b'); n.textContent = P.name; b.appendChild(n);
-      const l = document.createElement('span'); l.textContent = P.line; b.appendChild(l);
+      const l = document.createElement('span'); l.textContent = P.met ? E[k].line || P.line : P.line; b.appendChild(l); // на полке — главное одной строкой
       if (P.met && !opened.has(k) && k !== 'me') { const d = document.createElement('i'); d.className = 'new'; b.appendChild(d); }
       b.onclick = () => P.met && openCard(k);
       box.appendChild(b);

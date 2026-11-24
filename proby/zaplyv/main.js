@@ -217,6 +217,7 @@ function studio(k, it) {
   return w;
 }
 function snap(k, it) {
+  if (it.gene) return geneShot(it.gene, 480, 300); // ген в Альманахе — тот же снимок, что значок: часть, которую он даёт, подсвечена
   const keep = [world, view, kids, down, moved, rings, puffs, zaps, paint.t];
   const out = document.createElement('canvas'); out.width = 480; out.height = 300;
   try {
@@ -232,31 +233,31 @@ function snap(k, it) {
 // Значок гена (макет дизайнера: круг, тело приглушено, часть, которую даёт ген, подсвечена). Снимаем клетку без гена и с геном
 // той же студией, что Альманах, и оставляем ярким только то, что изменилось: сам ген на теле. Кеш — снимаем один раз.
 const icons = new Map();
-function icon(g) {
-  if (icons.has(g)) return icons.get(g);
-  const N = 128, grab = genes => {
-    const keep = [world, view, kids, down, moved, rings, puffs, zaps, paint.t], c = document.createElement('canvas'); c.width = c.height = N;
+function geneShot(g, NW, NH) {
+  const grab = genes => {
+    const keep = [world, view, kids, down, moved, rings, puffs, zaps, paint.t], c = document.createElement('canvas'); c.width = NW; c.height = NH;
     try {
       world = studio('me', { a: -0.5 }); world.genes = genes; kids = null; down = null; moved = true; rings = []; puffs = []; zaps = [];
       const side = Math.min(W, H) * 0.9; view = { x: 0, y: 0, z: side * 0.62 / cfg.icon_span, tint: [...TINT[0]] };
       for (let i = 0; i < 4; i++) { paint.t = 30; render(30); } // время стоит: оба снимка в одной позе, разница — только ген
-      const sx = canvas.width / W, cw = side * sx * 0.62;
-      c.getContext('2d').drawImage(canvas, (canvas.width - cw) / 2, (canvas.height - cw) / 2, cw, cw, 0, 0, N, N);
+      const sx = canvas.width / W, cw = side * sx * 0.62 * Math.max(1, NW / NH), ch = cw * NH / NW;
+      c.getContext('2d').drawImage(canvas, (canvas.width - cw) / 2, (canvas.height - ch) / 2, cw, ch, 0, 0, NW, NH);
     } finally { [world, view, kids, down, moved, rings, puffs, zaps, paint.t] = keep; }
-    return c.getContext('2d').getImageData(0, 0, N, N);
+    return c.getContext('2d').getImageData(0, 0, NW, NH);
   };
-  let url = '';
-  try {
-    const A = grab({}), B = grab({ [g]: true }), a = A.data, b = B.data;
-    for (let i = 0; i < a.length; i += 4) {
-      const d = Math.min(1, (Math.abs(b[i] - a[i]) + Math.abs(b[i + 1] - a[i + 1]) + Math.abs(b[i + 2] - a[i + 2])) / 90);
-      for (let j = 0; j < 3; j++) b[i + j] = a[i + j] * cfg.icon_dim * (1 - d) + Math.min(255, b[i + j] * 1.25) * d;
-    }
-    const c = document.createElement('canvas'); c.width = c.height = N; c.getContext('2d').putImageData(B, 0, 0); url = c.toDataURL('image/jpeg', 0.85);
-  } catch (e) { url = ''; }
-  icons.set(g, url); return url;
+  const A = grab({}), B = grab({ [g]: true }), a = A.data, b = B.data;
+  for (let i = 0; i < a.length; i += 4) {
+    const d = Math.min(1, (Math.abs(b[i] - a[i]) + Math.abs(b[i + 1] - a[i + 1]) + Math.abs(b[i + 2] - a[i + 2])) / 90);
+    for (let j = 0; j < 3; j++) b[i + j] = a[i + j] * cfg.icon_dim * (1 - d) + Math.min(255, b[i + j] * 1.25) * d;
+  }
+  const c = document.createElement('canvas'); c.width = NW; c.height = NH; c.getContext('2d').putImageData(B, 0, 0); return c.toDataURL('image/jpeg', 0.85);
+}
+function icon(g) {
+  if (!icons.has(g)) { let url = ''; try { url = geneShot(g, 128, 128); } catch (e) { url = ''; } icons.set(g, url); }
+  return icons.get(g);
 }
 setTimeout(function warm(i = 0) { const g = Object.keys(cfg.genes)[i]; if (!g) return; icon(g); setTimeout(() => warm(i + 1), 250); }, 1500); // значки заранее, по одному: без рывка при первом гене
+GENY.gruppa = Object.fromEntries([...genomeData.arcs.flatMap(a => a.slots.map(x => [x.id, a.name])), ...genomeData.plasmids.map(x => [x.id, 'Чужие'])].filter(x => x[0])); // группа гена — дуга кольца
 const kab = almanahScreen({ K: KAB, cards, T: TEKSTY, G: GENY, met, snap, onSwim: () => { if (ended) start(); else if (paused) genome.close(); } });
 const cabLabel = () => { $('cab').textContent = $('gcab').textContent = kab.label(); };
 cabLabel();

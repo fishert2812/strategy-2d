@@ -52,10 +52,18 @@ await p.evaluate(() => { navigator.share = async d => { window.shared = d.text; 
 m = await marks();
 if (await tap('#gsend', '«Отправить» в геноме')) say(await p.evaluate(n => (window.shared || '').includes('отметок ' + n), m) && await marks() === 0, '«Отправить» отдаёт отметки и очищает их');
 const t0 = await p.evaluate(() => zaplyvWorld().stats.time);
+// test_L021: на кольце у каждого живого гена значок-снимок, карточка гена — со значком 64.
+say(await p.evaluate(() => { const live = Object.keys(zaplyvWorld().cfg.genes).length, im = [...document.querySelectorAll('#ring image')];
+  return im.length >= live && im.every(i => (i.getAttribute('href') || '').length > 3000); }), 'test_L021: на кольце — значки всех генов');
+await p.evaluate(() => [...document.querySelectorAll('#ring .slot')].find(s => s.querySelector('image')).dispatchEvent(new MouseEvent('click', { bubbles: true })));
+await p.waitForTimeout(300);
+say(await p.evaluate(() => { const i = document.querySelector('#gcard .gicon'); return !!i && i.getBoundingClientRect().width >= 60 && i.src.length > 3000; }), 'test_L021: в карточке гена — значок');
 if (await tap('#gon', '«Плыть дальше»')) { await p.waitForTimeout(500); say(!(await on('genome')) && await p.evaluate(() => zaplyvWorld().stats.time) > t0, '«Плыть дальше» закрывает геном, мир идёт'); }
 // Выбор дочки при делении: касание самой дочки берёт её ген.
 await p.evaluate(() => { const w = zaplyvWorld(), all = Object.keys(w.cfg.genes).filter(g => !w.genes[g]); w.choice = all.slice(0, 2); });
 await p.waitForTimeout(600);
+// test_L021 (Роман: «в меню генома нет ни одного значка»): у дочек на выборе — значок гена, снимок клетки, не пустой.
+say(await p.evaluate(() => [...document.querySelectorAll('#cards .gicon')].length === 2 && [...document.querySelectorAll('#cards .gicon')].every(i => i.naturalWidth >= 64 && i.src.length > 3000)), 'test_L021: у дочек — значки генов');
 const g1 = await p.evaluate(() => zaplyvWorld().choice[1]);
 if (await tap('#genes .kid ~ .kid', 'дочка справа')) say(await p.evaluate(g => zaplyvWorld().genes[g] && !document.getElementById('genes').classList.contains('on'), g1), 'касание дочки даёт её ген и закрывает выбор');
 await p.evaluate(() => { const w = zaplyvWorld(), all = Object.keys(w.cfg.genes).filter(g => !w.genes[g]); w.choice = all.slice(0, 2); });
