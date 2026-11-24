@@ -4,6 +4,12 @@
 
 {{zapisi:sosedi}}
 
+## Перепись: ещё десять (24.11)
+
+Биолог сделал перепись капли и выбрал десять самых зрелищных из тех, кого у нас нет. Наука его, адаптация наша и ждёт его проверки. Роман, 24.11: «новые соседи да».
+
+{{zapisi:perepis}}
+
 ## Что это даёт игре (наше)
 
 - **Мир читается по жителям.** Зелёные плывут к свету, каулобактеры сидят в тихом месте, диатомея оставляет дорогу. Стрелки и подсказки не нужны.
@@ -27,3 +33,12 @@
 5. Kirk D. *Volvox: Molecular-Genetic Origins of Multicellularity and Cellular Differentiation*, 1998.
 6. Gause G. *The Struggle for Existence*, 1934.
 7. Leander B. и др., обзоры эвгленид; Zakryś B. и др., 2017.
+
+Источники переписи:
+
+1. Madigan M. и др. *Brock Biology of Microorganisms*, 16-е изд., 2021.
+2. Jürgens K., Matz C. Predation as a shaping force for the phenotypic and genotypic composition of planktonic bacteria. *Antonie van Leeuwenhoek*, 2002.
+3. Dexter J., Prabakaran S., Gunawardena J. A complex hierarchy of avoidance behaviours in a single-cell eukaryote. *Current Biology*, 2019.
+4. Patterson D. *Free-Living Freshwater Protozoa: A Colour Guide*, 1996; перепись биолога (design/zaplyv_perepis.md).
+5. Charon N., Goldstein S. Genetics of motility and chemotaxis of a fascinating group of bacteria: the spirochetes. *Annual Review of Genetics*, 2002.
+6. Nelson D., Guidetti R., Rebecchi L. Phylum Tardigrada. В кн.: *Ecology and Classification of North American Freshwater Invertebrates*, 2015.
