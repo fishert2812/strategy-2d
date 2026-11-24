@@ -799,9 +799,10 @@ function paint(time) {
   }
   puffs = puffs.filter(p => (p.t += 1 / 60) < 1.4);
   for (const p of puffs) { p.x += p.vx / 60; p.y += p.vy / 60; p.vx *= 0.95; p.vy *= 0.95; const [x, y] = scr(p.x, p.y); wake.put(x, y, (1.1 + p.t) * z, 0.8, 0.92, 1, 0.3 * (1 - p.t / 1.4)); }
-  for (const f of world.food) { // сахар: мелкие светящиеся зёрна
+  for (const f of world.food) { // еда трёх видов (Е2, Е4): жёлтые крошки, белые искры глюкозы, розовый белковый сок
     const [x, y] = scr(f.x, f.y); if (!on(x, y, 20)) continue;
-    const k = Math.sqrt(f.s || 1); glow.put(x, y, 9 * z * k, 1, 0.8, 0.35, 0.14); glow.put(x, y, 3.2 * z * k + 0.6, 1, 0.93, 0.65, 0.9); // крупный кусок крупнее и светит ярче
+    const F = cfg.food_kinds[f.kind || 'bits'], k = Math.sqrt(f.s || 1) * F.size, tw = F.twinkle ? 0.75 + 0.25 * Math.sin(time * 7 + f.x * 0.3 + f.y) : 1;
+    glow.put(x, y, 9 * z * k, ...F.halo, 0.14 * tw); glow.put(x, y, 3.2 * z * k + 0.6, ...F.core, 0.9 * tw); // крупный кусок крупнее и светит ярче, искры мерцают
   }
   for (const g of world.phages) { // фаг T4: головка позади, хвостом вперёд — садится хвостом
     const [x, y] = scr(g.x, g.y); if (!on(x, y)) continue;
