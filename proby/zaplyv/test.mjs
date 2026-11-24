@@ -19,7 +19,7 @@ const player = w => {
   let best = null, bd = 1e9;
   for (const f of [...w.food, ...w.prey.filter(q => q.m < big * 0.8)]) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } }
   let tx = best ? best.x : c.x, ty = best ? best.y - 1 : c.y - 100;
-  for (const e of [...w.amoebas, ...w.phages, ...w.prey.filter(q => q.m > big * 1.25)]) {
+  for (const e of [...w.amoebas, ...w.phages, ...w.bdellos]) {
     const d = Math.hypot(e.x - c.x, e.y - c.y);
     if (d < 260) { tx = c.x + (c.x - e.x) * 2; ty = c.y + (c.y - e.y) * 2; }
   }
@@ -133,10 +133,10 @@ check('плывёт как настоящая палочка: поворот д�
 check('экран гибели называет, кто убил, и у каждого убийцы есть карточка с фактом', () => {
   const cards = JSON.parse(readFileSync(new URL('./cards.json', import.meta.url)));
   const got = {};
-  const empty = s => { const w = new World(cfg, s); w.food = []; w.prey = []; w.amoebas = []; w.phages = []; w.plants = []; w.tidy = 1e9; return w; };
+  const empty = s => { const w = new World(cfg, s); w.food = []; w.prey = []; w.amoebas = []; w.phages = []; w.plants = []; w.bdellos = []; w.crumbs = []; w.tidy = 1e9; return w; };
   let w = empty(3); w.amoebas = [{ x: 150, y: 0, vx: 0, vy: 0, m: 6, id: 99 }]; run(w, 10, null); got.amoeba = w.stats.killer;
   w = empty(5); w.cloud(radius(1) + 1, 0, 'me', 0); run(w, cfg.inject + cfg.sick + 1, null); got.phage = w.stats.killer;
-  w = empty(4); w.prey = [{ x: 40, y: 0, vx: 0, vy: 0, m: 4, a: 0, id: 98 }]; run(w, 5, null); got.coccus = w.stats.killer;
+  w = empty(4); w.bdellos = [{ x: 60, y: 0, vx: 0, vy: 0, a: Math.PI, t: 2, id: 98 }]; run(w, 5, null); got.bdello = w.stats.killer;
   console.log('    паспорт: убийцы', JSON.stringify(got));
   for (const [k, v] of Object.entries(got)) {
     if (v !== k) return 'смерть от ' + k + ' записана как ' + v;
@@ -200,6 +200,26 @@ check('мир живой: еда пятнами, водоросль кормит
   if (spilled < 5) return 'лопнувшая клетка не разлила еду';
   if (sank < 5) return 'детрит не тонет';
   if (fed < 0.3) return 'детрит не кормит';
+});
+
+check('враги как настоящие: хищник мчится прямо и не преследует, капсула спасает; крупный кокк не нападает; амёба в открытой воде почти стоит', () => {
+  const bare = s => { const w = new World(cfg, s); w.food = []; w.prey = []; w.amoebas = []; w.phages = []; w.plants = []; w.bdellos = []; w.crumbs = []; w.tidy = 1e9; return w; };
+  // хищник: рывки по прямой, курс меняется редко
+  const w = bare(31); w.me[0].x = 5000; const b = { x: 0, y: 0, vx: 0, vy: 0, a: 0, t: 0, id: 9 }; w.bdellos = [b];
+  let turns = 0, top = 0, last = null;
+  for (let i = 0; i < 300; i++) { w.step(1 / 30, null); top = Math.max(top, Math.hypot(b.vx, b.vy)); if (last !== null && Math.abs(b.a - last) > 0.01) turns++; last = b.a; }
+  const cap = bare(32); cap.genes.capsule = true; cap.bdellos = [{ x: 60, y: 0, vx: 0, vy: 0, a: Math.PI, t: 2, id: 8 }]; run(cap, 5, null);
+  const big = bare(33); big.prey = [{ x: 40, y: 0, vx: 0, vy: 0, m: 4, a: 0, id: 7 }]; run(big, 6, null);
+  const am = bare(34); let open = 0;
+  for (let i = 0; i < 400 && !open; i++) { const x = i * 997 % 20000, y = i * 1777 % 20000; if (am.biome(x, y) !== 2) open = { x, y }; }
+  am.me[0].x = open.x; am.me[0].y = open.y; am.amoebas = [{ x: open.x + 200, y: open.y, vx: 0, vy: 0, m: 6, id: 6 }]; run(am, 5, null);
+  const crawl = 200 - Math.hypot(am.amoebas[0].x - am.me[0].x, am.amoebas[0].y - am.me[0].y);
+  console.log('    паспорт: хищник до', Math.round(top), 'ед/с (ты ' + cfg.speed + '), смен курса за 10 с', turns, '| с капсулой цела', cap.me.length, '| рядом с крупным кокком цела', big.me.length, '| амёба в открытой воде подползла на', Math.round(crawl));
+  if (top < cfg.speed * 1.8) return 'хищник не быстрее тебя вдвое';
+  if (turns > 14) return 'хищник рыскает, а не мчится прямо';
+  if (cap.me.length !== 1) return 'капсула не спасла от хищника';
+  if (big.me.length !== 1) return 'крупный кокк съел клетку — бактерии так не едят';
+  if (crawl > 60) return 'амёба гонится в открытой воде';
 });
 
 check('мир без краёв: уплыл далеко — вокруг снова еда, позади забыто', () => {
