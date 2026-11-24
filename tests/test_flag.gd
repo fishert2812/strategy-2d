@@ -80,7 +80,7 @@ func test_end_screen_sends_in_one_tap() -> String:
 			return "в разборе нет «%s»: %s" % [need, sent.get("body", "").left(300)]
 	if sent.url.length() > max_url or not sent.url.contains("labels=feedback"):
 		return "адрес заявки %d знаков или без метки" % sent.url.length()
-	if send_text != "GitHub открыт: нажми Create":
+	if send_text != "GitHub открыт: войди и нажми Create":
 		return "кнопка не сказала, что разбор ушёл"
 	return ""
 
