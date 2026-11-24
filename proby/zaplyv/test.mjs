@@ -264,6 +264,22 @@ check('вода — вещество: в тяже слизи плыть вязк
   if (Math.hypot(...f) < 1) return 'течения нет';
 });
 
+check('кабинет: встреченное существо попадает в кабинет, и у каждого есть карточка с фактом', () => {
+  const cards = JSON.parse(readFileSync(new URL('./cards.json', import.meta.url)));
+  const w = new World(cfg, 41); w.food = []; w.prey = []; w.amoebas = []; w.phages = []; w.plants = []; w.bdellos = []; w.crumbs = []; w.tidy = 1e9;
+  const before = [...w.met];
+  w.plants = [{ x: 150, y: 0, m: 5, id: 3, t: 0 }]; w.crumbs = [{ x: 3000, y: 0, m: 3, id: 4 }];
+  run(w, 1, null);
+  const seen = w.events.filter(e => e[0] === 'meet').map(e => e[1]);
+  const missing = Object.keys(cards).filter(k => k !== '_').filter(k => !['name', 'text', 'fact'].every(f => cards[k][f]));
+  const kinds = ['coccus', 'plant', 'crumb', 'phage', 'amoeba', 'bdello'].filter(k => !cards[k]);
+  console.log('    паспорт: в начале', before.join(), '| увидел водоросль →', seen.join() || 'ничего', '| далёкий детрит в кабинете?', w.met.has('crumb'), '| карточек', Object.keys(cards).length - 1);
+  if (!w.met.has('plant') || !seen.includes('plant')) return 'встреча с водорослью не записана';
+  if (w.met.has('crumb')) return 'записан детрит, которого не видел';
+  if (missing.length) return 'неполные карточки: ' + missing.join();
+  if (kinds.length) return 'нет карточек для: ' + kinds.join();
+});
+
 check('мир без краёв: уплыл далеко — вокруг снова еда, позади забыто', () => {
   const w = new World(cfg, 11);
   w.genes.capsule = w.genes.crispr = true;

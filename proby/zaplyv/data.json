@@ -17,6 +17,7 @@
 	"inject": 2.0,
 	"burst": 6,
 	"sick": 5,
+	"meet": 260,
 	"safe_chunks": 1.5,
 	"food_per_chunk": [6, 14, 4],
 	"food_patches": [1, 2, 1],

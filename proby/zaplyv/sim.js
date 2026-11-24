@@ -38,6 +38,7 @@ export class World {
     this.genes = {};
     this.choice = []; // три гена на выбор; пока не пусто — мир стоит
     this.stats = { eaten: 0, most: 1, path: 0, time: 0, gen: 0, lost: {}, killer: null };
+    this.met = new Set(['me']); this.look = 0;
     this.steps = [...cfg.gene_steps];
     this.chunks = new Set();
     this.events = []; // [вид, x, y] — для вспышек на экране, экран их забирает
@@ -189,6 +190,13 @@ export class World {
       this.lose(a, a.x, a.y, 'phage');
       this.events.push(['burst', a.x, a.y]); this.spill(a.x, a.y);
       for (let i = 0; i < c.burst; i++) this.cloud(a.x, a.y, 'me', 40);
+    }
+    this.look -= dt;
+    if (this.look <= 0 && this.me.length) { // встречи: кого увидел впервые — в кабинет (событие 'meet' без паузы)
+      this.look = 0.5;
+      const R = this.cfg.meet;
+      for (const [k, list] of [['coccus', this.prey], ['plant', this.plants], ['crumb', this.crumbs], ['phage', this.phages], ['amoeba', this.amoebas], ['bdello', this.bdellos]])
+        if (!this.met.has(k) && list.some(o => this.me.some(a => dist(a, o) < R))) { this.met.add(k); this.events.push(['meet', k]); }
     }
     this.tidy -= dt;
     if (this.tidy <= 0 && this.me.length) { this.tidy = 1; this.fill(c1.x, c1.y); this.forget(c1.x, c1.y); }
