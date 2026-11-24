@@ -1,0 +1,23 @@
+# Запускает только tools/check.sh (правило 3.1). Сторож guards следит, чтобы других команд здесь не было.
+name: check
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: check.sh
+        env:
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: bash tools/check.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: check-out
+          path: out/
