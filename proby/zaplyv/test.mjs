@@ -231,6 +231,27 @@ check('каждая мутация видна на теле: облик клет
   if (same.length) return 'не видно на теле: ' + same.join(', ');
 });
 
+check('развороты плавные, без рывков (Роман 24.11: «чуть дёрганые развороты»): угол и скорость поворота меняются без скачков', () => {
+  const w = new World(cfg, 9); w.amoebas = []; w.phages = []; w.prey = []; w.food = []; w.bdellos = []; w.tidy = 1e9;
+  const a = w.me[0], sw = cfg.swim, dt = 1 / 30;
+  const moves = [[1, 0], [0, 1], [-1, 0], [1, 0.2], [0, -1], [-0.7, 0.7], [1, 0], [-1, 0.1]]; // палец дёргают как попало
+  let jump = 0, jerk = 0, bodyJump = 0, lastW = 0, lastB = null, rev = -1;
+  for (const [dx, dy] of moves) for (let i = 0; i < 18; i++) {
+    const a0 = a.a; w.step(dt, { dx, dy, p: 1 });
+    const da = Math.abs(Math.atan2(Math.sin(a.a - a0), Math.cos(a.a - a0))), om = (a.a - a0) / dt;
+    jump = Math.max(jump, da); jerk = Math.max(jerk, Math.abs(om - lastW)); lastW = om;
+    const b = follow(a, 9, 40); if (lastB !== null) bodyJump = Math.max(bodyJump, Math.abs(Math.atan2(Math.sin(b.ang - lastB), Math.cos(b.ang - lastB)))); lastB = b.ang;
+  }
+  const r = new World(cfg, 9); r.amoebas = []; r.phages = []; r.prey = []; r.food = []; r.bdellos = []; r.tidy = 1e9;
+  run(r, 1, { dx: 1, dy: 0, p: 1 });
+  for (let i = 0; i < 60 && rev < 0; i++) { r.step(dt, { dx: -1, dy: 0, p: 1 }); if (r.me[0].vx < -120) rev = (i + 1) / 30; }
+  console.log('    паспорт: наибольший шаг угла за кадр', (jump * 57.3).toFixed(1) + '°', '| рывок скорости поворота', jerk.toFixed(2), 'рад/с за кадр', '| поворот тела за кадр', (bodyJump * 57.3).toFixed(1) + '°', '| разворот на 180° и снова плывёт через', rev.toFixed(2), 'с');
+  if (jump > sw.tumble_turn * dt * 1.01) return 'угол прыгнул на ' + (jump * 57.3).toFixed(1) + '° за кадр';
+  if (jerk > sw.spin_acc * dt * 1.01 + 0.01) return 'скорость поворота дёрнулась на ' + jerk.toFixed(2);
+  if (bodyJump > sw.tumble_turn * dt * 1.35) return 'тело повернулось рывком на ' + (bodyJump * 57.3).toFixed(0) + '°';
+  if (rev < 0 || rev > 0.9) return 'разворот слишком вялый: ' + rev.toFixed(2) + ' с';
+});
+
 check('мир без краёв: уплыл далеко — вокруг снова еда, позади забыто', () => {
   const w = new World(cfg, 11);
   w.genes.capsule = w.genes.crispr = true;
