@@ -154,3 +154,44 @@ func test_pictures_loaded_before_play() -> String:
 	var missing := ["nk_warrior_blue_00", "nk_warrior_red_10", "nk_barracks_blue", "tower_archer_blue", "porter_red"].filter(func(f): return not ResourceLoader.has_cached(battle.look.dir + f + ".png"))
 	battle.get_parent().free()
 	return "" if missing.is_empty() else "не загружены заранее: %s" % [missing]
+
+
+## Зачем игроку (Роман 24.11: «все в тропах синих!»): поле спокойное — в покое боевая тропа тонкий бледный
+## пунктир со стрелкой к цели, тропы носильщиков не видны; на свисток боевая тропа толстеет, ярчеет и бежит к цели.
+func test_trails_calm_at_rest_alive_on_whistle() -> String:
+	var battle: Control = await _battle(Vector2i(720, 1281))
+	var sim: Sim = battle.sim
+	var tree := Engine.get_main_loop() as SceneTree
+	sim.gold = [1000, 1000]
+	var camp := sim.build(Sim.PLAYER, "camp", Vector2(250, 830))
+	sim.set_path(camp, Vector2(170, 760))
+	var b := sim.build(Sim.PLAYER, "barracks", Vector2(450, 700))
+	sim.set_route(b, [Vector2(360, 100)])
+	sim.whistle = 15.0
+	await tree.process_frame
+	var tr: Dictionary = battle.look.trail
+	var war: Line2D = battle._lines[b.id]
+	var mine: Line2D = battle._lines[camp.id]
+	var rest := [war.width, war.modulate.a, war.points[0]]
+	var why := ""
+	if mine.modulate.a > 0.01:
+		why = "тропа носильщиков видна в покое"
+	elif rest[0] > tr.war.width or rest[1] > tr.war.alpha or war.texture == null:
+		why = "боевая тропа в покое не тонкий бледный пунктир: %s" % [rest]
+	elif war.get_child(0).points[1].distance_to(b.target.pos) > battle.look.home.width:
+		why = "стрелка не у цели"
+	sim.whistle = 0.01
+	await tree.process_frame
+	await tree.process_frame
+	if why == "" and (war.width <= rest[0] or war.modulate.a <= rest[1]):
+		why = "на свисток боевая тропа не ожила: толщина %.1f, яркость %.2f" % [war.width, war.modulate.a]
+	var shifts := []  # начало пунктира уходит назад, под казарму, на разную долю — значит, чёрточки бегут вперёд
+	for i in 4:
+		sim.time += 0.05
+		await tree.process_frame
+		shifts.append(snappedf(war.points[0].distance_to(b.pos), 0.1))
+	var target: Vector2 = b.target.pos
+	if why == "" and (shifts.max() == 0.0 or war.points[0].distance_to(target) < b.pos.distance_to(target) - 0.1):
+		why = "пунктир не бежит к цели: сдвиги начала %s" % [shifts]
+	battle.get_parent().free()
+	return why

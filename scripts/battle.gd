@@ -26,6 +26,7 @@ var taps := {"touch": 0, "mouse": 0, "emulated": 0}
 var _last := ""
 var _units := {}
 var _lines := {}
+var _whistled := -99.0  # когда был свисток: от него бежит волна по боевым тропам
 ## Тропа, которая после отпускания подтягивается в чистую форму: казарма и линия под пальцем.
 var _settle := {}
 var _loaded := []
@@ -72,6 +73,7 @@ func restart() -> void:
 	_sprites.clear()
 	_units.clear()
 	_lines.clear()
+	_whistled = -99.0
 	_drag = {}
 	_pick({})
 	ghost.hide()
@@ -142,17 +144,54 @@ func _process(dt: float) -> void:
 	_sync_units(dt)
 
 
+## Тропы в покое — тихий пунктир карандашом: видны, но не шумят; тропы добытчиков в покое не видны.
+## Пока игрок тянет тропу, проступают все тропы стола.
+## Боевая оживает на свисток: толще, ярче, пунктир бежит туда, куда идёт отряд; на конце — стрелка.
 func _sync_paths() -> void:
 	var seen := {}
+	var wave: Dictionary = look.trail.wave
+	var k: float = clampf((sim.time - _whistled) / wave.time, 0.0, 1.0)
 	for b in sim.buildings:
 		var pts: Array = [b.pos] + b.route if b.kind == "barracks" else [b.pos, b.target.get("pos")]
 		if pts.size() < 2 or pts[-1] == null or b.target.get("gold", 1) <= 0 or b.target.get("hp", 1) <= 0 or is_same(_drag.get("from"), b) or is_same(_settle.get("from"), b):
 			continue
 		seen[b.id] = true
+		var war: bool = b.kind == "barracks"
+		var st: Dictionary = look.trail.war if war else look.trail.mine
 		if not _lines.has(b.id):
-			_lines[b.id] = _line(Color(look.path_colors[b.side]))
-		_points(_lines[b.id], pts)
+			_lines[b.id] = _stroke(Color(look.path_colors[b.side]).darkened(look.trail.pencil), st.width)
+			_lines[b.id].texture = _dash(st.dash, st.width)
+			_lines[b.id].texture_mode = Line2D.LINE_TEXTURE_TILE
+			_lines[b.id].texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+			$World/Paths.add_child(_lines[b.id])
+			if war:
+				_lines[b.id].add_child(_stroke(_lines[b.id].default_color, st.width))  # стрелка на конце
+		var line: Line2D = _lines[b.id]
+		# Волна свистка по боевым гаснет за wave.time; пока игрок тянет тропу, видны все тропы.
+		var live: float = maxf((1.0 - k) if war else 0.0, look.trail.planning if not _drag.is_empty() else 0.0)
+		line.width = lerpf(st.width, wave.width, live)
+		line.modulate.a = lerpf(st.alpha, wave.alpha, live)
+		# Пунктир бежит: начало уходит назад под постройку на долю периода.
+		var phase: float = fmod((sim.time - _whistled) * wave.flow, st.dash[0] + st.dash[1]) if live > 0.0 else 0.0
+		pts[0] = pts[0] - (pts[1] - pts[0]).normalized() * phase
+		line.points = PackedVector2Array(pts)
+		if war:
+			# Стрелка у края цели, а не под её картинкой.
+			var back: Vector2 = (pts[-2] - pts[-1]).normalized()
+			var tip: Vector2 = pts[-1] + back * (look[b.target.kind].width * 0.4 if b.target.has("kind") else 0.0)
+			back *= look.trail.arrow
+			var arrow: Line2D = line.get_child(0)
+			arrow.width = line.width
+			arrow.points = PackedVector2Array([tip + back + back.orthogonal() * 0.7, tip, tip + back - back.orthogonal() * 0.7])
 	_drop_missing(_lines, seen)
+
+
+## Пунктир: чёрточка и просвет в точках поля (высота картинки равна толщине линии, чтобы шаг не менялся).
+func _dash(dash: Array, width: float) -> Texture2D:
+	var h := maxi(1, int(width))
+	var img := Image.create(int(dash[0] + dash[1]), h, false, Image.FORMAT_RGBA8)
+	img.fill_rect(Rect2i(0, 0, int(dash[0]), h), Color.WHITE)
+	return ImageTexture.create_from_image(img)
 
 
 func _sync_units(dt: float) -> void:
@@ -511,6 +550,7 @@ func _on_sim(what: String, data: Dictionary) -> void:
 		"killed":
 			motion.hop(_units.get(data.get("by")), 2)
 		"whistle":
+			_whistled = sim.time
 			var t := create_tween()
 			t.tween_property(self, "bump", motion.cfg.table_jump.height, motion.cfg.table_jump.time / 2)
 			t.tween_property(self, "bump", 0.0, motion.cfg.table_jump.time / 2)
