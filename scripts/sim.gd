@@ -319,6 +319,8 @@ func _wound(x: Dictionary, amount: float, by: Dictionary) -> void:
 	if x.hp <= 0:
 		units = units.filter(func(o): return not is_same(o, x))
 		x.by = by.id
+		if x.kind == "carrier":
+			x.home.lost = x.home.get("lost", 0) + 1
 		by.kills = by.get("kills", 0) + 1
 		changed.emit("killed", x)
 

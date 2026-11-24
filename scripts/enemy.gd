@@ -6,6 +6,8 @@ extends RefCounted
 var sim: Sim
 var side := Sim.ENEMY
 var _wait := 0.0
+var _whistle := 0.0
+var _lost := {}  # лагерь → сколько носильщиков он потерял к прошлому свистку
 
 
 func _init(s: Sim) -> void:
@@ -13,6 +15,9 @@ func _init(s: Sim) -> void:
 
 
 func step(dt: float) -> void:
+	if sim.whistle > _whistle:
+		_flee()
+	_whistle = sim.whistle
 	_wait -= dt
 	if _wait > 0 or sim.winner != -1:
 		return
@@ -40,12 +45,26 @@ func step(dt: float) -> void:
 		_build("barracks", Sim._v(sim.cfg.homes[1 - side]))
 
 
-## Ближайшая к точке залежь с золотом, к которой ещё не идёт наша тропа.
+## Лагерь, потерявший за свисток flee носильщиков, уводит тропу на свободную залежь мимо башен.
+func _flee() -> void:
+	for camp in sim.of_side(side, "camp"):
+		var n: int = camp.get("lost", 0) - _lost.get(camp.id, 0)
+		_lost[camp.id] = camp.get("lost", 0)
+		if n >= sim.cfg.enemy.flee:  # нет пути мимо башен — лагерь затихает, пока башня стоит
+			camp.target = {}
+			var d := _free_deposit(camp.pos)
+			if not d.is_empty():
+				sim.set_path(camp, d.pos)
+
+
+## Ближайшая к точке залежь с золотом, к которой ещё не идёт наша тропа и путь к которой не под чужой башней.
 func _free_deposit(from: Vector2) -> Dictionary:
 	var taken := sim.of_side(side, "camp").map(func(c): return c.target)
+	var towers := sim.of_side(1 - side, "tower")
 	var best := {}
 	for d in sim.deposits:
-		if d.gold > 0 and not taken.any(func(t): return is_same(t, d)):
+		var shot := towers.any(func(t): return t.pos.distance_to(Geometry2D.get_closest_point_to_segment(t.pos, from, d.pos)) < sim.cfg.tower.range)
+		if d.gold > 0 and not shot and not taken.any(func(t): return is_same(t, d)):
 			if best.is_empty() or d.pos.distance_to(from) < best.pos.distance_to(from):
 				best = d
 	return best
