@@ -402,6 +402,20 @@ check('обмен генами касанием: побыл рядом с сор
   if (long.length !== 1) return 'за 2 с рядом ген не передан';
 });
 
+check('спора: последняя клетка с геном «Спора» не гибнет, а пережидает в споре и прорастает; второй раз — уже нет', () => {
+  const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
+  const eatBy = w => { const a = w.me[0]; w.amoebas = [{ x: a.x + 5, y: a.y, vx: 0, vy: 0, m: 9, id: 50 }]; w.step(1 / 30, null); };
+  const no = bare(121); eatBy(no);
+  const yes = bare(122); yes.genes.spore = true; eatBy(yes); const sporeNow = yes.me.length && yes.me[0].spore > 0;
+  run(yes, 3, null); const safe = yes.me.length; yes.amoebas = []; run(yes, cfg.spore, null); const sprouted = yes.me.length && !(yes.me[0].spore > 0);
+  eatBy(yes); run(yes, 0.5, null);
+  console.log('    паспорт: без гена — клеток', no.me.length, '| с геном — спора', !!sporeNow, ', под амёбой 3 с — цела', safe, ', проросла', !!sprouted, '| второй раз — клеток', yes.me.length);
+  if (no.me.length) return 'без гена клетка не погибла';
+  if (!sporeNow || !safe) return 'с геном последняя клетка не стала спорой';
+  if (!sprouted) return 'спора не проросла';
+  if (yes.me.length) return 'спора спасла дважды';
+});
+
 check('мир без краёв: уплыл далеко — вокруг снова еда, позади забыто', () => {
   const w = new World(cfg, 11);
   w.genes.capsule = w.genes.crispr = true;

@@ -301,6 +301,8 @@ function ring(x, y, side, r) { rings.push({ x, y, side, r, t: 0 }); }
 
 function events() {
   for (const [k, x, y, size = 1, y2] of world.events) {
+    if (k === 'spore') { ring(x, y, 0, 160); beep(200, 0.6, 0.06, 'sine', 0.5); say('Спора! Переждёшь всё под толстой оболочкой', 2600); }
+    if (k === 'sprout') { ring(x, y, 2, 120); beep(520, 0.3, 0.05, 'sine', 2); }
     if (k === 'gene') { ring(x, y, 0, 120); beep(780, 0.3, 0.05, 'sine', 1.6); say('Ген от сородича: ' + cfg.genes[size][0] + ' — ' + cfg.genes[size][1], 2600); } // конъюгация
     if (k === 'zap') { zaps.push({ x, y, x2: size, y2, t: 0 }); beep(1500, 0.05, 0.05, 'square', 0.4); } // выстрел гарпуна синегнойки
     if (k === 'grab') { ring(x, y, 1, 40); beep(240, 0.2, 0.05, 'sawtooth', 1.6); tell('grab', 'Схватили! Резко развернись — вырвешься'); }
@@ -523,7 +525,14 @@ function paint(time) {
   if (kids) kids.forEach((a, i) => { a.x = view.x + (i ? 1 : -1) * W * 0.24 / z; a.y = view.y - 20 / z; a.a = -Math.PI / 2 + Math.sin(time * 0.8 + i * 2) * 0.12; a.m = 1.7 + 0.1 * Math.sin(time * 1.3 + i); }); // дочки покачиваются на месте
   const phageNear = world.phages.some(g => g.host === 'me' && Math.hypot(g.x - view.x, g.y - view.y) < 220);
   const foodNear = world.food.some(f => Math.hypot(f.x - view.x, f.y - view.y) < 120);
-  for (const a of kids || world.me) { // палочка: мягкое тело — перёд ведёт, корма и пучок жгутиков идут по его следу
+  for (const a of world.me) if (a.spore > 0) { // спора: круглая, слоистая тёмная оболочка, внутри тлеет жизнь; перед прорастанием светлеет
+    const [x, y] = scr(a.x, a.y), r = 10 * z, f = 1 - a.spore / cfg.spore;
+    bodies.sphere(x, y, r, [0.35 + 0.4 * f, 0.28 + 0.3 * f, 0.22 + 0.3 * f], [0.9, 0.8, 0.6], a.id);
+    for (let k = 0; k < 3; k++) for (let j = 0; j < 24; j++) { const t = j / 24 * 6.283 + k * 0.4; ink.put(x + Math.cos(t) * r * (1.12 + k * 0.12), y + Math.sin(t) * r * (1.12 + k * 0.12), 0.8 * z + 0.3, 0.75, 0.65, 0.5, 0.5 - k * 0.12); }
+    glow.put(x, y, r * 0.6, 1, 0.6, 0.8, 0.15 + 0.25 * f * (0.5 + 0.5 * Math.sin(time * 6)));
+  }
+  for (const a of kids || world.me) { // палочка: мягкое тело
+    if (a.spore > 0) continue; // перёд ведёт, корма и пучок жгутиков идут по его следу
     const lk = a.g ? look({ ...world.genes, [a.g]: true }, cfg.look) : lkAll, w = 8.5 * Math.pow(a.m, 0.3) * z * (a.g ? 1.9 : 1), sp = Math.hypot(a.vx, a.vy);
     const run = sp > 25 && !a.tumble, wob = run ? 0.035 : 0.015; // встречное вращение тела к пучку: 3 раза в секунду
     const half = a.held > 0 ? w * (1.05 + 0.6 * a.held / cfg.bdello_kill) : w * (1.6 + 1.0 * Math.min(a.m, cfg.split) / cfg.split), tailW = w * 7.5 / z; // хищник внутри — клетка округляется в шарик
@@ -554,6 +563,7 @@ function paint(time) {
       const t = k / lk.toxin * 6.283 + a.id, u = Math.cos(t) * (half - w * 0.45), [px, py] = along(u, Math.sin(t) * w * 0.78 + arc(u / z));
       ink.put(px, py, 1.3 * z + 0.4, 0.12, 0.02, 0.1, 0.75);
     }
+    if (lk.forespore) { const [px, py] = along(-half + w * 0.9, arc(-half / z + w * 0.9 / z)); glow.put(px, py, w * 0.5, 1, 0.97, 0.85, 0.55); ink.put(px, py, w * 0.22, 1, 1, 0.95, 0.8); }
     for (let k = 0; k < lk.receptors; k++) { // хемотаксис: рецепторы на переднем конце мигают, когда чуют еду
       const t = (k - 2) * 0.35, [px, py] = along(half - w * 0.15 + Math.cos(t) * w * 0.1, Math.sin(t) * w * 0.85 + arc(half / z));
       glow.put(px, py, 1.4 * z + 0.4, 1, 0.95, 0.5, foodNear ? 0.5 + 0.45 * Math.sin(time * 14 + k) : 0.25);

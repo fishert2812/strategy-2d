@@ -117,7 +117,7 @@ export class World {
   divide() {
     const born = [];
     for (const c of this.me) {
-      if (c.m < this.cfg.split || c.sick >= 0 || c.held > 0 || c.grab) continue;
+      if (c.m < this.cfg.split || c.sick >= 0 || c.held > 0 || c.grab || c.spore > 0) continue;
       c.m /= 2; c.gen = (c.gen || 0) + 1; this.stats.gen = Math.max(this.stats.gen, c.gen);
       const ax = Math.cos(c.a), ay = Math.sin(c.a), r = radius(c.m);
       born.push({ x: c.x - ax * r * 1.2, y: c.y - ay * r * 1.2, vx: c.vx - ax * 60, vy: c.vy - ay * 60, m: c.m, a: c.a, sick: -1, gen: c.gen, id: ++this.ids });
@@ -171,7 +171,7 @@ export class World {
         const turn = a.tumble ? sw.tumble_turn : sw.turn, wantW = Math.max(-turn, Math.min(turn, d * sw.ease));
         a.om = (a.om || 0) + Math.max(-sw.spin_acc * dt, Math.min(sw.spin_acc * dt, wantW - (a.om || 0)));
         a.a += Math.abs(a.om * dt) > Math.abs(d) ? d : a.om * dt;
-        thrust = (this.inSlime(a.x, a.y) ? c.slime_slow : 1) * (a.tumble ? s * 0.12 : s * Math.max(0.25, Math.cos(wrap(want - a.a)))) * (a.held > 0 ? 0.3 : 1) * (a.stun > 0 ? 0 : 1); // в шарике почти не плывёт; после гарпуна миг оглушена
+        thrust = (this.inSlime(a.x, a.y) ? c.slime_slow : 1) * (a.tumble ? s * 0.12 : s * Math.max(0.25, Math.cos(wrap(want - a.a)))) * (a.held > 0 ? 0.3 : 1) * (a.stun > 0 || a.spore > 0 ? 0 : 1); // в шарике почти не плывёт; после гарпуна миг оглушена
       } else { // палец отпущен: в воде клетка встаёт сразу (вязкость); её медленно сносит и поворачивает (~90° за 10 с)
         a.drift = (a.drift ?? r() * 6.283) + (r() - 0.5) * dt * 1.5;
         a.om = (a.om || 0) * Math.max(0, 1 - 6 * dt);
@@ -193,6 +193,7 @@ export class World {
       a.w = wrap(a.a - a0) / dt; // скорость поворота — по ней тело и пучок жгутиков гнутся дугой
       if (a.sick >= 0) a.sick -= dt;
       if (a.stun > 0) a.stun -= dt;
+      if (a.spore > 0) { a.spore -= dt; if (a.spore <= 0) this.events.push(['sprout', a.x, a.y]); } // спора проросла
     }
     const c1 = this.center();
     this.stats.path += dist(c0, c1);
@@ -342,7 +343,16 @@ export class World {
   // Клетку убили: who — кто (ключ карточки в cards.json). Последний убийца — на экран гибели.
   lose(a, x, y, who) {
     const i = this.me.indexOf(a);
-    if (i < 0) return;
+    if (i < 0 || a.spore > 0) return;
+    // Спора: последняя клетка клона с этим геном не гибнет, а сворачивается в спору — один раз за заплыв.
+    // Сухая толстая оболочка: её не берут ни пасти, ни фаги, ни хищники. Её носит течением, потом она прорастает.
+    if (this.genes.spore && !this.sporeUsed && this.me.length === 1) {
+      this.sporeUsed = true; this.stats.lost[who] = (this.stats.lost[who] || 0);
+      for (const b of this.bdellos) if (b.on === a) { b.on = null; b.t = 0; }
+      for (const g of this.phages) if (g.on === a) { g.on = null; g.cool = 2; }
+      Object.assign(a, { spore: this.cfg.spore, free: this.cfg.spore + 1, grab: null, held: 0, sick: -1, m: Math.max(0.8, a.m * 0.6) });
+      this.events.push(['spore', a.x, a.y]); return;
+    }
     this.me.splice(i, 1); if (who !== 'phage') this.events.push(['eaten', x, y]);
     this.stats.lost[who] = (this.stats.lost[who] || 0) + 1; this.stats.killer = who;
   }
@@ -377,7 +387,7 @@ export class World {
       for (const f of this.food) if (!f.gone && Math.hypot(f.x - q.x, f.y - q.y) < 14) f.gone = true;
       for (const a of [...this.me]) {
         const dx = q.x - a.x, dy = q.y - a.y, d = Math.hypot(dx, dy) || 1;
-        if (d > radius(a.m) + c.pseudo_r) continue;
+        if (d > radius(a.m) + c.pseudo_r || a.spore > 0) continue;
         const mine = (a.vx * dx + a.vy * dy) / d, its = -(q.vx * dx + q.vy * dy) / d; // кто на кого налетел
         a.vx -= dx / d * 120; a.vy -= dy / d * 120; q.vx += dx / d * 120; q.vy += dy / d * 120;
         if (mine > its && q.cool <= 0) {
@@ -511,7 +521,7 @@ export class World {
         if (!a) continue;
         const d = dist(a, g);
         if (this.genes.toxin && d < radius(a.m) + 50) { g.gone = true; this.events.push(['eat', g.x, g.y]); continue; }
-        if (d < radius(a.m) + 2) { g.on = a; g.t = c.inject; g.off = Math.atan2(g.y - a.y, g.x - a.x) - a.a; this.events.push(['stick', g.x, g.y]); }
+        if (d < radius(a.m) + 2 && !(a.spore > 0)) { g.on = a; g.t = c.inject; g.off = Math.atan2(g.y - a.y, g.x - a.x) - a.a; this.events.push(['stick', g.x, g.y]); }
       } else for (const q of this.prey) if (dist(q, g) < radius(q.m) * 0.5 + 2) { g.on = q; g.t = c.inject; g.off = Math.atan2(g.y - q.y, g.x - q.x) - q.a; break; }
     }
     for (const q of this.prey) if (q.sick >= 0 && (q.sick -= dt) < 0) { // заражённый кокк лопается своим облаком
