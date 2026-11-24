@@ -22,7 +22,7 @@ func test_flag_on_spot_lands_in_report() -> String:
 		err = "флажки не те: %s" % [flags]
 	elif not report.contains(line) or line.contains("без места") or not report.contains("перед этим не вышло: «нельзя: тут постройка»"):
 		err = "в разборе нет места и того, что было перед флажком: " + report.left(300)
-	elif marks != 2 or battle.flag_button.text != "2":
+	elif marks != 1 or battle.flag_button.text != "не так: 2":
 		err = "на поле значков %d, на кнопке «%s»" % [marks, battle.flag_button.text]
 	battle.get_parent().free()
 	return err
@@ -73,13 +73,35 @@ func test_end_screen_sends_in_one_tap() -> String:
 	battle.get_parent().free()
 	if overlap:
 		return "«Ещё раз» на экране итога лежит на нижней панели"
-	if not flags.begins_with("Сегодня ты Чистюля Флажки: 0:00, 0:07"):
+	if not flags.begins_with("Сегодня ты Чистюля Отметки: 0:00, 0:07"):
 		return "на экране итога не те флажки: " + flags
-	for need in ["Флажков: 20. Звание: Чистюля.", "победа", "«тяни тропу к залежи» ×1", "лагеря 30 с", "у печенья слева, у врага", "не вышло: «тяни"]:
+	for need in ["Отметок: 20. Звание: Чистюля.", "победа", "«тяни тропу к залежи» ×1", "лагеря 30 с", "у печенья слева, у врага", "не вышло: «тяни"]:
 		if not sent.get("body", "").contains(need):
 			return "в разборе нет «%s»: %s" % [need, sent.get("body", "").left(300)]
 	if sent.url.length() > max_url or not sent.url.contains("labels=feedback"):
 		return "адрес заявки %d знаков или без метки" % sent.url.length()
 	if send_text != "GitHub открыт: нажми Create":
 		return "кнопка не сказала, что разбор ушёл"
+	return ""
+
+
+## Польза: по виду и слову кнопка значит «тут не так», а не «сдаться»; итог без отметок сказан по-человечески.
+func test_mark_reads_as_not_right() -> String:
+	var battle: Control = await t._battle(t.SIZES[0])
+	var b: Button = battle.flag_button
+	var looks := [b.text, b.get_theme_color("icon_normal_color"), Color(battle.look.flag.color)]
+	t._tap(battle, _flag(battle))
+	var marks: int = battle.things.get_children().filter(func(s): return s is Sprite2D and s.texture.resource_path.ends_with("flag.png")).size()
+	for x in battle.sim.of_side(Sim.ENEMY):
+		battle.sim.damage(x, 1e9)
+	var end: String = battle.get_node("End/Center/Box/Flags").text
+	battle.get_node("End/Center/Box/Send").pressed.emit()
+	var title: String = battle.get_node("Report").sent.title
+	battle.get_parent().free()
+	if looks[0] != "не так" or looks[1] != looks[2]:
+		return "кнопка «%s» цвета %s, ждали «не так» и розовый" % [looks[0], looks[1]]
+	if marks != 0:
+		return "касание оставило значок у кнопки"
+	if end != "Отметки: 0:00" or not title.contains("без слов") or title.contains("партия"):
+		return "итог «%s», заголовок «%s»" % [end, title]
 	return ""
