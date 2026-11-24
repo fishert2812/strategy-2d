@@ -1,0 +1,12 @@
+{
+	"cols": 40, "cols_base": 8, "cols_per_cell": 4, "rows": 80, "gens": 1000, "seconds": 30,
+	"grow": 0.5, "die": 0.06, "mu": 0.001, "lose_useless": 3, "protect_max": 0.95, "upkeep": 0.15, "turnover": 0.03,
+	"bands": [0, 0.5, 0.8, 0.95, 0.99],
+	"minutes_per_gen": 20,
+	"weights": {
+		"phage": { "lock": 0.85, "crispr": 0.6 },
+		"maw": { "capsule": 0.85, "fim": 0.5 },
+		"hunger": { "sense": 0.6, "spore": 0.5, "fast": -0.4 }
+	},
+	"palette": ["#9fe6ff", "#7ad6c8", "#c7a6ff", "#f5e17a", "#8fe3a6", "#a0b8ff", "#e8f09a", "#6fc3e0", "#d9c7ff", "#b8d98a"]
+}

@@ -9,6 +9,7 @@ import { mark, message } from './feedback.js';
 import { entries, shelf, page } from './almanah.js';
 import * as karta from './karta.js';
 import { readFileSync } from 'node:fs';
+import { night } from './night.js';
 const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
 let bad = 0;
 // ONLY=L014 — запустить только проверки с этим номером урока (так selftest ломает игру и ждёт красного у нужной проверки).
@@ -623,6 +624,34 @@ check('test_L020: жгутики в цвете оболочки — светло
   if (Math.max(r, g, b) - Math.min(r, g, b) > 0.45) return 'нить слишком насыщенная: точки складываются светом и уходят в зелёный';
   if (!(cfg.flag.alpha <= 0.4)) return 'нить плотнее 0.4: на воде густо и ярко';
   console.log(`    паспорт: нить ${cfg.flag.color} (${h.toFixed(0)}°), оболочка ${hue(shell).toFixed(0)}°, прозрачность ${cfg.flag.alpha}`);
+});
+
+// «Ночь рода» (design/zaplyv_noch_roda_spec.md, книга В18–В22): гибель не стирает всё — за ночь род прорывается через полосы опасности.
+const NJ = JSON.parse(readFileSync(new URL('./night.json', import.meta.url))), ALL = Object.keys(cfg.genes);
+check('test_night_breakthrough: род без генов против фагов — выше всех доходит ветка с замком или CRISPR', () => {
+  const o = night({ genes: [], n: 1 }, 'phage', 1, NJ, ALL).run(), res = o.result(), b = res.picks.find(p => p.id === res.best);
+  console.log(`    паспорт: поколений ${o.gen}, веток ${o.branches.length}, лучшая дошла до ряда ${b.top} из ${o.rows} (полоса ${b.band + 1} из ${NJ.bands.length}), гены: ${b.genes.join(', ') || 'нет'}, отличий ${b.diff}`);
+  if (o.gen !== NJ.gens) return 'ночь прошла не все поколения: ' + o.gen;
+  if (!b.genes.some(g => g === 'lock' || g === 'crispr')) return 'выше всех ветка без защиты от фагов: ' + b.genes;
+  if (b.band < 3) return 'лучшая ветка не прошла выше третьей полосы: полоса ' + (b.band + 1);
+  const root = res.picks.find(p => p.id === 0); if (root && root.band >= 3) return 'исходный род без защиты дошёл до густой полосы — опасность не мешает';
+});
+check('test_night_size: большой род даёт больше веток за ночь, чем одна клетка (В22)', () => {
+  let a = 0, b = 0; for (const s of [1, 2, 3, 4, 5]) { a += night({ genes: [], n: 1 }, 'phage', s, NJ, ALL).run().branches.length; b += night({ genes: [], n: 8 }, 'phage', s, NJ, ALL).run().branches.length; }
+  console.log(`    паспорт: веток за пять ночей — из одной клетки ${a}, из восьми ${b}`);
+  if (!(b > a)) return 'большой род не богаче ветками';
+});
+check('test_night_lose: против пасти ненужный быстрый рост теряется (В19)', () => {
+  const o = night({ genes: ['fast'], n: 3 }, 'maw', 2, NJ, ALL).run(); let all = 0, fast = 0;
+  for (const v of o.grid) if (v >= 0) { all++; if (o.branches[v].genes.includes('fast')) fast++; }
+  console.log(`    паспорт: выживших ${all}, с быстрым ростом ${fast} (${(fast / all * 100).toFixed(0)} %), на старте 100 %`);
+  if (!all) return 'никто не выжил'; if (!(fast < all)) return 'быстрый рост у всех, как на старте';
+});
+check('test_night_start: заплыв, начатый веткой, несёт её гены', () => {
+  const w = new World(cfg, 5); w.inherit(['lock', 'capsule']);
+  if (!w.genes.lock || !w.genes.capsule || w.from.lock !== 'kid') return 'гены ветки не в заплыве: ' + JSON.stringify(w.genes);
+  if (Object.keys(w.genes).length !== 2) return 'лишние гены: ' + Object.keys(w.genes);
+  if (night({ genes: [], n: 2 }, 'phage', 9, NJ, ALL).run().result().picks.some(p => p.genes.some(g => !ALL.includes(g)))) return 'ветка с геном, которого нет в игре';
 });
 
 // Урок L022 (Роман, 0.33: «фаги меня убивают красного цвета даже после изучения таланта» — убивала хищная запятая, а прилипший фаг тоже светился красным).

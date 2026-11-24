@@ -156,6 +156,7 @@ export class World {
     return born.length;
   }
 
+  inherit(genes) { for (const g of genes) if (this.cfg.genes[g]) { this.genes[g] = true; this.from[g] = 'kid'; } } // «Ночь рода»: заплыв начинается веткой рода
   pick(g) { this.genes[g] = true; this.from[g] = 'kid'; this.choice = []; }
 
   // Шаг мира. target — джойстик {dx, dy, p}, точка мира {x, y} или null, если палец отпущен.
