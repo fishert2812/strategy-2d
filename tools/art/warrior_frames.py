@@ -7,7 +7,6 @@
 Пишет warrior_<цвет>_<n>.png 256x256: 0 шаг, 1 стойка, 2 другой шаг, 3 замах, 4 укол.
 Все кадры на одном холсте, подошвы на одной высоте (SOLE), точка опоры в data/look.json.
 """
-import colorsys
 import sys
 
 import numpy as np
@@ -60,18 +59,42 @@ def strike(stand: Image.Image, angle: float, shift) -> Image.Image:
     return body
 
 
+def _hsv(rgb: np.ndarray) -> np.ndarray:
+    mx, mn = rgb.max(-1), rgb.min(-1)
+    d = mx - mn + 1e-9
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    h = np.where(mx == r, ((g - b) / d) % 6, np.where(mx == g, (b - r) / d + 2, (r - g) / d + 4)) / 6
+    return np.stack([h, np.where(mx > 0, (mx - mn) / (mx + 1e-9), 0), mx], -1)
+
+
+def _rgb(hsv: np.ndarray) -> np.ndarray:
+    h, s, v = hsv[..., 0] * 6, hsv[..., 1], hsv[..., 2]
+    i, f = np.floor(h) % 6, h - np.floor(h)
+    p, q, t = v * (1 - s), v * (1 - s * f), v * (1 - s * (1 - f))
+    out = np.zeros(hsv.shape)
+    for k, c in enumerate([(v, t, p), (q, v, p), (p, v, t), (p, q, v), (t, p, v), (v, p, q)]):
+        for j in range(3):
+            out[..., j] = np.where(i == k, c[j], out[..., j])
+    return out
+
+
+# Перекраска в красную команду: синяя ткань GPT тёмная и серая, поэтому красный делаем
+# заметно насыщеннее и светлее, чтобы на телефоне он не сливался с синим и не уходил в бордовый.
+BLUE = (0.52, 0.78, 0.10)  # оттенок от, до и наименьшая насыщенность синих ниток
+RED_S = (0.55, 1.3, 0.92)  # насыщенность красного: основа, рост от исходной, потолок
+RED_V = (1.6, 0.08)  # яркость красного: множитель и прибавка
+
+
 def recolor(img: Image.Image, hue: float) -> Image.Image:
-    """Синие нитки (шапка, жилет, щит) — в другой оттенок; кожа, штаны, нитки-стежки не трогаем."""
-    a = np.array(img).astype(np.float32) / 255
-    rgb = a[:, :, :3].reshape(-1, 3)
-    hsv = np.array([colorsys.rgb_to_hsv(*p) for p in rgb])
-    blue = (hsv[:, 0] > 0.55) & (hsv[:, 0] < 0.75) & (hsv[:, 1] > 0.2)
-    hsv[blue, 0] = hue
-    hsv[blue, 1] = np.minimum(1, hsv[blue, 1] * 1.45)
-    hsv[blue, 2] = np.minimum(1, hsv[blue, 2] * 1.5)
-    out = np.array([colorsys.hsv_to_rgb(*p) for p in hsv]).reshape(a.shape[0], a.shape[1], 3)
-    a[:, :, :3] = out
-    return Image.fromarray((a * 255).astype(np.uint8))
+    """Синие нитки (шапка, жилет, щит, ткань построек) — в яркий красный; кожа, дерево, стежки не трогаем."""
+    a = np.array(img).astype(np.float64) / 255
+    hsv = _hsv(a[..., :3])
+    blue = (hsv[..., 0] > BLUE[0]) & (hsv[..., 0] < BLUE[1]) & (hsv[..., 1] > BLUE[2])
+    hsv[..., 0] = np.where(blue, hue, hsv[..., 0])
+    hsv[..., 1] = np.where(blue, np.minimum(RED_S[2], RED_S[0] + (hsv[..., 1] - BLUE[2]) * RED_S[1]), hsv[..., 1])
+    hsv[..., 2] = np.where(blue, np.minimum(1, hsv[..., 2] * RED_V[0] + RED_V[1]), hsv[..., 2])
+    a[..., :3] = _rgb(hsv)
+    return Image.fromarray((a * 255).round().astype(np.uint8))
 
 
 def main(src: str, dst: str) -> None:
