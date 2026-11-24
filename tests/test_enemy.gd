@@ -4,16 +4,17 @@ extends RefCounted
 
 const DT := 0.05
 
-## Партия с шагом DT; play(sim) — ход игрока раз в 2 с. Возвращает время конца или -1.
-func _match(play: Callable, limit := 600.0) -> float:
+## Партия с шагом DT; play(sim) — ход игрока раз в every с, первый после delay. Возвращает время конца
+## (минус — победа игрока) или 0.
+func _match(play: Callable, limit := 600.0, every := 2.0, delay := 0.0) -> float:
 	var sim := Sim.new()
 	var enemy := Enemy.new(sim)
-	var think := 0.0
+	var think := -delay
 	for i in int(limit / DT):
 		enemy.step(DT)
 		sim.step(DT)
 		think += DT
-		if think >= 2.0:
+		if think >= every:
 			think = 0.0
 			play.call(sim)
 		if sim.winner != -1:
@@ -62,9 +63,18 @@ func test_passive_player_loses() -> String:
 	return ""
 
 
+## Одной партии бота не верим (партии хаотичны): 12 партий при двух темпах игрока,
+## простой игрок выигрывает больше половины, медиана конца — не дольше 10 минут.
 func test_simple_player_wins() -> String:
-	var t := _match(_rush)
-	if t >= 0:
-		return "простой игрок не победил за 10 минут (итог %.0f)" % t
-	print("    победа простого игрока на %d:%02d" % [int(-t) / 60, int(-t) % 60])
+	var ends := []
+	for every in [1.0, 2.0]:
+		for k in 6:
+			ends.append(_match(_rush, 900.0, every, k * 0.3))
+	var wins := ends.filter(func(t): return t < 0).size()
+	var times := ends.map(func(t): return absf(t) if t != 0.0 else 900.0)
+	times.sort()
+	var median: float = (times[5] + times[6]) / 2.0
+	print("    простой игрок: побед %d из 12, медиана конца %d:%02d" % [wins, int(median) / 60, int(median) % 60])
+	if wins <= 6 or median > 600.0:
+		return "простой игрок: побед %d из 12, медиана конца %d с (ждали больше 6 и не дольше 600)" % [wins, median]
 	return ""

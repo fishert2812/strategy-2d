@@ -274,10 +274,14 @@ func _warrior(u: Dictionary, dt: float) -> void:
 		_march(u, route, w.speed * dt)
 	else:
 		u.go = false
-		# Шах: кружку бьют — ждущие свистка бегут к ней и дерутся с теми, кто рядом.
-		var mug := of_side(u.side, "home")
-		var alarm: bool = not mug.is_empty() and mug[0].get("alarm", -1.0) > time
-		_walk(u, mug[0].pos + u.post if alarm else u.home.pos + u.post, w.speed * dt)
+		# Тревога: бьют мою постройку не дальше defend.radius от казармы (в «Шахе» кружку — где угодно) —
+		# ждущие свистка бегут к ней и дерутся с теми, кто рядом; defend.seconds без ударов — назад на пост.
+		var to: Vector2 = u.home.pos
+		for b in of_side(u.side):
+			if b.get("alarm", -1.0) > time and (b.kind == "home" and mode.alarm > 0 or b.pos.distance_to(u.home.pos) <= cfg.defend.radius):
+				if to == u.home.pos or b.pos.distance_to(u.pos) < to.distance_to(u.pos):
+					to = b.pos
+		_walk(u, to + u.post, w.speed * dt)
 
 
 func _march(u: Dictionary, route: Array, dist: float) -> void:
@@ -309,6 +313,8 @@ func _hit(u: Dictionary, x: Dictionary) -> void:
 			if x.get("alarm", -1.0) <= time:
 				changed.emit("check", x)
 			x.alarm = time + mode.alarm
+		else:
+			x.alarm = time + cfg.defend.seconds
 		damage(x, cfg.warrior.siege)
 		return
 	_wound(x, cfg.warrior.damage, u)
