@@ -70,7 +70,7 @@ func test_end_screen_sends_in_one_tap() -> String:
 	battle.get_parent().free()
 	if not flags.begins_with("Флажки: 0:00, 0:07"):
 		return "на экране итога не те флажки: " + flags
-	for need in ["Флажков: 20", "победа", "«тяни тропу к залежи» ×1", "лагеря 30 с", "у печенья", "не вышло: «тяни"]:
+	for need in ["Флажков: 20", "победа", "«тяни тропу к залежи» ×1", "лагеря 30 с", "у печенья слева, у врага", "не вышло: «тяни"]:
 		if not sent.get("body", "").contains(need):
 			return "в разборе нет «%s»: %s" % [need, sent.get("body", "").left(300)]
 	if sent.url.length() > max_url or not sent.url.contains("labels=feedback"):

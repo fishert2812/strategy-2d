@@ -57,14 +57,14 @@ func times() -> String: return ", ".join(flags.map(func(f): return _clock(f.t)))
 ## Сводка для заявки человеческими словами. Короткая, чтобы влезла в адрес.
 func summary(sim: Sim) -> String:
 	var out := ["Партия %s, %s. Флажков: %d." % [_clock(sim.time), ["ещё шла", "победа", "поражение"][sim.winner + 1], flags.size()]]
-	for f in flags:
+	for f in flags.slice(0, 8):  # больше восьми строк не влезет в адрес заявки
 		out.append("- %s %s: у тебя %d крошек, построек %d, без дела %d%s" % [_clock(f.t), f.where, f.gold, f.mine, f.idle, f.near])
+	if flags.size() > 8: out.append("- и ещё флажки: " + ", ".join(flags.slice(8).map(func(f): return _clock(f.t))))
 	out.append("Что заметила игра:")
 	out.append("- построено у тебя %d, у врага %d; разрушено твоих %d, вражеских %d" % [built[0], built[1], destroyed[0], destroyed[1]])
 	out.append("- без дела стояли: лагеря %d с, казармы %d с; троп нарисовано %d" % [idle.camp, idle.barracks, redraws])
 	out.append("- воинов потеряно %d, у врага %d" % [lost[0], lost[1]])
-	if not errors.is_empty():
-		out.append("- не вышло: " + ", ".join(errors.keys().map(func(k): return "«%s» ×%d" % [k, errors[k]])))
+	if not errors.is_empty(): out.append("- не вышло: " + ", ".join(errors.keys().map(func(k): return "«%s» ×%d" % [k, errors[k]])))
 	return "\n".join(out)
 
 
@@ -74,13 +74,11 @@ static func _where(sim: Sim, pos: Variant) -> String:
 	var all: Array = (sim.buildings + sim.deposits).filter(func(x): return x.get("gold", 1) > 0 and x.pos.distance_to(pos) <= sim.cfg.snap)
 	all.sort_custom(func(a, b): return a.pos.distance_to(pos) < b.pos.distance_to(pos))
 	if all.is_empty(): return "на пустом столе"
-	return NEAR[all[0].kind][all[0].side] if all[0].has("kind") else "у печенья"
+	return NEAR[all[0].kind][all[0].side] if all[0].has("kind") else "у печенья " + ["слева", "в центре", "справа"][clampi(int(pos.x * 3 / sim.cfg.field[0]), 0, 2)] + [", у врага", "", ", у тебя"][clampi(int(pos.y * 3 / sim.cfg.field[1]), 0, 2)]
 
 
 static func _idle(b: Dictionary) -> bool:
-	if b.kind == "barracks":
-		return b.get("route", []).is_empty()
-	return b.target.is_empty() or b.target.get("gold", 1) <= 0
+	return b.get("route", []).is_empty() if b.kind == "barracks" else (b.target.is_empty() or b.target.get("gold", 1) <= 0)
 
 
 static func _clock(t: float) -> String:

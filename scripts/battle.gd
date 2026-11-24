@@ -328,7 +328,7 @@ func put_flag(at: Variant) -> void:
 	flag_button.text = str(box.flags.size())
 	var s := Sprite2D.new()
 	_fit(s, look.flag, load(look.flag.file))
-	s.modulate = Color(look.flag.color)
+	s.modulate = Color(look.flag.color); s.z_index = 1  # поверх печенья и построек
 	s.position = at if at != null else world.to_local(flag_button.get_global_rect().get_center() - Vector2(0, 110))
 	things.add_child(s)
 	var t := s.create_tween()
