@@ -102,7 +102,6 @@ func _rejoin(b: Dictionary) -> void:
 			for i in b.route.size():
 				u.leg = i if u.pos.distance_to(b.route[i]) < u.pos.distance_to(b.route[u.leg]) else u.leg
 
-
 ## Нитка по следу пальца: та же функция и под пальцем, и при отпускании. Возвращает route (без начала) и target.
 func thread(b: Dictionary, trail: Array) -> Dictionary:
 	var pts: Array = [b.pos]
@@ -136,21 +135,24 @@ static func pull(trail: Array, circles: Array, step: float) -> Array:
 		for k in range(1, n):
 			pts.append(trail[i - 1].lerp(trail[i], float(k) / n))
 		pts.append(trail[i])
-	for again in 2:
-		for c in circles:
-			var side := 0.0  # с какой стороны круга шёл палец: по точкам следа внутри
-			for i in range(1, pts.size()):
-				if pts[i].distance_to(c[0]) < c[1]:
-					side += (pts[i] - c[0]).cross(pts[-1] - pts[0])
-			for i in range(1, pts.size()):
-				pts[i] = _out(pts[i], c, pts[-1] - pts[0], side)
+	for c in circles + circles:
+		var side := 0.0  # с какой стороны круга шёл палец: по точкам следа внутри
+		for i in range(1, pts.size()):
+			if pts[i].distance_to(c[0]) < c[1]:
+				side += (pts[i] - c[0]).cross(pts[-1] - pts[0])
+		for i in range(1, pts.size()):
+			pts[i] = _out(pts[i], c, pts[-1] - pts[0], side)
+	var j := 0  # отрезок между вытолкнутыми точками режет печенье — середину на край
+	while j < pts.size() - 1 and pts.size() < 400:
+		var hit: Array = circles.filter(func(c): return _seg_dist(c[0], pts[j], pts[j + 1]) < c[1] - 0.5)
+		if hit.is_empty(): j += 1
+		else: pts.insert(j + 1, _out(Geometry2D.get_closest_point_to_segment(hit[0][0], pts[j], pts[j + 1]), hit[0], pts[j + 1] - pts[j], 0.0))
 	var i := 1
 	while i < pts.size() - 1:
 		if circles.all(func(c): return not _touches(c, pts[i - 1], pts[i], pts[i + 1])):
 			pts.remove_at(i)
 			i = maxi(1, i - 1)
-		else:
-			i += 1
+		else: i += 1
 	# Угол в воздухе тянется к соседям, пока не упрётся в печенье: нитка ложится по краю, а не по пальцу.
 	for pass_ in 24:
 		for k in range(1, pts.size() - 1):
@@ -159,8 +161,7 @@ static func pull(trail: Array, circles: Array, step: float) -> Array:
 				while f > 0.01:
 					var to: Vector2 = pts[k].lerp(aim, f)
 					if circles.all(func(c): return not _touches(c, pts[k - 1], pts[k], to) and not _touches(c, pts[k + 1], pts[k], to)):
-						pts[k] = to
-						break
+						pts[k] = to; break
 					f /= 2.0
 	return pts
 
