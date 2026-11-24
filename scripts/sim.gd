@@ -40,6 +40,28 @@ func step(dt: float) -> void:
 				gold[side] += cfg.home_drip.gold
 
 
+## Пустая строка, если строить можно; иначе причина для игрока.
+func can_build(side: int, kind: String, pos: Vector2) -> String:
+	var field := _v(cfg.field)
+	if pos.x < 30 or pos.y < 30 or pos.x > field.x - 30 or pos.y > field.y - 30:
+		return "вне поля"
+	if gold[side] < cfg.buildings[kind].cost:
+		return "мало золота"
+	for o in buildings + deposits:
+		if o.pos.distance_to(pos) < cfg.build_gap:
+			return "занято"
+	if not _near_own(side, pos):
+		return "далеко от своих"
+	return ""
+
+
+func build(side: int, kind: String, pos: Vector2) -> Dictionary:
+	if can_build(side, kind, pos) != "":
+		return {}
+	gold[side] -= cfg.buildings[kind].cost
+	return _add_building(side, kind, pos)
+
+
 func damage(b: Dictionary, amount: float) -> void:
 	if b.hp <= 0:
 		return
@@ -63,6 +85,13 @@ func building_at(pos: Vector2, side: int) -> Dictionary:
 		if b.pos.distance_to(pos) <= cfg.buildings[b.kind].size + 20:
 			return b
 	return {}
+
+
+func _near_own(side: int, pos: Vector2) -> bool:
+	for b in of_side(side):
+		if b.pos.distance_to(pos) <= cfg.build_radius:
+			return true
+	return false
 
 
 func _add_building(side: int, kind: String, pos: Vector2) -> Dictionary:

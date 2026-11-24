@@ -1,5 +1,5 @@
 extends RefCounted
-## Пункт 1: поле, золото, победа и поражение, «Ещё раз».
+## Пункты 1–2: поле, золото, постройка, победа и поражение, «Ещё раз».
 
 
 func test_field_has_two_homes_and_seven_deposits() -> String:
@@ -8,6 +8,23 @@ func test_field_has_two_homes_and_seven_deposits() -> String:
 		return "домов не по одному у сторон"
 	if sim.deposits.size() != 7:
 		return "залежей %d, а нужно 7" % sim.deposits.size()
+	return ""
+
+
+func test_build_near_own_costs_gold() -> String:
+	var sim := Sim.new()
+	var home: Dictionary = sim.of_side(Sim.PLAYER, "home")[0]
+	var start: int = sim.gold[Sim.PLAYER]
+	if sim.build(Sim.PLAYER, "camp", home.pos + Vector2(120, 0)).is_empty():
+		return "лагерь рядом с домом не построился"
+	if sim.gold[Sim.PLAYER] != start - sim.cfg.buildings.camp.cost:
+		return "золото %d, а ждали %d" % [sim.gold[Sim.PLAYER], start - sim.cfg.buildings.camp.cost]
+	var far := sim.can_build(Sim.PLAYER, "camp", Vector2(360, 300))
+	if far != "далеко от своих":
+		return "у врага строить можно: «%s»" % far
+	sim.gold[Sim.PLAYER] = 0
+	if sim.can_build(Sim.PLAYER, "camp", home.pos + Vector2(-120, 0)) != "мало золота":
+		return "без золота строить можно"
 	return ""
 
 
