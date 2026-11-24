@@ -137,8 +137,16 @@ func _camp(b: Dictionary, dt: float) -> void:
 func _barracks(b: Dictionary, dt: float) -> void:
 	b.timer += dt
 	var mine := units.filter(func(u): return is_same(u.home, b))
-	if mine.size() >= cfg.whistle.squad or b.timer < cfg.barracks.every:
+	if mine.size() >= cfg.whistle.squad:
+		b.hungry = false
 		return
+	if b.timer < cfg.barracks.every:
+		return
+	# Войско ест крошки: воин стоит warrior.cost; не хватает — коробок голодный, отряд выйдет меньше.
+	b.hungry = gold[b.side] < cfg.warrior.cost
+	if b.hungry:
+		return
+	gold[b.side] -= cfg.warrior.cost
 	b.timer = 0.0
 	var post := Vector2((b.id % 5 - 2) * 14, 44 + (b.id % 3) * 10)
 	units.append({"id": _id(), "side": b.side, "kind": "warrior", "pos": b.pos + post, "hp": cfg.warrior.hp, "home": b, "cd": 0.0, "post": post, "go": false, "leg": 0})
@@ -253,6 +261,11 @@ func damage(b: Dictionary, amount: float) -> void:
 	buildings = buildings.filter(func(x): return not is_same(x, b))
 	units = units.filter(func(u): return not is_same(u.home, b))
 	changed.emit("destroyed", b)
+	# Трофей: разрушившему достаётся доля цены постройки.
+	var loot: float = floor(cfg.buildings[b.kind].cost * cfg.trophy)
+	if loot > 0:
+		gold[1 - b.side] += loot
+		changed.emit("gold", {"side": 1 - b.side, "amount": loot, "pos": b.pos})
 	_next_target(b)
 	for side in [PLAYER, ENEMY]:
 		if of_side(side).is_empty() and winner == -1:
@@ -297,7 +310,7 @@ func _near_own(side: int, pos: Vector2) -> bool:
 
 func _add_building(side: int, kind: String, pos: Vector2) -> Dictionary:
 	var hp: float = cfg.buildings[kind].hp
-	var b := {"id": _id(), "side": side, "kind": kind, "pos": pos, "hp": hp, "max_hp": hp, "target": {}, "route": [], "timer": 0.0}
+	var b := {"id": _id(), "side": side, "kind": kind, "pos": pos, "hp": hp, "max_hp": hp, "target": {}, "route": [], "timer": 0.0, "hungry": false}
 	buildings.append(b)
 	changed.emit("built", b)
 	return b
