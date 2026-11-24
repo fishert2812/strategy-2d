@@ -558,7 +558,7 @@ function paint(time) {
     const v = (time / 6 + m.id * 0.37) % 1; // сократительная вакуоль: набухает и выплёскивает
     bubbles.put(x - hx * r * 0.45 - hy * r * 0.2, y - hy * r * 0.45 + hx * r * 0.2, r * 0.18 * Math.sqrt(v) + 1, 0.85, 0.95, 1, 0.3 * (1 - v * v * v));
   }
-  const [cr, cg, cb] = [CELL[0].r, CELL[0].g, CELL[0].b];
+  const [cr, cg, cb] = [CELL[0].r, CELL[0].g, CELL[0].b], fc = cfg.flag.color;
   const b = genome.blink, lkAll = look(b && Math.sin(time * 9) > 0 ? { ...world.genes, [b]: !world.genes[b] } : world.genes, cfg.look, world.spacers.size); // на паузе мигает часть клетки, которую меняет выбранный ген
   if (kids) kids.forEach((a, i) => { a.x = view.x + (i ? 1 : -1) * W * 0.24 / z; a.y = view.y - 20 / z; a.a = -Math.PI / 2 + Math.sin(time * 0.8 + i * 2) * 0.12; a.m = 1.7 + 0.1 * Math.sin(time * 1.3 + i); }); // дочки покачиваются на месте
   const phageNear = world.phages.some(g => g.host === 'me' && Math.hypot(g.x - view.x, g.y - view.y) < 220);
@@ -649,7 +649,7 @@ function paint(time) {
         const bs = s * w * 5.8, wf = Math.sin(s * (10 + 12 * curl) - ph) * w * (0.42 + 0.4 * curl) * grow;
         const xf = sx0 + fdx * bs - fdy * wf, yf = sy0 + fdy * bs + fdx * wf;
         xt = xb + (xf - xb) * P; yt = yb + (yf - yb) * P; }
-        glow.put(xr + (xt - xr) * B, yr + (yt - yr) * B, 0.8 * Math.max(z, 0.7) + 0.3, cr, cg, cb, 0.5 * (1 - s * 0.5));
+        glow.put(xr + (xt - xr) * B, yr + (yt - yr) * B, (0.8 * Math.max(z, 0.7) + 0.3) * (1 - s * 0.45), fc[0], fc[1], fc[2], cfg.flag.alpha * (1 - s * 0.6)); // нить в цвете оболочки: светло-голубая, тоньше и прозрачнее к концу
       }
     }
     if (a.sick >= 0) glow.put(x, y, half, 1, 0.2, 0.3, 0.25 + 0.2 * Math.sin(time * 20));
