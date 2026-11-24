@@ -249,7 +249,15 @@ $('nightgo').onclick = () => openNight();
 function openNight() { nightIcons(); NT = null; ntPick = null; $('night').classList.add('on'); $('ndanger').hidden = $('nask').hidden = false; $('npicks').innerHTML = ''; $('ngo').disabled = true; $('ngen').textContent = 'Ночь рода'; drawNight(); }
 function nightIcons() { // значки опасностей — снимки самой опасности из той же студии, что Альманах (правило дизайнера)
   const im = $('ndanger').querySelectorAll('img'); if (im[0].src) return;
-  [['phage', 'phage'], ['maw', 'amoeba'], ['hunger', 'me']].forEach(([d, k], i) => { try { im[i].src = snap(k, KAB.items[k]); } catch (e) { im[i].remove(); } });
+  [['phage', 'phage'], ['maw', 'amoeba']].forEach(([d, k], i) => { try { im[i].src = snap(k, KAB.items[k]); } catch (e) { im[i].remove(); } });
+  try { // голод: снимок своей клетки, тело приглушено до 0,4, светится опавшая серединка — пустой запас (правило дизайнера)
+    const src = new Image(); src.onload = () => { const c = document.createElement('canvas'); c.width = 300; c.height = 300; const g = c.getContext('2d');
+      g.drawImage(src, 165, 75, 150, 150, 0, 0, 300, 300); const D = g.getImageData(0, 0, 300, 300), q = D.data; // клетка крупно: суть — не меньше половины кружка
+      for (let y = 0; y < 300; y++) for (let x = 0; x < 300; x++) { const i = (y * 300 + x) * 4, e = Math.hypot((x - 150) / 30, (y - 150) / 62), lit = Math.max(0, 1 - e) ** 0.7;
+        for (let j = 0; j < 3; j++) q[i + j] = q[i + j] * cfg.icon_dim * (1 - lit) + Math.min(255, q[i + j] * cfg.icon_lift + (j === 1 ? 40 : 30)) * lit; }
+      g.putImageData(D, 0, 0); im[2].src = c.toDataURL('image/jpeg', 0.85); };
+    src.src = snap('me', { ...KAB.items.me, a: -Math.PI / 2 });
+  } catch (e) { im[2].remove(); }
 }
 $('nback').onclick = () => { $('night').classList.remove('on'); NT = null; if (!ended) menuOpen(); }; // из меню ночь возвращает в меню
 $('nflag').onclick = e => flag('ночь рода', e.currentTarget);
@@ -351,7 +359,7 @@ function geneShot(g, NW, NH, crop = 0) {
   const A = grab({}), B = grab({ [g]: true }), a = A.data, b = B.data;
   for (let i = 0; i < a.length; i += 4) {
     const d = Math.min(1, (Math.abs(b[i] - a[i]) + Math.abs(b[i + 1] - a[i + 1]) + Math.abs(b[i + 2] - a[i + 2])) / 90);
-    for (let j = 0; j < 3; j++) b[i + j] = a[i + j] * cfg.icon_dim * (1 - d) + Math.min(255, b[i + j] * 1.25) * d;
+    for (let j = 0; j < 3; j++) b[i + j] = a[i + j] * cfg.icon_dim * (1 - d) + Math.min(255, b[i + j] * cfg.icon_lift) * d; // часть от гена ярче, тело темнее (дизайнер: тёмные пятна на кольце)
   }
   const c = document.createElement('canvas'); c.width = NW; c.height = NH; c.getContext('2d').putImageData(B, 0, 0);
   if (!crop) return c.toDataURL('image/jpeg', 0.85);
