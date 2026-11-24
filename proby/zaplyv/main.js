@@ -311,7 +311,7 @@ function ring(x, y, side, r) { rings.push({ x, y, side, r, t: 0 }); }
 
 function events() {
   for (const [k, x, y, size = 1, y2] of world.events) {
-    if (k === 'spore') { ring(x, y, 0, 160); beep(200, 0.6, 0.06, 'sine', 0.5); say('Спора! Переждёшь всё под толстой оболочкой', 2600); }
+    if (k === 'spore') { ring(x, y, 0, 160); beep(200, 0.6, 0.06, 'sine', 0.5); say('Уснула! Спящую не берут — переждёшь беду', 2600); }
     if (k === 'sprout') { ring(x, y, 2, 120); beep(520, 0.3, 0.05, 'sine', 2); }
     if (k === 'gene') { ring(x, y, 0, 120); beep(780, 0.3, 0.05, 'sine', 1.6); say('Ген от сородича: ' + cfg.genes[size][0] + ' — ' + cfg.genes[size][1], 2600); } // конъюгация
     if (k === 'zap') { zaps.push({ x, y, x2: size, y2, t: 0 }); beep(1500, 0.05, 0.05, 'square', 0.4); } // выстрел гарпуна синегнойки
@@ -546,11 +546,12 @@ function paint(time) {
   if (kids) kids.forEach((a, i) => { a.x = view.x + (i ? 1 : -1) * W * 0.24 / z; a.y = view.y - 20 / z; a.a = -Math.PI / 2 + Math.sin(time * 0.8 + i * 2) * 0.12; a.m = 1.7 + 0.1 * Math.sin(time * 1.3 + i); }); // дочки покачиваются на месте
   const phageNear = world.phages.some(g => g.host === 'me' && Math.hypot(g.x - view.x, g.y - view.y) < 220);
   const foodNear = world.food.some(f => Math.hypot(f.x - view.x, f.y - view.y) < 120);
-  for (const a of world.me) if (a.spore > 0) { // спора: круглая, слоистая тёмная оболочка, внутри тлеет жизнь; перед прорастанием светлеет
-    const [x, y] = scr(a.x, a.y), r = 10 * z, f = 1 - a.spore / cfg.spore;
-    bodies.sphere(x, y, r, [0.35 + 0.4 * f, 0.28 + 0.3 * f, 0.22 + 0.3 * f], [0.9, 0.8, 0.6], a.id);
-    for (let k = 0; k < 3; k++) for (let j = 0; j < 24; j++) { const t = j / 24 * 6.283 + k * 0.4; ink.put(x + Math.cos(t) * r * (1.12 + k * 0.12), y + Math.sin(t) * r * (1.12 + k * 0.12), 0.8 * z + 0.3, 0.75, 0.65, 0.5, 0.5 - k * 0.12); }
-    glow.put(x, y, r * 0.6, 1, 0.6, 0.8, 0.15 + 0.25 * f * (0.5 + 0.5 * Math.sin(time * 6)));
+  for (const a of world.me) if (a.spore > 0) { // сон-персистер: та же палочка, но погасшая — серая, жгутики обвисли, редкое «дыхание»; перед пробуждением теплеет
+    const [x, y] = scr(a.x, a.y), w = 8.5 * Math.pow(a.m, 0.3) * z, f = 1 - a.spore / cfg.spore, ux = Math.cos(a.a), uy = Math.sin(a.a);
+    bodies.rod(x, y, a.a, w * 2.1, w, 0, [0.32 + 0.4 * f, 0.36 + 0.2 * f, 0.46 + 0.1 * f], [0.2, 0.25, 0.35], a.id, 0);
+    for (let j = 0; j < 4; j++) for (let k = 1; k <= 10; k++) { const s = j % 2 ? 1 : -1, b = (j < 2 ? -0.5 : 0.5) * w * 2, f2 = k / 10; // обвисшие жгутики не бьют
+      ink.put(x + ux * b - uy * s * (w + f2 * w * 2.5) - ux * f2 * w * 1.5, y + uy * b + ux * s * (w + f2 * w * 2.5) - uy * f2 * w * 1.5, 0.7 * z + 0.3, 0.5, 0.55, 0.65, 0.35); }
+    glow.put(x, y, w * 2.4, 0.6, 0.7, 1, 0.06 + 0.08 * (0.5 + 0.5 * Math.sin(time * 1.2)) + 0.25 * f * f);
   }
   for (const a of kids || world.me) { // палочка: мягкое тело
     if (a.spore > 0) continue; // перёд ведёт, корма и пучок жгутиков идут по его следу
@@ -586,7 +587,7 @@ function paint(time) {
     }
     for (let k = 0; k < lk.studs; k++) { const t = k / lk.studs * 6.283 + 0.2, u = Math.cos(t) * (half - w * 0.15), [px, py] = along(u, Math.sin(t) * w * 1.02 + arc(u / z)); ink.put(px, py, 1.5 * z + 0.4, 0.25, 0.45, 1, 0.85); }
     if (world.plasmid && !a.g) for (let k = 0; k < 12; k++) { const t = k / 12 * 6.283 + time * 0.8, [px, py] = along(Math.cos(t) * w * 0.35 + w * 0.3, Math.sin(t) * w * 0.35); glow.put(px, py, 0.9 * z + 0.4, 1, 0.95, 0.6, 0.7); } // плазмида: колечко ДНК, теперь и ты донор
-    if (lk.forespore) { const [px, py] = along(-half + w * 0.9, arc(-half / z + w * 0.9 / z)); glow.put(px, py, w * 0.5, 1, 0.97, 0.85, 0.55); ink.put(px, py, w * 0.22, 1, 1, 0.95, 0.8); }
+    if (lk.dormant) { const [px, py] = along(-half + w * 0.9, arc(-half / z + w * 0.9 / z)); glow.put(px, py, w * 0.6, 0.45, 0.55, 1, 0.3 + 0.15 * Math.sin(time * 1.2 + a.id)); } // ген сна: у кормы тусклое голубое пятно медленно дышит
     for (let k = 0; k < lk.receptors; k++) { // хемотаксис: рецепторы на переднем конце мигают, когда чуют еду
       const t = (k - 2) * 0.35, [px, py] = along(half - w * 0.15 + Math.cos(t) * w * 0.1, Math.sin(t) * w * 0.85 + arc(half / z));
       glow.put(px, py, 1.4 * z + 0.4, 1, 0.95, 0.5, foodNear ? 0.5 + 0.45 * Math.sin(time * 14 + k) : 0.25);
