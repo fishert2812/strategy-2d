@@ -20,7 +20,7 @@ const player = w => {
   let best = null, bd = 1e9;
   for (const f of [...w.food, ...w.prey.filter(q => q.m < big * 0.8)]) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } }
   let tx = best ? best.x : c.x, ty = best ? best.y - 1 : c.y - 100;
-  for (const e of [...w.amoebas, ...w.phages, ...w.bdellos]) {
+  for (const e of [...w.amoebas, ...w.phages, ...w.bdellos, ...w.slippers.map(p => { const [x, y] = w.mouth(p); return { x, y }; }), ...w.bells.map(v => { const [x, y] = w.bell(v); return { x, y }; })]) {
     const d = Math.hypot(e.x - c.x, e.y - c.y);
     if (d < 260) { tx = c.x + (c.x - e.x) * 2; ty = c.y + (c.y - e.y) * 2; }
   }
@@ -55,7 +55,7 @@ check('фаг прилипает и впрыскивает, клетка лоп�
   const res = [];
   for (const crispr of [false, true]) {
     const w = new World(cfg, 5);
-    w.food = []; w.prey = []; w.amoebas = []; w.plants = [];
+    w.food = []; w.prey = []; w.amoebas = []; w.slippers = []; w.bells = []; w.plants = [];
     w.phages = []; w.cloud(radius(1) + 1, 0, 'me', 0);
     if (crispr) w.genes.crispr = true;
     w.tidy = 1e9;
@@ -69,14 +69,14 @@ check('фаг прилипает и впрыскивает, клетка лоп�
 
 check('фаг не гонится за клеткой: его носит вода, опасно только влететь в облако (замечание Романа 24.11)', () => {
   const w = new World(cfg, 6);
-  w.food = []; w.prey = []; w.amoebas = []; w.plants = []; w.tidy = 1e9;
+  w.food = []; w.prey = []; w.amoebas = []; w.slippers = []; w.bells = []; w.plants = []; w.tidy = 1e9;
   w.phages = []; for (let i = 0; i < 8; i++) w.cloud(90 + i * 6, -20 + i * 5, 'me', 0);
   let fast = 0;
   const d0 = Math.min(...w.phages.map(g => Math.hypot(g.x, g.y)));
   for (let i = 0; i < 150; i++) { w.step(1 / 30, null); for (const g of w.phages) fast = Math.max(fast, Math.hypot(g.vx, g.vy)); }
   const d1 = Math.min(...w.phages.map(g => Math.hypot(g.x - w.me[0].x, g.y - w.me[0].y)));
   // уплыть от облака: фаги остаются позади
-  const u = new World(cfg, 6); u.food = []; u.prey = []; u.amoebas = []; u.plants = []; u.tidy = 1e9;
+  const u = new World(cfg, 6); u.food = []; u.prey = []; u.amoebas = []; u.slippers = []; u.bells = []; u.plants = []; u.tidy = 1e9;
   u.phages = []; for (let i = 0; i < 8; i++) u.cloud(-60 - i * 8, 0, 'me', 0);
   run(u, 4, { dx: 1, dy: 0, p: 1 });
   const stuck = u.phages.filter(g => g.on).length;
@@ -87,7 +87,7 @@ check('фаг не гонится за клеткой: его носит вод�
 });
 
 check('прилипшего фага стряхивает кувырок, пока он не впрыснул', () => {
-  const w = new World(cfg, 8); w.food = []; w.prey = []; w.amoebas = []; w.plants = []; w.tidy = 1e9;
+  const w = new World(cfg, 8); w.food = []; w.prey = []; w.amoebas = []; w.slippers = []; w.bells = []; w.plants = []; w.tidy = 1e9;
   run(w, 1, { dx: 1, dy: 0, p: 1 });
   const a = w.me[0]; w.phages = []; w.cloud(a.x + radius(a.m) + 8, a.y, 'me', 0);
   run(w, 0.3, { dx: 1, dy: 0, p: 1 });
@@ -100,7 +100,7 @@ check('прилипшего фага стряхивает кувырок, пок
 });
 
 check('джойстик: сдвиг пальца вправо ведёт клетку вправо, слабый сдвиг — медленнее', () => {
-  const go = p => { const w = new World(cfg, 9); w.amoebas = []; w.phages = []; w.prey = []; w.tidy = 1e9; run(w, 3, { dx: 1, dy: 0, p }); return w.me[0].x; };
+  const go = p => { const w = new World(cfg, 9); w.amoebas = []; w.slippers = []; w.bells = []; w.phages = []; w.prey = []; w.tidy = 1e9; run(w, 3, { dx: 1, dy: 0, p }); return w.me[0].x; };
   const full = go(1), half = go(0.4);
   console.log('    паспорт: за 3 с полный ход', Math.round(full), ', слабый', Math.round(half));
   if (full < 300) return 'полный ход увёл только на ' + Math.round(full);
@@ -108,7 +108,7 @@ check('джойстик: сдвиг пальца вправо ведёт кле�
 });
 
 check('плывёт как настоящая палочка: поворот дугой, не боком; на развороте кувырок', () => {
-  const w = new World(cfg, 9); w.amoebas = []; w.phages = []; w.prey = []; w.food = []; w.tidy = 1e9;
+  const w = new World(cfg, 9); w.amoebas = []; w.slippers = []; w.bells = []; w.phages = []; w.prey = []; w.food = []; w.tidy = 1e9;
   run(w, 1.5, { dx: 1, dy: 0, p: 1 });
   const a = w.me[0]; let slip = 0, bend = 0, t45 = -1, arcTumble = false, tumbled = false, slow = 1e9, back = -1;
   for (let i = 0; i < 30; i++) { // поворот на 90° — дугой, без остановки
@@ -134,7 +134,7 @@ check('плывёт как настоящая палочка: поворот д�
 check('экран гибели называет, кто убил, и у каждого убийцы есть карточка с фактом', () => {
   const cards = JSON.parse(readFileSync(new URL('./cards.json', import.meta.url)));
   const got = {};
-  const empty = s => { const w = new World(cfg, s); w.food = []; w.prey = []; w.amoebas = []; w.phages = []; w.plants = []; w.bdellos = []; w.crumbs = []; w.tidy = 1e9; return w; };
+  const empty = s => { const w = new World(cfg, s); w.food = []; w.prey = []; w.amoebas = []; w.phages = []; w.plants = []; w.bdellos = []; w.crumbs = []; w.slippers = []; w.bells = []; w.tidy = 1e9; return w; };
   let w = empty(3); w.amoebas = [{ x: 150, y: 0, vx: 0, vy: 0, m: 6, id: 99 }]; run(w, 10, null); got.amoeba = w.stats.killer;
   w = empty(5); w.cloud(radius(1) + 1, 0, 'me', 0); run(w, cfg.inject + cfg.sick + 1, null); got.phage = w.stats.killer;
   w = empty(4); w.bdellos = [{ x: 60, y: 0, vx: 0, vy: 0, a: Math.PI, t: 2, id: 98 }]; run(w, 5, null); got.bdello = w.stats.killer;
@@ -150,7 +150,7 @@ check('экран гибели называет, кто убил, и у кажд
 });
 
 check('тело мягкое, а не «железнодорожный состав» (Роман 24.11): в повороте корма отстаёт и тело гнётся, потом выпрямляется', () => {
-  const w = new World(cfg, 9); w.amoebas = []; w.phages = []; w.prey = []; w.food = []; w.tidy = 1e9;
+  const w = new World(cfg, 9); w.amoebas = []; w.slippers = []; w.bells = []; w.phages = []; w.prey = []; w.food = []; w.tidy = 1e9;
   const a = w.me[0], half = 9;
   const go = (t, sec) => { const out = []; for (let i = 0; i < sec * 30; i++) { w.step(1 / 30, t); out.push(follow(a, half, 40)); } return out; };
   const straight = go({ dx: 1, dy: 0, p: 1 }, 1.5).pop();
@@ -184,14 +184,14 @@ check('мир живой: еда пятнами, водоросль кормит
   const w = new World(cfg, 21);
   // пятна: у половины еды сосед ближе 25, при ровном рассыпании таких было бы мало
   const close = w.food.filter(f => w.food.some(g => g !== f && Math.hypot(g.x - f.x, g.y - f.y) < 25)).length / w.food.length;
-  const e = new World(cfg, 22); e.food = []; e.prey = []; e.amoebas = []; e.phages = []; e.crumbs = []; e.tidy = 1e9;
+  const e = new World(cfg, 22); e.food = []; e.prey = []; e.amoebas = []; e.slippers = []; e.bells = []; e.phages = []; e.crumbs = []; e.tidy = 1e9;
   e.plants = [{ x: 400, y: 0, m: 5, id: 3, t: 0 }];
   run(e, 15, null);
   const halo = e.food.filter(f => Math.hypot(f.x - 400, f.y) < 100).length;
   e.food = []; e.prey = [{ x: -400, y: 0, vx: 0, vy: 0, m: 0.8, a: 0, id: 5, sick: 0.05 }]; e.plants = [];
   run(e, 1, null);
   const spilled = e.food.filter(f => Math.hypot(f.x + 400, f.y) < 80).length;
-  const d = new World(cfg, 23); d.food = []; d.prey = []; d.amoebas = []; d.phages = []; d.plants = []; d.tidy = 1e9;
+  const d = new World(cfg, 23); d.food = []; d.prey = []; d.amoebas = []; d.slippers = []; d.bells = []; d.phages = []; d.plants = []; d.tidy = 1e9;
   d.crumbs = [{ x: 0, y: 30, m: 4, id: 7 }]; const m0 = d.me[0].m, y0 = d.crumbs[0].y;
   run(d, 4, w => ({ x: w.crumbs[0]?.x ?? 0, y: w.crumbs[0]?.y ?? 0 }));
   const sank = (d.crumbs[0]?.y ?? 1e9) - y0, fed = d.me[0].m - m0;
@@ -204,7 +204,7 @@ check('мир живой: еда пятнами, водоросль кормит
 });
 
 check('враги как настоящие: хищник мчится прямо и не преследует, капсула спасает; крупный кокк не нападает; амёба в открытой воде почти стоит', () => {
-  const bare = s => { const w = new World(cfg, s); w.food = []; w.prey = []; w.amoebas = []; w.phages = []; w.plants = []; w.bdellos = []; w.crumbs = []; w.tidy = 1e9; return w; };
+  const bare = s => { const w = new World(cfg, s); w.food = []; w.prey = []; w.amoebas = []; w.phages = []; w.plants = []; w.bdellos = []; w.crumbs = []; w.slippers = []; w.bells = []; w.tidy = 1e9; return w; };
   // хищник: рывки по прямой, курс меняется редко
   const w = bare(31); w.me[0].x = 5000; const b = { x: 0, y: 0, vx: 0, vy: 0, a: 0, t: 0, id: 9 }; w.bdellos = [b];
   let turns = 0, top = 0, last = null;
@@ -232,7 +232,7 @@ check('каждая мутация видна на теле: облик клет
 });
 
 check('развороты плавные, без рывков (Роман 24.11: «чуть дёрганые развороты»): угол и скорость поворота меняются без скачков', () => {
-  const w = new World(cfg, 9); w.amoebas = []; w.phages = []; w.prey = []; w.food = []; w.bdellos = []; w.tidy = 1e9;
+  const w = new World(cfg, 9); w.amoebas = []; w.slippers = []; w.bells = []; w.phages = []; w.prey = []; w.food = []; w.bdellos = []; w.tidy = 1e9;
   const a = w.me[0], sw = cfg.swim, dt = 1 / 30;
   const moves = [[1, 0], [0, 1], [-1, 0], [1, 0.2], [0, -1], [-0.7, 0.7], [1, 0], [-1, 0.1]]; // палец дёргают как попало
   let jump = 0, jerk = 0, bodyJump = 0, lastW = 0, lastB = null, rev = -1;
@@ -242,7 +242,7 @@ check('развороты плавные, без рывков (Роман 24.11:
     jump = Math.max(jump, da); jerk = Math.max(jerk, Math.abs(om - lastW)); lastW = om;
     const b = follow(a, 9, 40); if (lastB !== null) bodyJump = Math.max(bodyJump, Math.abs(Math.atan2(Math.sin(b.ang - lastB), Math.cos(b.ang - lastB)))); lastB = b.ang;
   }
-  const r = new World(cfg, 9); r.amoebas = []; r.phages = []; r.prey = []; r.food = []; r.bdellos = []; r.tidy = 1e9;
+  const r = new World(cfg, 9); r.amoebas = []; r.slippers = []; r.bells = []; r.phages = []; r.prey = []; r.food = []; r.bdellos = []; r.tidy = 1e9;
   run(r, 1, { dx: 1, dy: 0, p: 1 });
   for (let i = 0; i < 60 && rev < 0; i++) { r.step(dt, { dx: -1, dy: 0, p: 1 }); if (r.me[0].vx < -120) rev = (i + 1) / 30; }
   console.log('    паспорт: наибольший шаг угла за кадр', (jump * 57.3).toFixed(1) + '°', '| рывок скорости поворота', jerk.toFixed(2), 'рад/с за кадр', '| поворот тела за кадр', (bodyJump * 57.3).toFixed(1) + '°', '| разворот на 180° и снова плывёт через', rev.toFixed(2), 'с');
@@ -253,7 +253,7 @@ check('развороты плавные, без рывков (Роман 24.11:
 });
 
 check('вода — вещество: в тяже слизи плыть вязко, течение есть везде, тяжи встречаются в мире', () => {
-  const go = slime => { const w = new World(cfg, 51); w.food = []; w.prey = []; w.amoebas = []; w.phages = []; w.plants = []; w.bdellos = []; w.crumbs = []; w.tidy = 1e9;
+  const go = slime => { const w = new World(cfg, 51); w.food = []; w.prey = []; w.amoebas = []; w.phages = []; w.plants = []; w.bdellos = []; w.crumbs = []; w.slippers = []; w.bells = []; w.tidy = 1e9;
     w.slime = slime ? [{ x: 300, y: 0, a: 0, len: 2000, w: 40, id: 0 }] : []; run(w, 2, { dx: 1, dy: 0, p: 1 }); return w.me[0].x; };
   const free = go(false), gel = go(true);
   const m = new World(cfg, 52); m.fill(3000, 3000);
@@ -266,13 +266,13 @@ check('вода — вещество: в тяже слизи плыть вязк
 
 check('кабинет: встреченное существо попадает в кабинет, и у каждого есть карточка с фактом', () => {
   const cards = JSON.parse(readFileSync(new URL('./cards.json', import.meta.url)));
-  const w = new World(cfg, 41); w.food = []; w.prey = []; w.amoebas = []; w.phages = []; w.plants = []; w.bdellos = []; w.crumbs = []; w.tidy = 1e9;
+  const w = new World(cfg, 41); w.food = []; w.prey = []; w.amoebas = []; w.phages = []; w.plants = []; w.bdellos = []; w.crumbs = []; w.slippers = []; w.bells = []; w.tidy = 1e9;
   const before = [...w.met];
   w.plants = [{ x: 150, y: 0, m: 5, id: 3, t: 0 }]; w.crumbs = [{ x: 3000, y: 0, m: 3, id: 4 }];
   run(w, 1, null);
   const seen = w.events.filter(e => e[0] === 'meet').map(e => e[1]);
   const missing = Object.keys(cards).filter(k => k !== '_').filter(k => !['name', 'text', 'fact'].every(f => cards[k][f]));
-  const kinds = ['coccus', 'plant', 'crumb', 'phage', 'amoeba', 'bdello'].filter(k => !cards[k]);
+  const kinds = ['coccus', 'plant', 'crumb', 'phage', 'amoeba', 'bdello', 'slipper', 'bell'].filter(k => !cards[k]);
   console.log('    паспорт: в начале', before.join(), '| увидел водоросль →', seen.join() || 'ничего', '| далёкий детрит в кабинете?', w.met.has('crumb'), '| карточек', Object.keys(cards).length - 1);
   if (!w.met.has('plant') || !seen.includes('plant')) return 'встреча с водорослью не записана';
   if (w.met.has('crumb')) return 'записан детрит, которого не видел';
@@ -280,10 +280,32 @@ check('кабинет: встреченное существо попадает 
   if (kinds.length) return 'нет карточек для: ' + kinds.join();
 });
 
+check('туфелька не гонится, а засасывает воронкой у рта; врезавшись, даёт задний ход. Сувойка затягивает вихрем, а от удара с разгона сжимается', () => {
+  const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells']) w[k] = []; w.tidy = 1e9; return w; };
+  // клетка стоит перед ртом — затянет; та же клетка за кормой — цела
+  const at = (dx, dy) => { const w = bare(61); const p = { x: 0, y: 0, a: 0, back: 0, id: 1 }; w.slippers = [p]; const [mx, my] = w.mouth(p);
+    w.me[0].x = mx + dx; w.me[0].y = my + dy; run(w, 3, null); return [w.me.length, w.stats.killer]; };
+  const front = at(30, 40), behind = at(-260, -40);
+  const hit = bare(62); const p = { x: 0, y: 0, a: 0, back: 0, id: 1 }; hit.slippers = [p]; hit.me[0].x = -2000;
+  hit.plants = [{ x: 140, y: 0, m: 6, id: 2, t: 0 }]; let backed = false, x0 = null;
+  for (let i = 0; i < 90; i++) { hit.step(1 / 30, null); if (p.back > 0) { backed = true; x0 ??= p.x; } }
+  const slow = bare(63), v = { x: 0, y: 0, dir: -Math.PI / 2, shut: 0, id: 3 }; slow.bells = [v]; const [bx, by] = slow.bell(v);
+  slow.me[0].x = bx + 60; slow.me[0].y = by; run(slow, 4, null);
+  const ram = bare(64), u = { x: 0, y: 0, dir: -Math.PI / 2, shut: 0, id: 4 }; ram.bells = [u]; const [cx, cy] = ram.bell(u);
+  ram.me[0].x = cx - 160; ram.me[0].y = cy; ram.me[0].a = 0; ram.me[0].vx = 175; let shut = 0;
+  for (let i = 0; i < 60; i++) { ram.step(1 / 30, { dx: 1, dy: 0, p: 1 }); shut = Math.max(shut, u.shut); }
+  console.log('    паспорт: перед ртом туфельки —', front.join(' '), '| за кормой — клеток', behind[0], '| врезалась — задний ход', backed, '| у сувойки медленная клетка —', slow.me.length ? 'цела' : 'затянута', '| удар с разгона — сжалась', shut > 0, ', клетка', ram.me.length ? 'цела' : 'погибла');
+  if (front[0] !== 0 || front[1] !== 'slipper') return 'воронка туфельки не затянула клетку у рта';
+  if (behind[0] !== 1) return 'туфелька съела клетку за кормой — она не гонится';
+  if (!backed) return 'туфелька не дала задний ход, врезавшись';
+  if (slow.me.length) return 'вихрь сувойки не затянул медленную клетку';
+  if (!(shut > 0) || !ram.me.length) return 'удар с разгона не сжал сувойку';
+});
+
 check('мир без краёв: уплыл далеко — вокруг снова еда, позади забыто', () => {
   const w = new World(cfg, 11);
   w.genes.capsule = w.genes.crispr = true;
-  run(w, 60, w => ({ x: w.center().x + 500, y: w.center().y }));
+  run(w, 60, w => { w.slippers = []; w.bells = []; w.bdellos = []; w.amoebas = []; return { x: w.center().x + 500, y: w.center().y }; }); // проверяем мир, а не опасности
   const c = w.center();
   const near = w.food.filter(f => Math.hypot(f.x - c.x, f.y - c.y) < 700).length;
   console.log('    паспорт: уплыл на', Math.round(c.x), 'еды рядом', near, 'всего еды', w.food.length, 'квадратов', w.chunks.size);

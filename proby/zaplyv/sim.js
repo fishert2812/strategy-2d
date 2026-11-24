@@ -34,7 +34,7 @@ export class World {
     this.seed = seed >>> 0;
     this.r = rng(seed);
     this.me = [{ x: 0, y: 0, vx: 0, vy: 0, m: 1, a: -Math.PI / 2, sick: -1, id: 1 }];
-    this.food = []; this.prey = []; this.amoebas = []; this.phages = []; this.plants = []; this.crumbs = []; this.bdellos = []; this.slime = [];
+    this.food = []; this.prey = []; this.amoebas = []; this.phages = []; this.plants = []; this.crumbs = []; this.bdellos = []; this.slime = []; this.slippers = []; this.bells = [];
     this.genes = {};
     this.choice = []; // три гена на выбор; пока не пусто — мир стоит
     this.stats = { eaten: 0, most: 1, path: 0, time: 0, gen: 0, lost: {}, killer: null };
@@ -89,12 +89,16 @@ export class World {
       for (let i = 0; i < c.patch_food; i++) { const t = r() * 6.283, d = R * Math.sqrt(r()); this.food.push({ x: at.x + Math.cos(t) * d, y: at.y + Math.sin(t) * d, vx: 0, vy: 0 }); }
     }
     if (far > c.bdello_from && r() < c.bdello_chance[b] * (1 + far * c.danger_growth)) this.bdellos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: r(), id: ++this.ids });
+    if (far > c.slipper_from && r() < c.slipper_chance[b]) this.slippers.push({ ...pt(), a: r() * 6.283, back: 0, id: ++this.ids });
     if (r() < c.slime_chance[b]) { const at = pt(); this.slime.push({ ...at, a: r() * 3.14, len: 160 + r() * 220, w: 22 + r() * 22, id: ++this.ids }); } // тяж слизи: вязкий гель
     if (r() < c.crumb_chance[b]) this.crumbs.push({ ...pt(), m: 2 + r() * 3, id: ++this.ids }); // детрит: бурый комок, медленно тонет
     const np = 1 + Math.floor(r() * c.prey_per_chunk[b]);
     for (let i = 0; i < np; i++) this.prey.push({ ...pt(), vx: 0, vy: 0, m: 0.3 + r() * (0.9 + far * 0.5), a: r() * 6.3, id: ++this.ids, pair: r() < 0.4 });
     if (b === 2) for (let i = 0, n = 1 + Math.floor(r() * 3); i < n; i++) this.plants.push({ ...pt(), m: 3 + r() * 5, id: ++this.ids, t: r() });
     else if (r() < c.plant_chance) this.plants.push({ ...pt(), m: 3 + r() * 4, id: ++this.ids, t: r() });
+    if (!safe) for (const p of this.plants.slice(-3)) if (!p.bell && r() < c.bell_chance) { // сувойка сидит на нити водоросли
+      p.bell = true; const d = r() * 6.283; this.bells.push({ x: p.x + Math.cos(d) * 30, y: p.y + Math.sin(d) * 30, dir: d, shut: 0, id: ++this.ids });
+    }
     if (!safe && r() < c.amoeba_chance[b] * (1 + far * c.danger_growth))
       this.amoebas.push({ ...pt(), vx: 0, vy: 0, m: 3 + r() * (3 + far), id: ++this.ids });
     if (!safe && b === 1 && r() < c.phage_chance) {
@@ -178,6 +182,7 @@ export class World {
         if (d < rr) { a.vx += dx / d * (rr - d) * 6 * Math.min(1, 4 * dt); a.vy += dy / d * (rr - d) * 6 * Math.min(1, 4 * dt); }
       }
       a.x += a.vx * dt; a.y += a.vy * dt;
+      const [sx, sy] = this.suck(a.x, a.y); a.x += sx * dt; a.y += sy * dt; // течение воронок туфелек и вихрей сувоек
       a.w = wrap(a.a - a0) / dt; // скорость поворота — по ней тело и пучок жгутиков гнутся дугой
       if (a.sick >= 0) a.sick -= dt;
     }
@@ -195,11 +200,29 @@ export class World {
     if (this.look <= 0 && this.me.length) { // встречи: кого увидел впервые — в кабинет (событие 'meet' без паузы)
       this.look = 0.5;
       const R = this.cfg.meet;
-      for (const [k, list] of [['coccus', this.prey], ['plant', this.plants], ['crumb', this.crumbs], ['phage', this.phages], ['amoeba', this.amoebas], ['bdello', this.bdellos]])
+      for (const [k, list] of [['coccus', this.prey], ['plant', this.plants], ['crumb', this.crumbs], ['phage', this.phages], ['amoeba', this.amoebas], ['bdello', this.bdellos], ['slipper', this.slippers], ['bell', this.bells]])
         if (!this.met.has(k) && list.some(o => this.me.some(a => dist(a, o) < R))) { this.met.add(k); this.events.push(['meet', k]); }
     }
     this.tidy -= dt;
     if (this.tidy <= 0 && this.me.length) { this.tidy = 1; this.fill(c1.x, c1.y); this.forget(c1.x, c1.y); }
+  }
+
+  // Рот туфельки: сбоку у переднего конца. Рот сувойки: верх колокольчика на стебле.
+  mouth(p) { const c = this.cfg, u = [Math.cos(p.a), Math.sin(p.a)], L = c.slipper_len; return [p.x + u[0] * L * 0.15 - u[1] * L * 0.22, p.y + u[1] * L * 0.15 + u[0] * L * 0.22]; }
+  bell(v) { const L = this.cfg.bell_stalk * (v.shut > 0 ? 0.25 : 1); return [v.x + Math.cos(v.dir) * L, v.y + Math.sin(v.dir) * L]; }
+  // Течение в точке от всех воронок и вихрей: тянет к рту, у сувойки ещё и закручивает.
+  suck(x, y) {
+    const c = this.cfg; let fx = 0, fy = 0;
+    for (const p of this.slippers) {
+      const [mx, my] = this.mouth(p), dx = mx - x, dy = my - y, d = len(dx, dy);
+      if (d < c.funnel_r && d > 0.1) { const k = c.funnel * (1 - d / c.funnel_r); fx += dx / d * k; fy += dy / d * k; }
+    }
+    for (const v of this.bells) {
+      if (v.shut > 0) continue;
+      const [bx, by] = this.bell(v), dx = bx - x, dy = by - y, d = len(dx, dy);
+      if (d < c.vortex_r && d > 0.1) { const k = c.vortex * (1 - d / c.vortex_r); fx += (dx / d - dy / d * 0.6) * k; fy += (dy / d + dx / d * 0.6) * k; }
+    }
+    return [fx, fy];
   }
 
   // Внутри тяжа слизи? Тяж — изогнутая полоса вдоль оси a длиной len и толщиной w.
@@ -325,6 +348,35 @@ export class World {
         b.on = a; b.a = Math.atan2(b.y - a.y, b.x - a.x) + Math.PI; a.held = c.bdello_kill; this.events.push(['sick', a.x, a.y]); break;
       }
     }
+    // Туфелька плывёт штопором почти прямо и ни за кем не гонится. Врезалась — задний ход и поворот (реакция избегания).
+    // Всё мелкое, что поток воронки донёс до рта, — внутри.
+    for (const p of this.slippers) {
+      const ux = Math.cos(p.a), uy = Math.sin(p.a), L = c.slipper_len;
+      if (p.back > 0) { p.back -= dt; p.a += c.slipper_avoid * dt; p.x -= ux * c.slipper_speed * 0.6 * dt; p.y -= uy * c.slipper_speed * 0.6 * dt; }
+      else {
+        p.a += Math.sin(this.stats.time * 0.3 + p.id) * 0.15 * dt;
+        p.x += ux * c.slipper_speed * dt; p.y += uy * c.slipper_speed * dt;
+        const nx = p.x + ux * L * 0.55, ny = p.y + uy * L * 0.55;
+        const hit = [...this.plants, ...this.crumbs].some(o => Math.hypot(o.x - nx, o.y - ny) < radius(o.m) + 12)
+          || this.slippers.some(o => o !== p && Math.hypot(o.x - nx, o.y - ny) < L * 0.35);
+        if (hit) { p.back = c.slipper_back; this.events.push(['bump', nx, ny]); }
+      }
+      const [mx, my] = this.mouth(p);
+      for (const a of [...this.me]) if (Math.hypot(a.x - mx, a.y - my) < c.mouth_r) this.lose(a, mx, my, 'slipper');
+      for (const f of this.food) if (Math.hypot(f.x - mx, f.y - my) < c.funnel_r) { const d = Math.hypot(f.x - mx, f.y - my) || 1; f.x += (mx - f.x) / d * c.funnel * 0.6 * dt; f.y += (my - f.y) / d * c.funnel * 0.6 * dt; if (d < c.mouth_r) f.gone = true; }
+    }
+    // Сувойка сидит на стебле и гонит вихрь в рот. Медленную клетку затягивает; кто врежется с разгона —
+    // от того она мгновенно сжимается пружиной, и вихрь пропадает на пару секунд.
+    for (const v of this.bells) {
+      if (v.shut > 0) { v.shut -= dt; continue; }
+      const [bx, by] = this.bell(v);
+      for (const a of [...this.me]) {
+        const d = Math.hypot(a.x - bx, a.y - by), sp = Math.hypot(a.vx, a.vy);
+        if (d < c.bell_r + radius(a.m) && sp > c.bell_jolt) { v.shut = c.bell_shut; this.events.push(['snap', bx, by]); break; }
+        if (d < c.mouth_r) this.lose(a, bx, by, 'bell');
+      }
+    }
+    this.food = this.food.filter(f => !f.gone);
     for (const m of this.amoebas) { // амёба ползёт только по дну и нитям; в открытой воде почти стоит
       const a = this.nearest(m, 340);
       let wx = 0, wy = 0;
@@ -380,7 +432,7 @@ export class World {
   forget(x, y) {
     const C = this.cfg.chunk, kx = Math.floor(x / C), ky = Math.floor(y / C);
     const near = o => Math.abs(Math.floor(o.x / C) - kx) <= 2 && Math.abs(Math.floor(o.y / C) - ky) <= 2;
-    for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'crumbs', 'bdellos', 'slime']) this[k] = this[k].filter(near);
+    for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'crumbs', 'bdellos', 'slime', 'slippers', 'bells']) this[k] = this[k].filter(near);
     for (const key of [...this.chunks]) {
       const [a, b] = key.split(',').map(Number);
       if (Math.abs(a - kx) > 2 || Math.abs(b - ky) > 2) this.chunks.delete(key);
