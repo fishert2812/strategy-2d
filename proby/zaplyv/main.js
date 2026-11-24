@@ -319,6 +319,7 @@ function events() {
     if (k === 'sick' && world.me.some(a => a.held > 0)) tell('bdello', 'Прилип хищник! Резко развернись — стряхнёшь');
     if (k === 'eat') { ring(x, y, 2, 26 + 14 * size); const n = performance.now(); if (n - lastEat > 60) { beep(300 + Math.random() * 200, 0.09, 0.04); lastEat = n; } }
     if (k === 'split') ring(x, y, 0, 70);
+    if (k === 'leave') { ring(x, y, 0, 50); tell('leave', 'Дочка уплыла жить сама — мутации копятся дальше'); }
     if (k === 'meet') meet(x);
     if (k === 'stick') { ring(x, y, 1, 22); beep(520, 0.06, 0.04, 'square'); } // прилип фаг: резко развернись — стряхнёшь
     if (k === 'shake') { ring(x, y, 0, 30); beep(700, 0.07, 0.03); }
@@ -628,6 +629,11 @@ function paint(time) {
       }
     }
     if (a.sick >= 0) glow.put(x, y, half, 1, 0.2, 0.3, 0.25 + 0.2 * Math.sin(time * 20));
+  }
+  for (const b of world.away) { // уплывшая дочка: уходит своим курсом и тает в толще
+    const [x, y] = scr(b.x, b.y), w = 8.5 * Math.pow(b.m, 0.3) * z, f = b.t / cfg.away_time; if (!on(x, y)) continue;
+    if (f < 0.7) bodies.rod(x, y, b.a, w * 2.2, w, 0, [CELL[0].r, CELL[0].g, CELL[0].b], [CORE[0].r, CORE[0].g, CORE[0].b], b.id, 0);
+    glow.put(x, y, w * 3, 0.6, 0.85, 1, 0.25 * (1 - f));
   }
   for (const a of world.me) { // след: клетка расталкивает взвесь, частицы расходятся и гаснут — вязкость видна
     const sp = Math.hypot(a.vx, a.vy); if (sp < 40 || puffs.length > 230) continue;

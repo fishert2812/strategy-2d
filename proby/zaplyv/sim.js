@@ -40,7 +40,7 @@ export class World {
     this.rush = 0; this.lastEat = -9; // разгон роста от серии
     this.stats = { eaten: 0, most: 1, path: 0, time: 0, gen: 0, lost: {}, killer: null };
     this.met = new Set(['me']); this.look = 0;
-    this.steps = [...cfg.gene_steps];
+    this.splits = 0; this.away = []; // уплывшие дочки: видны пару секунд, потом теряются вдали // делений за заплыв: каждое gene_every-е даёт выбор из двух дочек, пока есть гены
     this.chunks = new Set();
     this.events = []; // [вид, x, y] — для вспышек на экране, экран их забирает
     this.tidy = 0;
@@ -115,7 +115,8 @@ export class World {
   }
 
   // Касание: все клетки, вытянувшиеся до cfg.split, делятся пополам вдоль своей оси.
-  divide() {
+  // leave — колония полна: дочка уплывает жить сама (в природе дочки расходятся), а мутация копится дальше.
+  divide(leave = false) {
     const born = [];
     for (const c of this.me) {
       if (c.m < this.split() || c.sick >= 0 || c.held > 0 || c.grab || c.spore > 0) continue;
@@ -125,10 +126,13 @@ export class World {
       c.x += ax * r * 0.6; c.y += ay * r * 0.6;
       this.events.push(['split', c.x, c.y]);
     }
-    this.me.push(...born);
+    const room = leave ? 0 : Math.max(0, this.cfg.me_max - this.me.length);
+    for (const b of born.slice(room)) { this.away.push({ ...b, t: 0 }); this.events.push(['leave', b.x, b.y]); }
+    this.me.push(...born.slice(0, room));
     this.stats.most = Math.max(this.stats.most, this.me.length);
-    if (this.steps.length && this.me.length >= this.steps[0]) {
-      this.steps.shift();
+    this.splits += born.length;
+    const k = s => s < this.cfg.gene_first ? -1 : Math.floor((s - this.cfg.gene_first) / this.cfg.gene_every);
+    if (k(this.splits) > k(this.splits - born.length) && !this.choice.length && Object.keys(this.cfg.genes).some(g => !this.genes[g])) { // первое деление и потом каждое gene_every-е; потолка нет, пока есть гены
       const left = Object.keys(this.cfg.genes).filter(g => !this.genes[g]);
       for (let i = left.length - 1; i > 0; i--) { const j = Math.floor(this.r() * (i + 1)); [left[i], left[j]] = [left[j], left[i]]; }
       this.choice = left.slice(0, 2); // две дочки — у каждой своя мутация
@@ -214,7 +218,9 @@ export class World {
     this.hold(dt);
     this.rush = Math.max(0, this.rush - (this.stats.time - this.lastEat > c.rush_gap ? c.rush_fall * dt : 0));
     // Выросшая клетка делится сама через cfg.auto_split с (так делятся бактерии); касание — поделиться раньше, когда нужно.
-    if (this.me.length < c.auto_max && this.me.some(a => a.m >= this.split())) { this.ripe = (this.ripe || 0) + dt; if (this.ripe > c.auto_split) { this.ripe = 0; this.divide(); } } else this.ripe = 0;
+    if (this.me.some(a => a.m >= this.split() && !a.grab && !(a.held > 0))) { this.ripe = (this.ripe || 0) + dt; if (this.ripe > c.auto_split) { this.ripe = 0; this.divide(this.me.length >= c.auto_max); } } else this.ripe = 0;
+    for (const b of this.away) { b.t += dt; b.x += Math.cos(b.a) * c.away_speed * dt; b.y += Math.sin(b.a) * c.away_speed * dt; }
+    this.away = this.away.filter(b => b.t < c.away_time);
     for (const a of this.me.filter(a => a.sick >= 0 && a.sick < dt)) {
       this.lose(a, a.x, a.y, 'phage');
       this.events.push(['burst', a.x, a.y]); this.spill(a.x, a.y);

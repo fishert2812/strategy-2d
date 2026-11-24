@@ -27,6 +27,16 @@ case_ "test_L004: видимое без строки в CHANGELOG" 25_changelog.
 case_ "test_L005: новая версия без «Зачем игроку»" 26_meaning.sh red "$BUMP"' && sed -i "0,/^- \*\*/s//- **$m** (проба, PR #0): проба.\n&/" CHANGELOG.md'
 case_ "доказывает несуществующий тест" 26_meaning.sh red "$BUMP"' && sed -i "0,/^- \*\*/s//- **$m** (проба, PR #0): проба. Зачем игроку: проба. Доказывает: \`test_nonexistent_probe\`.\n&/" CHANGELOG.md'
 case_ "исправная новая версия" 26_meaning.sh green "$BUMP"' && sed -i "0,/^- \*\*/s//- **$m** (проба, PR #0): проба. Зачем игроку: проба. Доказывает: \`test_selftest_probe\`.\n&/" CHANGELOG.md && printf "extends RefCounted\nfunc test_selftest_probe() -> String:\n\treturn \"\"\n" > tests/test_selftest_probe.gd && git add -A'
+# «Заплыв»: на каждый урок L008–L016 возвращаем ошибку в игру — проверка с этим номером обязана покраснеть (ONLY — только она).
+Z=proby/zaplyv
+ONLY=L008 case_ "test_L008: фаг снова гонится" 50_zaplyv.sh red "sed -i 's/(fx - g.vx)/(fx + (this.me[0] ? Math.sign(this.me[0].x - g.x) * 300 : 0) - g.vx)/' $Z/sim.js"
+ONLY=L009 case_ "test_L009: деление только касанием" 50_zaplyv.sh red "sed -i 's/\"auto_split\": 3,/\"auto_split\": 999,/' $Z/data.json"
+ONLY=L010 case_ "test_L010: еда без размера" 50_zaplyv.sh red "sed -i 's/const z = f.s || 1;/const z = 1;/' $Z/sim.js"
+ONLY=L011 case_ "test_L011: рывки в разворотах" 50_zaplyv.sh red "sed -i 's/a.a += Math.abs(a.om \\* dt) > Math.abs(d) ? d : a.om \\* dt;/a.a += d;/' $Z/sim.js"
+ONLY=L012 case_ "test_L012: потолок мутаций" 50_zaplyv.sh red "sed -i 's/\"gene_every\": 5/\"gene_every\": 999/' $Z/data.json"
+ONLY=L013 case_ "test_L013: опасность у самого старта" 50_zaplyv.sh red "sed -i 's/const safe = far < c.safe_chunks;/const safe = false;/' $Z/sim.js"
+ONLY=L014 case_ "test_L014: запятая не рождается в мире" 50_zaplyv.sh red "sed -i 's/ this.bdellos.push({ ...pt()/ 0 \&\& this.bdellos.push({ ...pt()/' $Z/sim.js"
+ONLY=L016 case_ "test_L016: токсин снова бьёт не родню" 50_zaplyv.sh red "sed -i 's/if (q.strain \&\& !q.gone/if (!q.gone/' $Z/sim.js"
 # Остановка: открытая issue stop делает PR красным, метка fix пропускает.
 GITHUB_BASE_REF=main STOP_ISSUES="#0 проба" PR_LABELS= bash tools/checks/05_stop.sh >/dev/null 2>&1 &&
   { echo "  SELFTEST: остановка не сделала PR красным"; fail=1; } || echo "  ок: остановка (red)"

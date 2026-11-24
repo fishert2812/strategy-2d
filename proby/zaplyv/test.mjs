@@ -8,7 +8,9 @@ import { mark, message } from './feedback.js';
 import { readFileSync } from 'node:fs';
 const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
 let bad = 0;
+// ONLY=L014 — запустить только проверки с этим номером урока (так selftest ломает игру и ждёт красного у нужной проверки).
 const check = (name, fn) => {
+  if (process.env.ONLY && !name.includes('test_' + process.env.ONLY)) return;
   try { const r = fn(); if (r) { bad++; console.log('  ПРОВАЛ', name + ':', r); } else console.log('  ок   ', name); }
   catch (e) { bad++; console.log('  ПРОВАЛ', name + ':', e.stack); }
 };
@@ -74,7 +76,7 @@ check('фаг прилипает и впрыскивает, клетка лоп�
   if (res[1][5] !== 1 || res[1][6] < 0.95) return 'знакомый фаг не режется даром';
 });
 
-check('фаг не гонится за клеткой: его носит вода, опасно только влететь в облако (замечание Романа 24.11)', () => {
+check('test_L008: фаг не гонится за клеткой: его носит вода, опасно только влететь в облако (замечание Романа 24.11)', () => {
   const w = new World(cfg, 6);
   w.food = []; w.prey = []; w.amoebas = []; w.slippers = []; w.bells = []; w.plants = []; w.tidy = 1e9;
   w.phages = []; for (let i = 0; i < 8; i++) w.cloud(90 + i * 6, -20 + i * 5, 'me', 0);
@@ -238,7 +240,7 @@ check('каждая мутация видна на теле: облик клет
   if (same.length) return 'не видно на теле: ' + same.join(', ');
 });
 
-check('развороты плавные, без рывков (Роман 24.11: «чуть дёрганые развороты»): угол и скорость поворота меняются без скачков', () => {
+check('test_L011: развороты плавные, без рывков (Роман 24.11: «чуть дёрганые развороты»): угол и скорость поворота меняются без скачков', () => {
   const w = new World(cfg, 9); w.amoebas = []; w.slippers = []; w.bells = []; w.phages = []; w.prey = []; w.food = []; w.bdellos = []; w.tidy = 1e9;
   const a = w.me[0], sw = cfg.swim, dt = 1 / 30;
   const moves = [[1, 0], [0, 1], [-1, 0], [1, 0.2], [0, -1], [-0.7, 0.7], [1, 0], [-1, 0.1]]; // палец дёргают как попало
@@ -330,7 +332,7 @@ check('коловратка по часам: плывёт — колёса вп�
   if (!(d < 160)) return 'поток не несёт еду к рту';
 });
 
-check('новичок, который не знает про касание и не уворачивается, доходит до первой мутации (клетка делится сама; хищник-запятая приходит, когда добычи стало много)', () => {
+check('test_L009: новичок, который не знает про касание и не уворачивается, доходит до первой мутации (клетка делится сама; хищник-запятая приходит, когда добычи стало много)', () => {
   const novice = w => { const c = w.center(); let best = null, bd = 260; for (const f of w.food) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } }
     return best ? { x: best.x, y: best.y } : { dx: Math.cos(w.dir), dy: Math.sin(w.dir), p: 1 }; };
   const first = [], killers = {}; let bdelloEarly = 0;
@@ -364,7 +366,7 @@ check('пасть держит, а не глотает сразу: кувыро�
   if (bFlip[1] !== 1) return 'кувырок не стряхнул только что прилипшую запятую';
 });
 
-check('крупный кусок кормит больше мелкого; куски подряд разгоняют рост', () => {
+check('test_L010: крупный кусок кормит больше мелкого; куски подряд разгоняют рост', () => {
   const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis']) w[k] = []; w.tidy = 1e9; return w; };
   const one = size => { const w = bare(91), a = w.me[0]; w.food = [{ x: a.x, y: a.y, vx: 0, vy: 0, s: size }]; w.step(1 / 30, null); return a.m - 1; };
   const small = one(0.6), big = one(2.4);
@@ -423,7 +425,7 @@ check('сон-персистер: последняя клетка с геном 
   if (yes.me.length) return 'спора спасла дважды';
 });
 
-check('по сверке биолога: кокков не глотаешь и токсин их не берёт (CDI бьёт только чужих палочек, они лопаются едой; свои и синегнойка целы); долго вплотную к кокку — щиплет, замедляет; новый замок — T4 не садится; хемотаксис ведёт клетку, а не еду; быстрый рост — деление раньше; по плазмиде только токсин, капсула, CRISPR', () => {
+check('test_L016: по сверке биолога: кокков не глотаешь и токсин их не берёт (CDI бьёт только чужих палочек, они лопаются едой; свои и синегнойка целы); долго вплотную к кокку — щиплет, замедляет; новый замок — T4 не садится; хемотаксис ведёт клетку, а не еду; быстрый рост — деление раньше; по плазмиде только токсин, капсула, CRISPR', () => {
   const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
   const touch = tox => { const w = bare(131), a = w.me[0]; w.genes.toxin = tox; const at = (dx, o) => ({ x: a.x + dx, y: a.y, vx: 0, vy: 0, a: 0, t: 9, rest: 9, cool: 0, ...o });
     w.prey = [{ ...at(8), m: 0.5, id: 4 }]; w.pseudos = [at(10, { strain: true, id: 5 }), at(-10, { id: 6 })]; w.donors = [{ ...at(0, { id: 7 }), y: a.y + 10, link: 0 }];
@@ -492,6 +494,53 @@ check('фимбрии: отпустил палец у водоросли — п�
   if (free[0] < 10) return 'воронка не тянет — проверка ничего не доказывает';
   if (held[0] > 2 || !held[1]) return 'с фимбриями всё равно снесло';
   if (swim[0] < 50) return 'прилипшая клетка не уплывает пальцем';
+});
+
+check('test_L012: потолка мутаций нет — долгий бот без опасностей получает больше 5 мутаций; полная колония отпускает дочек, и мутации копятся дальше', () => {
+  const res = [];
+  for (let s = 1; s <= 3; s++) {
+    const w = new World(cfg, s * 37);
+    for (let i = 0; i < 30 * 120 && w.me.length; i++) {
+      if (w.choice.length) w.pick(w.choice[0]);
+      w.amoebas = []; w.bdellos = []; w.slippers = []; w.bells = []; w.rotis = []; w.pseudos = []; w.phages = [];
+      const c = w.center(); let best = null, bd = 1e9; for (const f of w.food) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } }
+      w.step(1 / 30, best ? { x: best.x, y: best.y } : { x: c.x + 100, y: c.y });
+    }
+    res.push([Object.keys(w.genes).length, w.splits, w.me.length]);
+  }
+  console.log('    паспорт: за 2 минуты мутаций/делений/клеток', res.map(r => r.join('/')).join(' | '), '| генов в игре', Object.keys(cfg.genes).length);
+  if (res.some(r => r[0] <= 5)) return 'потолок: мутаций ' + res.map(r => r[0]).join(',');
+  if (res.some(r => r[2] > cfg.me_max)) return 'колония выросла больше me_max';
+});
+
+check('test_L013: новичок без касаний и уворотов не встречает первую опасность раньше 8 с (сувойка на 3-й секунде — ошибка 24.11)', () => {
+  const novice = w => { const c = w.center(); let best = null, bd = 260; for (const f of w.food) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } }
+    return best ? { x: best.x, y: best.y } : { dx: Math.cos(w.dir), dy: Math.sin(w.dir), p: 1 }; };
+  const out = [];
+  for (let s = 1; s <= 12; s++) {
+    const w = new World(cfg, s * 53); w.dir = s * 1.3; let t = null;
+    for (let i = 0; i < 30 * 30 && w.me.length && t === null; i++) {
+      w.step(1 / 30, novice(w)); if (w.choice.length) w.pick(w.choice[0]);
+      const e = w.events.find(e => ['grab', 'stick', 'sick', 'zap', 'eaten', 'burst', 'pinch'].includes(e[0])); w.events.length = 0;
+      if (e || w.amoebas.some(m => w.me.some(a => Math.hypot(a.x - m.x, a.y - m.y) < 120))) t = w.stats.time;
+    }
+    out.push(t ?? 99);
+  }
+  console.log('    паспорт: первая опасность, с', out.map(t => t < 99 ? t.toFixed(1) : '—').join(' '));
+  if (Math.min(...out) < 8) return 'опасность на ' + Math.min(...out).toFixed(1) + ' с';
+});
+
+check('test_L014: бот-путешественник за 4 заплыва встречает каждое существо из кабинета (запятая пропала на 11 версий — ошибка 24.11)', () => {
+  const cards = JSON.parse(readFileSync(new URL('./cards.json', import.meta.url))), keys = Object.keys(cards).filter(k => k !== '_' && k !== 'me');
+  const met = new Set();
+  for (let s = 1; s <= 4; s++) {
+    const w = new World(cfg, s * 71), dir = s * 1.7;
+    for (let i = 0; i < 30 * 120 && w.me.length; i++) { if (w.choice.length) w.pick(w.choice[0]); w.step(1 / 30, { dx: Math.cos(dir + Math.sin(i / 200)), dy: Math.sin(dir + Math.sin(i / 200)), p: 1 }); }
+    for (const k of w.met) met.add(k);
+  }
+  const miss = keys.filter(k => !met.has(k));
+  console.log('    паспорт: встретил', keys.filter(k => met.has(k)).length, 'из', keys.length, '| не встретил', miss.join(',') || '—');
+  if (miss.length) return 'в мире не встретились: ' + miss.join(', ');
 });
 
 check('мир без краёв: уплыл далеко — вокруг снова еда, позади забыто', () => {
