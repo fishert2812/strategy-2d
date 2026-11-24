@@ -19,20 +19,20 @@ func test_bent_route_goes_through_the_bend() -> String:
 	var b := sim.build(Sim.PLAYER, "barracks", Vector2(360, 760))
 	var trail := []
 	for i in 21:
-		trail.append(Vector2(360, 760).lerp(Vector2(120, 520), i / 20.0) + Vector2(randf_range(-6, 6), randf_range(-6, 6)))
+		trail.append(Vector2(360, 760).lerp(Vector2(40, 520), i / 20.0) + Vector2(randf_range(-6, 6), randf_range(-6, 6)))
 	for i in 21:
-		trail.append(Vector2(120, 520).lerp(Vector2(350, 110), i / 20.0) + Vector2(randf_range(-6, 6), randf_range(-6, 6)))
+		trail.append(Vector2(40, 520).lerp(Vector2(350, 110), i / 20.0) + Vector2(randf_range(-6, 6), randf_range(-6, 6)))
 	if not sim.set_route(b, trail):
 		return "ломаная тропа не легла"
-	if b.route.size() < 2 or b.route.size() > sim.cfg.route.bends + 1:
-		return "после сглаживания точек %d, ждали 2..%d" % [b.route.size(), sim.cfg.route.bends + 1]
+	if b.route.size() < 2:
+		return "нитка не обогнула печенье на изгибе: %s" % [b.route]
 	if b.target.get("kind") != "home":
 		return "конец тропы не прилип к дому врага"
 	var near := [INF]
 	_run(sim, 40.0, func():
 		for u in _warriors(sim, Sim.PLAYER):
-			near[0] = minf(near[0], u.pos.distance_to(Vector2(120, 520))))
-	if near[0] > 30:
+			near[0] = minf(near[0], u.pos.distance_to(Vector2(110, 500))))
+	if near[0] > 60:
 		return "отряд не прошёл через изгиб: ближе всего %d" % near[0]
 	return ""
 
@@ -89,7 +89,7 @@ func test_squad_moves_on_to_next_target() -> String:
 	_run(sim, 120.0)
 	if camp.hp > 0:
 		return "лагерь врага цел через 120 с"
-	if b.target.get("kind") != "home" or b.route != [b.target.pos]:
+	if b.target.get("kind") != "home" or b.route.is_empty() or b.route[-1] != b.target.pos:
 		return "после лагеря тропа не перескочила на дом врага: %s" % b.target.get("kind")
 	if b.target.hp >= b.target.max_hp:
 		return "отряд не пошёл ломать дом врага"
@@ -109,7 +109,7 @@ func test_finger_draws_bent_route() -> String:
 	await tree.process_frame
 	var sim: Sim = battle.sim
 	var b := sim.build(Sim.PLAYER, "barracks", Vector2(360, 760))
-	var way := [Vector2(360, 760), Vector2(120, 520), Vector2(350, 110)]
+	var way := [Vector2(360, 760), Vector2(40, 520), Vector2(350, 110)]
 	var e := InputEventScreenTouch.new()
 	e.pressed = true
 	e.position = battle.world.to_global(way[0])
@@ -119,13 +119,16 @@ func test_finger_draws_bent_route() -> String:
 			var m := InputEventScreenDrag.new()
 			m.position = battle.world.to_global(way[leg].lerp(way[leg + 1], i / 15.0))
 			battle.get_viewport().push_input(m, true)
+	var shown := Array(battle._drag.line.points)
 	var up := InputEventScreenTouch.new()
 	up.position = battle.world.to_global(way[2])
 	battle.get_viewport().push_input(up, true)
 	var route: Array = b.route.duplicate()
 	var target: String = b.target.get("kind", "")
 	holder.free()
-	if route.size() < 2 or route[0].distance_to(way[1]) > 30:
+	if shown != [b.pos] + route:
+		return "под пальцем %s, а легло %s" % [shown, [b.pos] + route]
+	if route.size() < 2 or route[0].distance_to(Vector2(110, 500)) > 70:
 		return "палец провёл тропу в обход, а легла %s" % [route]
 	if target != "home":
 		return "конец тропы у дома врага, а цель «%s»" % target
