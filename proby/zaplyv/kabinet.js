@@ -8,7 +8,7 @@ export function shelf(K, met, group = 'all') {
   const keys = Object.keys(K.items), others = keys.filter(k => K.items[k].group !== 'me');
   const seen = others.filter(k => met.has(k)).length;
   const pills = K.groups.map(([g, name]) => {
-    const n = (g === 'all' ? keys : keys.filter(k => K.items[k].group === g)).filter(k => met.has(k)).length;
+    const n = (g === 'all' ? others : others.filter(k => K.items[k].group === g)).filter(k => met.has(k)).length; // «Ты» не в счёт: счёт тот же, что сверху
     return { g, label: n ? `${name} · ${n}` : name };
   });
   const list = keys.filter(k => group === 'all' || K.items[k].group === group);
@@ -28,7 +28,7 @@ export function page(k, K, cards, T, met) {
 export function kabinetScreen({ K, cards, T, met, snap, onSwim }) {
   const $ = id => document.getElementById(id);
   const shots = new Map(), keys = Object.keys(K.items);
-  let group = 'all', cur = null, queue = [];
+  let group = 'all', cur = null, queue = [], top = 0;
   const shot = k => { if (!shots.has(k)) { try { shots.set(k, snap(k)); } catch (e) { shots.set(k, ''); } } return shots.get(k); };
   const seenNew = () => { try { return new Set(JSON.parse(localStorage.getItem('zaplyv.opened') || '[]')); } catch (_) { return new Set(); } };
   const opened = seenNew();
@@ -75,12 +75,16 @@ export function kabinetScreen({ K, cards, T, met, snap, onSwim }) {
     $('kprev').textContent = '‹ ' + page(prev, K, cards, T, met).name; $('kprev').onclick = () => openCard(prev);
     $('knext').textContent = page(next, K, cards, T, met).name + ' ›'; $('knext').onclick = () => openCard(next);
     $('kprev').style.visibility = $('knext').style.visibility = mine.length > 1 ? '' : 'hidden';
+    if (!$('kshelf').hidden) top = $('cabinet').scrollTop; // место на полке — вернёмся ровно туда
     $('kshelf').hidden = true; card.hidden = false; $('cabinet').scrollTop = 0;
   }
-  function toShelf() { $('kcard').hidden = true; $('kshelf').hidden = false; drawShelf(); }
+  function toShelf() { $('kcard').hidden = true; $('kshelf').hidden = false; drawShelf(); $('cabinet').scrollTop = top; }
   function open() { group = 'all'; $('kcard').hidden = true; $('kshelf').hidden = false; drawShelf(); $('cabinet').classList.add('on'); $('cabinet').scrollTop = 0; }
   function close() { $('cabinet').classList.remove('on'); }
   $('back').onclick = close; $('kback').onclick = toShelf;
+  let sx = null; // смахивание от левого края вправо — назад, как в приложениях iPhone
+  $('cabinet').addEventListener('touchstart', e => { const t = e.touches[0]; sx = t.clientX < 28 ? [t.clientX, t.clientY] : null; }, { passive: true });
+  $('cabinet').addEventListener('touchend', e => { const t = e.changedTouches[0]; if (sx && t.clientX - sx[0] > 70 && Math.abs(t.clientY - sx[1]) < 60) ($('kcard').hidden ? close : toShelf)(); sx = null; }, { passive: true });
   $('kswim').onclick = () => { close(); onSwim(); };
   return { open, close, openCard, label: () => { const o = keys.filter(k => K.items[k].group !== 'me'); return `Кабинет · встретил ${o.filter(k => met.has(k)).length} из ${o.length}`; } };
 }
