@@ -22,7 +22,7 @@ export function card(slot, genes, from, names, G, arcName) {
   if (!live) return { title: slot.name, latin: slot.gene === '?' ? '' : slot.gene, have, sub: (arcName ? arcName + ' · ' : '') + 'спит',
     lines: [['Даст', slot.soon], ['Откуда', slot.gene === '?' ? 'пусто' : G.from.none]] };
   const pipe = (G.pipe || []).includes(slot.id); // по трубочке ходят только плазмидные гены (data.json plasmid_genes)
-  return { title: names[slot.id][0], latin: slot.gene, have, sub: (arcName ? arcName + ' · ' : 'чужой · ') + (have ? G.from[from[slot.id]] || G.from.kid : 'спит'),
+  return { title: names[slot.id][0], latin: slot.gene === slot.id ? '' : slot.gene /* у умения без одного настоящего гена латыни нет (книга) */, have, sub: (arcName ? arcName + ' · ' : 'чужой · ') + (have ? G.from[from[slot.id]] || G.from.kid : 'спит'),
     lines: [['В игре', names[slot.id][1]], ['На теле', slot.body], ['В науке', slot.science]].concat(have ? [] : [['Откуда', pipe ? G.from.canpipe : G.from.can]]) };
 }
 

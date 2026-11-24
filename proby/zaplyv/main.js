@@ -306,6 +306,7 @@ try { for (const k of JSON.parse(localStorage.getItem('zaplyv.met') || '[]')) me
 const saveMet = () => { try { localStorage.setItem('zaplyv.met', JSON.stringify([...met])); } catch (_) {} };
 const KAB = await (await fetch('almanah.json')).json();
 const GENY = await fetch('kniga/teksty_genov.json').then(r => r.ok ? r.json() : {}).catch(() => ({})); // гены: имена и тексты книги
+mut.addGenes(cfg); mut.names(cfg, GENY); // новые мутации: имена из книги
 const TEKSTY = await fetch('kniga/teksty_sushchestv.json').then(r => r.ok ? r.json() : {}).then(j => j.sushchestva || {}).catch(() => ({})); // тексты книги
 // Снимок модели: на миг подменяем мир студией с одним существом в середине кадра, рисуем тем же paint и вырезаем середину.
 const LISTS = { me: 'me', phage: 'phages', bdello: 'bdellos', amoeba: 'amoebas', slipper: 'slippers', bell: 'bells', roti: 'rotis',

@@ -1,11 +1,12 @@
 {
- "_": "Новые мутации «Заплыва» по каталогу биолога (design/zaplyv_mutacii_katalog.md). Поведение — mutacii.js, имена и тексты — только из книги (kniga/teksty_genov.json по ключу). pipe — чужие гены: приходят лишь по трубочке.",
+ "_": "Новые мутации «Заплыва» по каталогу биолога (design/zaplyv_mutacii_katalog.md). Поведение — mutacii.js, имена и тексты — только из книги (kniga/teksty_genov.json по ключу). pipe — чужие гены: приходят лишь по трубочке. everywhere — гены, которые живут и в обычном заплыве (слово Романа).",
  "genes": {
   "snap": "snap",
   "abort": "abi",
   "gas": "gvpA",
   "door": "ompF",
-  "decoy": "decoy"
+  "decoy": "decoy",
+  "flu": "flu"
  },
  "pipe": [
   "snap",
@@ -38,5 +39,24 @@
   "life": 8,
   "r": 20,
   "max": 30
+ },
+ "everywhere": [
+  "flu"
+ ],
+ "flu": {
+  "k": 4,
+  "r": 30,
+  "turn": 0.7,
+  "off": 3,
+  "push": 160,
+  "spread": 0.6,
+  "min": {
+   "slipper": 4,
+   "bell": 4,
+   "roti": 7
+  },
+  "pins": 6,
+  "pack": 0.9,
+  "align": 4
  }
 }

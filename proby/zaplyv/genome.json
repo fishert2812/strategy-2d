@@ -35,6 +35,10 @@
     {
      "id": "gas",
      "gene": "gvpA"
+    },
+    {
+     "id": "flu",
+     "gene": "flu"
     }
    ]
   },

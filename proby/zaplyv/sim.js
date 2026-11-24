@@ -197,7 +197,7 @@ export class World {
         }
         // поворот с разгоном и доводкой: скорость поворота меняется плавно (не больше spin_acc рад/с²)
         // и гаснет к цели — без скачков позы ни на дуге, ни в кувырке
-        const turn = mut.turnRate(a, a.tumble ? sw.tumble_turn : sw.turn), wantW = Math.max(-turn, Math.min(turn, d * sw.ease));
+        const turn = mut.turnRate(this, a, a.tumble ? sw.tumble_turn : sw.turn), wantW = Math.max(-turn, Math.min(turn, d * sw.ease));
         const acc = mut.acc(a, sw.spin_acc); a.om = (a.om || 0) + Math.max(-acc * dt, Math.min(acc * dt, wantW - (a.om || 0)));
         a.a += Math.abs(a.om * dt) > Math.abs(d) ? d : a.om * dt;
         thrust = (this.inSlime(a.x, a.y) && !this.genes.flagellum ? c.slime_slow : 1) /* много жгутиков пробивают слизь */ * (a.tumble ? s * 0.12 : s * Math.max(0.25, Math.cos(wrap(want - a.a)))) * (a.held > 0 ? 0.3 : 1) * (a.stun > 0 || a.spore > 0 ? 0 : 1) * (a.pinch > 0 ? c.pinch_slow : 1) * mut.thrust(this, a); // в шарике почти не плывёт; после гарпуна миг оглушена
@@ -361,7 +361,7 @@ export class World {
 
   // Пасть: клетку не съедают мгновенно — её держат, пока смыкается пищеварительный пузырёк (cfg.grab с).
   // Резкий разворот (кувырок) вырывает, и ещё секунду клетку не поймать. Не успел — съеден.
-  grab(a, who, by) { if (a.grab || a.free > 0) return; a.grab = { who, by, t: this.cfg.grab }; this.events.push(['grab', a.x, a.y]); }
+  grab(a, who, by) { if (a.grab || a.free > 0 || mut.raftHolds(this, a, who)) return; /* сцепка: плот не по зубам мелкой пасти */ a.grab = { who, by, t: this.cfg.grab }; this.events.push(['grab', a.x, a.y]); }
   mouthOf(g) { const b = g.by; return g.who === 'slipper' ? this.mouth(b) : g.who === 'bell' ? this.bell(b) : this.head(b); }
   hold(dt) {
     for (const a of [...this.me]) {
