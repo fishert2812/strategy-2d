@@ -32,7 +32,7 @@ var _lines := {}
 
 
 func _ready() -> void:
-	$Hud/Box/Top/Sha.text = Version.sha()
+	$Hud/Box/Top/Sha.text = Version.label()
 	$Grass.texture = _tex(look.background)
 	$Grass.modulate = Color(look.background_tint)
 	for kind in buttons:

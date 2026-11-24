@@ -1,5 +1,5 @@
 extends RefCounted
-## Стартовый экран: есть кнопка не меньше 44 пунктов и sha в углу.
+## Стартовый экран: есть кнопка не меньше 44 пунктов и версия (номер и sha) в углу.
 
 const MAIN := preload("res://scenes/main.tscn")
 
@@ -25,8 +25,10 @@ func test_sha_is_shown() -> String:
 	var main := _make()
 	var text: String = main.get_node("Safe/Sha").text
 	main.free()
-	if text != Version.sha():
-		return "в углу «%s», а версия «%s»" % [text, Version.sha()]
-	if text.strip_edges() == "":
-		return "sha пустой"
+	if text != Version.label():
+		return "в углу «%s», а версия «%s»" % [text, Version.label()]
+	if Version.number() == "?" or not text.begins_with("Версия " + Version.number()):
+		return "в углу нет номера версии из data/version.json: «%s»" % text
+	if not text.ends_with(Version.sha()):
+		return "в углу нет sha: «%s»" % text
 	return ""
