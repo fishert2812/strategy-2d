@@ -117,9 +117,10 @@ await p.waitForTimeout(600);
 const g0 = await p.evaluate(() => zaplyvWorld().choice[0]);
 if (await tap('#cards button', 'карточка гена дочки')) say(await p.evaluate(g => zaplyvWorld().genes[g], g0), 'карточка дочки даёт её ген');
 // test_L030 (дизайнер 24.11: колокольчик и коловратка убивают новичка без признака): у воронки на экране оранжевый край, у ближайшей он разгорается.
-{ const lit = async d => { await p.evaluate(d => { const w = zaplyvWorld(), a = w.me[0]; for (const l of ['amoebas', 'bdellos', 'slippers', 'bells', 'rotis']) w[l].length = 0; w.choice = [];
+{ const lit = async d => { await p.evaluate(d => { const w = zaplyvWorld(), a = w.me[0]; for (const l of ['amoebas', 'bdellos', 'slippers', 'bells', 'rotis']) w[l].length = 0; w.choice = []; w.me.length = 1; Object.assign(a, { vx: 0, vy: 0, grab: null, held: 0 }); // одна клетка у края: встреча с воронкой гарантирована
     w.bells.push({ x: a.x + 300, y: a.y, dir: 0, shut: 0, id: 7001 }); const [bx, by] = w.bell(w.bells[0]); w.bells[0].x -= bx - (a.x + w.cfg.vortex_r + d); w.bells[0].y -= by - a.y; zaplyvProbe.warn = {}; }, d);
-    await p.waitForTimeout(250); return p.evaluate(() => zaplyvProbe.warn.bell || 0); };
+    if (d < 200) await p.waitForFunction(() => zaplyvProbe.warn.bell > 0, null, { timeout: 2500 }).catch(() => {}); else await p.waitForTimeout(400); // ждём сам признак, а не паузу (WebKit рисует первые кадры с задержкой)
+    return p.evaluate(() => zaplyvProbe.warn.bell || 0); };
   const near = await lit(60), far = await lit(900);
   say(near > 0 && !far, `test_L030: край воронки разгорается, когда до него меньше полутора секунд хода (кадров с тревогой ${near}), и молчит вдали (${far})`); }
 await p.evaluate(() => { const w = zaplyvWorld(), c = w.center(); w.events.push(['gene', c.x, c.y, 'fim']); }); await p.waitForFunction(() => document.getElementById('toast').textContent.startsWith('Ген от сородича'), null, { timeout: 4000 }).catch(() => {});
