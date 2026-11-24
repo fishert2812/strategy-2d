@@ -28,6 +28,7 @@ var _units := {}
 var _lines := {}
 ## Тропа, которая после отпускания подтягивается в чистую форму: казарма и линия под пальцем.
 var _settle := {}
+var _loaded := []
 
 @onready var world: Node2D = $World
 @onready var things: Node2D = $World/Things
@@ -40,6 +41,7 @@ var _glow := Node2D.new()
 
 
 func _ready() -> void:
+	_preload(look)
 	$Hud/Box/Top/Sha.text = Version.label()
 	$Grass.texture = _tex(look.background)
 	$Grass.modulate = Color(look.background_tint)
@@ -554,6 +556,16 @@ func _bar_top() -> float:
 
 func sprite_of(id: int) -> Node2D:
 	return _sprites.get(id, _units.get(id))
+
+
+## Все картинки стола загрузить сразу: первая загрузка картинки посреди партии (казарма, первый воин)
+## давала заминку кадра в браузере телефона. Держим ссылки, чтобы кэш их не выбросил.
+func _preload(v) -> void:
+	if v is Dictionary or v is Array:
+		for x in (v.values() if v is Dictionary else v):
+			_preload(x)
+	elif v is String and not v.is_empty() and ResourceLoader.exists(look.dir + v + ".png"):
+		_loaded.append(_tex(v))
 
 
 func _tex(file: String) -> Texture2D:
