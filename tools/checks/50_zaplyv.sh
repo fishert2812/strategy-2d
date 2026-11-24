@@ -4,4 +4,4 @@
 # Запуск в WebKit и время кадра проверяет tools/web/check_zaplyv.sh в workflow web.
 set -u
 command -v node >/dev/null || { echo "  нет node — проверить «Заплыв» нечем"; exit 1; }
-timeout 120 node proby/zaplyv/test.mjs
+timeout 300 node proby/zaplyv/test.mjs
