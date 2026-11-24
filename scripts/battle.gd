@@ -219,11 +219,13 @@ func debug_text() -> String:
 
 func _move(pos: Vector2) -> void:
 	if _drag.has("from"):
-		# След пальца: точка каждые route.step единиц поля.
+		# След пальца (не рисуется): точка каждые route.step единиц поля.
 		var at := world.to_local(pos)
 		if _drag.trail.is_empty() or _drag.trail[-1].distance_to(at) >= sim.cfg.route.step:
 			_drag.trail.append(at)
-		_points(_drag.line, [_drag.from.pos] + _drag.trail + [at])
+		# Тропа казармы — натянутая нитка уже под пальцем: что видно сейчас, то и ляжет при отпускании.
+		var shown: Array = sim.thread(_drag.from, _drag.trail + [at]).route if _drag.from.kind == "barracks" else [at]
+		_points(_drag.line, [_drag.from.pos] + shown)
 	elif _drag.has("what"):
 		if pos.distance_to(_drag.start) >= TAP:
 			_drag.moved = true
