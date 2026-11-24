@@ -3,6 +3,7 @@ import { World, radius } from './sim.js';
 import { Stick } from './controls.js';
 import { follow } from './soft.js';
 import { look } from './look.js';
+import { layout, card } from './genome.js';
 import { readFileSync } from 'node:fs';
 const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
 let bad = 0;
@@ -432,6 +433,24 @@ check('по сверке биолога: кокков не глотаешь (т�
   if (!(y1 - y0 > 3) || moved > 0.5) return 'хемотаксис не ведёт клетку или двигает еду';
   if (!(fastW.split() < cfg.split)) return 'быстрый рост не ускоряет деление';
   if ([...gs].some(g => !cfg.plasmid_genes.includes(g)) || !gs.size) return 'по плазмиде пришёл не тот ген';
+});
+
+check('геном на паузе: у каждого гена из игры своё место на кольце; полученный ген включён, сказано, откуда он и что делает, а касание гена меняет вид клетки', () => {
+  const G = JSON.parse(readFileSync(new URL('./genome.json', import.meta.url))); G.pipe = cfg.plasmid_genes;
+  const all = layout(G), own = all.filter(p => !p.plasmid), ids = all.map(p => p.slot.id).filter(Boolean);
+  const lost = Object.keys(cfg.genes).filter(g => !ids.includes(g));
+  const w = new World(cfg, 7); w.amoebas = []; w.bdellos = []; w.phages = [];
+  w.choice = ['fast', 'sense']; w.pick('fast');
+  const c = card(all.find(p => p.slot.id === 'fast').slot, w.genes, w.from, cfg.genes, G, 'Энергия');
+  const s = card(all.find(p => p.slot.id === 'sense').slot, w.genes, w.from, cfg.genes, G, 'Движение');
+  const blink = Object.keys(cfg.genes).filter(g => JSON.stringify(look({ [g]: true }, cfg.look)) === JSON.stringify(look({}, cfg.look)));
+  console.log('    паспорт: своих мест', own.length, 'в дугах', G.arcs.map(a => a.slots.length).join('/'), '| без места', lost.join(',') || '—',
+    '| быстрый рост:', c.have, c.sub, '| хемотаксис:', s.have, s.sub, '| ген без вида на теле', blink.join(',') || '—');
+  if (own.length !== 12 || G.arcs.some(a => a.slots.length !== 4)) return 'на кольце не 12 мест по 4';
+  if (lost.length) return 'нет места на кольце: ' + lost;
+  if (!c.have || !c.sub.includes('от дочки') || c.lines[0][1] !== cfg.genes.fast[1]) return 'полученный ген не показан включённым';
+  if (s.have || !s.lines.some(l => l[0] === 'Откуда')) return 'невыбранная дочка показана как полученная';
+  if (blink.length) return 'касание гена ничего не меняет на клетке: ' + blink;
 });
 
 check('мир без краёв: уплыл далеко — вокруг снова еда, позади забыто', () => {
