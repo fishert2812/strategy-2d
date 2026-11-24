@@ -86,6 +86,8 @@ func _process(dt: float) -> void:
 				s.texture = _tex(st[1])
 				break
 	for b in sim.buildings:
+		# Голодный коробок: крошек на воина нет — темнеет.
+		_sprites[b.id].self_modulate = Color(0.45, 0.42, 0.4) if b.hungry else Color.WHITE
 		var bar: ProgressBar = _sprites[b.id].get_node("Hp")
 		bar.value = b.hp / b.max_hp * 100.0
 		bar.visible = b.hp < b.max_hp
