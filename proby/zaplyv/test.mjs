@@ -610,5 +610,17 @@ check('test_L019: Альманах — разделы, счёт словами, 
   console.log('    паспорт: ' + S2.count + '; ' + S2.pills.map(p => p.label).join(' / ') + '; амёба: ' + P.blocks.map(b => b[0]).join(' · ') + '; ген: ' + Gp.name);
 });
 
+// Урок L020 (Роман, 0.32: «почему жгутики зеленые такие выбивается из стиля»): у образца берём форму и движение, цвет — из стиля игры.
+check('test_L020: жгутики в цвете оболочки — светло-голубые, не зелёные, прозрачнее тела', () => {
+  const [r, g, b] = cfg.flag.color, hue = c => { const [r, g, b] = c, mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn || 1;
+    return ((mx === r ? (g - b) / d : mx === g ? 2 + (b - r) / d : 4 + (r - g) / d) * 60 + 360) % 360; };
+  const shell = [0.35, 0.85, 1.0], h = hue(cfg.flag.color); // оболочка палочки (main.js CELL[0])
+  if (!(b >= g && b >= r)) return 'в цвете нити не голубой главный: ' + cfg.flag.color;
+  if (Math.abs(h - hue(shell)) > 30) return `оттенок нити ${h.toFixed(0)}°, у оболочки ${hue(shell).toFixed(0)}°`;
+  if (Math.max(r, g, b) - Math.min(r, g, b) > 0.45) return 'нить слишком насыщенная: точки складываются светом и уходят в зелёный';
+  if (!(cfg.flag.alpha <= 0.4)) return 'нить плотнее 0.4: на воде густо и ярко';
+  console.log(`    паспорт: нить ${cfg.flag.color} (${h.toFixed(0)}°), оболочка ${hue(shell).toFixed(0)}°, прозрачность ${cfg.flag.alpha}`);
+});
+
 console.log(bad ? 'ЗАПЛЫВ: провалов ' + bad : 'ЗАПЛЫВ: все проверки прошли');
 process.exit(bad ? 1 : 0);
