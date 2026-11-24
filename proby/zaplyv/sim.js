@@ -487,7 +487,7 @@ export class World {
         else { b.a = prey && r() < 0.4 ? Math.atan2(prey.y - b.y, prey.x - b.x) + (r() - 0.5) * 0.6 : r() * 6.283; b.rest = 0.3 + r() * 0.5; b.t = b.rest + 0.6 + r() * 0.8; }
       }
       if (b.aim && !this.me.includes(b.aim)) { b.aim = null; b.aimT = 0; } // цель пропала — бросок отменён
-      if (b.aimT > 0) { b.aimT -= dt; b.a = Math.atan2(b.aim.y - b.y, b.aim.x - b.x); }
+      if (b.aimT > 0 && b.aim) { b.aimT -= dt; b.a = Math.atan2(b.aim.y - b.y, b.aim.x - b.x); }
       const go = b.aimT > 0 ? c.bdello_speed * c.bdello_creep : b.t > (b.rest || 0) ? c.bdello_speed : 0, k = Math.min(1, 8 * dt);
       b.vx += (Math.cos(b.a) * go - b.vx) * k; b.vy += (Math.sin(b.a) * go - b.vy) * k;
       b.x += b.vx * dt; b.y += b.vy * dt;
@@ -495,7 +495,7 @@ export class World {
         if (this.genes.capsule) { b.a += Math.PI; b.x += Math.cos(b.a) * 6; b.y += Math.sin(b.a) * 6; this.events.push(['bump', b.x, b.y]); break; }
         if (a.held > 0) break;
         if (!b.aim) { b.a += Math.PI; b.x += Math.cos(b.a) * 6; b.y += Math.sin(b.a) * 6; break; } // не целилась в тебя — задела и отскочила: без признака не нападает
-        b.on = a; b.aim = null; b.a = Math.atan2(b.y - a.y, b.x - a.x) + Math.PI; a.held = c.bdello_kill; this.events.push(['bore', a.x, a.y]); break; // запятая вбуравливается — своё событие, не как впрыск вируса
+        b.on = a; b.aim = null; b.aimT = 0; b.a = Math.atan2(b.y - a.y, b.x - a.x) + Math.PI; a.held = c.bdello_kill; this.events.push(['bore', a.x, a.y]); break; // запятая вбуравливается — своё событие, не как впрыск вируса
       }
       if (!b.on) for (const v of [...this.pseudos, ...this.donors]) if (!(v.held > 0) && Math.hypot(v.x - b.x, v.y - b.y) < 12) { // и синегнойка, и сородич — его обычная добыча
         b.on = v; b.a = Math.atan2(b.y - v.y, b.x - v.x) + Math.PI; v.held = c.bdello_kill; break; }
