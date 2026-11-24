@@ -1,5 +1,7 @@
 // Проверки «Заплыва» без экрана: node proby/zaplyv/test.mjs. Каждая печатает паспорт; провал — код 1.
 import { World, radius } from './sim.js';
+import { Stick } from './controls.js';
+import { follow } from './soft.js';
 import { readFileSync } from 'node:fs';
 const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
 let bad = 0;
@@ -108,20 +110,20 @@ check('плывёт как настоящая палочка: поворот д�
   const w = new World(cfg, 9); w.amoebas = []; w.phages = []; w.prey = []; w.food = []; w.tidy = 1e9;
   run(w, 1.5, { dx: 1, dy: 0, p: 1 });
   const a = w.me[0]; let slip = 0, bend = 0, t45 = -1, arcTumble = false, tumbled = false, slow = 1e9, back = -1;
-  for (let i = 0; i < 30; i++) { // поворот на 45° — дугой
-    w.step(1 / 30, { dx: 1, dy: 1, p: 1 });
+  for (let i = 0; i < 30; i++) { // поворот на 90° — дугой, без остановки
+    w.step(1 / 30, { dx: 0, dy: 1, p: 1 });
     const sp = Math.hypot(a.vx, a.vy), side = Math.abs(-a.vx * Math.sin(a.a) + a.vy * Math.cos(a.a));
     slip = Math.max(slip, side / (sp || 1)); bend = Math.max(bend, Math.abs(a.w)); arcTumble ||= a.tumble > 0;
-    if (t45 < 0 && Math.abs(a.a - Math.PI / 4) < 0.05) t45 = (i + 1) / 30;
+    if (t45 < 0 && Math.abs(a.a - Math.PI / 2) < 0.05) t45 = (i + 1) / 30;
   }
   for (let i = 0; i < 45; i++) { // разворот назад — кувырок
-    w.step(1 / 30, { dx: -1, dy: -1, p: 1 });
+    w.step(1 / 30, { dx: 0, dy: -1, p: 1 });
     if (a.tumble > 0) { tumbled = true; slow = Math.min(slow, Math.hypot(a.vx, a.vy)); }
-    if (back < 0 && a.vx < -80 && a.vy < -80) back = (i + 1) / 30;
+    if (back < 0 && a.vy < -110) back = (i + 1) / 30;
   }
-  console.log('    паспорт: поворот на 45° за', t45.toFixed(2), 'с, скольжение вбок', slip.toFixed(2), ', изгиб', bend.toFixed(1), ', кувырок', tumbled, 'скорость в нём', Math.round(slow), ', снова плывёт через', back.toFixed(2), 'с');
-  if (arcTumble) return 'на мягком повороте кувырок';
-  if (t45 < 0.15 || t45 > 0.5) return 'поворот на 45° за ' + t45.toFixed(2) + ' с (дугой ~160°/с)';
+  console.log('    паспорт: поворот на 90° за', t45.toFixed(2), 'с, скольжение вбок', slip.toFixed(2), ', изгиб', bend.toFixed(1), ', кувырок', tumbled, 'скорость в нём', Math.round(slow), ', снова плывёт через', back.toFixed(2), 'с');
+  if (arcTumble) return 'на повороте под прямым углом кувырок — клетка спотыкается';
+  if (t45 < 0.3 || t45 > 0.8) return 'поворот на 90° за ' + t45.toFixed(2) + ' с (дугой ~180°/с)';
   if (slip > 0.35) return 'клетку несёт боком: ' + slip.toFixed(2);
   if (bend < 1) return 'в повороте тело не гнётся';
   if (!tumbled || slow > 60) return 'разворот без кувырка';
@@ -144,6 +146,37 @@ check('экран гибели называет, кто убил, и у кажд
   if (!cards.me || !cards.me.fact) return 'нет карточки самой палочки';
   const g = new World(cfg, 7); run(g, 40, player);
   if (g.stats.gen < 1) return 'поколения не считаются';
+});
+
+check('тело мягкое, а не «железнодорожный состав» (Роман 24.11): в повороте корма отстаёт и тело гнётся, потом выпрямляется', () => {
+  const w = new World(cfg, 9); w.amoebas = []; w.phages = []; w.prey = []; w.food = []; w.tidy = 1e9;
+  const a = w.me[0], half = 9;
+  const go = (t, sec) => { const out = []; for (let i = 0; i < sec * 30; i++) { w.step(1 / 30, t); out.push(follow(a, half, 40)); } return out; };
+  const straight = go({ dx: 1, dy: 0, p: 1 }, 1.5).pop();
+  const turn = go({ dx: 0, dy: 1, p: 1 }, 0.4);
+  const lag = Math.max(...turn.map(b => Math.abs(Math.atan2(Math.sin(a.a - b.ang), Math.cos(a.a - b.ang)))));
+  const bend = Math.max(...turn.map(b => Math.abs(b.sag)));
+  const after = go({ dx: 0, dy: 1, p: 1 }, 1).pop();
+  console.log('    паспорт: прямо прогиб', straight.sag.toFixed(2), '| в повороте корма отстаёт на', (lag * 57.3).toFixed(0) + '°, прогиб', bend.toFixed(2), '| через 1 с прогиб', after.sag.toFixed(2), 'отставание', (Math.abs(a.a - after.ang) * 57.3).toFixed(0) + '°');
+  if (Math.abs(straight.sag) > 0.2) return 'на прямой тело кривое';
+  if (lag < 0.15) return 'тело поворачивается целиком, как состав';
+  if (bend < 0.8) return 'в повороте тело не гнётся';
+  if (Math.abs(after.sag) > 0.3 || Math.abs(a.a - after.ang) > 0.1) return 'после поворота тело не выпрямилось';
+});
+
+check('джойстик под большой палец: кольцо едет за пальцем, перехват на ходу не делит клетку', () => {
+  const p = new Stick(56);
+  p.start(100, 100, 0); p.move(300, 100); p.move(180, 100); // увёл на 200 вправо и вернул палец на 120 (без кольца за пальцем надо было бы на 256)
+  const v = p.value();
+  const short = new Stick(56); short.start(0, 0, 0); short.move(30, 0); const half = short.value().p;
+  p.end(1000);
+  const regrip = p.start(10, 10, 1150) || p.end(1250); // отпустил и через 0.15 с коротко перехватил
+  p.start(10, 10, 3000); const tap = p.end(3100);
+  console.log('    паспорт: после возврата пальца курс', v.dx.toFixed(2), 'сила', v.p.toFixed(2), '| сила на полпути', half.toFixed(2), '| перехват — касание?', regrip, '| отдельное касание?', tap);
+  if (v.dx > -0.9 || v.p < 0.9) return 'чтобы развернуться, надо вести палец через всё кольцо обратно';
+  if (half < 0.7) return 'на половине хода сила только ' + half.toFixed(2);
+  if (regrip) return 'перехват пальца на ходу делит клетку';
+  if (!tap) return 'обычное касание не делит';
 });
 
 check('мир без краёв: уплыл далеко — вокруг снова еда, позади забыто', () => {

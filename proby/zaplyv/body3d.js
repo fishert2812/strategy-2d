@@ -97,11 +97,11 @@ export class Bodies {
     A.cA.array.set(ca, i * 4); A.cB.array.set(cb, i * 3); A.prm.array.set(prm, i * 4);
   }
   // Палочка: оболочка и содержимое. half — полудлина, w — полуширина, pinch 0..1 — перетяжка.
-  // bend — на сколько концы отходят вбок (экранные единицы, + к оси (-sin, cos)).
+  // bend — на сколько концы отходят вбок от середины (экранные единицы, + к оси (-sin, cos)).
   rod(x, y, ang, half, w, pinch, skin, core, seed, bend = 0) {
     const sy = half / 2, glow = c => [c[0] * 0.5 + 0.5, c[1] * 0.5 + 0.5, c[2] * 0.5 + 0.5];
-    this.put(this.core, x, y, ang, w * 0.7, sy * 0.86, w * 0.7, [core[0], core[1], core[2], 1], glow(core), [pinch * 0.95, seed, bend / (2.7 * 0.7 * w), 0]);
-    this.put(this.skin, x, y, ang, w, sy, w, [skin[0], skin[1], skin[2], 1], glow(skin), [pinch, seed, bend / (2.7 * w), 0]);
+    this.put(this.core, x, y, ang, w * 0.7, sy * 0.86, w * 0.7, [core[0], core[1], core[2], 1], glow(core), [pinch * 0.95, seed, bend / (4 * 0.7 * w), 0]);
+    this.put(this.skin, x, y, ang, w, sy, w, [skin[0], skin[1], skin[2], 1], glow(skin), [pinch, seed, bend / (4 * w), 0]);
   }
   sphere(x, y, r, col, rim, seed, zs = 1) { this.put(this.ball, x, y, -Math.PI / 2, r, r, r * zs, [col[0], col[1], col[2], 1], rim, [0, seed, 0, 0]); }
   spike(x, y, r, col) { this.put(this.knob, x, y, -Math.PI / 2, r, r, r, [col[0], col[1], col[2], 1], [1, 1, 1], [0, 0, 0, 0]); }

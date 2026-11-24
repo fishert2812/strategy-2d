@@ -4,6 +4,8 @@
 // Сверху — точки: еда, жгутики, крупинки внутри клеток, фаги, взвесь вдали и размытые соринки вблизи.
 import * as THREE from './three.module.min.js';
 import { World, radius } from './sim.js';
+import { Stick } from './controls.js';
+import { follow } from './soft.js';
 import { Bodies } from './body3d.js';
 
 const cfg = await (await fetch('data.json')).json();
@@ -118,10 +120,13 @@ const beep = (f, dur, vol = 0.05, type = 'sine', slide = 0.6) => {
   o.connect(g).connect(audio.destination); o.start(t); o.stop(t + dur);
 };
 
-const STICK = 70;
+const STICK = 56; // полный ход большого пальца (~30 точек экрана); дальше кольцо едет за пальцем
+const pad = new Stick(STICK);
 let world, view, finger = null, down = null, moved = false, rings = [], shake = 0, ended = false, lastEat = 0;
 const $ = id => document.getElementById(id);
-fetch('../version.txt').then(r => r.ok ? r.text() : 'dev').then(t => $('ver').textContent = 'проба · ' + t.trim().slice(0, 7)).catch(() => {});
+const ver = (await (await fetch('version.json')).json()).number; // свой номер «Заплыва», список — VERSIONS.md
+$('ver').textContent = 'Заплыв ' + ver;
+fetch('../version.txt').then(r => r.ok ? r.text() : '').then(t => { if (t.trim()) $('ver').textContent = 'Заплыв ' + ver + ' · ' + t.trim().slice(0, 7); }).catch(() => {});
 
 function start() {
   world = new World(cfg, (Math.random() * 2 ** 31) | 0);
@@ -141,17 +146,16 @@ canvas.addEventListener('pointerdown', e => {
   if (!audio) { try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) {} }
   audio?.resume?.();
   const [x, y] = unit(e);
-  down = { x, y, t: performance.now() }; finger = { x, y };
+  pad.start(x, y, performance.now()); down = pad.down; finger = pad.finger;
 });
 canvas.addEventListener('pointermove', e => {
   if (!down) return;
-  const [x, y] = unit(e); finger = { x, y };
-  if (Math.hypot(x - down.x, y - down.y) > 20) moved = true;
+  const [x, y] = unit(e); pad.move(x, y); finger = pad.finger;
+  if (pad.drag) moved = true;
 });
 const up = e => {
   if (!down) return;
-  const [x, y] = unit(e);
-  if (performance.now() - down.t < 250 && Math.hypot(x - down.x, y - down.y) < 30 && world.divide()) beep(520, 0.18, 0.06, 'triangle', 1.8);
+  if (pad.end(performance.now()) && world.divide()) beep(520, 0.18, 0.06, 'triangle', 1.8);
   down = null; finger = null;
 };
 canvas.addEventListener('pointerup', up);
@@ -199,12 +203,7 @@ function events() {
 
 function tick(dt) {
   if (world.choice.length) { ask(); return; }
-  let stick = null; // джойстик: направление и сила из сдвига пальца, полный ход — STICK единиц
-  if (finger && down) {
-    const dx = finger.x - down.x, dy = finger.y - down.y, l = Math.hypot(dx, dy);
-    if (l > 6) stick = { dx: dx / l, dy: dy / l, p: Math.min(1, l / STICK) };
-  }
-  world.step(dt, stick);
+  world.step(dt, pad.value()); // джойстик: направление и сила из сдвига пальца
   events();
   if (!world.me.length) {
     if (!ended) {
@@ -281,17 +280,18 @@ function paint(time) {
     bubbles.put(x - hx * r * 0.45 - hy * r * 0.2, y - hy * r * 0.45 + hx * r * 0.2, r * 0.18 * Math.sqrt(v) + 1, 0.85, 0.95, 1, 0.3 * (1 - v * v * v));
   }
   const [cr, cg, cb] = [CELL[0].r, CELL[0].g, CELL[0].b];
-  for (const a of world.me) { // палочка: ширина почти постоянна, растёт в длину; виляет на бегу, гнётся в повороте
-    const [x, y] = scr(a.x, a.y), w = 8.5 * Math.pow(a.m, 0.3) * z, sp = Math.hypot(a.vx, a.vy);
+  for (const a of world.me) { // палочка: мягкое тело — перёд ведёт, корма и пучок жгутиков идут по его следу
+    const w = 8.5 * Math.pow(a.m, 0.3) * z, sp = Math.hypot(a.vx, a.vy);
     const run = sp > 25 && !a.tumble, wob = run ? 0.05 : 0.02; // встречное вращение тела к пучку: 3 раза в секунду
-    const ang = a.a + Math.sin(time * 18.8 + a.id) * wob, ax = Math.cos(ang), ay = Math.sin(ang);
-    const half = w * (1.6 + 1.0 * Math.min(a.m, cfg.split) / cfg.split);
+    const half = w * (1.6 + 1.0 * Math.min(a.m, cfg.split) / cfg.split), tailW = w * 7.5 / z;
+    const body = follow(a, half / z, tailW);
+    const [x0, y0] = scr(body.cx, body.cy), sag = body.sag * z;
+    const ang = body.ang + Math.sin(time * 18.8 + a.id) * wob, ax = Math.cos(ang), ay = Math.sin(ang);
+    const x = x0 - ay * sag * 0.675, y = y0 + ax * sag * 0.675; // центр модели так, чтобы концы легли на хорду
     const along = (s, o = 0) => [x + ax * s - ay * o, y + ay * s + ax * o];
-    // дуга пути: концы и хвост уходят к центру поворота на s²·κ/2, κ = ω / скорость
-    const kap = Math.max(-0.03, Math.min(0.03, (a.w || 0) / Math.max(sp, 40) / z));
-    const arc = s => Math.max(-w * 0.9, Math.min(w * 0.9, s * s * kap * 0.5 * z));
+    const arc = u => -sag * 0.675 + sag * (1 - Math.min(1, (u * z / half) ** 2)); // прогиб в точке u (u — в единицах мира от центра)
     const pinch = a.m >= cfg.split ? 0.62 + 0.12 * Math.sin(time * 6) : 0; // перетяжка: вот-вот две
-    bodies.rod(x, y, ang, half, w, pinch, [CELL[0].r, CELL[0].g, CELL[0].b], [CORE[0].r, CORE[0].g, CORE[0].b], a.id, arc(half / z * 1));
+    bodies.rod(x, y, ang, half, w, pinch, [CELL[0].r, CELL[0].g, CELL[0].b], [CORE[0].r, CORE[0].g, CORE[0].b], a.id, -sag);
     if (pinch) for (let k = 0; k < 18; k++) { const t = k * 0.349, R = half * (1.35 + 0.08 * Math.sin(time * 5)); glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 2.2, 1, 1, 1, 0.4); }
     for (let k = 0; k < 16; k++) { // пили: короткие ворсинки по всей оболочке
       const t = k / 16 * 6.283, c = Math.cos(t), s = Math.sin(t), l = 1 + 0.25 * Math.sin(time * 3 + k * 1.7 + a.id);
@@ -318,8 +318,14 @@ function paint(time) {
       for (let k = 1; k <= 40; k++) {
         const s = k / 40, back = s * w * (run ? 7 : 5.5), amp = w * (curly ? 0.8 : 0.42) * Math.min(1, s * 3);
         const wv = Math.sin(s * (curly ? 22 : 10) - time * (run ? 16 : 4) + f * 0.5) * amp, conv = run ? (f - 2) * w * 0.22 * (s * 0.9) : 0;
-        const bow = run ? arc((half + back) / z) - arc(half / z) : 0; // хвост повторяет дугу пути
-        glow.put(bx + dx * back + dy * (wv - conv) - ay * bow, by + dy * back - dx * (wv - conv) + ax * bow, 0.8 * Math.max(z, 0.7) + 0.3, cr, cg, cb, 0.5 * (1 - s * 0.5));
+        let px = bx + dx * back, py = by + dy * back, nx = dy, ny = -dx;
+        if (run) { // пучок лежит на следе клетки: где она прошла, там и хвост
+          const [qx, qy] = scr(...body.at(2 * half / z + back / z)), [rx, ry] = scr(...body.at(2 * half / z + back / z + 2));
+          const ox = -ay * (f - 2) * w * 0.22, oy = ax * (f - 2) * w * 0.22; // свой сдвиг жгутика в пучке
+          const tl = Math.hypot(rx - qx, ry - qy) || 1; nx = -(ry - qy) / tl; ny = (rx - qx) / tl;
+          px = qx + ox * (1 - s * 0.9); py = qy + oy * (1 - s * 0.9);
+        }
+        glow.put(px + nx * (wv - conv), py + ny * (wv - conv), 0.8 * Math.max(z, 0.7) + 0.3, cr, cg, cb, 0.5 * (1 - s * 0.5));
       }
     }
     if (a.sick >= 0) glow.put(x, y, half, 1, 0.2, 0.3, 0.25 + 0.2 * Math.sin(time * 20));
