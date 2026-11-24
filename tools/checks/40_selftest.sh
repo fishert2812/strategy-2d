@@ -27,4 +27,9 @@ case_ "test_L004: видимое без строки в CHANGELOG" 25_changelog.
 case_ "test_L005: новая версия без «Зачем игроку»" 26_meaning.sh red "$BUMP"' && sed -i "0,/^- \*\*/s//- **$m** (проба, PR #0): проба.\n&/" CHANGELOG.md'
 case_ "доказывает несуществующий тест" 26_meaning.sh red "$BUMP"' && sed -i "0,/^- \*\*/s//- **$m** (проба, PR #0): проба. Зачем игроку: проба. Доказывает: \`test_nonexistent_probe\`.\n&/" CHANGELOG.md'
 case_ "исправная новая версия" 26_meaning.sh green "$BUMP"' && sed -i "0,/^- \*\*/s//- **$m** (проба, PR #0): проба. Зачем игроку: проба. Доказывает: \`test_selftest_probe\`.\n&/" CHANGELOG.md && printf "extends RefCounted\nfunc test_selftest_probe() -> String:\n\treturn \"\"\n" > tests/test_selftest_probe.gd && git add -A'
+# Остановка: открытая issue stop делает PR красным, метка fix пропускает.
+GITHUB_BASE_REF=main STOP_ISSUES="#0 проба" PR_LABELS= bash tools/checks/05_stop.sh >/dev/null 2>&1 &&
+  { echo "  SELFTEST: остановка не сделала PR красным"; fail=1; } || echo "  ок: остановка (red)"
+GITHUB_BASE_REF=main STOP_ISSUES="#0 проба" PR_LABELS=fix bash tools/checks/05_stop.sh >/dev/null 2>&1 &&
+  echo "  ок: остановка и метка fix (green)" || { echo "  SELFTEST: метка fix не прошла остановку"; fail=1; }
 exit $fail
