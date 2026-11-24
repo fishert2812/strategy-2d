@@ -11,7 +11,7 @@ func _flag(battle: Control) -> Vector2:
 func test_flag_on_spot_lands_in_report() -> String:
 	var battle: Control = await t._battle(t.SIZES[0])
 	t._tap(battle, _flag(battle))
-	t._drag(battle, battle.buttons.camp.get_global_rect().get_center(), battle.world.to_global(battle.sim.of_side(Sim.PLAYER)[0].pos))
+	t._drag(battle, battle.buttons.camp.get_global_rect().get_center(), battle.world.to_global(battle.sim.of_side(Sim.PLAYER)[0].pos + Vector2(0, battle.look.ghost_lift)))
 	t._drag(battle, _flag(battle), battle.world.to_global(Vector2(360, 500)))
 	var line := "- 0:00 %s: у тебя" % battle.box.flags[-1].where
 	var report: String = battle.box.summary(battle.sim)

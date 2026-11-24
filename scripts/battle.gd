@@ -79,8 +79,7 @@ func restart() -> void:
 
 func _process(dt: float) -> void:
 	enemy.step(dt)
-	if sim.winner == -1:
-		box.step(sim, dt)
+	if sim.winner == -1: box.step(sim, dt)
 	sim.step(dt)
 	var field := Sim._v(sim.cfg.field)
 	# Поле целиком между полоской сверху и кнопками снизу, на любом экране.
@@ -259,8 +258,7 @@ func _press(pos: Vector2) -> void:
 		return
 	# Флажок: тем же жестом, что постройка, и раньше выбора, чтобы не построить по ошибке.
 	if flag_button.get_global_rect().has_point(pos):
-		_pick({})
-		_drag = {"flag": true, "start": pos}
+		_pick({}); _drag = {"flag": true, "start": pos}
 		_fit(ghost, look.flag, load(look.flag.file)); ghost.modulate = Color(look.flag.color, 0.7)
 		return
 	for kind in buttons:
