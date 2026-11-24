@@ -421,9 +421,12 @@ func _on_sim(what: String, data: Dictionary) -> void:
 				var tw: Sprite2D = _sprites[data.by]
 				var home: Vector2 = tw.get_meta("home", tw.position)
 				tw.set_meta("home", home)
+				tw.set_meta("size", tw.get_meta("size", tw.scale))
 				var t := tw.create_tween()
 				t.tween_property(tw, "position", home - (data.pos - home).normalized() * look.tower_look.recoil, 0.05)
-				t.tween_property(tw, "position", home, 0.12)
+				t.parallel().tween_property(tw, "scale", tw.get_meta("size", tw.scale) * Vector2(1.15, 0.85), 0.05)
+				t.tween_property(tw, "position", home, 0.15)
+				t.parallel().tween_property(tw, "scale", tw.get_meta("size", tw.scale), 0.15)
 		"killed":
 			motion.hop(_units.get(data.get("by")), 2)
 		"whistle":
@@ -450,6 +453,7 @@ func _on_sim(what: String, data: Dictionary) -> void:
 				var note := Label.new()
 				note.name = "Note"
 				note.add_theme_font_size_override("font_size", 28)
+				note.add_theme_color_override("font_color", Color(look.tower_look.note))
 				note.add_theme_constant_override("outline_size", 6)
 				note.add_theme_color_override("font_outline_color", Color.BLACK)
 				note.scale = Vector2.ONE / s.scale
