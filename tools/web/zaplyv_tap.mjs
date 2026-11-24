@@ -46,7 +46,11 @@ if (await tap('#kpills button:nth-child(1)', 'раздел «Обитатели�
 if (await tap('#shelf .kc[data-k=me]', 'карточка «Ты»')) say(await seen('#kcard') && await p.evaluate(() => document.querySelectorAll('#kblocks .kb').length >= 2 && document.getElementById('kimg').naturalWidth > 100), 'карточка открылась: модель и блоки текста');
 if (await tap('#knext', 'следующая карточка')) say(await p.evaluate(() => document.getElementById('kname').textContent !== 'Ты, кишечная палочка'), 'листается к следующей');
 if (await tap('#kback', 'назад к полке')) say(await seen('#kshelf'), 'полка снова видна');
-if (await tap('#back', 'назад из Альманаха')) say(!(await on('cabinet')) && await on('genome'), 'Альманах закрылся, геном на месте');
+if (await tap('#ptabs [data-t=genome]', 'вкладка «Геном»')) say(!(await on('cabinet')) && await on('genome') && await seen('#ring'), 'вкладка «Геном»: Альманах закрылся, кольцо на месте');
+// Карта на паузе (Э17–Э18): вкладка открывает разрез пруда, на нём нарисовано (не пустой холст), «ты» в шапке словами.
+if (await tap('#ptabs [data-t=map]', 'вкладка «Карта»')) { await p.waitForTimeout(400);
+  say(await seen('#mcv') && await p.evaluate(() => { const c = document.getElementById('mcv'), d = c.getContext('2d').getImageData(c.width / 2, c.height / 2, 1, 1).data; return c.width > 200 && d[3] > 0 && /слое/.test(document.getElementById('mhead').textContent); }), 'карта: разрез пруда нарисован, слой назван'); }
+if (await tap('#ptabs [data-t=genome]', 'снова «Геном»')) say(await seen('#ring') && !(await seen('#mcv')), 'вкладка «Геном» вернулась');
 // «Отправить» в геноме: меню «Поделиться» телефона подменяем, отметки должны уйти одним сообщением.
 await p.evaluate(() => { navigator.share = async d => { window.shared = d.text; }; });
 m = await marks();

@@ -41,11 +41,11 @@ export class World {
     this.stats = { eaten: 0, most: 1, path: 0, time: 0, gen: 0, lost: {}, killer: null };
     this.met = new Set(['me']); this.look = 0;
     this.splits = 0; this.away = []; // уплывшие дочки: видны пару секунд, потом теряются вдали // делений за заплыв: каждое gene_every-е даёт выбор из двух дочек, пока есть гены
-    this.chunks = new Set();
+    this.chunks = new Set(); this.seen = new Set();
     this.events = []; // [вид, x, y] — для вспышек на экране, экран их забирает
     this.tidy = 0;
     this.ids = 1;
-    this.fill(0, 0);
+    this.fill(0, 0); this.see(0, 0);
   }
 
   center() {
@@ -55,11 +55,26 @@ export class World {
     return { x: x / n, y: y / n };
   }
 
+  // Туман карты (Э18): клетки сетки, где ты побывал. Ключ «i,j», сетка — cfg.pond.grid по ширине и высоте.
+  cell(x, y) { const P = this.cfg.pond, [n, m] = P.grid; return [Math.floor((x / P.w + P.x0) * n), Math.floor((y / P.h + P.y0) * m)]; }
+  see(x, y) { const [i, j] = this.cell(x, y), [n, m] = this.cfg.pond.grid; for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) if (i + a >= 0 && i + a < n && j + b >= 0 && j + b < m && Math.abs(a) + Math.abs(b) < 2) this.seen.add((i + a) + ',' + (j + b)); }
+
   biggest() { return this.me.reduce((b, c) => Math.max(b, c.m), 0); }
   readyToSplit() { return this.me.some(c => c.m >= this.split()); }
 
   // Сглаженный шум по квадратам: 0 чистая вода, 1 сладкая (еды много, фаги), 2 ил (водоросли, амёбы).
+  // План пруда (К1, книга «Мир»): разрез стоя. Ты начинаешь в светлой толще; сверху плёнка, ниже граница кислорода и ил,
+  // справа тёплый берег. Слои постоянны от заплыва к заплыву, еда и соседи в них собираются заново (К2).
+  // Координаты мира: (0, 0) — место старта; pond() даёт края, depth(y) — глубину 0 (плёнка) … 1 (дно).
+  pond() { const P = this.cfg.pond; return { x0: -P.w * P.x0, x1: P.w * (1 - P.x0), y0: -P.h * P.y0, y1: P.h * (1 - P.y0) }; }
+  depth(y) { const P = this.cfg.pond; return y / P.h + P.y0; }
+  layer(y) { const P = this.cfg.pond, d = this.depth(y); return d < P.film ? 'film' : d < P.oxy ? 'light' : d < P.silt ? 'oxy' : 'silt'; }
+
   biome(x, y) {
+    const L = this.layer(y);
+    if (L === 'film') return 1; // под плёнкой светло и сладко: свет, корни ряски
+    if (L === 'oxy') return 0; // на границе кислорода пусто и чисто
+    if (L === 'silt') return 2; // ил: водоросли, амёбы, крошки
     const k = this.cfg.chunk * 3, fx = x / k, fy = y / k;
     const ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, ty = fy - iy;
     const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty);
@@ -78,7 +93,8 @@ export class World {
 
   chunk(cx, cy) {
     const c = this.cfg, C = c.chunk, r = this.r;
-    const ox = cx * C, oy = cy * C;
+    const ox = cx * C, oy = cy * C, E = this.pond();
+    if (ox + C < E.x0 || ox > E.x1 || oy + C < E.y0 || oy > E.y1) return; // за краем пруда — берег и воздух, там пусто
     const b = this.biome(ox + C / 2, oy + C / 2);
     const far = Math.hypot(cx + 0.5, cy + 0.5);
     const safe = far < c.safe_chunks;
@@ -202,6 +218,9 @@ export class World {
       a.stuck = !!(this.genes.fim && !thrust && !(a.spore > 0) && this.plants.some(p => dist(a, p) < radius(a.m) + radius(p.m) + c.fim_reach));
       if (a.stuck) { a.vx = 0; a.vy = 0; }
       a.x += a.vx * dt; a.y += a.vy * dt;
+      { const E = this.pond(), r = radius(a.m); // края пруда: плёнка сверху, дно, берега — дальше не проплыть
+        if (a.x < E.x0 + r) { a.x = E.x0 + r; a.vx = Math.max(0, a.vx); } if (a.x > E.x1 - r) { a.x = E.x1 - r; a.vx = Math.min(0, a.vx); }
+        if (a.y < E.y0 + r) { a.y = E.y0 + r; a.vy = Math.max(0, a.vy); } if (a.y > E.y1 - r) { a.y = E.y1 - r; a.vy = Math.min(0, a.vy); } }
       if (!a.stuck) { const [sx, sy] = this.suck(a.x, a.y); a.x += sx * dt; a.y += sy * dt; } // течение воронок туфелек и вихрей сувоек
       a.w = wrap(a.a - a0) / dt; // скорость поворота — по ней тело и пучок жгутиков гнутся дугой
       if (a.sick >= 0) a.sick -= dt;
@@ -234,7 +253,7 @@ export class World {
         if (!this.met.has(k) && list.some(o => this.me.some(a => dist(a, o) < R))) { this.met.add(k); this.events.push(['meet', k]); }
     }
     this.tidy -= dt;
-    if (this.tidy <= 0 && this.me.length) { this.tidy = 1; this.fill(c1.x, c1.y); this.forget(c1.x, c1.y); }
+    if (this.tidy <= 0 && this.me.length) { this.tidy = 1; this.fill(c1.x, c1.y); this.forget(c1.x, c1.y); this.see(c1.x, c1.y); }
   }
 
   // Рот туфельки: сбоку у переднего конца. Рот сувойки: верх колокольчика на стебле.
@@ -379,7 +398,7 @@ export class World {
       this.events.push(['spore', a.x, a.y]); return;
     }
     this.me.splice(i, 1); if (who !== 'phage') this.events.push(['eaten', x, y]);
-    this.stats.lost[who] = (this.stats.lost[who] || 0) + 1; this.stats.killer = who;
+    this.stats.lost[who] = (this.stats.lost[who] || 0) + 1; this.stats.killer = who; this.stats.where = [x, y];
   }
 
   hunters(dt) {
