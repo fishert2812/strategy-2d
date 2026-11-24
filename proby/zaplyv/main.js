@@ -650,7 +650,7 @@ function paint(time) {
   { const Zc = cfg.zone, wn = world.warning(); // край зоны затягивания: тонкая сплошная линия (точки — язык еды, их не занимаем), еле видна всегда, ярче в полутора радиусах, разгорается только у ближайшей (L030)
     for (const zn of world.zones()) { const [wx, wy, R] = zn, [x, y] = scr(wx, wy), Rz = R * z; if (!on(x, y, Rz)) continue;
       const d = world.me.reduce((m, a) => Math.min(m, Math.hypot(a.x - wx, a.y - wy)), 1e9), lv = wn && wn.zone[0] === wx && wn.zone[1] === wy ? wn.level : 0;
-      const al = (d < R * 1.5 ? Zc.near : Zc.far) + (Zc.warn - Zc.near) * lv, [cr, cg, cb] = Zc.color, n = Math.max(90, Math.round(6.283 * Rz / Zc.step)), sz = (0.7 + lv) * z + 0.6;
+      const al = (d < R * 1.5 ? Zc.near : Zc.far) + (Zc.warn - Zc.near) * lv, [cr, cg, cb] = Zc.color, n = Math.max(90, Math.round(6.283 * Rz / Zc.step)), sz = (0.6 + 0.4 * lv) * z + 0.5;
       for (let k = 0; k < n; k++) { const t = k / n * 6.283; ink.put(x + Math.cos(t) * Rz, y + Math.sin(t) * Rz, sz, cr, cg, cb, al); }
       for (let k = 0; k < Zc.ticks; k++) { const t = k / Zc.ticks * 6.283 + time * 0.2; // чёрточки внутрь: куда тянет, видно, даже когда рта не видно
         for (let i = 0; i < 6; i++) { const r = Rz * (1 - Zc.tick * i / 5); ink.put(x + Math.cos(t) * r, y + Math.sin(t) * r, sz * (1 - i * 0.1), cr, cg, cb, al * (1 - i * 0.12)); } }
@@ -877,7 +877,7 @@ function paint(time) {
   for (let i = 0; i < 32; i++) { // вдали: частицы в расфокусе — кольца, плывут медленнее
     const h = Math.abs(Math.sin(i * 91.7) * 43758.5) % 1, h2 = Math.abs(Math.sin(i * 12.9) * 9631.2) % 1;
     const warm = i % 3 === 0; // тёплые огоньки вдали, как на снимках
-    far.put(wrap(h * 1400 - view.x * 0.35, 1400) - 340, wrap(h2 * 2400 - view.y * 0.35, 2400) - 500, (warm ? 6 : 14) + h * (warm ? 14 : 46), warm ? 1 : 0.6, warm ? 0.55 : 0.8, warm ? 0.2 : 1, warm ? 0.25 : 0.025 + h2 * 0.035);
+    far.put(wrap(h * 1400 - view.x * 0.35, 1400) - 340, wrap(h2 * 2400 - view.y * 0.35, 2400) - 500, (warm ? 6 : 14) + h * (warm ? 14 : 46), warm ? 1 : 0.6, warm ? 0.9 : 0.8, warm ? 0.75 : 1, warm ? 0.2 : 0.025 + h2 * 0.035);
   }
   for (let i = 0; i < 70; i++) { // рядом: пылинки дрожат (броуновское) — видно, какие мы маленькие
     const h = Math.abs(Math.sin(i * 33.1) * 1758.5) % 1, h2 = Math.abs(Math.sin(i * 71.3) * 5631.7) % 1;
