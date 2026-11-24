@@ -3,12 +3,33 @@
 // Красное: в игре есть то, чего нет в книге; запись «в игре» без кода; текст игры разошёлся с записью;
 // номер занят дважды; запись прошла шаг без нужного слоя; запись не видна ни на одной странице.
 // --selftest: каждой проверке подаём нарочно сломанный пример и ждём красного.
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
+
+// Урок L017 (Роман 24.11: описания генов «непонятный нелогичный непонятно для кого»): карточка гена пишется
+// по методике kniga/teksty.md, и машина это держит. test_L017 — случаи самопроверки ниже.
+const ZAPRET = ['crispr', 'персистер', 'плазмид', 'фимбри', 'рецептор', 'рибосом', 'хемотакс', 'колицин', 'конъюг', 'фаг', 'штамм', 'мутаци', 'фенотип', 'экспресс'];
+const POLYA = { imya: 3, daet: 12, vid: 25, priroda: 25 };
+export function tekst(who, k) {
+  const bad = [];
+  for (const [f, max] of Object.entries(POLYA)) {
+    const v = (k || {})[f];
+    if (!v) { bad.push(who + ': в карточке нет строки «' + f + '»'); continue; }
+    const n = v.split(/\s+/).filter(w => /[а-яё0-9]/i.test(w)).length;
+    if (n > max) bad.push(who + ': строка «' + f + '» длиной ' + n + ' слов, можно ' + max);
+    if (/[a-z]/i.test(v)) bad.push(who + ': в строке «' + f + '» латиница: «' + v + '»');
+    const t = ZAPRET.find(z => v.toLowerCase().includes(z));
+    if (t) bad.push(who + ': в строке «' + f + '» термин «' + t + '»');
+    const ab = v.match(/(?<![а-яёА-ЯЁ])[А-ЯЁ]{2,}(?![а-яё])/g);
+    if (ab && ab.some(x => x !== 'ДНК')) bad.push(who + ': в строке «' + f + '» сокращение ' + ab.join(' '));
+  }
+  return bad;
+}
+export const sobrat = records => Object.fromEntries(records.filter(r => r.kartochka).map(r => [r.latin, { nomer: r.id, klyuch: (r.kod || []).map(k => k.split(':')).filter(k => k[0] === 'gene').map(k => k[1])[0] || null, ...r.kartochka }]));
 
 export const SHAGI = ['nauka', 'adaptaciya', 'biolog', 'gotov', 'stroyka', 'v_igre'];
 const at = s => SHAGI.indexOf(s);
 
-export function sverka({ records, cards, genes, slots, pages, files, spisok }) {
+export function sverka({ records, cards, genes, slots, pages, files, spisok, ring, teksty }) {
   const bad = [], seen = new Map();
   const have = k => { const [t, key] = k.split(':'); return t === 'cards' ? cards[key] : t === 'gene' ? genes[key] && { name: genes[key][0], chto: genes[key][1] } : null; };
   if ([...files].sort().join() !== [...spisok].sort().join()) bad.push('zapisi/spisok.json не совпадает с файлами записей: ' + files.join(' ') + ' / ' + spisok.join(' '));
@@ -40,6 +61,14 @@ export function sverka({ records, cards, genes, slots, pages, files, spisok }) {
   }
   for (const k of Object.keys(cards)) if (k !== '_' && !linked.has('cards:' + k)) bad.push('в игре есть карточка «' + k + '», а записи в книге нет');
   for (const k of Object.keys(genes)) if (!linked.has('gene:' + k)) bad.push('в игре есть ген «' + k + '», а записи в книге нет');
+  for (const r of records) {
+    if ((r.kod || []).some(k => k.startsWith('gene:')) && !r.kartochka) bad.push(r.id + ' ' + r.name + ': ген в игре без карточки для игрока');
+    if (r.kartochka) bad.push(...tekst(r.id + ' ' + r.name, r.kartochka));
+  }
+  const kart = sobrat(records);
+  for (const g of ring) if (!kart[g]) bad.push('на кольце генома ген ' + g + ', а карточки для игрока в книге нет');
+  if (teksty.geny && JSON.stringify(kart) !== JSON.stringify(teksty.geny)) bad.push('teksty_genov.json отстал от записей: запусти node proby/zaplyv/kniga/sverka.mjs --teksty');
+  for (const [k, v] of Object.entries(teksty.otkuda)) if (/[a-z]/i.test(v) || ZAPRET.some(z => v.toLowerCase().includes(z))) bad.push('teksty_genov.json otkuda.' + k + ': термин или латиница');
   for (const k of slots) if (!genes[k]) bad.push('на кольце генома место «' + k + '», а такого гена в data.json нет');
   return bad;
 }
@@ -51,12 +80,18 @@ function load() {
   const pages = Object.fromEntries(readdirSync(here).filter(f => f.endsWith('.md')).map(f => [f.slice(0, -3), readFileSync(new URL(f, here), 'utf8')]));
   const g = j('../genome.json');
   const slots = [...g.arcs.flatMap(a => a.slots), ...g.plasmids].map(s => s.id).filter(Boolean);
-  return { records, cards: j('../cards.json'), genes: j('../data.json').genes, slots, pages, files, spisok: j('zapisi/spisok.json') };
+  const ring = [...g.arcs.flatMap(a => a.slots), ...g.plasmids].map(s => s.gene).filter(x => x && x !== '?');
+  return { records, cards: j('../cards.json'), genes: j('../data.json').genes, slots, pages, files, spisok: j('zapisi/spisok.json'), ring, teksty: j('teksty_genov.json') };
 }
 
 const S = load();
+if (process.argv.includes('--teksty')) {
+  const u = new URL('teksty_genov.json', import.meta.url); writeFileSync(u, JSON.stringify({ ...S.teksty, geny: sobrat(S.records) }, null, 1) + '\n');
+  console.log('  teksty_genov.json собран из записей'); process.exit(0);
+}
 if (process.argv.includes('--selftest')) {
   const copy = () => JSON.parse(JSON.stringify(S));
+  const kart = s => { const r = s.records.find(r => r.kartochka); s.teksty.geny = null; return r.kartochka; };
   const proba = () => ({ id: 'Щ99', name: 'проба', file: S.spisok.find(f => S.records.some(r => r.file === f && !r.gde)), nauka: 'н', igra: 'и', stroit: 'с', proverka: 'п', shag: 'biolog', krugi: { biolog: '' } });
   const cases = [
     ['исправная книга', s => s, false],
@@ -69,6 +104,12 @@ if (process.argv.includes('--selftest')) {
     ['готов к стройке без биолога', s => { s.records.push({ ...proba(), shag: 'gotov' }); return s; }, true],
     ['запись без слоя науки ушла дальше', s => { s.records.push({ ...proba(), nauka: '' }); return s; }, true],
     ['запись не показана в книге', s => { s.pages = {}; return s; }, true],
+    ['test_L017: в имени гена латиница', s => { kart(s).imya = 'CRISPR'; return s; }, true],
+    ['test_L017: в строке «что даёт» термин', s => { kart(s).daet = 'Фаги тебя не берут'; return s; }, true],
+    ['test_L017: «что даёт» длиннее 12 слов', s => { kart(s).daet = 'один два три четыре пять шесть семь восемь девять десять одиннадцать двенадцать тринадцать'; return s; }, true],
+    ['test_L017: в карточке нет строки «в природе»', s => { delete kart(s).priroda; return s; }, true],
+    ['test_L017: ген в игре без карточки', s => { delete s.records.find(r => r.kartochka && r.kod).kartochka; return s; }, true],
+    ['test_L017: файл текстов для игры отстал от книги', s => { s.teksty.geny = { net: 1 }; return s; }, true],
   ];
   let fail = 0;
   for (const [name, brk, red] of cases) {
