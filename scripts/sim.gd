@@ -238,11 +238,14 @@ func can_build(side: int, kind: String, pos: Vector2) -> String:
 		return "вне поля"
 	if gold[side] < cfg.buildings[kind].cost:
 		return "мало крошек"
-	for o in buildings + deposits:
-		if o.pos.distance_to(pos) < cfg.build_gap:
+	# Ставить можно где угодно на столе; нельзя только поверх другой постройки или печенья.
+	var r: float = cfg.buildings[kind].size
+	for o in buildings:
+		if o.pos.distance_to(pos) < r + cfg.buildings[o.kind].size:
 			return "занято"
-	if not _near_own(side, pos):
-		return "далеко от своих"
+	for d in deposits:
+		if d.gold > 0 and d.pos.distance_to(pos) < r + cfg.deposit_r:
+			return "на печенье"
 	return ""
 
 
@@ -300,13 +303,6 @@ func building_at(pos: Vector2, side: int) -> Dictionary:
 		if b.pos.distance_to(pos) <= cfg.buildings[b.kind].size + 20:
 			return b
 	return {}
-
-
-func _near_own(side: int, pos: Vector2) -> bool:
-	for b in of_side(side):
-		if b.pos.distance_to(pos) <= cfg.build_radius:
-			return true
-	return false
 
 
 func _add_building(side: int, kind: String, pos: Vector2) -> Dictionary:
