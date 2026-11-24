@@ -16,6 +16,12 @@ done
 # Playwright и WebKit ставятся один раз на машину (папка ~/.webcheck), дальше прогоны идут сразу.
 # Прогон, не дошедший до игры, — провал проверки, а не «прошёл» и не «игра виновата» (урок L002).
 W=~/.webcheck; mkdir -p "$W"; cd "$W"
+if [ ! -f installed ] && [ -d /ms-playwright ]; then
+  # Готовый образ Playwright (workflow web): браузеры и зависимости уже есть, нужен только пакет.
+  timeout 300 npm i --no-audit --no-fund playwright@1.56.1 > install.log 2>&1 || {
+    tail -15 install.log; echo "ПАСПОРТ: установка WebKit не удалась, до игры не дошёл"; exit 1; }
+  touch installed
+fi
 if [ ! -f installed ]; then
   # apt без вопросов; на свежем раннере dpkg занят фоновым apt — ждём замок до 10 минут, а не падаем и не виснем.
   export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a

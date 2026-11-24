@@ -1,26 +1,41 @@
-# Временная проверка: какая голова падает в WebKit. Удалить после поиска.
+# Временная проверка образа Playwright. Постоянный адрес игры: каждый коммит в main собирается в веб и выкладывается в ветку Pages,
+# затем адрес проверяется снаружи в WebKit (tools/web/check_site.sh) в готовом образе Playwright, без apt.
 name: bisect
 on:
   push:
     branches: [claude/project-thread-8epzcj-bisect]
+concurrency:
+  group: bisect
+  cancel-in-progress: true
+permissions:
+  contents: write
+env:
+  PAGES_BRANCH: claude/project-thread-8epzcj-web
+  SITE: https://fishert2812.github.io/strategy-2d
 jobs:
-  b:
+  web:
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
-    strategy:
-      fail-fast: false
-      matrix:
-        ref: [648a586]
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - run: bash tools/install_godot.sh
-      - run: |
-          cp -r tools/web /tmp/web
-          git checkout -q ${{ matrix.ref }}
-          mkdir -p tools/web && cp /tmp/web/* tools/web/
-          bash tools/web/build.sh out/site
-          (cd out/site && python3 -m http.server 8000 >/dev/null 2>&1 &)
-          sleep 2
-          bash tools/web/test_L002.sh out/site && echo "test_L002 ОК" || echo "test_L002 ПАДЕНИЕ"; for i in 1 2 3; do bash tools/web/check_site.sh http://localhost:8000 "$(git rev-parse --short HEAD)" && echo "ПРОГОН $i ОК" || echo "ПРОГОН $i ПАДЕНИЕ"; done
+      - run: bash tools/web/build.sh out/site
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: out/site
+          include-hidden-files: true
+  webkit:
+    needs: web
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    container: mcr.microsoft.com/playwright:v1.56.1-noble
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: out/site
+      - run: command -v python3 >/dev/null && command -v curl >/dev/null || { apt-get update -qq && apt-get install -y -qq python3 curl >/dev/null; }
+      - run: bash tools/web/test_L002.sh out/site
+      - run: for i in 1 2 3; do bash tools/web/check_site.sh "$SITE" 4087d0d && echo "ПРОГОН $i ОК" || echo "ПРОГОН $i ПАДЕНИЕ"; done
