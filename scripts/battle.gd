@@ -8,7 +8,6 @@ const TAP := 24.0
 
 var sim: Sim
 var look: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(LOOK))
-var motion := Motion.new(look.motion)
 var shake := 0.0
 var enemy: Enemy
 var _sprites := {}
@@ -95,7 +94,7 @@ func _process(dt: float) -> void:
 	if $Hud/Box/Debug.visible:
 		$Hud/Box/Debug.text = debug_text()
 	_sync_paths()
-	_sync_units(dt)
+	_sync_units()
 
 
 func _sync_paths() -> void:
@@ -111,23 +110,19 @@ func _sync_paths() -> void:
 	_drop_missing(_lines, seen)
 
 
-func _sync_units(dt: float) -> void:
+func _sync_units() -> void:
 	var seen := {}
 	for u in sim.units:
 		seen[u.id] = true
 		if not _units.has(u.id):
 			var s := Sprite2D.new()
 			_fit(s, look[u.kind], _tex(look[u.kind].files[u.side]))
-			motion.attach(s)
-			s.position = u.pos
 			things.add_child(s)
 			_units[u.id] = s
 		var sprite: Sprite2D = _units[u.id]
 		# Люди нарисованы лицом влево: идёт вправо — отражаем.
 		if absf(u.pos.x - sprite.position.x) > 0.01:
 			sprite.flip_h = u.pos.x > sprite.position.x
-		var gait: String = u.kind if u.get("carry", 0.0) <= 0 else "carrier_loaded"
-		motion.walk(sprite, gait, u.pos.distance_to(sprite.position), dt)
 		sprite.position = u.pos
 	_drop_missing(_units, seen)
 
@@ -293,10 +288,6 @@ func hint(text: String, error := true) -> void:
 
 func _on_sim(what: String, data: Dictionary) -> void:
 	match what:
-		"hit":
-			var by: Sprite2D = _units.get(data.by)
-			if by != null:
-				motion.strike(by, _units.get(data.id), (data.pos - by.position).normalized())
 		"built":
 			var l: Dictionary = look[data.kind]
 			var s := _add_sprite(data.id, l, _tex(l.files[data.side]), data.pos)

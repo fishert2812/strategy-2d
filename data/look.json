@@ -43,16 +43,5 @@
   "path_edge": {
     "color": "#3B2414",
     "width": 11
-  },
-  "_motion": "Движения готовых картинок, в точках поля. gait: hop — высота прыжка, rate — прыжков в секунду, squash — сплющивание при приземлении, sway — покачивание в градусах. strike: windup — замах назад, lunge — выпад, knock — отлёт цели, squash — сплющивание цели, time — длина удара в секундах.",
-  "motion": {
-    "gait": {
-      "carrier": {"hop": 7, "rate": 3.6, "squash": 0.14, "sway": 5},
-      "carrier_loaded": {"hop": 2, "rate": 2.0, "squash": 0.06, "sway": 10},
-      "warrior": {"hop": 3, "rate": 2.6, "squash": 0.08, "sway": 2}
-    },
-    "strike": {"windup": 5, "lunge": 11, "knock": 9, "squash": 0.3, "time": 0.28}
-  },
-  "_frames": "Место под кадры, которые Роман дорисует в GPT: имя файла в art/table без .png; пусто — кадра пока нет, движение делается одной картинкой.",
-  "frames": {"warrior_attack": ["", ""], "porter_empty": ["", ""], "fx_clash": "", "fx_puff": "", "icon_kettle": ""}
+  }
 }
