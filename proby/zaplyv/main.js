@@ -11,6 +11,7 @@ import { whip } from './whip.js';
 import { Bodies } from './body3d.js';
 import { genomeScreen } from './genome.js';
 import { mark, message } from './feedback.js';
+import { kabinetScreen } from './kabinet.js';
 
 const cfg = await (await fetch('data.json')).json();
 const cards = await (await fetch('cards.json')).json();
@@ -193,25 +194,44 @@ function start() {
 }
 $('again').onclick = start;
 
-// Кабинет: кого встречал, карточки с настоящими фактами. Память — в этом браузере (только удобство).
+// Кабинет (kabinet.js): полка с разделами, карточка по касанию; картинки — снимки живых моделей из игры. Память встреч — в этом браузере.
 const KEYS = Object.keys(cards).filter(k => k !== '_');
 let met = new Set(['me']);
 try { for (const k of JSON.parse(localStorage.getItem('zaplyv.met') || '[]')) met.add(k); } catch (_) {}
 const saveMet = () => { try { localStorage.setItem('zaplyv.met', JSON.stringify([...met])); } catch (_) {} };
-const cabLabel = () => { $("cab").textContent = $("gcab").textContent = `Кабинет · ${KEYS.filter(k => met.has(k)).length} из ${KEYS.length}`; };
+const KAB = await (await fetch('kabinet.json')).json();
+const TEKSTY = await fetch('kniga/teksty_sushchestv.json').then(r => r.ok ? r.json() : {}).then(j => j.sushchestva || {}).catch(() => ({})); // тексты книги
+// Снимок модели: на миг подменяем мир студией с одним существом в середине кадра, рисуем тем же paint и вырезаем середину.
+const LISTS = { me: 'me', phage: 'phages', bdello: 'bdellos', amoeba: 'amoebas', slipper: 'slippers', bell: 'bells', roti: 'rotis',
+  pseudo: 'pseudos', strain: 'pseudos', donor: 'donors', coccus: 'prey', plant: 'plants', crumb: 'crumbs' };
+function studio(k) {
+  const w = new World(cfg, 7), it = KAB.items[k], a = it.a, id = 9001;
+  for (const l of new Set([...Object.values(LISTS), 'food', 'slime', 'away'])) w[l] = [];
+  const e = { x: 0, y: 0, vx: 0, vy: 0, a, d: a, dir: a, m: k === 'amoeba' ? 5 : k === 'plant' ? 4 : k === 'crumb' ? 3 : k === 'coccus' ? 1 : 1.1, id,
+    sick: -1, gen: 0, t: 0, cool: 0, held: 0, shut: 0, sit: true, link: 0, host: null, strain: k === 'strain' };
+  if (k === 'bell') { e.x = -Math.cos(a) * cfg.bell_stalk / 2; e.y = -Math.sin(a) * cfg.bell_stalk / 2; }
+  if (k === 'amoeba') e.vx = 20; // ползёт: видна ложноножка
+  if (k === 'coccus') e.id = 9004; // гроздь: самая узнаваемая форма кокков
+  w[LISTS[k]].push(e);
+  return w;
+}
+function snap(k) {
+  const keep = [world, view, kids, down, moved, rings, puffs, zaps, paint.t];
+  const out = document.createElement('canvas'); out.width = 480; out.height = 300;
+  try {
+    world = studio(k); kids = null; down = null; moved = true; rings = []; puffs = []; zaps = [];
+    const side = Math.min(W, H) * 0.9;
+    view = { x: 0, y: 0, z: side * 0.62 / KAB.items[k].span, tint: [...TINT[0]] };
+    for (let i = 0; i < 4; i++) render(30 + i / 30); // пара кадров: тело и жгутики встают на место
+    const sx = canvas.width / W, cw = side * sx, ch = cw * 300 / 480;
+    out.getContext('2d').drawImage(canvas, (canvas.width - cw) / 2, (canvas.height - ch) / 2, cw, ch, 0, 0, 480, 300);
+  } finally { [world, view, kids, down, moved, rings, puffs, zaps, paint.t] = keep; }
+  return out.toDataURL('image/jpeg', 0.86);
+}
+const kab = kabinetScreen({ K: KAB, cards, T: TEKSTY, met, snap, onSwim: () => { if (ended) start(); else if (paused) genome.close(); } });
+const cabLabel = () => { $('cab').textContent = $('gcab').textContent = kab.label(); };
 cabLabel();
-$('cab').onclick = () => {
-  const shelf = $('shelf'); shelf.innerHTML = '';
-  for (const k of KEYS) {
-    const c = cards[k], d = document.createElement('div');
-    d.className = 'cardk' + (met.has(k) ? '' : ' no');
-    if (met.has(k)) { d.innerHTML = '<h2></h2><p class="t"></p><p class="f"></p>'; d.querySelector('h2').textContent = c.name; d.querySelector('.t').textContent = c.text; d.querySelector('.f').textContent = c.fact; }
-    else d.innerHTML = '<h2>???</h2><p>Ещё не встречал. Плыви дальше.</p>';
-    shelf.appendChild(d);
-  }
-  $('cabinet').classList.add('on');
-};
-$('back').onclick = () => $('cabinet').classList.remove('on');
+$('cab').onclick = () => kab.open();
 let toastT = 0;
 // Пауза с геномом: мир замирает, твоя клетка крупно в середине кольца ДНК.
 let paused = false;
@@ -723,6 +743,17 @@ function paint(time) {
   for (const d of [far, glow, ink, near, dust, bubbles, wake]) d.done();
 }
 
+function render(t, after) {
+  U.time.value = t;
+  paint(t); if (after) after();
+  gl.autoClear = false;
+  gl.setRenderTarget(rt); gl.render(water, cam); gl.setRenderTarget(null);
+  gl.clear();
+  gl.render(back, cam);
+  gl.clearDepth();
+  gl.render(bodies.scene, bodies.cam);
+  gl.render(scene, cam);
+}
 // Замер для проверки: кадры, худший и средний кадр за последние 5 с, число клеток и точек.
 window.zaplyvWorld = () => world; // для проверок и кадров
 const probe = window.zaplyvProbe = { frames: 0, worst: 0, avg: 0, js: 0, jsWorst: 0, cells: 0, dots: 0, errors: 0 };
@@ -750,16 +781,7 @@ function frame(now) {
   const covered = $('end').classList.contains('on') || $('cabinet').classList.contains('on');
   probe.covered = covered;
   if (covered) { probe.frames++; requestAnimationFrame(frame); return; }
-  U.time.value = now / 1000;
-  paint(now / 1000);
-  if (!ended) { js.push(performance.now() - t0); if (js.length > 300) js.shift(); }
-  gl.autoClear = false;
-  gl.setRenderTarget(rt); gl.render(water, cam); gl.setRenderTarget(null);
-  gl.clear();
-  gl.render(back, cam);
-  gl.clearDepth();
-  gl.render(bodies.scene, bodies.cam);
-  gl.render(scene, cam);
+  render(now / 1000, () => { if (!ended) { js.push(performance.now() - t0); if (js.length > 300) js.shift(); } });
   probe.frames++; probe.cells = world.me.length;
   probe.js = js.reduce((s, v) => s + v, 0) / Math.max(js.length, 1); probe.jsWorst = Math.max(0, ...js.slice(5)); probe.path = Math.max(probe.path || 0, world.stats.path);
   probe.dots = world.food.length + world.prey.length + world.phages.length;

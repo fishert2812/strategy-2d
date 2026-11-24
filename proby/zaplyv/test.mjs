@@ -6,6 +6,7 @@ import { look } from './look.js';
 import { whip } from './whip.js';
 import { layout, card } from './genome.js';
 import { mark, message } from './feedback.js';
+import { shelf, page } from './kabinet.js';
 import { readFileSync } from 'node:fs';
 const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
 let bad = 0;
@@ -587,6 +588,24 @@ check('простой игрок живёт дольше минуты и дох�
   if (t[4] < 60) return 'медиана жизни ' + Math.round(t[4]) + ' с';
   if (g[4] < 1) return 'медианный игрок не дошёл до мутации';
   if (t[4] >= 300 && t[0] >= 300) return 'никто не погиб за 5 минут — нет угрозы';
+});
+
+// Кабинет (урок L019, Роман: «12 из 13 что это значит… где сами изображения… где образовательный контент, где структура»).
+check('test_L019: кабинет — разделы, счёт словами, у каждого существа модель и тексты книги', () => {
+  const K = JSON.parse(readFileSync(new URL('./kabinet.json', import.meta.url))), cards = JSON.parse(readFileSync(new URL('./cards.json', import.meta.url)));
+  const T = JSON.parse(readFileSync(new URL('./kniga/teksty_sushchestv.json', import.meta.url))).sushchestva;
+  const keys = Object.keys(cards).filter(k => k !== '_');
+  for (const k of keys) { const it = K.items[k]; if (!it) return `«${k}» нет в кабинете`;
+    if (!K.colors[it.group]) return `у «${k}» раздел без цвета`; if (!(it.span > 0)) return `у «${k}» нет размера снимка модели`;
+    if (!T[k] || !T[k].kto || !T[k].priroda) return `у «${k}» нет текста книги «кто это» и «в природе»`; }
+  const met = new Set(['me', 'phage', 'amoeba']), S = shelf(K, met);
+  if (!/^Ты встретил 2 обитателей капли из 12$/.test(S.count)) return 'счёт не словами: ' + S.count;
+  if (S.pills.map(p => p.g).join() !== 'all,danger,near,food' || S.pills[1].label !== 'Опасные · 2') return 'разделы: ' + S.pills.map(p => p.label).join(', ');
+  if (shelf(K, met, 'danger').list.some(k => K.items[k].group !== 'danger')) return 'в «Опасных» чужие';
+  const P = page('amoeba', K, cards, T, met), N = page('bdello', K, cards, T, met);
+  if (P.blocks.map(b => b[0]).join() !== 'КТО ЭТО,СОВЕТ,В ПРИРОДЕ' || !P.blocks[2][3].includes('С3')) return 'карточка: ' + JSON.stringify(P.blocks.map(b => [b[0], b[3]]));
+  if (N.met || N.name === T.bdello.imya || !N.line) return 'невстреченный выдаёт имя или не говорит, где искать';
+  console.log('    паспорт: ' + S.count + '; ' + S.pills.map(p => p.label).join(' / ') + '; амёба: ' + P.blocks.map(b => b[0]).join(' · '));
 });
 
 console.log(bad ? 'ЗАПЛЫВ: провалов ' + bad : 'ЗАПЛЫВ: все проверки прошли');

@@ -37,6 +37,14 @@ if (await tap('#gflag', 'флажок в геноме')) say(await seen('#note')
 m = await marks();
 if (await tap('#gno', '«Не так» в геноме')) say(await seen('#note') && await marks() === m + 1, '«Не так» в геноме: отметка и надпись видна');
 if (await tap('#gcab', 'кабинет из генома')) say(await on('cabinet'), 'кабинет открылся');
+// test_L019: у каждой карточки полки — снимок живой модели (картинка не пустая), разделы и карточка отвечают пальцу
+await p.waitForTimeout(1500);
+say(await p.evaluate(() => [...document.querySelectorAll('#shelf .kc img')].every(i => i.naturalWidth > 100 && i.src.length > 5000)), 'test_L019: у каждой карточки кабинета — снимок модели из игры');
+if (await tap('#kpills button:nth-child(2)', 'раздел «Опасные»')) say(await p.evaluate(() => document.querySelectorAll('#shelf .kc').length > 0 && document.querySelector('#kpills .on').dataset.g === 'danger'), 'раздел «Опасные» открылся');
+if (await tap('#kpills button:nth-child(1)', 'раздел «Все»')) say(await p.evaluate(() => !!document.querySelector('#shelf .kc[data-k=me]')), 'раздел «Все» открылся');
+if (await tap('#shelf .kc[data-k=me]', 'карточка «Ты»')) say(await seen('#kcard') && await p.evaluate(() => document.querySelectorAll('#kblocks .kb').length >= 2 && document.getElementById('kimg').naturalWidth > 100), 'карточка открылась: модель и блоки текста');
+if (await tap('#knext', 'следующая карточка')) say(await p.evaluate(() => document.getElementById('kname').textContent !== 'Ты, кишечная палочка'), 'листается к следующей');
+if (await tap('#kback', 'назад к полке')) say(await seen('#kshelf'), 'полка снова видна');
 if (await tap('#back', 'назад из кабинета')) say(!(await on('cabinet')) && await on('genome'), 'кабинет закрылся, геном на месте');
 // «Отправить» в геноме: меню «Поделиться» телефона подменяем, отметки должны уйти одним сообщением.
 await p.evaluate(() => { navigator.share = async d => { window.shared = d.text; }; });
