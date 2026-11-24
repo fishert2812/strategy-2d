@@ -21,23 +21,33 @@ export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a
   timeout 600 sudo -E npx playwright install-deps webkit >/dev/null &&
   timeout 300 npx playwright install webkit >/dev/null; } || { echo "ПАСПОРТ: установка WebKit не удалась, до игры не дошёл"; exit 1; }
 cat > t.js <<'JS'
+// Паспорт: меню (зонд видит кнопку Play) -> касание Play по имени узла -> партия (сцена Battle) -> 30 с в партии.
 const { webkit, devices } = require('playwright');
+const say = t => console.log('ПАСПОРТ: ' + t);
 (async () => {
   const b = await webkit.launch();
   const p = await b.newPage({ ...devices['iPhone 13'] });
-  let bad = 0, started = false;
-  p.on('console', m => { if (/Godot Engine v/.test(m.text())) started = true; if (m.type() === 'error' && !/glBlitFramebuffer/.test(m.text())) { bad++; console.log('консоль', m.text().slice(0, 200)); } });
+  let bad = 0;
+  p.on('console', m => { if (m.type() === 'error' && !/glBlitFramebuffer/.test(m.text())) { bad++; console.log('консоль', m.text().slice(0, 200)); } });
   p.on('pageerror', e => { bad++; console.log('ошибка страницы', e.message); });
+  const probe = () => p.evaluate(() => window.godotProbe || null).catch(() => null);
+  const until = async (ok, ms) => { for (let t = 0; t < ms; t += 500) { const g = await probe(); if (g && ok(g)) return g; if (bad) return null; await p.waitForTimeout(500); } return null; };
+  const end = (code, t) => { say(t); return b.close().then(() => process.exit(code)); };
   await p.goto(process.argv[2], { timeout: 60000 });
-  await p.waitForTimeout(20000);
-  await p.screenshot({ path: 'webkit.png', timeout: 20000 }).catch(e => console.log('снимок не снят', e.message));
-  // Касание «Играть» (середина экрана 390×664 у iPhone 13) и 28 с самой партии: падения бывают только в партии.
-  await p.touchscreen.tap(195, 332);
-  await p.waitForTimeout(28000);
-  await b.close();
-  if (bad) { console.log('ПАСПОРТ: игра упала, ошибок ' + bad); process.exit(1); }
-  if (!started) { console.log('ПАСПОРТ: до игры не дошёл (движок не запустился)'); process.exit(2); }
-  console.log('ПАСПОРТ: дошёл до игры, ошибок 0'); process.exit(0);
+  const menu = await until(g => g.nodes && g.nodes.Play, 40000);
+  if (!menu) return end(bad ? 1 : 2, bad ? 'игра упала до меню, ошибок ' + bad : 'до меню не дошёл (зонд не ответил)');
+  const box = await p.locator('#canvas').boundingBox();
+  const [fx, fy] = menu.nodes.Play;
+  await p.touchscreen.tap(box.x + fx * box.width, box.y + fy * box.height);
+  const fight = await until(g => g.scene === 'Battle', 15000);
+  if (!fight) return end(bad ? 1 : 2, bad ? 'игра упала при входе в партию, ошибок ' + bad : 'в партию не вошёл');
+  say('в партии, стою 30 с');
+  await p.waitForTimeout(30000);
+  const after = await probe();
+  if (bad) return end(1, 'игра упала в партии, ошибок ' + bad);
+  if (!after || after.frames <= fight.frames) return end(1, 'партия встала: кадры не идут');
+  await p.screenshot({ path: 'webkit.png', timeout: 20000 }).catch(() => {});
+  return end(0, 'дошёл до партии, 30 с без ошибок, кадров ' + (after.frames - fight.frames));
 })();
 JS
-timeout -k 10 300 node t.js "$URL/" || { rc=$?; [ $rc -ge 124 ] && echo "ПАСПОРТ: WebKit завис, до конца не дошёл"; exit 1; }
+timeout -k 10 180 node t.js "$URL/" || { rc=$?; [ $rc -ge 124 ] && echo "ПАСПОРТ: WebKit завис, до конца не дошёл"; exit 1; }
