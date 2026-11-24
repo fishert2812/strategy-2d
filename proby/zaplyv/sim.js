@@ -6,6 +6,8 @@
 // забываются позади. Среда в точке — по шуму: чистая вода, сладкая вода, ил.
 // Числа — в data.json. Модуль без экрана: его гоняет test.mjs (node) и рисует main.js.
 
+import { zhizn } from './zhizn.js'; // соседи живут сами: движок по паспорту существ (zhizn.json)
+
 export const radius = m => 13 * Math.sqrt(m);
 
 function rng(seed) {
@@ -235,6 +237,7 @@ export class World {
     this.stats.path += dist(c0, c1);
     this.life(dt);
     this.eat(dt);
+    zhizn(this, dt, radius);
     this.hunters(dt);
     this.hold(dt);
     this.rush = Math.max(0, this.rush - (this.stats.time - this.lastEat > c.rush_gap ? c.rush_fall * dt : 0));
