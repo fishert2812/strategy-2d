@@ -37,7 +37,7 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 #card p, #path p { margin: 0 0 6px; font-size: 15px; line-height: 1.35; text-align: left; opacity: 0.85; }
 #cfact::before { content: "Удивительно: "; font-weight: 600; }
 #ctip { color: #9ff5d8; }
-/* Кабинет (макет design/zaplyv_kabinet_maket.png): полка с разделами и карточка по касанию */
+/* Альманах (макет design/zaplyv_almanah_maket.png): полка с разделами и страница по касанию */
 #cabinet { z-index: 30; background: radial-gradient(120% 80% at 50% 0%, #0a2832, #02040a 60%); justify-content: flex-start; align-items: stretch; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y;
   padding: calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 20px); gap: 0; }
 #cabinet > div { width: min(420px, 100%); margin: 0 auto; }
@@ -146,12 +146,12 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
   <div id="gchips"></div>
   <div id="gcard"></div>
   <button id="gon">Плыть дальше</button>
-  <div id="grow"><button id="gcab" class="ghost">Кабинет</button><button id="gno" class="flag">⚑ Не так</button></div>
+  <div id="grow"><button id="gcab" class="ghost">Альманах</button><button id="gno" class="flag">⚑ Не так</button></div>
 </div>
 <div class="layer" id="cabinet">
-  <div id="kshelf"><div class="khead"><button id="back" class="round" aria-label="Назад">‹</button><h1>Кабинет</h1></div>
+  <div id="kshelf"><div class="khead"><button id="back" class="round" aria-label="Назад">‹</button><h1>Альманах</h1></div>
     <p id="kcount"></p><div id="kbar"><i></i></div><div id="kpills"></div><div id="shelf"></div></div>
-  <div id="kcard" hidden><div class="khead"><button id="kback" class="round" aria-label="К полке">‹</button><h1 id="khead"></h1></div>
+  <div id="kcard" hidden><div class="khead"><button id="kback" class="round" aria-label="К полке">‹</button><h1 id="khead">Альманах</h1></div>
     <div id="kframe"><img id="kimg" alt=""><div id="ksize"></div></div><h2 id="kname"></h2><div id="ktag"></div><div id="kblocks"></div>
     <div id="knav"><button id="kprev"></button><button id="knext"></button></div><button id="kswim">Плыть</button></div>
 </div>

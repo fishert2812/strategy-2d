@@ -37,7 +37,7 @@ ONLY=L012 case_ "test_L012: потолок мутаций" 50_zaplyv.sh red "sed
 ONLY=L013 case_ "test_L013: опасность у самого старта" 50_zaplyv.sh red "sed -i 's/const safe = far < c.safe_chunks;/const safe = false;/' $Z/sim.js"
 ONLY=L014 case_ "test_L014: запятая не рождается в мире" 50_zaplyv.sh red "sed -i 's/ this.bdellos.push({ ...pt()/ 0 \&\& this.bdellos.push({ ...pt()/' $Z/sim.js"
 ONLY=L016 case_ "test_L016: токсин снова бьёт не родню" 50_zaplyv.sh red "sed -i 's/if (q.strain \&\& !q.gone/if (!q.gone/' $Z/sim.js"
-ONLY=L019 case_ "test_L019: существо без места в кабинете" 50_zaplyv.sh red "python3 -c \"import json;p='$Z/kabinet.json';d=json.load(open(p));d['items'].pop('amoeba');json.dump(d,open(p,'w'))\""
+ONLY=L019 case_ "test_L019: существо без места в Альманахе" 50_zaplyv.sh red "python3 -c \"import json;p='$Z/almanah.json';d=json.load(open(p));d['items'].pop('amoeba');json.dump(d,open(p,'w'))\""
 case_ "test_L017: невидимый слой поверх кнопок «Заплыва»" 52_zaplyv_tap.sh red "sed -i 's|<div id=\"note\"|<div style=\"position:fixed;inset:0;z-index:99\"></div>&|' proby/zaplyv/index.html"
 case_ "test_L017: флажок молчит после касания" 52_zaplyv_tap.sh red "sed -i 's|n.classList.add(.on.);|/* нет отклика */|' proby/zaplyv/main.js"
 # Остановка: открытая issue stop делает PR красным, метка fix пропускает.

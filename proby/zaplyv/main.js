@@ -11,7 +11,7 @@ import { whip } from './whip.js';
 import { Bodies } from './body3d.js';
 import { genomeScreen } from './genome.js';
 import { mark, message } from './feedback.js';
-import { kabinetScreen } from './kabinet.js';
+import { almanahScreen } from './almanah.js';
 
 const cfg = await (await fetch('data.json')).json();
 const cards = await (await fetch('cards.json')).json();
@@ -194,18 +194,19 @@ function start() {
 }
 $('again').onclick = start;
 
-// Кабинет (kabinet.js): полка с разделами, карточка по касанию; картинки — снимки живых моделей из игры. Память встреч — в этом браузере.
-const KEYS = Object.keys(cards).filter(k => k !== '_');
+// Альманах (almanah.js): полка с разделами, страница по касанию; картинки — снимки живых моделей из игры. Память встреч — в этом браузере.
 let met = new Set(['me']);
 try { for (const k of JSON.parse(localStorage.getItem('zaplyv.met') || '[]')) met.add(k); } catch (_) {}
 const saveMet = () => { try { localStorage.setItem('zaplyv.met', JSON.stringify([...met])); } catch (_) {} };
-const KAB = await (await fetch('kabinet.json')).json();
+const KAB = await (await fetch('almanah.json')).json();
+const GENY = await fetch('kniga/teksty_genov.json').then(r => r.ok ? r.json() : {}).catch(() => ({})); // гены: имена и тексты книги
 const TEKSTY = await fetch('kniga/teksty_sushchestv.json').then(r => r.ok ? r.json() : {}).then(j => j.sushchestva || {}).catch(() => ({})); // тексты книги
 // Снимок модели: на миг подменяем мир студией с одним существом в середине кадра, рисуем тем же paint и вырезаем середину.
 const LISTS = { me: 'me', phage: 'phages', bdello: 'bdellos', amoeba: 'amoebas', slipper: 'slippers', bell: 'bells', roti: 'rotis',
   pseudo: 'pseudos', strain: 'pseudos', donor: 'donors', coccus: 'prey', plant: 'plants', crumb: 'crumbs' };
-function studio(k) {
-  const w = new World(cfg, 7), it = KAB.items[k], a = it.a, id = 9001;
+function studio(k, it) {
+  const w = new World(cfg, 7), a = it.a, id = 9001;
+  if (it.gene) { w.genes = { [it.gene]: true }; k = 'me'; } // ген — твоя клетка с этим геном: видно, что он меняет на теле
   for (const l of new Set([...Object.values(LISTS), 'food', 'slime', 'away'])) w[l] = [];
   const e = { x: 0, y: 0, vx: 0, vy: 0, a, d: a, dir: a, m: k === 'amoeba' ? 5 : k === 'plant' ? 4 : k === 'crumb' ? 3 : k === 'coccus' ? 1 : 1.1, id,
     sick: -1, gen: 0, t: 0, cool: 0, held: 0, shut: 0, sit: true, link: 0, host: null, strain: k === 'strain' };
@@ -215,23 +216,24 @@ function studio(k) {
   w[LISTS[k]].push(e);
   return w;
 }
-function snap(k) {
+function snap(k, it) {
   const keep = [world, view, kids, down, moved, rings, puffs, zaps, paint.t];
   const out = document.createElement('canvas'); out.width = 480; out.height = 300;
   try {
-    world = studio(k); kids = null; down = null; moved = true; rings = []; puffs = []; zaps = [];
+    world = studio(k, it); kids = null; down = null; moved = true; rings = []; puffs = []; zaps = [];
     const side = Math.min(W, H) * 0.9;
-    view = { x: 0, y: 0, z: side * 0.62 / KAB.items[k].span, tint: [...TINT[0]] };
+    view = { x: 0, y: 0, z: side * 0.62 / it.span, tint: [...TINT[0]] };
     for (let i = 0; i < 4; i++) render(30 + i / 30); // пара кадров: тело и жгутики встают на место
     const sx = canvas.width / W, cw = side * sx, ch = cw * 300 / 480;
     out.getContext('2d').drawImage(canvas, (canvas.width - cw) / 2, (canvas.height - ch) / 2, cw, ch, 0, 0, 480, 300);
   } finally { [world, view, kids, down, moved, rings, puffs, zaps, paint.t] = keep; }
   return out.toDataURL('image/jpeg', 0.86);
 }
-const kab = kabinetScreen({ K: KAB, cards, T: TEKSTY, met, snap, onSwim: () => { if (ended) start(); else if (paused) genome.close(); } });
+const kab = almanahScreen({ K: KAB, cards, T: TEKSTY, G: GENY, met, snap, onSwim: () => { if (ended) start(); else if (paused) genome.close(); } });
 const cabLabel = () => { $('cab').textContent = $('gcab').textContent = kab.label(); };
 cabLabel();
-$('cab').onclick = () => kab.open();
+const knowGenes = () => { let add = false; for (const g in world.genes) if (!met.has('gene:' + g)) { met.add('gene:' + g); add = true; } if (add) { saveMet(); cabLabel(); } }; // ген, который у тебя был, — запись в Альманахе
+$('cab').onclick = () => { knowGenes(); kab.open(); };
 let toastT = 0;
 // Пауза с геномом: мир замирает, твоя клетка крупно в середине кольца ДНК.
 let paused = false;
@@ -277,7 +279,7 @@ showMarks();
 function meet(k) { // первая встреча: на секунду имя у края экрана, без паузы и без нажатий
   if (met.has(k) || !cards[k]) return;
   met.add(k); saveMet(); cabLabel();
-  say('Новая карточка · ' + cards[k].name, 1600);
+  say('Новая запись в Альманахе · ' + (TEKSTY[k]?.imya || cards[k].name), 1600);
   beep(990, 0.12, 0.03, 'sine', 1.3);
 }
 function say(text, ms) { $('toast').textContent = text; $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => $('toast').classList.remove('on'), ms); }
@@ -782,6 +784,7 @@ function frame(now) {
   probe.covered = covered;
   if (covered) { probe.frames++; requestAnimationFrame(frame); return; }
   render(now / 1000, () => { if (!ended) { js.push(performance.now() - t0); if (js.length > 300) js.shift(); } });
+  if (probe.frames % 60 === 0) knowGenes();
   probe.frames++; probe.cells = world.me.length;
   probe.js = js.reduce((s, v) => s + v, 0) / Math.max(js.length, 1); probe.jsWorst = Math.max(0, ...js.slice(5)); probe.path = Math.max(probe.path || 0, world.stats.path);
   probe.dots = world.food.length + world.prey.length + world.phages.length;

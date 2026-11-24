@@ -6,7 +6,7 @@ import { look } from './look.js';
 import { whip } from './whip.js';
 import { layout, card } from './genome.js';
 import { mark, message } from './feedback.js';
-import { shelf, page } from './kabinet.js';
+import { entries, shelf, page } from './almanah.js';
 import { readFileSync } from 'node:fs';
 const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
 let bad = 0;
@@ -590,22 +590,24 @@ check('простой игрок живёт дольше минуты и дох�
   if (t[4] >= 300 && t[0] >= 300) return 'никто не погиб за 5 минут — нет угрозы';
 });
 
-// Кабинет (урок L019, Роман: «12 из 13 что это значит… где сами изображения… где образовательный контент, где структура»).
-check('test_L019: кабинет — разделы, счёт словами, у каждого существа модель и тексты книги', () => {
-  const K = JSON.parse(readFileSync(new URL('./kabinet.json', import.meta.url))), cards = JSON.parse(readFileSync(new URL('./cards.json', import.meta.url)));
-  const T = JSON.parse(readFileSync(new URL('./kniga/teksty_sushchestv.json', import.meta.url))).sushchestva;
-  const keys = Object.keys(cards).filter(k => k !== '_');
-  for (const k of keys) { const it = K.items[k]; if (!it) return `«${k}» нет в кабинете`;
+// Альманах (урок L019, Роман: «Кабинет… 12 из 13 что это значит… где сами изображения… где образовательный контент, где структура»; «Альманах… он так должен называться»).
+check('test_L019: Альманах — разделы, счёт словами, у каждой записи модель и тексты книги', () => {
+  const J = f => JSON.parse(readFileSync(new URL(f, import.meta.url)));
+  const K = J('./almanah.json'), cards = J('./cards.json'), T = J('./kniga/teksty_sushchestv.json').sushchestva, G = J('./kniga/teksty_genov.json'), E = entries(K, G);
+  for (const k of Object.keys(cards).filter(k => k !== '_')) { const it = E[k]; if (!it) return `«${k}» нет в Альманахе`;
     if (!K.colors[it.group]) return `у «${k}» раздел без цвета`; if (!(it.span > 0)) return `у «${k}» нет размера снимка модели`;
     if (!T[k] || !T[k].kto || !T[k].priroda) return `у «${k}» нет текста книги «кто это» и «в природе»`; }
-  const met = new Set(['me', 'phage', 'amoeba']), S = shelf(K, met);
-  if (!/^Ты встретил 2 обитателей капли из 12$/.test(S.count)) return 'счёт не словами: ' + S.count;
-  if (S.pills.map(p => p.g).join() !== 'all,danger,near,food' || S.pills[1].label !== 'Опасные · 2') return 'разделы: ' + S.pills.map(p => p.label).join(', ');
-  if (shelf(K, met, 'danger').list.some(k => K.items[k].group !== 'danger')) return 'в «Опасных» чужие';
-  const P = page('amoeba', K, cards, T, met), N = page('bdello', K, cards, T, met);
-  if (P.blocks.map(b => b[0]).join() !== 'КТО ЭТО,СОВЕТ,В ПРИРОДЕ' || !P.blocks[2][3].includes('С3')) return 'карточка: ' + JSON.stringify(P.blocks.map(b => [b[0], b[3]]));
+  for (const g of Object.keys(cfg.genes)) if (!E['gene:' + g] || !(E['gene:' + g].span > 0)) return `гена «${g}» нет в Альманахе`;
+  const met = new Set(['me', 'phage', 'amoeba', 'plant']), S = shelf(K, E, met);
+  if (S.count !== 'Ты знаешь 2 обитателей капли из 10 · 1 еду из 2') return 'счёт не словами: ' + S.count;
+  if (S.pills.map(p => p.s).join() !== 'life,food' || S.pills[0].label !== 'Обитатели · 2') return 'разделы: ' + S.pills.map(p => p.label).join(', ');
+  met.add('gene:capsule'); const S2 = shelf(K, E, met, 'gene');
+  if (!S2.pills.some(p => p.s === 'gene') || !S2.list.every(k => E[k].sec === 'gene') || !S2.count.endsWith('· 1 ген')) return 'раздел генов: ' + S2.count;
+  const P = page('amoeba', K, E, cards, T, G, met), N = page('bdello', K, E, cards, T, G, met), Gp = page('gene:capsule', K, E, cards, T, G, met);
+  if (P.blocks.map(b => b[0]).join() !== 'КТО ЭТО,СОВЕТ,В ПРИРОДЕ' || !P.blocks[2][3].includes('С3')) return 'страница: ' + JSON.stringify(P.blocks.map(b => [b[0], b[3]]));
+  if (Gp.name !== 'Скользкая шуба' || Gp.blocks[1][0] !== 'В ПРИРОДЕ' || !Gp.blocks[1][3].includes('Г11')) return 'страница гена: ' + JSON.stringify(Gp);
   if (N.met || N.name === T.bdello.imya || !N.line) return 'невстреченный выдаёт имя или не говорит, где искать';
-  console.log('    паспорт: ' + S.count + '; ' + S.pills.map(p => p.label).join(' / ') + '; амёба: ' + P.blocks.map(b => b[0]).join(' · '));
+  console.log('    паспорт: ' + S2.count + '; ' + S2.pills.map(p => p.label).join(' / ') + '; амёба: ' + P.blocks.map(b => b[0]).join(' · ') + '; ген: ' + Gp.name);
 });
 
 console.log(bad ? 'ЗАПЛЫВ: провалов ' + bad : 'ЗАПЛЫВ: все проверки прошли');
