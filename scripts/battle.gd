@@ -42,6 +42,8 @@ func _ready() -> void:
 		buttons[kind].icon = _tex(look.icons[kind])
 	$End/Center/Box/Again.pressed.connect(restart)
 	$End/Center/Box/Send.pressed.connect($Report.quick)
+	# Прозрачная кнопка страницы ложится на «Отправить разбор», когда экран итога разложен.
+	$End/Center/Box/Send.item_rect_changed.connect(func(): if $End.visible: $Report.arm($End/Center/Box/Send))
 	$End/Center/Box/Phrase.pressed.connect($Report.open)
 	$Report.sent_out.connect(func(): $End/Center/Box/Send.text = "Разбор ушёл")
 	flag_button.icon = load(look.flag.file)
@@ -237,6 +239,9 @@ func _move(pos: Vector2) -> void:
 		if _drag.trail.is_empty() or _drag.trail[-1].distance_to(at) >= sim.cfg.route.step:
 			_drag.trail.append(at)
 		_points(_drag.line, [_drag.from.pos] + _drag.trail + [at])
+	elif _drag.has("flag"):
+		ghost.position = world.to_local(pos)
+		ghost.show()
 	elif _drag.has("what"):
 		ghost.position = world.to_local(pos)
 		var ok: bool = sim.can_build(Sim.PLAYER, _drag.what, ghost.position) == ""
@@ -254,6 +259,7 @@ func _press(pos: Vector2) -> void:
 	if flag_button.get_global_rect().has_point(pos):
 		_pick({})
 		_drag = {"flag": true, "start": pos}
+		_fit(ghost, look.flag, load(look.flag.file)); ghost.modulate = Color(look.flag.color, 0.7)
 		return
 	for kind in buttons:
 		if buttons[kind].get_global_rect().has_point(pos):
@@ -321,11 +327,9 @@ func put_flag(at: Variant) -> void:
 	var f := box.flag(sim, at)
 	flag_button.text = str(box.flags.size())
 	var s := Sprite2D.new()
-	s.texture = load(look.flag.file)
-	s.scale = Vector2.ONE * look.flag.width / s.texture.get_width()
+	_fit(s, look.flag, load(look.flag.file))
 	s.modulate = Color(look.flag.color)
 	s.position = at if at != null else world.to_local(flag_button.get_global_rect().get_center() - Vector2(0, 110))
-	s.offset.y = -s.texture.get_height() * 0.4
 	things.add_child(s)
 	var t := s.create_tween()
 	t.tween_property(s, "modulate:a", 0.0, 0.5).set_delay(look.flag.show)
@@ -380,13 +384,8 @@ func _on_sim(what: String, data: Dictionary) -> void:
 			$End/Center/Box/Title.text = "Победа!" if data.winner == Sim.PLAYER else "Поражение"
 			$End/Center/Box/Flags.text = "Флажки: " + box.times() if not box.flags.is_empty() else "Флажков нет, ящик всё равно уйдёт"
 			$End/Center/Box/Send.text = "Отправить разбор"
-			_arm_send.call_deferred()
 			$End.show()
-
-
-## Кнопка «Отправить разбор» готовится, когда экран итога уже разложен.
-func _arm_send() -> void:
-	$Report.arm($End/Center/Box/Send)
+			$Report.arm($End/Center/Box/Send)
 
 
 ## Первая сшибка двух воинов, которые до этого не дрались: оба отскакивают со звоном.

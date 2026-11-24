@@ -1,7 +1,6 @@
 class_name BlackBox
 extends RefCounted
-## Чёрный ящик партии для разбора (план обратной связи, 24.11.2026): флажки Романа и то,
-## чего он сам не надиктует — ошибки действий, простой построек, перерисовки троп, потери.
+## Чёрный ящик партии (24.11.2026): флажки Романа и то, чего он не надиктует — ошибки, простой, тропы, потери.
 
 ## Флажки: секунда, место на поле (или null — «вот сейчас»), крошки, мои постройки и тропы.
 var flags: Array = []
@@ -11,8 +10,7 @@ var redraws := 0
 var built := [0, 0]
 var destroyed := [0, 0]
 var lost := [0, 0]
-## Секунды простоя моих построек: лагерь без живой залежи, казарма без тропы.
-var idle := {"camp": 0.0, "barracks": 0.0}
+var idle := {"camp": 0.0, "barracks": 0.0}  # простой: лагерь без залежи, казарма без тропы, с
 
 
 func on_sim(what: String, data: Dictionary) -> void:
@@ -56,7 +54,7 @@ func summary(sim: Sim) -> String:
 	for f in flags:
 		var at: String = "" if f.pos == null else " у (%d, %d)" % [f.pos.x, f.pos.y]
 		out.append("- %s%s: крошки %d, построек %d, простаивают %d" % [_clock(f.t), at, f.gold, f.mine, f.idle])
-	out.append("Ящик: партия %s, %s" % [_clock(sim.time), ["идёт", "победа", "поражение"][sim.winner + 1]])
+	out.append("Что заметила игра: партия %s, %s" % [_clock(sim.time), ["идёт", "победа", "поражение"][sim.winner + 1]])
 	out.append("построено %d (враг %d), разрушено моих %d, вражеских %d" % [built[0], built[1], destroyed[0], destroyed[1]])
 	out.append("простой: лагеря %d с, казармы %d с; троп нарисовано %d" % [idle.camp, idle.barracks, redraws])
 	out.append("воинов потеряно %d (враг %d)" % [lost[0], lost[1]])
