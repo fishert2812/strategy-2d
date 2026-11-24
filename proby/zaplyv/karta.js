@@ -64,10 +64,10 @@ export function draw(ctx, w, h, o) {
   const [rc, rx] = mk(); rx.fillStyle = '#fff';
   for (let i = 0; i < n; i++) for (let j = 0; j < m; j++) if (!o.seen.has(i + ',' + j)) rx.fillRect(F.x + i * cw, F.y + j * ch, cw, ch);
   const [mc, mx] = mk(); mx.setTransform(1, 0, 0, 1, 0, 0); mx.filter = `blur(${6 * dpr}px)`; mx.drawImage(rc, 0, 0); // одно размытие на весь туман — край пятном, без швов
-  const [fc, fx] = mk(); fx.setTransform(1, 0, 0, 1, 0, 0); fx.filter = 'saturate(0.35) brightness(0.82)'; fx.drawImage(ctx.canvas, 0, 0); fx.filter = 'none';
+  const [fc, fx] = mk(); fx.setTransform(1, 0, 0, 1, 0, 0); fx.filter = 'saturate(0.3) brightness(0.66)'; fx.drawImage(ctx.canvas, 0, 0); fx.filter = 'none';
   fx.setTransform(dpr, 0, 0, dpr, 0, 0);
   for (let k = 0; k < 900; k++) { const r = Math.sin(k * 91.7) * 43758.5, u = r - Math.floor(r), v = r * 7.1 - Math.floor(r * 7.1); fx.fillStyle = `rgba(255,255,255,${0.06 + 0.02 * (k % 3)})`; fx.fillRect(F.x + u * F.w, F.y + v * F.h, 1.2, 1.2); }
-  fx.fillStyle = 'rgba(4,10,16,0.3)'; fx.fillRect(0, 0, w, h);
+  fx.fillStyle = 'rgba(4,10,16,0.38)'; fx.fillRect(0, 0, w, h);
   fx.setTransform(1, 0, 0, 1, 0, 0); fx.globalCompositeOperation = 'destination-in'; fx.drawImage(mc, 0, 0);
   ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(fc, 0, 0); ctx.restore();
   // подписи слоёв: светлые на тёмной плашке
@@ -95,6 +95,9 @@ export function draw(ctx, w, h, o) {
     ctx.restore();
   });
   // ты здесь: своя клетка и тихое кольцо-пульс
+  if (o.goal) { const [x, y] = toMap(P, F, o.goal.x, o.goal.y), r = 22 + 2 * Math.sin(o.t * 3); // метка-цель (Э20): пунктирное кольцо поверх отметки
+    ctx.save(); ctx.setLineDash([5, 4]); ctx.lineDashOffset = -o.t * 12; ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.beginPath(); ctx.arc(x, y, r + 1, 0, 6.283); ctx.stroke();
+    ctx.lineWidth = 2; ctx.strokeStyle = '#7cdcff'; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283); ctx.stroke(); ctx.restore(); }
   if (o.me) { const [x, y] = toMap(P, F, o.me.x, o.me.y), pr = 12 + 4 * Math.sin(o.t * 2.4);
     ctx.strokeStyle = 'rgba(160,235,255,0.45)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, pr, 0, 6.283); ctx.stroke();
     if (o.meImg && o.meImg.complete && o.meImg.naturalWidth) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, 9, 0, 6.283); ctx.clip(); ctx.drawImage(o.meImg, x - 9, y - 9, 18, 18); ctx.restore(); }

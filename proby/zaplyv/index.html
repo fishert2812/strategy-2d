@@ -147,6 +147,7 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
 #mlegend { margin: 0; height: 24px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; color: rgba(207, 227, 230, 0.85); }
 .lg { display: inline-block; width: 14px; height: 14px; margin-left: 8px; } .lg.d { transform: rotate(45deg) scale(0.8); border: 2.5px solid #ff6e46; }
 .lg.g { border-radius: 50%; border: 2.5px solid #5ae696; } .lg.y { border-radius: 50%; border: 1.5px solid #a0ebff; }
+#mlegend .lg.c { border: 2px dashed #7cdcff; border-radius: 50%; }
 #cabinet.inpause #kshelf > .khead, #cabinet.inpause #kswim { display: none; }
 #genome #gcab { display: none; } /* Альманах — вкладка паузы, отдельная кнопка не нужна */
 #mcard, #mcard p, #mcard h3 { text-align: left; }
@@ -181,7 +182,7 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
   <div id="gchips"></div>
   <div id="gcard"></div>
   <div id="map" hidden><p id="mhead"></p><div id="mbox"><canvas id="mcv"></canvas><div id="mcard" hidden></div></div>
-    <p id="mlegend"><span class="lg d"></span>гибель<span class="lg g"></span>ген<span class="lg y"></span>ты</p></div>
+    <p id="mlegend"><span class="lg d"></span>гибель<span class="lg g"></span>ген<span class="lg y"></span>ты<span class="lg c"></span>цель</p></div>
   <button id="gon">Плыть</button>
   <div id="grow"><button id="gcab" class="ghost">Альманах</button><button id="gno" class="flag">⚑ Не так</button></div>
 </div>

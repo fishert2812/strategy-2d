@@ -322,7 +322,7 @@ function drawMap() {
   const all = new Set([...KARTA.seen, ...world.seen]), last = KARTA.marks.length - 1, c = world.center(), t = (performance.now() - mapOpenedAt) / 1000;
   const icons = {}; for (const m of KARTA.marks) icons[m.who] = iconOf(m.who);
   const me = world.me.length ? c : null; if (!mapIcons.me) mapIcons.me = Object.assign(new Image(), { src: snap('me', KAB.items.me) });
-  const R = karta.draw(ctx, box.width, box.height, { P: cfg.pond, seen: all, marks: KARTA.marks, me, icons, meImg: mapIcons.me, t, hot: t < 1.2 && last >= 0 ? karta.clusters(KARTA.marks, cfg.pond, karta.frame(cfg.pond, box.width, box.height)).findIndex(q => q.list.includes(KARTA.marks[last])) : -1 });
+  const R = karta.draw(ctx, box.width, box.height, { P: cfg.pond, seen: all, marks: KARTA.marks, goal: KARTA.goal, me, icons, meImg: mapIcons.me, t, hot: t < 1.2 && last >= 0 ? karta.clusters(KARTA.marks, cfg.pond, karta.frame(cfg.pond, box.width, box.height)).findIndex(q => q.list.includes(KARTA.marks[last])) : -1 });
   mapHit = R.C;
   $('mhead').textContent = (me ? 'Ты в слое «' + { film: 'плёнка', light: 'светлая толща', oxy: 'граница кислорода', silt: 'ил' }[world.layer(c.y)] + '» · ' : '') + karta.count(cfg.pond, all);
 }
@@ -339,7 +339,7 @@ $('mcv').addEventListener('click', e => { // касание отметки — �
   const p2 = document.createElement('p'); p2.textContent = gene ? (g ? g.daet : '') : (t.sovet || ''); card.appendChild(p2);
   const go = document.createElement('button'); go.id = 'mgoal'; go.className = 'ghost'; go.textContent = 'Запомнить это место'; // метка-цель (Э20): стрелка у края экрана в заплыве
   go.onclick = ev => { ev.stopPropagation(); KARTA.goal = { x: m.x, y: m.y }; saveKarta(); go.textContent = 'Запомнено · стрелка покажет путь'; go.disabled = true; };
-  if (KARTA.goal && KARTA.goal.x === m.x && KARTA.goal.y === m.y) { go.textContent = 'Это место — твоя цель'; go.disabled = true; }
+  if (KARTA.goal && c.list.some(q => q.x === KARTA.goal.x && q.y === KARTA.goal.y)) { go.textContent = 'Это место — твоя цель'; go.disabled = true; }
   card.appendChild(go);
   const p3 = document.createElement('p'); p3.style.opacity = 0.7; p3.textContent = 'Слой: ' + { film: 'плёнка', light: 'светлая толща', oxy: 'граница кислорода', silt: 'ил' }[world.layer(m.y)]; card.appendChild(p3);
   card.hidden = false;
@@ -801,7 +801,7 @@ function frame(now) {
   shake = Math.max(0, shake - dt * 0.9);
   sway = [Math.sin(now / 1000 * 5) * 6 * shake, Math.sin(now / 1000 * 3.7 + 1) * 4 * shake];
   // Экран гибели или кабинет закрыли мир: кадр не перерисовываем (раньше мир под ними рисовался дальше, и в WebKit без видеокарты кадр рос с 27 до 50 мс).
-  if (paused && curTab === 'map') { drawMap(); probe.frames++; probe.covered = true; requestAnimationFrame(frame); return; } // карта закрывает мир: рисуем только её
+  if (paused && curTab === 'map') { goalArrow(); drawMap(); probe.frames++; probe.covered = true; requestAnimationFrame(frame); return; } // карта закрывает мир: рисуем только её
   const covered = $('end').classList.contains('on') || $('cabinet').classList.contains('on');
   probe.covered = covered;
   if (covered) { probe.frames++; requestAnimationFrame(frame); return; }
