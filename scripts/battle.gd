@@ -46,6 +46,7 @@ func _ready() -> void:
 		JavaScriptBridge.eval("window._t=0;addEventListener('touchstart',function(){window._t++},{capture:true,passive:true})")
 	restart()
 	_ghost_ring = _ring()
+	_ghost_ring.hide()
 	world.add_child(_ghost_ring)
 	world.add_child(_glow)
 	world.move_child(_glow, $World/Paths.get_index() + 1)
@@ -108,7 +109,7 @@ func _process(dt: float) -> void:
 			# До свистка бледная, без крошек спит: круг гаснет, над ней Zzz; иначе счёт сбитых.
 			_sprites[b.id].self_modulate.a = 1.0 if b.awake else look.tower_look.pale
 			_sprites[b.id].get_node("Ring").visible = b.awake
-			_sprites[b.id].get_node("Note").text = "Zzz" if b.slept else ("×%d" % b.get("kills", 0) if b.get("kills", 0) > 0 else "")
+			_sprites[b.id].get_node("Note").text = "Zzz" if b.slept else ("сбил %d" % b.get("kills", 0) if b.get("kills", 0) > 0 else "")
 	if $Hud/Box/Debug.visible:
 		$Hud/Box/Debug.text = debug_text()
 	_sync_paths()
