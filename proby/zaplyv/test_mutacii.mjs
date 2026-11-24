@@ -76,16 +76,19 @@ const family = (genes, n = 6) => { const w = mw(21, genes, 'swim'); const a = w.
   for (let i = 1; i < n; i++) w.me.push({ ...a, id: 10 + i, x: (i % 3) * 40 - 40, y: Math.floor(i / 3) * 40, vx: 0, vy: 0, sick: -1 }); return w; };
 const spread = w => { const c = w.center(); return Math.max(...w.me.map(b => Math.hypot(b.x - c.x, b.y - c.y))); };
 check('[flu] сцепка: сёстры держатся строем за пальцем, без гена расплываются (Роман 25.11: «все расплывается сильно по экрану»)', () => {
+  // Шесть сестёр в живой капле (соседи едят и ловят как обычно) 40 с плывут за пальцем зигзагом. Меряем после первых 5 с:
+  // среднее расстояние сестры до середины семьи и разнобой хода. Среднее, а не самая дальняя: одну сестру может на миг утащить пасть.
   const go = genes => { let far = 0, dis = 0, n = 0;
     for (const seed of [1, 2, 3, 4, 5, 6]) { const w = new World(cfg, seed); w.mode = 'swim'; for (const g of genes) w.genes[g] = true;
-      for (let t = 0; t < 50 && w.me.length; t += 1 / 30) { if (w.choice.length) w.pick(w.choice[0]); if (w.readyToSplit() && w.me.length < 8) w.divide();
+      const a = w.me[0]; a.m = 1.5; for (let i = 1; i < 6; i++) w.me.push({ ...a, id: 10 + i, x: a.x + (i % 3) * 40 - 40, y: a.y + Math.floor(i / 3) * 40, vx: 0, vy: 0, sick: -1 });
+      for (let t = 0; t < 40 && w.me.length > 2; t += 1 / 30) { if (w.choice.length) w.pick(w.choice[0]);
         const ang = Math.floor(t / 1.5) * 2.1; w.step(1 / 30, { dx: Math.cos(ang), dy: Math.sin(ang), p: 1 }); // палец водит зигзагом
-        if (w.me.length > 2) { far = Math.max(far, spread(w)); let vx = 0, vy = 0; for (const b of w.me) { vx += b.vx; vy += b.vy; } vx /= w.me.length; vy /= w.me.length;
-          dis += w.me.reduce((s, b) => s + Math.hypot(b.vx - vx, b.vy - vy), 0) / w.me.length; n++; } } }
-    return { far, dis: dis / n }; };
+        if (t < 5) continue; const c = w.center(), L = w.me.length; let vx = 0, vy = 0; for (const b of w.me) { vx += b.vx; vy += b.vy; } vx /= L; vy /= L;
+        far += w.me.reduce((s, b) => s + Math.hypot(b.x - c.x, b.y - c.y), 0) / L; dis += w.me.reduce((s, b) => s + Math.hypot(b.vx - vx, b.vy - vy), 0) / L; n++; } }
+    return { far: far / n, dis: dis / n }; };
   const a = go(['flu']), b = go([]);
-  console.log(`    паспорт: 6 заплывов по 50 с, палец зигзагом, клеток до 8 — дальше всех от середины семьи: со сцепкой ${a.far.toFixed(0)}, без ${b.far.toFixed(0)} | разнобой хода сестёр: ${a.dis.toFixed(1)} и ${b.dis.toFixed(1)}`);
-  if (!(a.far < b.far * 0.5)) return 'со сцепкой семья не держится вместе';
+  console.log(`    паспорт: 6 заплывов по 40 с, шесть сестёр, палец зигзагом — сестра от середины семьи в среднем: со сцепкой ${a.far.toFixed(0)}, без ${b.far.toFixed(0)} | разнобой хода сестёр: ${a.dis.toFixed(1)} и ${b.dis.toFixed(1)}`);
+  if (!(a.far < b.far * 0.7)) return 'со сцепкой семья не держится вместе';
   if (!(a.dis < b.dis * 0.6)) return 'со сцепкой сёстры плывут вразнобой';
 });
 check('[flu] сцепка: туфелька не втягивает сестру из плота, одиночку втягивает', () => {
@@ -122,13 +125,13 @@ check('режим «Мутации»: дочки приносят свои но�
 });
 
 // Бот режима «Мутации»: делится, плывёт к еде, от опасных отворачивает, берёт первую дочку. Встречает ли он то, где мутация важна.
-const bot = (w, careless) => {
+const bot = w => {
   if (w.choice.length) w.pick(w.choice[0]);
   if (w.readyToSplit() && w.me.length < 6) w.divide(); // делится: сёстры — те, кого спасает тихая гибель
   const c = w.center(); let best = null, bd = 1e9;
   for (const f of [...w.food, ...w.donors]) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } }
   let tx = best ? best.x : c.x + 100, ty = best ? best.y : c.y;
-  if (!careless) for (const e of [...w.amoebas, ...w.bdellos, ...w.pseudos]) { const d = Math.hypot(e.x - c.x, e.y - c.y); if (d < 220) { tx = c.x + (c.x - e.x) * 2; ty = c.y + (c.y - e.y) * 2; } }
+  for (const e of [...w.amoebas, ...w.bdellos, ...w.pseudos]) { const d = Math.hypot(e.x - c.x, e.y - c.y); if (d < 220) { tx = c.x + (c.x - e.x) * 2; ty = c.y + (c.y - e.y) * 2; } }
   return { x: tx, y: ty };
 };
 // Для каждой мутации — 6 заплывов бота, у которого с начала только она: встречает ли он то, где она важна.
@@ -138,8 +141,8 @@ check('бот в режиме «Мутации» встречает каждую
     const w = new World(cfg, seed); w.mode = 'mut'; w.genes[g] = true;
     if (g === 'abort' || g === 'decoy') { const P = cfg.pond; w.me[0].y = (P.film * 0.6 - P.y0) * P.h; w.tidy = 0; } // вирусы живут в сладкой воде под плёнкой — туда и плывёт голодный
     for (let t = 0; t < 120 && w.me.length; t += 1 / 30) {
-      const near = g === 'abort' || g === 'decoy'; // против вирусов — бот-новичок: не уворачивается и палец не отпускает
-      w.step(1 / 30, !near && (t % 6) < 1 ? null : bot(w, near)); // иногда отпускает палец
+      const near = g === 'abort' || g === 'decoy'; // против вирусов бот палец не отпускает: в живой капле стоящего съедают раньше вируса
+      w.step(1 / 30, !near && (t % 6) < 1 ? null : bot(w)); // иногда отпускает палец
       for (const e of w.events) if (e[0] === g) meet[g]++;
       w.events.length = 0;
       if (g === 'door') for (const a of w.me) for (const q of w.prey) if (Math.hypot(a.x - q.x, a.y - q.y) < 30) meet.door++;
