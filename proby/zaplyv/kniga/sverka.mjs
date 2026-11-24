@@ -9,10 +9,12 @@ import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 // по методике kniga/teksty.md, и машина это держит. test_L017 — случаи самопроверки ниже.
 const ZAPRET = ['crispr', 'персистер', 'плазмид', 'фимбри', 'рецептор', 'рибосом', 'хемотакс', 'колицин', 'конъюг', 'фаг', 'штамм', 'мутаци', 'фенотип', 'экспресс'];
 const POLYA = { imya: 3, daet: 12, priroda: 25 };
-export function tekst(who, k) {
+const POLYA_S = { imya: 3, ubil: 6, kto: 18, sovet: 12, priroda: 25 }, MOZHNO_BEZ = ['ubil', 'sovet'];
+export function tekst(who, k, polya = POLYA) {
   const bad = [];
-  for (const [f, max] of Object.entries(POLYA)) {
+  for (const [f, max] of Object.entries(polya)) {
     const v = (k || {})[f];
+    if (!v && MOZHNO_BEZ.includes(f)) continue;
     if (!v) { bad.push(who + ': в карточке нет строки «' + f + '»'); continue; }
     const n = v.split(/\s+/).filter(w => /[а-яё0-9]/i.test(w)).length;
     if (n > max) bad.push(who + ': строка «' + f + '» длиной ' + n + ' слов, можно ' + max);
@@ -26,6 +28,7 @@ export function tekst(who, k) {
   if (k && k.vid) bad.push(who + ': строка «как выглядит» не пишется, это показывает значок (Роман 24.11)');
   return bad;
 }
+export const sobratS = records => Object.fromEntries(records.flatMap(r => Object.entries(r.sushchestva || {}).filter(([, c]) => c.kopirayter).map(([k, c]) => { const { kopirayter, ...t } = c; return [k, { nomer: r.id, ...t }]; })));
 export const sobrat = records => Object.fromEntries(records.filter(r => r.kartochka && r.kartochka.kopirayter).map(r => [r.latin, { nomer: r.id, klyuch: (r.kod || []).map(k => k.split(':')).filter(k => k[0] === 'gene').map(k => k[1])[0] || null, imya: r.kartochka.imya, daet: r.kartochka.daet, priroda: r.kartochka.priroda }]));
 
 export const SHAGI = ['nauka', 'adaptaciya', 'biolog', 'gotov', 'stroyka', 'v_igre'];
@@ -66,10 +69,14 @@ export function sverka({ records, cards, genes, slots, pages, files, spisok, rin
   for (const r of records) {
     if ((r.kod || []).some(k => k.startsWith('gene:')) && !r.kartochka) bad.push(r.id + ' ' + r.name + ': ген в игре без карточки для игрока');
     if (r.kartochka) bad.push(...tekst(r.id + ' ' + r.name, r.kartochka));
+    for (const [k, c] of Object.entries(r.sushchestva || {})) bad.push(...tekst(r.id + ' карточка ' + k, c, POLYA_S));
   }
   const kart = sobrat(records);
   for (const g of ring) if (!kart[g]) bad.push('на кольце генома ген ' + g + ', а карточки, прошедшей копирайтера, в книге нет');
   if (teksty.geny && JSON.stringify(kart) !== JSON.stringify(teksty.geny)) bad.push('teksty_genov.json отстал от записей: запусти node proby/zaplyv/kniga/sverka.mjs --teksty');
+  const kartS = sobratS(records);
+  for (const k of Object.keys(cards)) if (k !== '_' && !kartS[k]) bad.push('у существа «' + k + '» нет карточки, прошедшей копирайтера');
+  if (teksty.sushchestva && JSON.stringify(kartS) !== JSON.stringify(teksty.sushchestva)) bad.push('teksty_sushchestv.json отстал от записей: запусти node proby/zaplyv/kniga/sverka.mjs --teksty');
   for (const [k, v] of Object.entries(teksty.otkuda)) if (/[a-z]/i.test(v) || ZAPRET.some(z => v.toLowerCase().includes(z))) bad.push('teksty_genov.json otkuda.' + k + ': термин или латиница');
   for (const k of slots) if (!genes[k]) bad.push('на кольце генома место «' + k + '», а такого гена в data.json нет');
   return bad;
@@ -83,12 +90,13 @@ function load() {
   const g = j('../genome.json');
   const slots = [...g.arcs.flatMap(a => a.slots), ...g.plasmids].map(s => s.id).filter(Boolean);
   const ring = [...g.arcs.flatMap(a => a.slots), ...g.plasmids].map(s => s.gene).filter(x => x && x !== '?');
-  return { records, cards: j('../cards.json'), genes: j('../data.json').genes, slots, pages, files, spisok: j('zapisi/spisok.json'), ring, teksty: j('teksty_genov.json') };
+  return { records, cards: j('../cards.json'), genes: j('../data.json').genes, slots, pages, files, spisok: j('zapisi/spisok.json'), ring, teksty: { ...j('teksty_genov.json'), sushchestva: j('teksty_sushchestv.json').sushchestva } };
 }
 
 const S = load();
 if (process.argv.includes('--teksty')) {
-  const u = new URL('teksty_genov.json', import.meta.url); writeFileSync(u, JSON.stringify({ ...S.teksty, geny: sobrat(S.records) }, null, 1) + '\n');
+  const u = new URL('teksty_genov.json', import.meta.url); const { sushchestva, ...tg } = S.teksty; writeFileSync(u, JSON.stringify({ ...tg, geny: sobrat(S.records) }, null, 1) + '\n');
+  writeFileSync(new URL('teksty_sushchestv.json', import.meta.url), JSON.stringify({ _: 'Собрано из записей книги, руками не править: node proby/zaplyv/kniga/sverka.mjs --teksty', podpisi: { kto: '', sovet: 'Совет', priroda: 'В природе' }, sushchestva: sobratS(S.records) }, null, 1) + '\n');
   console.log('  teksty_genov.json собран из записей'); process.exit(0);
 }
 if (process.argv.includes('--selftest')) {
@@ -112,6 +120,8 @@ if (process.argv.includes('--selftest')) {
     ['test_L017: в карточке нет строки «в природе»', s => { delete kart(s).priroda; return s; }, true],
     ['test_L017: текст не читал копирайтер', s => { delete kart(s).kopirayter; s.teksty.geny = null; return s; }, true],
     ['test_L017: в карточке строка «как выглядит»', s => { kart(s).vid = 'полоски'; return s; }, true],
+    ['test_L017: в карточке существа термин', s => { s.records.find(r => r.sushchestva).sushchestva.phage = { imya: 'Фаг', kto: 'Вирус', priroda: 'Вирус', kopirayter: 'да' }; return s; }, true],
+    ['test_L017: существо без карточки от копирайтера', s => { delete s.records.find(r => r.sushchestva && r.sushchestva.amoeba).sushchestva.amoeba.kopirayter; return s; }, true],
     ['test_L017: ген в игре без карточки', s => { delete s.records.find(r => r.kartochka && r.kod).kartochka; return s; }, true],
     ['test_L017: файл текстов для игры отстал от книги', s => { s.teksty.geny = { net: 1 }; return s; }, true],
   ];
