@@ -158,7 +158,7 @@ func can_build(side: int, kind: String, pos: Vector2) -> String:
 	if pos.x < 30 or pos.y < 30 or pos.x > field.x - 30 or pos.y > field.y - 30:
 		return "вне поля"
 	if gold[side] < cfg.buildings[kind].cost:
-		return "мало золота"
+		return "мало крошек"
 	for o in buildings + deposits:
 		if o.pos.distance_to(pos) < cfg.build_gap:
 			return "занято"

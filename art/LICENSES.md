@@ -26,3 +26,20 @@
 | audio/License_interface.txt | текст лицензии набора Kenney «Interface Sounds» | CC0 1.0 |
 | audio/License_rpg.txt | текст лицензии набора Kenney «RPG Audio» | CC0 1.0 |
 | audio/License_impact.txt | текст лицензии набора Kenney «Impact Sounds» | CC0 1.0 |
+| art/table/background_table.png | «Маленькие работяги» v1, файл background_table.png; нарисовал Роман в GPT 24.11.2026 для этой игры | права у Романа, для Strategy 2d |
+| art/table/barracks_blue.png | «Маленькие работяги» v1, файл barracks_blue.png; нарисовал Роман в GPT 24.11.2026 для этой игры | права у Романа, для Strategy 2d |
+| art/table/barracks_red.png | «Маленькие работяги» v1, файл barracks_red.png; нарисовал Роман в GPT 24.11.2026 для этой игры | права у Романа, для Strategy 2d |
+| art/table/camp_blue.png | «Маленькие работяги» v1, файл camp_blue.png; нарисовал Роман в GPT 24.11.2026 для этой игры | права у Романа, для Strategy 2d |
+| art/table/camp_red.png | «Маленькие работяги» v1, файл camp_red.png; нарисовал Роман в GPT 24.11.2026 для этой игры | права у Романа, для Strategy 2d |
+| art/table/gold_full.png | «Маленькие работяги» v1, файл gold_full.png; нарисовал Роман в GPT 24.11.2026 для этой игры | права у Романа, для Strategy 2d |
+| art/table/gold_half.png | «Маленькие работяги» v1, файл gold_half.png; нарисовал Роман в GPT 24.11.2026 для этой игры | права у Романа, для Strategy 2d |
+| art/table/gold_low.png | «Маленькие работяги» v1, файл gold_low.png; нарисовал Роман в GPT 24.11.2026 для этой игры | права у Романа, для Strategy 2d |
+| art/table/hq_blue.png | «Маленькие работяги» v1, файл hq_blue.png; нарисовал Роман в GPT 24.11.2026 для этой игры | права у Романа, для Strategy 2d |
+| art/table/hq_red.png | «Маленькие работяги» v1, файл hq_red.png; нарисовал Роман в GPT 24.11.2026 для этой игры | права у Романа, для Strategy 2d |
+| art/table/icon_barracks.png | «Маленькие работяги» v1, файл icon_barracks.png; нарисовал Роман в GPT 24.11.2026 для этой игры | права у Романа, для Strategy 2d |
+| art/table/icon_camp.png | «Маленькие работяги» v1, файл icon_camp.png; нарисовал Роман в GPT 24.11.2026 для этой игры | права у Романа, для Strategy 2d |
+| art/table/icon_gold.png | «Маленькие работяги» v1, файл icon_gold.png; нарисовал Роман в GPT 24.11.2026 для этой игры | права у Романа, для Strategy 2d |
+| art/table/porter_blue.png | «Маленькие работяги» v1, файл porter_blue.png; нарисовал Роман в GPT 24.11.2026 для этой игры | права у Романа, для Strategy 2d |
+| art/table/porter_red.png | «Маленькие работяги» v1, файл porter_red.png; нарисовал Роман в GPT 24.11.2026 для этой игры | права у Романа, для Strategy 2d |
+| art/table/warrior_blue.png | «Маленькие работяги» v1, файл warrior_blue.png; нарисовал Роман в GPT 24.11.2026 для этой игры | права у Романа, для Strategy 2d |
+| art/table/warrior_red.png | «Маленькие работяги» v1, файл warrior_red.png; нарисовал Роман в GPT 24.11.2026 для этой игры | права у Романа, для Strategy 2d |

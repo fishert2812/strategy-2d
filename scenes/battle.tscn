@@ -1,9 +1,6 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle.gd" id="1"]
-[ext_resource type="Texture2D" path="res://art/rts/medievalTile_01.png" id="2"]
-[ext_resource type="Texture2D" path="res://art/rts/medievalStructure_10.png" id="3"]
-[ext_resource type="Texture2D" path="res://art/rts/medievalStructure_02.png" id="4"]
 [ext_resource type="Script" path="res://scripts/feedback.gd" id="5"]
 
 [node name="Battle" type="Control"]
@@ -25,9 +22,8 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-texture = ExtResource("2")
 expand_mode = 1
-stretch_mode = 1
+stretch_mode = 6
 
 [node name="World" type="Node2D" parent="."]
 
@@ -39,7 +35,6 @@ y_sort_enabled = true
 [node name="Ghost" type="Sprite2D" parent="World"]
 visible = false
 modulate = Color(1, 1, 1, 0.6)
-scale = Vector2(1.5, 1.5)
 
 [node name="Hud" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -64,7 +59,7 @@ layout_mode = 2
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 8
 theme_override_font_sizes/font_size = 40
-text = "Золото 100"
+text = "Крошки 100"
 
 [node name="Time" type="Label" parent="Hud/Box/Top"]
 layout_mode = 2
@@ -121,7 +116,6 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_font_sizes/font_size = 36
 text = "40"
-icon = ExtResource("3")
 icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
@@ -132,7 +126,6 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_font_sizes/font_size = 36
 text = "60"
-icon = ExtResource("4")
 icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
