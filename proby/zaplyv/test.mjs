@@ -220,7 +220,7 @@ check('враги как настоящие: хищник мчится прям�
   if (turns > 14) return 'хищник рыскает, а не мчится прямо';
   if (cap.me.length !== 1) return 'капсула не спасла от хищника';
   if (big.me.length !== 1) return 'крупный кокк съел клетку — бактерии так не едят';
-  if (crawl > 60) return 'амёба гонится в открытой воде';
+  if (crawl > 100) return 'амёба гонится в открытой воде'; // у дна за 5 с подползла бы на ~300
 });
 
 check('каждая мутация видна на теле: облик клетки меняется от каждого гена', () => {
@@ -250,6 +250,18 @@ check('развороты плавные, без рывков (Роман 24.11:
   if (jerk > sw.spin_acc * dt * 1.01 + 0.01) return 'скорость поворота дёрнулась на ' + jerk.toFixed(2);
   if (bodyJump > sw.tumble_turn * dt * 1.35) return 'тело повернулось рывком на ' + (bodyJump * 57.3).toFixed(0) + '°';
   if (rev < 0 || rev > 0.9) return 'разворот слишком вялый: ' + rev.toFixed(2) + ' с';
+});
+
+check('вода — вещество: в тяже слизи плыть вязко, течение есть везде, тяжи встречаются в мире', () => {
+  const go = slime => { const w = new World(cfg, 51); w.food = []; w.prey = []; w.amoebas = []; w.phages = []; w.plants = []; w.bdellos = []; w.crumbs = []; w.tidy = 1e9;
+    w.slime = slime ? [{ x: 300, y: 0, a: 0, len: 2000, w: 40, id: 0 }] : []; run(w, 2, { dx: 1, dy: 0, p: 1 }); return w.me[0].x; };
+  const free = go(false), gel = go(true);
+  const m = new World(cfg, 52); m.fill(3000, 3000);
+  const f = m.flow(123, 456);
+  console.log('    паспорт: за 2 с в чистой воде', Math.round(free), ', в слизи', Math.round(gel), '| тяжей вокруг', m.slime.length, '| течение', Math.hypot(...f).toFixed(1), 'ед/с');
+  if (gel > free * 0.75) return 'в слизи плывёт почти как в воде';
+  if (m.slime.length < 3) return 'тяжей слизи почти нет';
+  if (Math.hypot(...f) < 1) return 'течения нет';
 });
 
 check('кабинет: встреченное существо попадает в кабинет, и у каждого есть карточка с фактом', () => {

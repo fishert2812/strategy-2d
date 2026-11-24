@@ -18,12 +18,14 @@ gl.setPixelRatio(Math.min(devicePixelRatio, 2));
 let H = W;
 const cam = new THREE.OrthographicCamera(0, W, 0, W, -1, 1);
 const back = new THREE.Scene(); // фон и дальнее
+const water = new THREE.Scene(); // толща воды: считается в треть разрешения — она мягкая, а телефону легче
+const rt = new THREE.WebGLRenderTarget(4, 4, { depthBuffer: false });
 const scene = new THREE.Scene(); // точки поверх тел
 const bodies = new Bodies();
 // Цвета как на раскрашенных снимках: у каждой стороны оболочка одного цвета, содержимое другого.
 const CELL = [new THREE.Color(0.35, 0.85, 1.0), new THREE.Color(1.0, 0.5, 0.2), new THREE.Color(0.6, 1.0, 0.35)]; // оболочка
 const CORE = [new THREE.Color(0.85, 0.22, 0.62), new THREE.Color(0.8, 0.1, 0.16), new THREE.Color(1.0, 0.82, 0.2)]; // содержимое
-const TINT = [[0.02, 0.06, 0.12], [0.07, 0.03, 0.1], [0.02, 0.08, 0.05]]; // вода, сладкая, ил
+const TINT = [[0.02, 0.07, 0.12], [0.08, 0.035, 0.1], [0.03, 0.08, 0.05]]; // вода, сладкая, ил
 
 const quad = (frag, uniforms, order) => {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShaderMaterial({
@@ -33,21 +35,41 @@ const quad = (frag, uniforms, order) => {
   }));
   m.renderOrder = order;
   m.frustumCulled = false;
-  back.add(m);
+  (order < 0 ? water : back).add(m);
   return m;
 };
 
 const U = { res: { value: new THREE.Vector2() }, time: { value: 0 }, tint: { value: new THREE.Vector3(...TINT[0]) }, drift: { value: new THREE.Vector2() } };
-// Мутная вода под микроскопом: середина светлее, края в тень, медленная рябь и пятна света.
+// Вода как вещество (по 9-му референсу Романа): цветная толща, сверху светлее — там поверхность и свет,
+// лучи света наискосок и каустика, два слоя сетки слизи и волокон с параллаксом (дальний размыт), виньетка.
 const bg = quad(`uniform vec2 res; uniform float time; uniform vec3 tint; uniform vec2 drift;
+float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(h2(i), h2(i + vec2(1, 0)), f.x), mix(h2(i + vec2(0, 1)), h2(i + vec2(1, 1)), f.x), f.y); }
+float fib(vec2 p, float sharp){ // волокна: гребни шума после искривления пространства
+  vec2 q = p + vec2(vn(p * 0.7 + 3.1), vn(p * 0.7 - 1.7)) * 2.2;
+  return pow(1.0 - abs(vn(q) * 2.0 - 1.0), sharp); }
 void main(){
-  vec2 uv = gl_FragCoord.xy / res; vec2 p = uv * vec2(1.0, res.y / res.x) * 6.0 + drift;
-  float d = length((uv - 0.5) * vec2(1.0, res.y / res.x));
-  vec3 col = mix(tint, vec3(0.004, 0.006, 0.012), smoothstep(0.1, 0.85, d));
-  float g = sin(p.x * 2.1 + time * 0.3) * sin(p.y * 1.7 - time * 0.25) + sin((p.x + p.y) * 0.9 + time * 0.12);
-  col += tint * 0.18 * g;
+  vec2 uv = gl_FragCoord.xy / res, asp = vec2(1.0, res.y / res.x), s = uv * asp;
+  float top = uv.y; // 1 — у поверхности
+  vec3 col = mix(tint * 0.55, tint * 2.4 + vec3(0.02, 0.05, 0.07), smoothstep(-0.1, 1.2, top));
+  float rays = pow(0.5 + 0.5 * sin(s.x * 9.0 + s.y * 3.0 + time * 0.15) * sin(s.x * 3.7 - s.y * 1.2 - time * 0.07), 3.0);
+  col += vec3(0.05, 0.1, 0.12) * rays * smoothstep(0.1, 1.0, top);
+  vec2 cp = s * 7.0 + drift * 7.0 * 0.8;
+  float cau = pow(1.0 - abs(vn(cp + vec2(time * 0.2, -time * 0.13)) * 2.0 - 1.0), 6.0) * pow(1.0 - abs(vn(cp * 1.3 - vec2(time * 0.17, time * 0.1)) * 2.0 - 1.0), 6.0);
+  col += vec3(0.25, 0.4, 0.45) * cau * smoothstep(0.3, 1.0, top);
+  float far = fib(s * 3.0 + drift * 3.0 * 0.35 + vec2(0.0, time * 0.01), 3.0);
+  col += tint * 0.6 * far + vec3(0.008, 0.02, 0.035) * far;
+  float mid = fib(s * 5.5 + drift * 5.5 * 0.7 + vec2(time * 0.015, 0.0) + 11.0, 9.0);
+  col += vec3(0.14, 0.28, 0.42) * mid * 0.22;
+  float d = length((uv - 0.5) * asp);
+  col *= 1.0 - 0.45 * smoothstep(0.35, 0.95, d);
   gl_FragColor = vec4(col, 1.0);
-}`, U, 0);
+}`, U, -1);
+const waterShow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShaderMaterial({ uniforms: { t: { value: rt.texture } }, depthTest: false, depthWrite: false, side: THREE.DoubleSide,
+  vertexShader: 'varying vec2 v; void main(){ v = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: 'uniform sampler2D t; varying vec2 v; void main(){ gl_FragColor = texture2D(t, v); }' }));
+waterShow.renderOrder = 0; waterShow.frustumCulled = false; waterShow.scale.y = -1; back.add(waterShow);
 
 // Слой мягких точек на инстансах: одна отрисовка на слой, сколько бы точек ни было.
 class Dots {
@@ -97,16 +119,19 @@ const ink = new Dots(3000, scene, 4, false, 0.8);
 const near = new Dots(12, scene, 5, 'ring', 0);
 const dust = new Dots(120, scene, 3, true, 0.9);
 const bubbles = new Dots(60, scene, 4, 'ring', 0);
+const wake = new Dots(240, scene, 3, true, 0.9); // след в воде: частицы, которые клетка расталкивает
+let puffs = [], cur = [0, 0];
 
 function resize() {
   const w = innerWidth, h = innerHeight;
   H = W * h / w;
   gl.setSize(w, h, false);
   const px = gl.getDrawingBufferSize(new THREE.Vector2());
-  U.res.value.copy(px);
+  rt.setSize(Math.max(4, Math.round(px.x / 3)), Math.max(4, Math.round(px.y / 3)));
+  U.res.value.set(rt.width, rt.height);
   cam.left = 0; cam.right = W; cam.top = 0; cam.bottom = H; cam.updateProjectionMatrix();
   bodies.resize(W, H);
-  for (const m of [bg]) { m.scale.set(W, H, 1); m.position.set(W / 2, H / 2, 0); }
+  for (const m of [bg, waterShow]) { m.scale.set(W, m === waterShow ? -H : H, 1); m.position.set(W / 2, H / 2, 0); }
 }
 addEventListener('resize', resize);
 resize();
@@ -235,6 +260,7 @@ function events() {
 function tick(dt) {
   if (world.choice.length) { ask(); return; }
   world.step(dt, pad.value()); // джойстик: направление и сила из сдвига пальца
+  { const [fx, fy] = world.flow(view.x, view.y); cur[0] += fx * dt; cur[1] += fy * dt; } // течение несёт взвесь
   events();
   if (!world.me.length) {
     if (!ended) {
@@ -270,6 +296,16 @@ function paint(time) {
   const z = view.z, big = world.biggest();
   bodies.begin();
   const on = (x, y, pad = 80) => x > -pad && x < W + pad && y > -pad && y < H + pad;
+  for (const g of world.slime) { // тяж слизи: прозрачный гель с налипшими крупинками; в нём плыть вязко
+    const [x, y] = scr(g.x, g.y); if (!on(x, y, g.len * z)) continue;
+    const ca = Math.cos(g.a), sa = Math.sin(g.a), n = Math.ceil(g.len / 9);
+    for (let i = 0; i <= n; i++) {
+      const u = (i / n - 0.5) * g.len, v = Math.sin(u / g.len * 6.283 + g.id) * g.w * 0.8 + Math.sin(time * 0.4 + i * 0.3) * 2;
+      const px = x + (ca * u - sa * v) * z, py = y + (sa * u + ca * v) * z, edge = 1 - Math.abs(i / n - 0.5) * 2;
+      glow.put(px, py, g.w * z * (0.7 + 0.5 * edge), 0.55, 0.8, 0.95, 0.045 * Math.min(1, edge * 3));
+      if (i % 3 === 0) ink.put(px + Math.sin(i * 7.1) * g.w * 0.5 * z, py + Math.cos(i * 5.3) * g.w * 0.5 * z, 0.8 * z + 0.3, 0.8, 0.9, 1, 0.35);
+    }
+  }
   for (const p of world.plants) { // водоросль-нить: цепочка клеток, внутри зелёные хлоропласты
     const [x, y] = scr(p.x, p.y); if (!on(x, y, 220)) continue;
     const r = radius(p.m) * z, a0 = p.id * 1.7;
@@ -401,6 +437,13 @@ function paint(time) {
     }
     if (a.sick >= 0) glow.put(x, y, half, 1, 0.2, 0.3, 0.25 + 0.2 * Math.sin(time * 20));
   }
+  for (const a of world.me) { // след: клетка расталкивает взвесь, частицы расходятся и гаснут — вязкость видна
+    const sp = Math.hypot(a.vx, a.vy); if (sp < 40 || puffs.length > 230) continue;
+    const ux = Math.cos(a.a), uy = Math.sin(a.a), rr = radius(a.m), side = Math.random() < 0.5 ? -1 : 1;
+    puffs.push({ x: a.x - ux * rr * 1.3 - uy * side * rr * 0.6, y: a.y - uy * rr * 1.3 + ux * side * rr * 0.6, vx: -uy * side * 18 - ux * 6, vy: ux * side * 18 - uy * 6, t: 0 });
+  }
+  puffs = puffs.filter(p => (p.t += 1 / 60) < 1.4);
+  for (const p of puffs) { p.x += p.vx / 60; p.y += p.vy / 60; p.vx *= 0.95; p.vy *= 0.95; const [x, y] = scr(p.x, p.y); wake.put(x, y, (1.1 + p.t) * z, 0.8, 0.92, 1, 0.3 * (1 - p.t / 1.4)); }
   for (const f of world.food) { // сахар: мелкие светящиеся зёрна
     const [x, y] = scr(f.x, f.y); if (!on(x, y, 20)) continue;
     glow.put(x, y, 9 * z, 1, 0.8, 0.35, 0.14); glow.put(x, y, 3.2 * z + 0.6, 1, 0.93, 0.65, 0.9);
@@ -441,7 +484,7 @@ function paint(time) {
   for (let i = 0; i < 70; i++) { // рядом: пылинки дрожат (броуновское) — видно, какие мы маленькие
     const h = Math.abs(Math.sin(i * 33.1) * 1758.5) % 1, h2 = Math.abs(Math.sin(i * 71.3) * 5631.7) % 1;
     const jx = Math.sin(time * 13 + i * 7) * 1.2 + Math.sin(time * 0.3 + i) * 6, jy = Math.cos(time * 11 + i * 5) * 1.2 + Math.cos(time * 0.27 + i) * 6;
-    dust.put(wrap(h * 1000 - view.x * z, 1000) - 140 + jx, wrap(h2 * 1900 - view.y * z, 1900) - 170 + jy, 1 + h * 1.6, 0.9, 0.95, 1, 0.22);
+    dust.put(wrap(h * 1000 - (view.x - cur[0]) * z, 1000) - 140 + jx, wrap(h2 * 1900 - (view.y - cur[1]) * z, 1900) - 170 + jy, 1 + h * 1.6, 0.9, 0.95, 1, 0.22);
   }
   for (let i = 0; i < 5; i++) { // вблизи: крупные размытые соринки проплывают перед объективом
     const h = Math.abs(Math.sin(i * 47.3) * 3758.5) % 1;
@@ -455,8 +498,8 @@ function paint(time) {
   bodies.end(time);
   $('scale').style.width = (260 * z * innerWidth / W) + 'px';
   U.tint.value.set(...view.tint);
-  U.drift.value.set(view.x * 0.0012, -view.y * 0.0012);
-  for (const d of [far, farBodies, glow, ink, near, dust, bubbles]) d.done();
+  U.drift.value.set(view.x * view.z / W, -view.y * view.z / W); // в ширинах экрана: слои сзади сдвигаются медленнее
+  for (const d of [far, farBodies, glow, ink, near, dust, bubbles, wake]) d.done();
 }
 
 // Замер для проверки: кадры, худший и средний кадр за последние 5 с, число клеток и точек.
@@ -478,6 +521,7 @@ function frame(now) {
   paint(now / 1000);
   if (!ended) { js.push(performance.now() - t0); if (js.length > 300) js.shift(); }
   gl.autoClear = false;
+  gl.setRenderTarget(rt); gl.render(water, cam); gl.setRenderTarget(null);
   gl.clear();
   gl.render(back, cam);
   gl.clearDepth();
