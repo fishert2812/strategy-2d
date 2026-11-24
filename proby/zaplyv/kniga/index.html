@@ -37,6 +37,20 @@ a { color: var(--accent); }
 .step.s3 { border-color: var(--energy); color: var(--energy); } .step.s4, .step.s5 { border-color: var(--move); color: var(--move); } .step.s6 { border-color: var(--accent); color: var(--accent); }
 .krugi { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; margin-top: 8px; color: var(--dim); } .krugi .ok { color: var(--accent); }
 details { margin-top: 6px; } summary { min-height: 44px; display: flex; align-items: center; color: var(--accent); font-size: 15px; cursor: pointer; }
+.kadry { display: flex; gap: 6px; margin: 8px 0 10px; } .kadry div { flex: 1; position: relative; border: 1px solid var(--line); border-radius: 14px; padding: 8px 6px; text-align: center; background: rgba(0, 0, 0, 0.25); }
+.kadry b { display: block; font-size: 30px; line-height: 1.3; } .kadry i { display: block; font-style: normal; font-size: 12px; line-height: 1.25; color: var(--dim); } .kadry span { position: absolute; left: 7px; top: 4px; font-size: 11px; color: var(--dim); }
+.resh p { margin: 6px 0; } .zn { font-size: 26px; margin-right: 8px; vertical-align: middle; }
+.btns { display: flex; gap: 8px; margin-top: 10px; } .btns button, #send { flex: 1; min-height: 52px; border-radius: 16px; border: 1px solid var(--line); background: rgba(120, 220, 255, 0.08); color: var(--ink); font-family: inherit; font-size: 18px; font-weight: 600; -webkit-appearance: none; touch-action: manipulation; }
+.btns button.on[data-v="да"] { background: rgba(60, 255, 200, 0.3); border-color: var(--accent); } .btns button.on[data-v="нет"] { background: rgba(255, 154, 115, 0.3); border-color: var(--warn); } .btns button.on[data-v="потом"] { background: rgba(255, 209, 102, 0.25); border-color: var(--energy); }
+#send { width: 100%; margin: 18px 0 6px; border-color: var(--accent); background: rgba(60, 255, 200, 0.16); } #schet { text-align: center; color: var(--dim); font-size: 14px; }
+@media print { .btns, #send, #schet { display: none; } }
+.kk { overflow-x: auto; margin: 10px -16px; padding: 0 16px; } .kk table { border-collapse: collapse; font-size: 13px; }
+.kk tr th:first-child { white-space: normal; min-width: 104px; max-width: 104px; line-height: 1.15; }
+.kk th { font-weight: 500; color: var(--dim); padding: 2px 4px; white-space: nowrap; text-align: left; } .kk tr:first-child th { text-align: center; }
+.kk td { width: 26px; min-width: 26px; height: 26px; text-align: center; border: 1px solid var(--line); font-size: 12px; padding: 0; }
+.k-igra { background: rgba(60, 255, 200, 0.28); } .k-zapis { background: rgba(111, 211, 255, 0.25); } .k-nauka { background: rgba(255, 209, 102, 0.25); } .k-pusto { background: rgba(255, 154, 115, 0.3); } .k-net { background: rgba(255, 255, 255, 0.04); }
+.r b i, .bar i { display: inline-block; width: 18px; height: 18px; border-radius: 5px; border: 1px solid var(--line); } i.st { font-style: normal; font-size: 12px; padding: 1px 7px; border-radius: 8px; white-space: nowrap; }
+.bar { display: flex; height: 18px; margin: 8px 0; border-radius: 9px; overflow: hidden; } .bar i { width: auto; border: none; border-radius: 0; }
 hr.pb { break-after: page; border: none; margin: 0; }
 @media print { body { background: var(--bg); -webkit-print-color-adjust: exact; print-color-adjust: exact; } li, .r, h2, h3 { break-inside: avoid; } h2, h3 { break-after: avoid; } }
 #toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 24px); transform: translateX(-50%); padding: 10px 18px;
@@ -49,23 +63,32 @@ hr.pb { break-after: page; border: none; margin: 0; }
 <div id="toast"></div>
 <script>
 // Книга «Заплыва»: страницы — .md рядом, этот файл только показывает их под телефон. Таблицы становятся карточками.
-const PAGES = [['oblozhka', 'Книга'], ['igra', 'Игра'], ['dvizhenie', 'Плыть'], ['mir', 'Мир'], ['sushchestva', 'Существа'],
-  ['geroy', 'Герой'], ['eda', 'Еда'], ['sreda', 'Среда'], ['sosedi', 'Соседи'], ['il', 'Ил'], ['karta', 'Карта'], ['evolyuciya', 'Эволюция'], ['geny', 'Гены'], ['navyki', 'Навыки'], ['puti', 'Пути генов'], ['ekrany', 'Экраны'], ['problemy', 'Проблемы'], ['teksty', 'Тексты'], ['plan', 'План'], ['razrabotka', 'В разработке'], ['nauka', 'Наука'], ['ochered', 'Очередь'], ['zhurnal', 'Журнал']];
+const PAGES = [['oblozhka', 'Книга'], ['resheniya', 'Решения'], ['igra', 'Игра'], ['dvizhenie', 'Плыть'], ['mir', 'Мир'], ['sushchestva', 'Существа'],
+  ['geroy', 'Герой'], ['eda', 'Еда'], ['sreda', 'Среда'], ['sosedi', 'Соседи'], ['kto', 'Кто с кем'], ['il', 'Ил'], ['karta', 'Карта'], ['doma', 'Домой'], ['evolyuciya', 'Эволюция'], ['geny', 'Гены'], ['navyki', 'Навыки'], ['puti', 'Пути генов'], ['ekrany', 'Экраны'], ['razrabotka', 'В разработке'], ['problemy', 'Проблемы'], ['teksty', 'Тексты'], ['plan', 'План'], ['nauka', 'Наука'], ['ochered', 'Очередь'], ['zhurnal', 'Журнал']];
 // Записи книги: один пункт — одна запись в zapisi/*.json. Их же читает сверка с игрой (sverka.mjs).
 const SHAG = { nauka: ['1', 'база науки'], adaptaciya: ['2', 'адаптация'], biolog: ['3', 'у биолога'], gotov: ['4', 'готов к стройке'], stroyka: ['5', 'строим'], v_igre: ['6', 'в игре'] };
-let Z = null, PR = [];
+let Z = null, PR = [], KK = null, RS = null;
+// Решения Романа: ответы живут в этом браузере, «Отправить ответы» отдаёт их одним сообщением через «Поделиться».
+const otvety = () => { try { return JSON.parse(localStorage.getItem('zaplyv_resheniya') || '{}'); } catch { return {}; } };
+const pismo = (o, ver) => 'Решения по книге «Заплыва» ' + ver + ':\n' + RS.resheniya.filter(r => o[r.id]).map(r => `${r.id} ${r.zagolovok}: ${o[r.id]}`).join('\n');
+const ZN = { est: ['🍽', 'ест'], byot: ['⚔️', 'бьёт или травит'], zarazhaet: ['🦠', 'заражает'], pomogaet: ['🤝', 'помогает, кормит, учит'], sopernik: ['🥊', 'соперник за еду'], nichego: ['·', 'не трогает'], vopros: ['?', 'вопрос биологу'] };
+const KST = { igra: ['в игре', 6], zapis: ['задумано', 4], nauka: ['наука есть, в игре нет', 3], pusto: ['пусто, у биолога', 1] };
 async function zapisi() {
   if (Z) return Z;
   const files = await (await fetch('zapisi/spisok.json', { cache: 'no-cache' })).json();
   Z = (await Promise.all(files.map(async f => (await (await fetch('zapisi/' + f + '.json', { cache: 'no-cache' })).json()).map(r => ({ ...r, file: f }))))).flat();
   PR = await (await fetch('problemy.json', { cache: 'no-cache' })).json();
+  KK = await (await fetch('kto_s_kem.json', { cache: 'no-cache' })).json();
+  RS = await (await fetch('resheniya.json', { cache: 'no-cache' })).json();
   return Z;
 }
 const krug = (r, k, n) => `<span class="${r.krugi && r.krugi[k] ? 'ok' : 'no'}">${r.krugi && r.krugi[k] ? '●' : '○'} ${n}${r.krugi && r.krugi[k] ? ' (' + esc(r.krugi[k]) + ')' : ''}</span>`;
 const row = (b, v) => v ? `<div class="r"><b>${b}</b><span>${inline(v)}</span></div>` : '';
+const zhdet = r => r.novaya && !r.roman;
 function zapis(r) {
   return `<div class="card"><div class="t"><span class="code">${r.id}</span>${inline(r.name)}</div>` +
-    `<div class="step s${SHAG[r.shag][0]}">шаг ${SHAG[r.shag][0]} из 6 · ${SHAG[r.shag][1]}${r.versiya ? ' с ' + r.versiya : ''}</div>` +
+    `<div class="step s${SHAG[r.shag][0]}">шаг ${SHAG[r.shag][0]} из 6 · ${zhdet(r) && r.shag === 'gotov' ? 'наука и план готовы' : SHAG[r.shag][1]}${r.versiya ? ' с ' + r.versiya : ''}</div>` +
+    (zhdet(r) ? '<div class="step s3">новая механика · ждёт Романа</div>' : r.roman ? `<div class="step s6">Роман: ${esc(r.roman)}</div>` : '') +
     (r.zamechanie ? `<div class="r warn"><b>Замечание</b><span>${inline(r.zamechanie)}</span></div>` : '') + row('В игре', r.igra) + row('Наука', r.nauka) + row('Образец', r.referens) +
     (r.stroit ? `<details><summary>Для строителя</summary>${row('Как строить', r.stroit)}${row('Проверка', r.proverka)}</details>` : '') +
     `<div class="krugi">${krug(r, 'biolog', 'биолог')} ${krug(r, 'stroitel', 'строитель')} ${krug(r, 'igrok', 'игрок')}</div></div>`;
@@ -75,9 +98,10 @@ function ochered() {
   const wait = Z.filter(r => !(r.krugi && r.krugi.biolog));
   out.push(`<div class="card"><div class="t">Всего записей: ${Z.length}</div>` + Object.entries(SHAG).map(([k, [n, name]]) =>
     `<div class="r"><b>${n}. ${name}</b><span>${Z.filter(r => r.shag === k).length}</span></div>`).join('') + '</div>');
+  const zr = Z.filter(zhdet); if (zr.length) out.push(`<h2>Ждут Романа: ${zr.length}</h2><p>Новые механики. В стройку идут только после его «да» по номеру. Список на вкладке «В разработке».</p>`);
   if (wait.length) out.push(`<h2>Ждут биолога: ${wait.length}</h2><ul>${wait.map(line).join('')}</ul>`);
   for (const [k, [n, name]] of Object.entries(SHAG).reverse()) {
-    const rs = Z.filter(r => r.shag === k);
+    const rs = Z.filter(r => r.shag === k && !(k === 'gotov' && zhdet(r)));
     if (rs.length) out.push(`<h2>${n}. ${name[0].toUpperCase() + name.slice(1)}: ${rs.length}</h2><ul>${rs.map(line).join('')}</ul>`);
   }
   return out.join('');
@@ -106,6 +130,26 @@ function render(md) {
     if (l.trim() === '{{problemy}}') { const ST = { novaya: ['новая', 3], chinim: ['чиним', 4], gotovo: ['готово к стройке', 4], vyshlo: ['вышло', 6], pravilo: ['стало правилом', 6] };
       out.push(`<div class="card">` + Object.entries(ST).map(([k, [n]]) => `<div class="r"><b>${n}</b><span>${PR.filter(p => p.status === k).length}</span></div>`).join('') + '</div>' +
         [...PR].reverse().map(p => `<div class="card"><div class="t"><span class="code">${p.id}</span>«${esc(p.slova)}»</div><div class="step s${ST[p.status][1]}">${ST[p.status][0]}${p.versiya ? ' в ' + p.versiya : ''} · ${p.kogda}</div>${row('Что с этим', p.chto)}</div>`).join('')); continue; }
+    if (l.trim() === '{{kto_s_kem}}') { const N = KK.kto, S = KK.svyazi, nm = Object.fromEntries(N);
+      const cell = (a, b) => { const x = S.filter(s => s.a === a && s.b === b); return `<td class="k-${x.length ? x[0].st : 'net'}">${x.map(s => ZN[s.z][0]).join('')}</td>`; };
+      out.push('<div class="card">' + Object.values(ZN).map(([z, n]) => `<div class="r"><b>${z}</b><span>${n}</span></div>`).join('') + Object.entries(KST).map(([k, [n]]) => `<div class="r"><b><i class="k-${k}"></i></b><span>${n}: ${S.filter(s => s.st === k).length}</span></div>`).join('') + '<div class="r"><b></b><span>пустая клетка: ещё не разобрано</span></div></div>' +
+        '<div class="kk"><table><tr><th></th>' + N.map((_, i) => `<th>${i + 1}</th>`).join('') + '</tr>' + N.map(([a, n], i) => `<tr><th>${i + 1} ${esc(n)}</th>` + N.map(([b]) => cell(a, b)).join('') + '</tr>').join('') + '</table></div>' +
+        N.map(([a, n], i) => { const x = S.filter(s => s.a === a || s.b === a); return `<div class="card"><div class="t">${i + 1}. ${esc(n)}</div>` + x.map(s => `<div class="r"><b>${ZN[s.z][0]} ${esc(s.a === a ? nm[s.b] : nm[s.a] + ' → ' + (a === 'me' ? 'ты' : 'сюда'))}</b><span>${inline(s.t)} <i class="st k-${s.st}">${KST[s.st][0]}${s.gde ? ' ' + s.gde : ''}</i></span></div>`).join('') + '</div>'; }).join('')); continue; }
+    if (l.trim() === '{{polnota}}') { const n = k => Z.filter(r => r.shag === k).length, T = Z.length, S = KK.svyazi, kn = k => S.filter(s => s.st === k).length, pairs = KK.kto.length * KK.kto.length;
+      const bar = parts => '<div class="bar">' + parts.map(([v, c]) => `<i class="${c}" style="flex:${v}"></i>`).join('') + '</div>';
+      out.push(`<div class="card"><div class="t">Пунктов в книге: ${T}</div>` + bar([[n('v_igre'), 'k-igra'], [Z.filter(r => (r.shag === 'gotov' || r.shag === 'stroyka') && !zhdet(r)).length, 'k-zapis'], [Z.filter(zhdet).length, 'k-nauka']]) +
+        row('в игре', String(n('v_igre'))) + row('готово к стройке', String(Z.filter(r => (r.shag === 'gotov' || r.shag === 'stroyka') && !zhdet(r)).length)) + row('новая механика, ждёт Романа', String(Z.filter(zhdet).length)) + row('проверено биологом', Z.filter(r => r.krugi && r.krugi.biolog).length + ' из ' + T) +
+        `</div><div class="card"><div class="t">Кто с кем: ${KK.kto.length} существ, ${pairs} клеток</div>` + bar([[kn('igra'), 'k-igra'], [kn('zapis') + kn('nauka'), 'k-nauka'], [kn('pusto'), 'k-pusto'], [pairs - S.length, 'k-net']]) +
+        row('в игре', String(kn('igra'))) + row('наука есть, в игре нет', String(kn('zapis') + kn('nauka'))) + row('вопрос биологу', String(kn('pusto'))) + row('не разобрано', String(pairs - new Set(S.map(s => s.a + s.b)).size)) + '</div>'); continue; }
+    if (l.trim() === '{{resheniya}}') { const o = otvety(), byId = Object.fromEntries(Z.map(r => [r.id, r]));
+      out.push(`<p>${inline(RS.vstuplenie)}</p>` + RS.resheniya.map(r => `<div class="card resh" data-id="${r.id}"><div class="t"><span class="zn">${r.znak}</span>${r.id.slice(1)}. ${esc(r.zagolovok)}</div>` +
+        `<div class="kadry">` + r.kadry.map(([z, p], i) => `<div><span>${i + 1}</span><b>${z}</b><i>${esc(p)}</i></div>`).join('') + `</div>${row('Что делаешь', r.palec)}${row('Что будет', r.proishodit)}${row('Зачем', r.zachem)}${row('Пример', r.primer)}${row('Наш совет', r.sovet)}<details><summary>Что внутри: ${r.punkty.length}</summary><ul>` + r.punkty.map(id => `<li><a href="#${byId[id].file}">${id}</a> ${inline(byId[id].name)}</li>`).join('') + '</ul></details>' +
+        '<div class="btns">' + ['да', 'нет', 'потом'].map(v => `<button type="button" data-v="${v}" class="${o[r.id] === v ? 'on' : ''}">${v[0].toUpperCase() + v.slice(1)}</button>`).join('') + '</div></div>').join('') +
+        `<button type="button" id="send">Отправить ответы</button><p id="schet"></p>`); continue; }
+    if (l.trim() === '{{razrabotka}}') { const zr = Z.filter(zhdet), da = Z.filter(r => r.novaya && r.roman), TAB = Object.fromEntries(PAGES);
+      const gr = {}; for (const r of zr) (gr[r.file] = gr[r.file] || []).push(r);
+      out.push(`<div class="card"><div class="t">Ждут твоего «да»: ${zr.length}</div>${row('уже утверждено', String(da.length))}</div>` + Object.entries(gr).map(([f, rs]) => `<h2>${TAB[f] ? `<a href="#${f}">${TAB[f]}</a>` : f}: ${rs.length}</h2><ul>` + rs.map(r => `<li><span class="code">${r.id}</span>${inline(r.name)}${r.krugi && r.krugi.biolog ? '' : ' · у биолога'}</li>`).join('') + '</ul>').join('') +
+        (da.length ? '<h2>Утверждено</h2><ul>' + da.map(r => `<li><span class="code">${r.id}</span>${inline(r.name)} · ${esc(r.roman)}</li>`).join('') + '</ul>' : '')); continue; }
     if (l.trim() === '{{ochered}}') { out.push(ochered()); continue; }
     if (l.trim() === '{{kartochki}}') { out.push(Z.filter(r => r.kartochka).map(r => `<div class="card"><div class="t"><span class="code">${r.id}</span>${esc(r.kartochka.imya)} <em>${esc(r.latin)}</em></div>` +
       `<div class="step s${SHAG[r.shag][0]}">${r.shag === 'v_igre' ? 'в игре' : 'спит на кольце'}</div>` + row('Что даёт', r.kartochka.daet) + row('В природе', r.kartochka.priroda) + '</div>').join('')); continue; }
@@ -141,8 +185,20 @@ async function show() {
   }
   const r = await fetch(page + '.md', { cache: 'no-cache' });
   document.getElementById('page').innerHTML = r.ok ? render(await r.text()) : '<p>Страница не открылась.</p>';
+  schet();
   scrollTo(0, 0);
 }
+document.addEventListener('click', async e => { // решения: «Да», «Нет», «Потом» и отправка
+  const b = e.target.closest('.btns button'), s = e.target.closest('#send'), t = document.getElementById('toast');
+  const say = m => { t.textContent = m; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 1800); };
+  if (b) { const o = otvety(), id = b.closest('.resh').dataset.id; if (o[id] === b.dataset.v) delete o[id]; else o[id] = b.dataset.v;
+    try { localStorage.setItem('zaplyv_resheniya', JSON.stringify(o)); } catch {}
+    b.parentNode.querySelectorAll('button').forEach(x => x.classList.toggle('on', o[id] === x.dataset.v)); schet(); }
+  if (s) { const o = otvety(); if (!Object.keys(o).length) return say('Сначала ответь хотя бы на одно');
+    const text = pismo(o, new Date().toLocaleDateString('ru-RU'));
+    try { if (navigator.share) await navigator.share({ text }); else { await navigator.clipboard.writeText(text); say('Скопировано. Вставь в чат'); } } catch (err) { if (err.name !== 'AbortError') { try { await navigator.clipboard.writeText(text); say('Скопировано. Вставь в чат'); } catch { say('Не вышло отправить'); } } } }
+});
+function schet() { const el = document.getElementById('schet'); if (el) { const n = Object.keys(otvety()).filter(k => RS.resheniya.some(r => r.id === k)).length; el.textContent = 'Отвечено: ' + n + ' из ' + RS.resheniya.length; } }
 document.addEventListener('click', e => { // касание номера пункта копирует «Книга Г7: » для чата
   const c = e.target.closest('.code'); if (!c) return;
   const text = 'Книга ' + c.textContent + ': ';
