@@ -5,7 +5,8 @@
 set -u
 command -v node >/dev/null || { echo "  нет node — жизнь капли проверить нечем"; exit 1; }
 timeout 120 node proby/zaplyv/test_zhizn.mjs || exit 1
-if ZHIZN_OFF=1 timeout 120 node proby/zaplyv/test_zhizn.mjs | grep -q 'ПРОВАЛ test_zhizn_minuta'; then
+off=$(ZHIZN_OFF=1 timeout 120 node proby/zaplyv/test_zhizn.mjs 2>&1)
+if grep -q 'ПРОВАЛ test_zhizn_minuta' <<<"$off"; then
   echo "  самопроверка: без движка мир снова стоит — test_zhizn_minuta красный (так и должно быть)"
 else
   echo "  САМОПРОВЕРКА: движок выключен, а test_zhizn_minuta зелёный — проверка ничего не доказывает"; exit 1

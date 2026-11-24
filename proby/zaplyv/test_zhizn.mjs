@@ -1,5 +1,5 @@
 // Проверки движка жизни капли (zhizn.js) без экрана: node proby/zaplyv/test_zhizn.mjs. Каждая печатает паспорт; провал — код 1.
-// ZHIZN_OFF=1 выключает движок: проверка-доказательство обязана покраснеть (самопроверка шага 56_zhizn).
+// ZHIZN_OFF=1 выключает движок: проверка-доказательство обязана покраснеть (самопроверка шага 57_zhizn).
 import { World, radius } from './sim.js';
 import { Z } from './zhizn.js';
 import { readFileSync } from 'node:fs';
@@ -71,6 +71,38 @@ check('test_zhizn_delenie: соперница ест еду и делится, �
   console.log('    паспорт: соперниц было 1, стало', n, ', делений', log.filter(e => e[0] === 'divide_other').length);
   if (n < 2) return 'соперница не поделилась';
   if (n > Z.crowd_max + 1) return 'делится без предела';
+});
+
+check('test_zhizn_syt_ty: пока пасть занята соседями, тебя она не хватает; голодная хватает (С25)', () => {
+  const res = [];
+  for (const full of [false, true]) {
+    const w = fresh(9); eater.slipper(w, 0, 0); const [mx, my] = w.mouth(w.slippers[0]);
+    if (full) w.slippers[0].syt = Z.pasport.slipper.syt[1];
+    Object.assign(w.me[0], { x: mx + 4, y: my, vx: 0, vy: 0 }); run(w, 0.2);
+    res.push(!!w.me[0]?.grab);
+  }
+  console.log('    паспорт: голодная схватила', res[0], '| сытая схватила', res[1]);
+  if (!res[0]) return 'голодная пасть не хватает — проверка ничего не доказывает';
+  if (res[1]) return 'сытая пасть всё равно хватает тебя';
+});
+
+check('test_zhizn_sosedka: соседка без тебя отдаёт ген сопернице, ген виден событием и работает: в шубе её не глотает амёба, с ядом она бьёт тебя (С27)', () => {
+  const w = fresh(10, true); w.donors.push({ x: 0, y: 0, a: 0, link: 0, id: ++w.ids }); victim.strain(w, 20, 0);
+  log.length = 0; run(w, cfg.conj + 1);
+  const q = w.pseudos[0], got = log.filter(e => e[0] === 'gene_other');
+  console.log('    паспорт: соперница получила', Object.keys(q.genes || {}).join(',') || '—', ', событий', got.length);
+  if (!q.genes || !got.length) return 'соседка не передала ген сопернице';
+  const w2 = fresh(11, true); eater.amoeba(w2, 0, 0); victim.strain(w2, 40, 0); w2.pseudos[0].genes = { capsule: true };
+  log.length = 0; run(w2, 6); const eaten = log.filter(e => e[0] === 'eaten_other').length;
+  const w3 = fresh(12, true); victim.strain(w3, 0, 0); w3.pseudos[0].genes = { toxin: true }; Object.assign(w3.me[0], { x: 14, y: 0, vx: 0, vy: 0 }); const m0 = w3.me[0].m;
+  run(w3, 0.2); const hit = w3.me[0].m / m0;
+  console.log('    паспорт: амёба съела соперницу в шубе', eaten, 'раз | ядовитая соперница: твоя масса ×', hit.toFixed(2));
+  if (eaten) return 'амёба съела соперницу в шубе';
+  if (hit > 0.95) return 'соперница с ядом не бьёт тебя';
+  const w4 = fresh(13, true); w4.donors.push({ x: 0, y: 0, a: 0, link: 0, id: ++w4.ids }); victim.strain(w4, 20, 0); Object.assign(w4.me[0], { x: -10, y: 0 });
+  run(w4, cfg.conj + 0.5);
+  console.log('    паспорт: ты рядом — соперница получила', Object.keys(w4.pseudos[0].genes || {}).join(',') || '—');
+  if (w4.pseudos[0].genes) return 'ты был рядом, а трубочка ушла сопернице';
 });
 
 // Доказательство пользы: игрок, который просто плывёт за едой, за первую минуту видит на своём экране,
