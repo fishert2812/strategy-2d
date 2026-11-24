@@ -756,14 +756,14 @@ function paint(time) {
       glow.put(x + (tx - x) * ((time * 2) % 1) * f, y + (ty - y) * ((time * 2) % 1) * f, 3 * z, 1, 0.9, 0.5, 0.6); }
   }
   for (const f of tells) { f.t += 1 / 60; const [x, y] = scr(f.x, f.y), k = f.t / cfg.toxin_tell.flash; // яд не подействовал: фиолетовые искры сходятся и гаснут, серое кольцо оболочки
-    for (let i = 0; i < 12; i++) { const t = i * 0.5236 + f.x, R = (26 - 18 * k) * z; glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 2.6 * z + 0.6, 0.85, 0.6, 1, 0.95 * (1 - k)); }
+    for (let i = 0; i < 12; i++) { const t = i * 0.5236 + f.x, R = (20 - 12 * k) * z; glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 2 * z + 0.5, 0.85, 0.6, 1, 0.95 * (1 - k)); }
     for (let i = 0; i < 20; i++) { const t = i * 0.314, R = 10 * z; glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 1.6 * z + 0.4, 0.8, 0.84, 0.9, 0.7 * (1 - k)); } }
   tells = tells.filter(f => f.t < cfg.toxin_tell.flash);
   for (const q of world.pseudos) { // синегнойка: палочка как ты, зеленоватая, один жгутик сзади
     const [x, y] = scr(q.x, q.y); if (!on(x, y)) continue;
     const w = 7.5 * z, ux = Math.cos(q.a), uy = Math.sin(q.a);
     const col = q.strain ? [0.66, 0.7, 0.76] : [0.45, 0.95, 0.72], rim = q.strain ? [0.32, 0.36, 0.44] : [0.15, 0.55, 0.42];
-    if (q.strain && world.genes.toxin && world.me.some(a => Math.hypot(a.x - q.x, a.y - q.y) < cfg.toxin_tell.mark_r)) for (let i = 0; i < 16; i++) { const t = i * 0.3927 + time * 0.6; glow.put(x + Math.cos(t) * w * 2.4, y + Math.sin(t) * w * 2.4, 2.2 * z + 0.6, 0.85, 0.6, 1, 0.65 + 0.25 * Math.sin(time * 4)); } // у тебя есть яд — соперница помечена его цветом: её яд берёт
+    if (q.strain && world.genes.toxin && world.me.some(a => Math.hypot(a.x - q.x, a.y - q.y) < cfg.toxin_tell.mark_r)) for (let i = 0; i < 64; i++) { const t = i * 0.09817, ca = Math.cos(t) * w * 2.05, sa = Math.sin(t) * w * 1.15; glow.put(x + ux * ca - uy * sa, y + uy * ca + ux * sa, 1.8 * z + 0.5, 0.85, 0.6, 1, 0.75 + 0.2 * Math.sin(time * 1.6)); } // у тебя есть яд — по оболочке соперницы тонкая сплошная дуга цвета яда, медленно дышит: её яд берёт (дизайнер)
     if (q.held > 0) { bodies.sphere(x, y, w * 1.5, col, [1, 0.5, 0.3], q.id); glow.put(x, y, w * 3, 1, 0.3, 0.1, 0.15); continue; } // в ней хищник: шарик
     if (q.strain) { // чужой штамм кишечной палочки: серая, жгутики со всех сторон, как у тебя
       bodies.rod(x, y, q.a, w * 2.4, w * 1.05, 0, col, rim, q.id, Math.sin(time * 3 + q.id) * w * 0.15);
