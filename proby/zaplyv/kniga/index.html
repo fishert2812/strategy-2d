@@ -37,6 +37,11 @@ a { color: var(--accent); }
 .step.s3 { border-color: var(--energy); color: var(--energy); } .step.s4, .step.s5 { border-color: var(--move); color: var(--move); } .step.s6 { border-color: var(--accent); color: var(--accent); }
 .krugi { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; margin-top: 8px; color: var(--dim); } .krugi .ok { color: var(--accent); }
 details { margin-top: 6px; } summary { min-height: 44px; display: flex; align-items: center; color: var(--accent); font-size: 15px; cursor: pointer; }
+.resh p { margin: 6px 0; } .zn { font-size: 26px; margin-right: 8px; vertical-align: middle; }
+.btns { display: flex; gap: 8px; margin-top: 10px; } .btns button, #send { flex: 1; min-height: 52px; border-radius: 16px; border: 1px solid var(--line); background: rgba(120, 220, 255, 0.08); color: var(--ink); font-family: inherit; font-size: 18px; font-weight: 600; -webkit-appearance: none; touch-action: manipulation; }
+.btns button.on[data-v="да"] { background: rgba(60, 255, 200, 0.3); border-color: var(--accent); } .btns button.on[data-v="нет"] { background: rgba(255, 154, 115, 0.3); border-color: var(--warn); } .btns button.on[data-v="потом"] { background: rgba(255, 209, 102, 0.25); border-color: var(--energy); }
+#send { width: 100%; margin: 18px 0 6px; border-color: var(--accent); background: rgba(60, 255, 200, 0.16); } #schet { text-align: center; color: var(--dim); font-size: 14px; }
+@media print { .btns, #send, #schet { display: none; } }
 .kk { overflow-x: auto; margin: 10px -16px; padding: 0 16px; } .kk table { border-collapse: collapse; font-size: 13px; }
 .kk tr th:first-child { white-space: normal; min-width: 104px; max-width: 104px; line-height: 1.15; }
 .kk th { font-weight: 500; color: var(--dim); padding: 2px 4px; white-space: nowrap; text-align: left; } .kk tr:first-child th { text-align: center; }
@@ -56,11 +61,14 @@ hr.pb { break-after: page; border: none; margin: 0; }
 <div id="toast"></div>
 <script>
 // Книга «Заплыва»: страницы — .md рядом, этот файл только показывает их под телефон. Таблицы становятся карточками.
-const PAGES = [['oblozhka', 'Книга'], ['igra', 'Игра'], ['dvizhenie', 'Плыть'], ['mir', 'Мир'], ['sushchestva', 'Существа'],
+const PAGES = [['oblozhka', 'Книга'], ['resheniya', 'Решения'], ['igra', 'Игра'], ['dvizhenie', 'Плыть'], ['mir', 'Мир'], ['sushchestva', 'Существа'],
   ['geroy', 'Герой'], ['eda', 'Еда'], ['sreda', 'Среда'], ['sosedi', 'Соседи'], ['kto', 'Кто с кем'], ['il', 'Ил'], ['karta', 'Карта'], ['doma', 'Домой'], ['evolyuciya', 'Эволюция'], ['geny', 'Гены'], ['puti', 'Пути генов'], ['ekrany', 'Экраны'], ['razrabotka', 'В разработке'], ['problemy', 'Проблемы'], ['teksty', 'Тексты'], ['plan', 'План'], ['nauka', 'Наука'], ['ochered', 'Очередь'], ['zhurnal', 'Журнал']];
 // Записи книги: один пункт — одна запись в zapisi/*.json. Их же читает сверка с игрой (sverka.mjs).
 const SHAG = { nauka: ['1', 'база науки'], adaptaciya: ['2', 'адаптация'], biolog: ['3', 'у биолога'], gotov: ['4', 'готов к стройке'], stroyka: ['5', 'строим'], v_igre: ['6', 'в игре'] };
-let Z = null, PR = [], KK = null;
+let Z = null, PR = [], KK = null, RS = null;
+// Решения Романа: ответы живут в этом браузере, «Отправить ответы» отдаёт их одним сообщением через «Поделиться».
+const otvety = () => { try { return JSON.parse(localStorage.getItem('zaplyv_resheniya') || '{}'); } catch { return {}; } };
+const pismo = (o, ver) => 'Решения по книге «Заплыва» ' + ver + ':\n' + RS.resheniya.filter(r => o[r.id]).map(r => `${r.id} ${r.zagolovok}: ${o[r.id]}`).join('\n');
 const ZN = { est: ['🍽', 'ест'], byot: ['⚔️', 'бьёт или травит'], zarazhaet: ['🦠', 'заражает'], pomogaet: ['🤝', 'помогает, кормит, учит'], sopernik: ['🥊', 'соперник за еду'], nichego: ['·', 'не трогает'], vopros: ['?', 'вопрос биологу'] };
 const KST = { igra: ['в игре', 6], zapis: ['задумано', 4], nauka: ['наука есть, в игре нет', 3], pusto: ['пусто, у биолога', 1] };
 async function zapisi() {
@@ -69,6 +77,7 @@ async function zapisi() {
   Z = (await Promise.all(files.map(async f => (await (await fetch('zapisi/' + f + '.json', { cache: 'no-cache' })).json()).map(r => ({ ...r, file: f }))))).flat();
   PR = await (await fetch('problemy.json', { cache: 'no-cache' })).json();
   KK = await (await fetch('kto_s_kem.json', { cache: 'no-cache' })).json();
+  RS = await (await fetch('resheniya.json', { cache: 'no-cache' })).json();
   return Z;
 }
 const krug = (r, k, n) => `<span class="${r.krugi && r.krugi[k] ? 'ok' : 'no'}">${r.krugi && r.krugi[k] ? '●' : '○'} ${n}${r.krugi && r.krugi[k] ? ' (' + esc(r.krugi[k]) + ')' : ''}</span>`;
@@ -130,6 +139,11 @@ function render(md) {
         row('в игре', String(n('v_igre'))) + row('готово к стройке', String(Z.filter(r => (r.shag === 'gotov' || r.shag === 'stroyka') && !zhdet(r)).length)) + row('новая механика, ждёт Романа', String(Z.filter(zhdet).length)) + row('проверено биологом', Z.filter(r => r.krugi && r.krugi.biolog).length + ' из ' + T) +
         `</div><div class="card"><div class="t">Кто с кем: ${KK.kto.length} существ, ${pairs} клеток</div>` + bar([[kn('igra'), 'k-igra'], [kn('zapis') + kn('nauka'), 'k-nauka'], [kn('pusto'), 'k-pusto'], [pairs - S.length, 'k-net']]) +
         row('в игре', String(kn('igra'))) + row('наука есть, в игре нет', String(kn('zapis') + kn('nauka'))) + row('вопрос биологу', String(kn('pusto'))) + row('не разобрано', String(pairs - new Set(S.map(s => s.a + s.b)).size)) + '</div>'); continue; }
+    if (l.trim() === '{{resheniya}}') { const o = otvety(), byId = Object.fromEntries(Z.map(r => [r.id, r]));
+      out.push(`<p>${inline(RS.vstuplenie)}</p>` + RS.resheniya.map(r => `<div class="card resh" data-id="${r.id}"><div class="t"><span class="zn">${r.znak}</span><span class="code">${r.id}</span>${esc(r.zagolovok)}</div>` +
+        `<p>${inline(r.uvidish)}</p>${row('Наш совет', r.sovet)}<details><summary>Что внутри: ${r.punkty.length}</summary><ul>` + r.punkty.map(id => `<li><a href="#${byId[id].file}">${id}</a> ${inline(byId[id].name)}</li>`).join('') + '</ul></details>' +
+        '<div class="btns">' + ['да', 'нет', 'потом'].map(v => `<button type="button" data-v="${v}" class="${o[r.id] === v ? 'on' : ''}">${v[0].toUpperCase() + v.slice(1)}</button>`).join('') + '</div></div>').join('') +
+        `<button type="button" id="send">Отправить ответы</button><p id="schet"></p>`); continue; }
     if (l.trim() === '{{razrabotka}}') { const zr = Z.filter(zhdet), da = Z.filter(r => r.novaya && r.roman), TAB = Object.fromEntries(PAGES);
       const gr = {}; for (const r of zr) (gr[r.file] = gr[r.file] || []).push(r);
       out.push(`<div class="card"><div class="t">Ждут твоего «да»: ${zr.length}</div>${row('уже утверждено', String(da.length))}</div>` + Object.entries(gr).map(([f, rs]) => `<h2>${TAB[f] ? `<a href="#${f}">${TAB[f]}</a>` : f}: ${rs.length}</h2><ul>` + rs.map(r => `<li><span class="code">${r.id}</span>${inline(r.name)}${r.krugi && r.krugi.biolog ? '' : ' · у биолога'}</li>`).join('') + '</ul>').join('') +
@@ -169,8 +183,20 @@ async function show() {
   }
   const r = await fetch(page + '.md', { cache: 'no-cache' });
   document.getElementById('page').innerHTML = r.ok ? render(await r.text()) : '<p>Страница не открылась.</p>';
+  schet();
   scrollTo(0, 0);
 }
+document.addEventListener('click', async e => { // решения: «Да», «Нет», «Потом» и отправка
+  const b = e.target.closest('.btns button'), s = e.target.closest('#send'), t = document.getElementById('toast');
+  const say = m => { t.textContent = m; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 1800); };
+  if (b) { const o = otvety(), id = b.closest('.resh').dataset.id; if (o[id] === b.dataset.v) delete o[id]; else o[id] = b.dataset.v;
+    try { localStorage.setItem('zaplyv_resheniya', JSON.stringify(o)); } catch {}
+    b.parentNode.querySelectorAll('button').forEach(x => x.classList.toggle('on', o[id] === x.dataset.v)); schet(); }
+  if (s) { const o = otvety(); if (!Object.keys(o).length) return say('Сначала ответь хотя бы на одно');
+    const text = pismo(o, new Date().toLocaleDateString('ru-RU'));
+    try { if (navigator.share) await navigator.share({ text }); else { await navigator.clipboard.writeText(text); say('Скопировано. Вставь в чат'); } } catch (err) { if (err.name !== 'AbortError') { try { await navigator.clipboard.writeText(text); say('Скопировано. Вставь в чат'); } catch { say('Не вышло отправить'); } } } }
+});
+function schet() { const el = document.getElementById('schet'); if (el) { const n = Object.keys(otvety()).filter(k => RS.resheniya.some(r => r.id === k)).length; el.textContent = 'Отвечено: ' + n + ' из ' + RS.resheniya.length; } }
 document.addEventListener('click', e => { // касание номера пункта копирует «Книга Г7: » для чата
   const c = e.target.closest('.code'); if (!c) return;
   const text = 'Книга ' + c.textContent + ': ';
