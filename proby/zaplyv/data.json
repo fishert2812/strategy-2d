@@ -6,7 +6,7 @@
 	"max_m": 9,
 	"food": 0.14, "genome_zoom": 0.7, "fim_reach": 8, "crispr_cost": 0.6, "flag_r": 500,
   "close_up": 0.85, "grain": [0.6, 2.4], "rush_gap": 1.5, "rush_step": 0.12, "rush_max": 1, "rush_fall": 0.3,
-	"grab": 1.3, "free": 1.0, "torn": 0.75, "bdello_loose": 1.2, "auto_split": 3, "auto_max": 4,
+	"grab": 1.3, "free": 1.0, "torn": 0.75, "bdello_loose": 1.2, "auto_split": 3, "auto_max": 4, "me_max": 10, "away_speed": 120, "away_time": 2.5,
 	"amoeba": 64,
 	"amoeba_open": 0.15,
 	"bdello_speed": 390,
@@ -46,7 +46,7 @@
 	"phage_chance": 0.4,
 	"danger_growth": 0.08,
 	"look": { "flagella": [5, 8], "beat": [16, 24], "stripes": [2, 3], "ribosomes": [7, 16], "toxin": 10, "receptors": 5, "studs": 14, "pili": 22 },
-	"gene_steps": [2, 4, 8, 12, 16, 24, 32],
+	"gene_first": 1, "gene_every": 5,
 	"genes": {
 		"flagellum": ["Пучок жгутиков", "слизь не тормозит"],
 		"capsule": ["Капсула", "амёба не может проглотить"],
