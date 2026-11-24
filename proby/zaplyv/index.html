@@ -26,6 +26,17 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 .layer h1 { margin: 0 0 8px; font-size: 32px; font-weight: 600; }
 .layer p { margin: 0 0 12px; font-size: 18px; opacity: 0.8; text-align: center; line-height: 1.5; }
 #end { justify-content: flex-start; overflow-y: auto; padding: calc(env(safe-area-inset-top) + 28px) 20px calc(env(safe-area-inset-bottom) + 24px); gap: 10px; }
+#night { justify-content: flex-start; gap: 8px; padding: calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 16px); background: #04121a; }
+#nhead { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; } #nhead b { font-size: 16px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+#nhead button { flex: 0 0 auto; width: auto; min-width: 48px; min-height: 44px; padding: 0 14px; } #ndanger[hidden] { display: none; }
+#erow { display: flex; gap: 10px; width: min(340px, 86vw); } #erow button { flex: 1; width: auto; min-width: 0; padding: 0 8px; } #erow #nightgo { flex: 1.4; }
+#night #nask { margin: 0; font-size: 17px; } #night #nnote { margin: 0; font-size: 13px; opacity: 0.65; }
+#ndanger { display: flex; gap: 10px; width: 100%; } #ndanger button { flex: 1; width: auto; min-height: 56px; font-size: 18px; }
+#nbox { flex: 1; min-height: 0; width: 100%; position: relative; } #ncv { position: absolute; inset: 0; width: 100%; height: 100%; }
+#npicks { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+#npicks button { width: 100%; display: flex; align-items: center; gap: 10px; min-height: 52px; text-align: left; font-size: 15px; padding: 8px 12px; border: 2px solid transparent; }
+#npicks button.on { border-color: #9fe6ff; } #npicks i { flex-shrink: 0; width: 16px; height: 16px; border-radius: 50%; } #npicks small { display: block; opacity: 0.7; font-size: 13px; }
+#ngo { width: 100%; flex-shrink: 0; min-height: 52px; } #ngo:disabled { opacity: 0.45; }
 #ebtns { position: sticky; bottom: 0; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; } /* кнопки одним столбиком: каждая на своём месте, не друг на друге (урок L017) */
 #end button { flex-shrink: 0; background: rgba(10, 60, 50, 0.92); }
 #card, #path { width: min(380px, 100%); box-sizing: border-box; border-radius: 20px; padding: 12px 16px; }
@@ -135,9 +146,18 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
 <div class="layer" id="end">
   <div id="card"><div id="who"></div><h2 id="cname"></h2><p id="ctext"></p><p id="cfact"></p><p id="ctip"></p></div>
   <div id="path"><h3>Твой путь</h3><p id="stats"></p></div>
-  <div id="ebtns"><button id="again">Плыть снова</button>
+  <div id="ebtns"><div id="erow"><button id="nightgo">Ночь рода</button><button id="again" class="ghost">Плыть снова</button></div>
   <button id="cab" class="ghost"></button>
   <button id="eno" class="flag ghost">⚑ Не так</button><button id="esend" class="ghost" style="display:none"></button></div>
+</div>
+<div class="layer" id="night">
+  <div id="nhead"><button id="nback" class="ghost">Назад</button><b id="ngen"></b><button id="nflag" class="ghost" aria-label="Не так: поставить отметку">⚑</button></div>
+  <p id="nask">Выбери, что будет мешать твоему роду</p>
+  <div id="ndanger"><button data-d="phage">Фаги</button><button data-d="maw">Пасть</button><button data-d="hunger">Голод</button></div>
+  <div id="nbox"><canvas id="ncv"></canvas></div>
+  <p id="nnote">1000 поколений в пробирке — около двух недель: одно деление ≈ 20 минут</p>
+  <div id="npicks"></div>
+  <button id="ngo" disabled>Плыть этой веткой</button>
 </div>
 <div class="layer" id="genome">
   <div id="ghead"><button id="gback" class="ghost">‹ Плыть</button><div><h1>Геном</h1></div><button id="gflag" class="flag" style="width:48px;min-height:48px;padding:0;border-radius:50%;margin-left:44px" aria-label="Не так">⚑</button></div>

@@ -66,6 +66,20 @@ await p.evaluate(() => { const w = zaplyvWorld(); w.genes.spore = false; w.stats
 await p.waitForTimeout(1200);
 m = await marks();
 if (await tap('#eno', '«Не так» на экране гибели')) say(await seen('#note') && await marks() === m + 1, '«Не так» на экране гибели: отметка и надпись видна');
+// «Ночь рода» (спецификация design/zaplyv_noch_roda_spec.md): каждая кнопка ночи отвечает пальцу.
+if (await tap('#nightgo', '«Ночь рода»')) say(await on('night') && await seen('#ndanger'), '«Ночь рода» открывает выбор опасности');
+m = await marks();
+if (await tap('#nflag', '«Не так» в ночи рода')) say(await seen('#note') && await marks() === m + 1, '«Не так» в ночи рода: отметка записана');
+if (await tap('#nback', '«Назад» из ночи')) say(!(await on('night')) && await on('end'), '«Назад» возвращает на экран гибели');
+if (await tap('#nightgo', '«Ночь рода» снова') && await tap('#ndanger [data-d=phage]', 'опасность «Фаги»')) {
+  await p.waitForTimeout(600); say(await p.evaluate(() => zaplyvNight() && zaplyvNight().gen > 0), 'после выбора опасности поколения идут');
+  await p.evaluate(() => zaplyvNight().run()); await p.waitForTimeout(500);
+  if (await tap('#npicks button', 'ветка «выше всех»')) {
+    const g = await p.evaluate(() => zaplyvNight().res.picks[0].genes);
+    if (await tap('#ngo', '«Плыть этой веткой»')) { await p.waitForTimeout(300); say(await p.evaluate(g => !document.getElementById('night').classList.contains('on') && g.every(k => zaplyvWorld().genes[k]), g), '«Плыть этой веткой» начинает заплыв с генами ветки: ' + g); }
+  }
+  await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 0; }); await p.waitForTimeout(1200);
+}
 if (await tap('#again', '«Плыть снова»')) say(!(await on('end')), '«Плыть снова» начинает заплыв');
 say(!errs.length, 'ошибок страницы нет' + (errs.length ? ': ' + errs.join('; ') : ''));
 await b.close();

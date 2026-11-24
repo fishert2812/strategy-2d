@@ -13,8 +13,10 @@ import { Bodies } from './body3d.js';
 import { genomeScreen } from './genome.js';
 import { mark, message } from './feedback.js';
 import { almanahScreen } from './almanah.js';
+import { night } from './night.js';
 
 const cfg = await (await fetch('data.json')).json();
+const NJ = await (await fetch('night.json')).json(); // «Ночь рода»: числа ночи
 const cards = await (await fetch('cards.json')).json();
 const genomeData = await (await fetch('genome.json')).json();
 const W = 720; // ширина экрана в единицах игры
@@ -188,13 +190,60 @@ const ver = (await (await fetch('version.json')).json()).number; // свой н�
 $('ver').textContent = 'Заплыв ' + ver;
 fetch('../version.txt').then(r => r.ok ? r.text() : '').then(t => { if (t.trim()) $('ver').textContent = 'Заплыв ' + ver + ' · ' + t.trim().slice(0, 7); }).catch(() => {});
 
-function start() {
+function start(genes) {
   world = new World(cfg, (Math.random() * 2 ** 31) | 0);
+  if (Array.isArray(genes)) world.inherit(genes); // заплыв веткой рода после «Ночи рода»
+  $('night').classList.remove('on');
   view = { x: 0, y: 0, z: 2.2, tint: [...TINT[0]] };
   fx.reset(); ended = false;
   $('end').classList.remove('on');
 }
-$('again').onclick = start;
+$('again').onclick = () => start();
+
+// «Ночь рода» (night.js; design/zaplyv_noch_roda_spec.md): после гибели род живёт 1000 поколений, игрок выбирает опасность, потом ветку.
+let NT = null, ntT = 0, ntPick = null;
+const geneName = g => (Object.values(GENY.geny || {}).find(q => q.klyuch === g) || {}).imya || g;
+$('nightgo').onclick = () => { NT = null; ntPick = null; $('night').classList.add('on'); $('ndanger').hidden = $('nask').hidden = false; $('npicks').innerHTML = ''; $('ngo').disabled = true; $('ngen').textContent = 'Ночь рода'; drawNight(); };
+$('nback').onclick = () => { $('night').classList.remove('on'); NT = null; };
+$('nflag').onclick = e => flag('ночь рода', e.currentTarget);
+for (const b of $('ndanger').children) b.onclick = () => {
+  NT = night({ genes: Object.keys(world.genes).filter(g => world.genes[g]), n: world.stats.most }, b.dataset.d, world.seed, NJ, Object.keys(cfg.genes)); NT.danger = b.dataset.d;
+  ntT = 0; $('ndanger').hidden = $('nask').hidden = true;
+};
+$('ngo').onclick = () => { if (ntPick) start(ntPick.genes); };
+function nightFrame(dt) {
+  if (NT && !NT.done) { ntT += dt; const want = Math.min(NJ.gens, Math.ceil(ntT / NJ.seconds * NJ.gens)); while (NT.gen < want) NT.step(); }
+  if (NT && NT.done && !NT.res) nightEnd();
+  if (NT) $('ngen').textContent = 'Поколение ' + NT.gen + ' из ' + NJ.gens;
+  drawNight();
+}
+function nightEnd() {
+  const res = NT.result(), box = $('npicks'); NT.res = res; box.innerHTML = '';
+  res.picks.forEach((q, k) => {
+    const b = document.createElement('button'), i = document.createElement('i'); b.className = 'ghost'; i.style.background = q.color; b.appendChild(i);
+    const t = document.createElement('span'); t.textContent = [q.id === res.best ? 'Выше всех' : '', q.id === 0 ? 'Твой род' : '', k === 1 && q.id !== 0 ? 'Больше всех' : ''].filter(Boolean).join(' · ') + ': ' + (q.genes.map(geneName).join(', ') || 'без генов');
+    const sm = document.createElement('small'); sm.textContent = 'Отличий от предка: ' + q.diff + ' · клеток ' + q.alive; t.appendChild(sm); b.appendChild(t);
+    b.onclick = () => { ntPick = q; for (const x of box.children) x.classList.toggle('on', x === b); $('ngo').disabled = false; };
+    box.appendChild(b);
+  });
+}
+function drawNight() {
+  const cv = $('ncv'), r = cv.getBoundingClientRect(), d = devicePixelRatio || 1; if (!r.width || !r.height) return;
+  if (cv.width !== Math.round(r.width * d) || cv.height !== Math.round(r.height * d)) { cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d); }
+  const x = cv.getContext('2d'); x.setTransform(d, 0, 0, d, 0, 0); x.clearRect(0, 0, r.width, r.height);
+  const C = NT ? NT.cols : NJ.cols, R = NJ.rows, s = Math.min(r.width / C, r.height / R), w = s * C, h = s * R, ox = (r.width - w) / 2, oy = (r.height - h) / 2, nb = NJ.bands.length;
+  for (let k = 0; k < nb; k++) { x.fillStyle = `rgba(255,120,90,${0.04 + NJ.bands[k] * 0.3})`; x.fillRect(ox, oy + h - (k + 1) * h / nb, w, h / nb); } // полосы опасности: чем выше, тем гуще
+  x.strokeStyle = 'rgba(207,227,230,0.25)'; x.strokeRect(ox, oy, w, h);
+  if (!NT) return;
+  const best = NT.res ? NT.res.best : -1;
+  for (let i = 0; i < NT.grid.length; i++) { const v = NT.grid[i]; if (v < 0) continue; const cx = i % C, cy = (i / C) | 0;
+    x.fillStyle = NT.branches[v].color; x.globalAlpha = best < 0 || v === best ? 1 : 0.45; x.fillRect(ox + cx * s, oy + h - (cy + 1) * s, s - 0.5, s - 0.5); }
+  x.globalAlpha = 1;
+  if (best >= 0) { x.strokeStyle = '#fff'; x.lineWidth = 1; for (let i = 0; i < NT.grid.length; i++) if (NT.grid[i] === best) { const cx = i % C, cy = (i / C) | 0; // ветка, дошедшая выше всех, обведена
+    if (cx === 0 || NT.grid[i - 1] !== best) x.strokeRect(ox + cx * s, oy + h - (cy + 1) * s, 0.01, s); if (cx === C - 1 || NT.grid[i + 1] !== best) x.strokeRect(ox + (cx + 1) * s, oy + h - (cy + 1) * s, 0.01, s);
+    if (cy === R - 1 || NT.grid[i + C] !== best) x.strokeRect(ox + cx * s, oy + h - (cy + 1) * s, s, 0.01); if (cy === 0 || NT.grid[i - C] !== best) x.strokeRect(ox + cx * s, oy + h - cy * s, s, 0.01); } }
+}
+window.zaplyvNight = () => NT; // для обхода касаниями
 
 // Альманах (almanah.js): полка с разделами, страница по касанию; картинки — снимки живых моделей из игры. Память встреч — в этом браузере.
 let met = new Set(['me']);
@@ -681,6 +730,7 @@ addEventListener('error', () => probe.errors++);
 let last = performance.now(), acc = [], js = [];
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
+  if ($('night').classList.contains('on')) { last = now; nightFrame(dt); probe.frames++; requestAnimationFrame(frame); return; } // ночь рода закрывает мир
   const play = !ended; // замер «средний кадр» — только пока плывёшь; экран гибели в него не подмешивается
   if (play) { acc.push(now - last); if (acc.length > 300) acc.shift(); }
   last = now;
