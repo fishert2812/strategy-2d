@@ -219,16 +219,16 @@ function studio(k, it) {
   return w;
 }
 function snap(k, it) {
-  const keep = [world, view, kids, down, moved, rings, puffs, zaps, paint.t];
+  const keep = [world, view, kids, down, moved, fx.rings, puffs, fx.zaps, paint.t];
   const out = document.createElement('canvas'); out.width = 480; out.height = 300;
   try {
-    world = studio(k, it); kids = null; down = null; moved = true; rings = []; puffs = []; zaps = [];
+    world = studio(k, it); kids = null; down = null; moved = true; fx.reset(); puffs = [];
     const side = Math.min(W, H) * 0.9;
     view = { x: 0, y: 0, z: side * 0.62 / it.span, tint: [...TINT[0]] };
     for (let i = 0; i < 4; i++) render(30 + i / 30); // пара кадров: тело и жгутики встают на место
     const sx = canvas.width / W, cw = side * sx, ch = cw * 300 / 480;
     out.getContext('2d').drawImage(canvas, (canvas.width - cw) / 2, (canvas.height - ch) / 2, cw, ch, 0, 0, 480, 300);
-  } finally { [world, view, kids, down, moved, rings, puffs, zaps, paint.t] = keep; }
+  } finally { [world, view, kids, down, moved, fx.rings, puffs, fx.zaps, paint.t] = keep; }
   return out.toDataURL('image/jpeg', 0.86);
 }
 GENY.gruppa = Object.fromEntries([...genomeData.arcs.flatMap(a => a.slots.map(x => [x.id, a.name])), ...genomeData.plasmids.map(x => [x.id, 'Чужие'])].filter(x => x[0])); // группа гена — дуга кольца
