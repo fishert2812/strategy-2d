@@ -57,7 +57,7 @@ function load() {
 const S = load();
 if (process.argv.includes('--selftest')) {
   const copy = () => JSON.parse(JSON.stringify(S));
-  const proba = () => ({ id: 'Я1', name: 'проба', file: S.spisok.find(f => S.records.some(r => r.file === f && !r.gde)), nauka: 'н', igra: 'и', stroit: 'с', proverka: 'п', shag: 'biolog', krugi: { biolog: '' } });
+  const proba = () => ({ id: 'Щ99', name: 'проба', file: S.spisok.find(f => S.records.some(r => r.file === f && !r.gde)), nauka: 'н', igra: 'и', stroit: 'с', proverka: 'п', shag: 'biolog', krugi: { biolog: '' } });
   const cases = [
     ['исправная книга', s => s, false],
     ['в игре новая карточка без записи', s => { s.cards.proba = { name: 'Проба' }; return s; }, true],

@@ -50,7 +50,7 @@ hr.pb { break-after: page; border: none; margin: 0; }
 <script>
 // Книга «Заплыва»: страницы — .md рядом, этот файл только показывает их под телефон. Таблицы становятся карточками.
 const PAGES = [['oblozhka', 'Книга'], ['igra', 'Игра'], ['dvizhenie', 'Плыть'], ['mir', 'Мир'], ['sushchestva', 'Существа'],
-  ['sreda', 'Среда'], ['sosedi', 'Соседи'], ['il', 'Ил'], ['evolyuciya', 'Эволюция'], ['geny', 'Гены'], ['puti', 'Пути генов'], ['ekrany', 'Экраны'], ['plan', 'План'], ['nauka', 'Наука'], ['ochered', 'Очередь'], ['zhurnal', 'Журнал']];
+  ['geroy', 'Герой'], ['eda', 'Еда'], ['sreda', 'Среда'], ['sosedi', 'Соседи'], ['il', 'Ил'], ['karta', 'Карта'], ['evolyuciya', 'Эволюция'], ['geny', 'Гены'], ['puti', 'Пути генов'], ['ekrany', 'Экраны'], ['plan', 'План'], ['nauka', 'Наука'], ['ochered', 'Очередь'], ['zhurnal', 'Журнал']];
 // Записи книги: один пункт — одна запись в zapisi/*.json. Их же читает сверка с игрой (sverka.mjs).
 const SHAG = { nauka: ['1', 'база науки'], adaptaciya: ['2', 'адаптация'], biolog: ['3', 'у биолога'], gotov: ['4', 'готов к стройке'], stroyka: ['5', 'строим'], v_igre: ['6', 'в игре'] };
 let Z = null;
@@ -65,7 +65,7 @@ const row = (b, v) => v ? `<div class="r"><b>${b}</b><span>${inline(v)}</span></
 function zapis(r) {
   return `<div class="card"><div class="t"><span class="code">${r.id}</span>${inline(r.name)}</div>` +
     `<div class="step s${SHAG[r.shag][0]}">шаг ${SHAG[r.shag][0]} из 6 · ${SHAG[r.shag][1]}${r.versiya ? ' с ' + r.versiya : ''}</div>` +
-    (r.zamechanie ? `<div class="r warn"><b>Замечание</b><span>${inline(r.zamechanie)}</span></div>` : '') + row('В игре', r.igra) + row('Наука', r.nauka) +
+    (r.zamechanie ? `<div class="r warn"><b>Замечание</b><span>${inline(r.zamechanie)}</span></div>` : '') + row('В игре', r.igra) + row('Наука', r.nauka) + row('Образец', r.referens) +
     (r.stroit ? `<details><summary>Для строителя</summary>${row('Как строить', r.stroit)}${row('Проверка', r.proverka)}</details>` : '') +
     `<div class="krugi">${krug(r, 'biolog', 'биолог')} ${krug(r, 'stroitel', 'строитель')} ${krug(r, 'igrok', 'игрок')}</div></div>`;
 }
