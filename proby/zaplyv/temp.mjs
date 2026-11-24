@@ -4,15 +4,17 @@ import { World } from './sim.js';
 const DANGER = ['amoebas', 'bdellos', 'pseudos', 'phages', 'slippers']; // новичок видит хищника и уплывает от него, как живой игрок в первые минуты
 const novice = w => { const c = w.center(); let fx = 0, fy = 0;
   for (const l of DANGER) for (const q of w[l]) { const d = Math.hypot(q.x - c.x, q.y - c.y); if (d < 220 && d > 1) { fx += (c.x - q.x) / d; fy += (c.y - q.y) / d; } }
+  const wn = w.warning && w.warning(); if (wn && wn.level > 0) { const d = Math.hypot(c.x - wn.zone[0], c.y - wn.zone[1]) || 1; fx += (c.x - wn.zone[0]) / d * 2; fy += (c.y - wn.zone[1]) / d * 2; } // видит признак — уплывает (L030)
   if (fx || fy) return { dx: fx, dy: fy, p: 1 };
   let best = null, bd = 260; for (const f of w.food) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } }
   return best ? { x: best.x, y: best.y } : { dx: Math.cos(w.dir), dy: Math.sin(w.dir), p: 1 }; };
 const LISTS = ['amoebas', 'phages', 'bdellos', 'slippers', 'bells', 'rotis', 'pseudos', 'donors', 'plants', 'crumbs', 'prey'];
 export function play(cfg, seed, sec) {
   const w = new World(cfg, seed * 53); w.dir = seed * 1.3; const o = { food1: null, div: [], mut: [], gaps: 0, mass1: 0, mass10: 0, died: null, eat: [] };
-  let gen = 0, lastReward = 0, met = new Set();
+  let gen = 0, lastReward = 0, met = new Set(); const seen = {};
   for (let i = 0; i < 30 * sec && w.me.length; i++) {
     const e0 = w.stats.eaten; w.step(1 / 30, novice(w)); const t = w.stats.time;
+    const wn = w.warning && w.warning(); if (wn && wn.level > 0) seen[wn.zone[3]] = t; // когда игрок последний раз видел признак каждого убийцы
     if (w.stats.eaten > e0) { if (o.food1 === null) o.food1 = t; o.eat.push(t); }
     let reward = false;
     if (w.splits > o.div.length) { while (o.div.length < w.splits) o.div.push(t); reward = true; }
@@ -22,7 +24,7 @@ export function play(cfg, seed, sec) {
     if (Math.abs(t - 60) < 0.02) o.mass1 = w.me.reduce((s, a) => s + a.m, 0);
   }
   if (w.me.length) { o.gaps = Math.max(o.gaps, w.stats.time - lastReward); o.mass10 = w.me.reduce((s, a) => s + a.m, 0); }
-  else { o.died = w.stats.time; o.killer = w.stats.killer; }
+  else { o.died = w.stats.time; o.killer = w.stats.killer; o.sign = seen[o.killer] !== undefined && o.died - seen[o.killer] < 4; }
   return o;
 }
 const med = a => { a = a.filter(x => x != null).sort((x, y) => x - y); return a.length ? a[(a.length - 1) >> 1] : null; };
@@ -46,7 +48,11 @@ export function corridor(cfg, seeds = 8, sec = 600) {
   want(m.mut23 !== null && m.mut23 >= 40, `между 2-й и 3-й мутацией ${m.mut23?.toFixed(0)} с (≥ 40)`);
   want(m.mut34 === null || m.mut34 >= 60, `после 3-й мутации ${m.mut34?.toFixed(0)} с (≥ 60)`);
   want(m.gap !== null && m.gap <= 60, `самая долгая пауза без награды ${m.gap?.toFixed(0)} с (≤ 60)`);
-  want(m.grow !== null && m.grow >= 3, `масса колонии к 10-й минуте ×${m.grow?.toFixed(1)} от 1-й (≥ 3)`);
+  if (alive.length < 3) bad.push(`до 10-й минуты дожили ${alive.length} из ${seeds} (≥ 3); рост массы не считаем`);
+  else want(m.grow !== null && m.grow >= 3, `масса колонии к 10-й минуте ×${m.grow?.toFixed(1)} от 1-й по дожившим (≥ 3)`);
+  m.blind = R.filter(o => o.died && !o.sign).map(o => o.killer);
+  want(!m.blind.length, `смертей без признака ${m.blind.length}: ${m.blind.join(', ')} (0)`);
+  want(m.life >= 300, `медиана жизни ${(m.life / 60).toFixed(1)} мин (≥ 5)`);
   want(m.early <= 1, `гибель в первые 45 с: ${m.early} из ${seeds} (≤ 1)`);
   want(m.rate >= 0.3 && m.rate <= 2, `еды в секунду ${m.rate?.toFixed(2)} (0,3–2)`);
   return { m, bad, runs: R };
