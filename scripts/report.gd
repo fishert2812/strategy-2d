@@ -70,14 +70,18 @@ func facts() -> String:
 	lines.append(Time.get_datetime_string_from_system(false, true))
 	var box = scene.get("box") if scene else null
 	if box is BlackBox:
+		_who = box.title(sim).name
 		lines = [box.summary(sim), "", "Техника:"] + lines
 	return "\n".join(lines)
+
+
+var _who := ""  # звание партии — в заголовок заявки
 
 
 ## Текст репорта и адрес страницы новой issue. Длинный текст в адрес не влезает — тогда он только в буфере.
 func compose(text: String, about: String) -> Dictionary:
 	var words := text.strip_edges().replace("\n", " ")
-	var title := "Разбор: " + (words.left(cfg.title_chars) + ("…" if words.length() > cfg.title_chars else "") if words != "" else "партия без слов")
+	var title := "Разбор: " + (words.left(cfg.title_chars) + ("…" if words.length() > cfg.title_chars else "") if words != "" else (_who + ", без слов" if _who else "партия без слов"))
 	var body := text.strip_edges() + "\n\n---\n" + about
 	var url := _url(title, body)
 	if url.length() > cfg.max_url:

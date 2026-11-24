@@ -54,8 +54,10 @@ func _ready() -> void:
 	# Прозрачная кнопка страницы ложится на «Отправить разбор», когда экран итога разложен.
 	$End/Center/Box/Send.item_rect_changed.connect(func(): if $End.visible: $Report.arm($End/Center/Box/Send))
 	$End/Center/Box/Phrase.pressed.connect($Report.open)
-	$Report.sent_out.connect(func(): $End/Center/Box/Send.text = "GitHub открыт: нажми Create")
+	$Report.sent_out.connect(func(): $End/Center/Box/Send.text = "Войди и нажми Create")
 	flag_button.icon = load(look.flag.file)
+	for c in ["icon_normal_color", "icon_pressed_color", "icon_hover_color", "icon_focus_color"]:  # розовый, не белый флаг «сдаюсь»
+		flag_button.add_theme_color_override(c, Color(look.flag.color))
 	SafeArea.apply($Hud)
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("window._t=0;addEventListener('touchstart',function(){window._t++},{capture:true,passive:true})")
@@ -83,7 +85,7 @@ func restart() -> void:
 	enemy = Enemy.new(sim)
 	box = BlackBox.new()
 	sim.changed.connect(box.on_sim)
-	flag_button.text = "0"
+	flag_button.text = "не так"
 	for b in sim.buildings:
 		_on_sim("built", b)
 	for d in sim.deposits:
@@ -499,19 +501,19 @@ func _pick(d: Dictionary) -> void:
 		hint("коснись залежи" if d.from.kind == "camp" else "коснись здания врага", false)
 
 
-## Флажок Романа «вот тут»: в ящик, значок на поле (или над кнопкой, если без места), щелчок.
+## Отметка «тут не так»: в ящик; значок на поле, только если перетянута на место; щелчок.
 func put_flag(at: Variant) -> void:
 	var f := box.flag(sim, at)
-	flag_button.text = str(box.flags.size())
-	var s := Sprite2D.new()
-	_fit(s, look.flag, load(look.flag.file))
-	s.modulate = Color(look.flag.color); s.z_index = 1  # поверх печенья и построек
-	s.position = at if at != null else world.to_local(flag_button.get_global_rect().get_center() - Vector2(0, 110))
-	things.add_child(s)
-	var t := s.create_tween()
-	t.tween_property(s, "modulate:a", look.flag.after, 0.5).set_delay(look.flag.show)
+	flag_button.text = "не так: %d" % box.flags.size()
+	if at != null:
+		var s := Sprite2D.new()
+		_fit(s, look.flag, load(look.flag.file))
+		s.modulate = Color(look.flag.color); s.z_index = 1  # поверх печенья и построек
+		s.position = at
+		things.add_child(s)
+		s.create_tween().tween_property(s, "modulate:a", look.flag.after, 0.5).set_delay(look.flag.show)
 	$Feedback.play("path")
-	hint("флажок %s" % BlackBox._clock(f.t), false)
+	hint("отмечено %s%s" % [BlackBox._clock(f.t), "" if at != null else " · тяни на стол"], false)
 
 
 func hint(text: String, error := true) -> void:
@@ -547,6 +549,11 @@ func _on_sim(what: String, data: Dictionary) -> void:
 				t.parallel().tween_property(tw, "scale", tw.get_meta("size", tw.scale) * Vector2(1.15, 0.85), 0.05)
 				t.tween_property(tw, "position", home, 0.15)
 				t.parallel().tween_property(tw, "scale", tw.get_meta("size", tw.scale), 0.15)
+				# Кадр выстрела со стрелой на время отдачи, потом обычная башня.
+				var shot: String = look.tower.get("shot", ["", ""])[Sim.PLAYER]
+				if not shot.is_empty():
+					tw.texture = _tex(shot)
+					t.tween_callback(func(): tw.texture = _tex(look.tower.files[Sim.PLAYER])).set_delay(0.1)
 		"killed":
 			motion.hop(_units.get(data.get("by")), 2)
 		"whistle":
@@ -599,7 +606,7 @@ func _on_sim(what: String, data: Dictionary) -> void:
 		"ended":
 			var mate: bool = sim.mode.win == "home" and sim.of_side(1 - data.winner, "home").is_empty()
 			$End/Center/Box/Title.text = ("Мат! " if mate else "") + ("Победа!" if data.winner == Sim.PLAYER else "Поражение")
-			$End/Center/Box/Flags.text = "Флажки: " + box.times() if not box.flags.is_empty() else "Флажков нет, разбор всё равно уйдёт"
+			$End/Center/Box/Flags.text = "Отметки: " + box.times() if not box.flags.is_empty() else "Отметок нет. Разбор партии всё равно отправится"
 			$End/Center/Box/Send.text = "Отправить разбор"
 			var who := box.title(sim)
 			$End/Center/Box/Who.text = "Сегодня ты %s\n%s\n%s" % [who.name, who.line, who.hint]
