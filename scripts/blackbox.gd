@@ -98,10 +98,10 @@ func times() -> String: return ", ".join(flags.map(func(f): return _clock(f.t)))
 
 ## Сводка для заявки человеческими словами. Короткая, чтобы влезла в адрес.
 func summary(sim: Sim) -> String:
-	var out := ["Партия %s («%s»), %s. Флажков: %d. Звание: %s." % [_clock(sim.time), sim.mode.title, ["ещё шла", "победа", "поражение"][sim.winner + 1], flags.size(), title(sim).name]]
+	var out := ["Партия %s («%s»), %s. Отметок: %d. Звание: %s." % [_clock(sim.time), sim.mode.title, ["ещё шла", "победа", "поражение"][sim.winner + 1], flags.size(), title(sim).name]]
 	for f in flags.slice(0, 8):  # больше восьми строк не влезет в адрес заявки
 		out.append("- %s %s: крошки %d, построек %d, без дела %d%s" % [_clock(f.t), f.where, f.gold, f.mine, f.idle, f.near])
-	if flags.size() > 8: out.append("- и ещё флажки: " + ", ".join(flags.slice(8).map(func(f): return _clock(f.t))))
+	if flags.size() > 8: out.append("- и ещё отметки: " + ", ".join(flags.slice(8).map(func(f): return _clock(f.t))))
 	out.append("Что заметила игра:")
 	out.append("- построено у тебя %d, у врага %d; разрушено твоих %d, вражеских %d" % [built[0], built[1], destroyed[0], destroyed[1]])
 	out.append("- без дела стояли: лагеря %d с, казармы %d с; троп нарисовано %d" % [idle.camp, idle.barracks, redraws])

@@ -26,6 +26,7 @@ var taps := {"touch": 0, "mouse": 0, "emulated": 0}
 var _last := ""
 var _units := {}
 var _lines := {}
+var _whistled := -99.0  # когда был свисток: от него бежит волна по боевым тропам
 ## Тропа, которая после отпускания подтягивается в чистую форму: казарма и линия под пальцем.
 var _settle := {}
 var _loaded := []
@@ -53,8 +54,10 @@ func _ready() -> void:
 	# Прозрачная кнопка страницы ложится на «Отправить разбор», когда экран итога разложен.
 	$End/Center/Box/Send.item_rect_changed.connect(func(): if $End.visible: $Report.arm($End/Center/Box/Send))
 	$End/Center/Box/Phrase.pressed.connect($Report.open)
-	$Report.sent_out.connect(func(): $End/Center/Box/Send.text = "GitHub открыт: нажми Create")
+	$Report.sent_out.connect(func(): $End/Center/Box/Send.text = "Войди и нажми Create")
 	flag_button.icon = load(look.flag.file)
+	for c in ["icon_normal_color", "icon_pressed_color", "icon_hover_color", "icon_focus_color"]:  # розовый, не белый флаг «сдаюсь»
+		flag_button.add_theme_color_override(c, Color(look.flag.color))
 	SafeArea.apply($Hud)
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("window._t=0;addEventListener('touchstart',function(){window._t++},{capture:true,passive:true})")
@@ -72,6 +75,7 @@ func restart() -> void:
 	_sprites.clear()
 	_units.clear()
 	_lines.clear()
+	_whistled = -99.0
 	_drag = {}
 	_pick({})
 	ghost.hide()
@@ -81,7 +85,7 @@ func restart() -> void:
 	enemy = Enemy.new(sim)
 	box = BlackBox.new()
 	sim.changed.connect(box.on_sim)
-	flag_button.text = "0"
+	flag_button.text = "не так"
 	for b in sim.buildings:
 		_on_sim("built", b)
 	for d in sim.deposits:
@@ -142,17 +146,54 @@ func _process(dt: float) -> void:
 	_sync_units(dt)
 
 
+## Тропы в покое — тихий пунктир карандашом: видны, но не шумят; тропы добытчиков в покое не видны.
+## Пока игрок тянет тропу, проступают все тропы стола.
+## Боевая оживает на свисток: толще, ярче, пунктир бежит туда, куда идёт отряд; на конце — стрелка.
 func _sync_paths() -> void:
 	var seen := {}
+	var wave: Dictionary = look.trail.wave
+	var k: float = clampf((sim.time - _whistled) / wave.time, 0.0, 1.0)
 	for b in sim.buildings:
 		var pts: Array = [b.pos] + b.route if b.kind == "barracks" else [b.pos, b.target.get("pos")]
 		if pts.size() < 2 or pts[-1] == null or b.target.get("gold", 1) <= 0 or b.target.get("hp", 1) <= 0 or is_same(_drag.get("from"), b) or is_same(_settle.get("from"), b):
 			continue
 		seen[b.id] = true
+		var war: bool = b.kind == "barracks"
+		var st: Dictionary = look.trail.war if war else look.trail.mine
 		if not _lines.has(b.id):
-			_lines[b.id] = _line(Color(look.path_colors[b.side]))
-		_points(_lines[b.id], pts)
+			_lines[b.id] = _stroke(Color(look.path_colors[b.side]).darkened(look.trail.pencil), st.width)
+			_lines[b.id].texture = _dash(st.dash, st.width)
+			_lines[b.id].texture_mode = Line2D.LINE_TEXTURE_TILE
+			_lines[b.id].texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+			$World/Paths.add_child(_lines[b.id])
+			if war:
+				_lines[b.id].add_child(_stroke(_lines[b.id].default_color, st.width))  # стрелка на конце
+		var line: Line2D = _lines[b.id]
+		# Волна свистка по боевым гаснет за wave.time; пока игрок тянет тропу, видны все тропы.
+		var live: float = maxf((1.0 - k) if war else 0.0, look.trail.planning if not _drag.is_empty() else 0.0)
+		line.width = lerpf(st.width, wave.width, live)
+		line.modulate.a = lerpf(st.alpha, wave.alpha, live)
+		# Пунктир бежит: начало уходит назад под постройку на долю периода.
+		var phase: float = fmod((sim.time - _whistled) * wave.flow, st.dash[0] + st.dash[1]) if live > 0.0 else 0.0
+		pts[0] = pts[0] - (pts[1] - pts[0]).normalized() * phase
+		line.points = PackedVector2Array(pts)
+		if war:
+			# Стрелка у края цели, а не под её картинкой.
+			var back: Vector2 = (pts[-2] - pts[-1]).normalized()
+			var tip: Vector2 = pts[-1] + back * (look[b.target.kind].width * 0.4 if b.target.has("kind") else 0.0)
+			back *= look.trail.arrow
+			var arrow: Line2D = line.get_child(0)
+			arrow.width = line.width
+			arrow.points = PackedVector2Array([tip + back + back.orthogonal() * 0.7, tip, tip + back - back.orthogonal() * 0.7])
 	_drop_missing(_lines, seen)
+
+
+## Пунктир: чёрточка и просвет в точках поля (высота картинки равна толщине линии, чтобы шаг не менялся).
+func _dash(dash: Array, width: float) -> Texture2D:
+	var h := maxi(1, int(width))
+	var img := Image.create(int(dash[0] + dash[1]), h, false, Image.FORMAT_RGBA8)
+	img.fill_rect(Rect2i(0, 0, int(dash[0]), h), Color.WHITE)
+	return ImageTexture.create_from_image(img)
 
 
 func _sync_units(dt: float) -> void:
@@ -460,19 +501,19 @@ func _pick(d: Dictionary) -> void:
 		hint("коснись залежи" if d.from.kind == "camp" else "коснись здания врага", false)
 
 
-## Флажок Романа «вот тут»: в ящик, значок на поле (или над кнопкой, если без места), щелчок.
+## Отметка «тут не так»: в ящик; значок на поле, только если перетянута на место; щелчок.
 func put_flag(at: Variant) -> void:
 	var f := box.flag(sim, at)
-	flag_button.text = str(box.flags.size())
-	var s := Sprite2D.new()
-	_fit(s, look.flag, load(look.flag.file))
-	s.modulate = Color(look.flag.color); s.z_index = 1  # поверх печенья и построек
-	s.position = at if at != null else world.to_local(flag_button.get_global_rect().get_center() - Vector2(0, 110))
-	things.add_child(s)
-	var t := s.create_tween()
-	t.tween_property(s, "modulate:a", look.flag.after, 0.5).set_delay(look.flag.show)
+	flag_button.text = "не так: %d" % box.flags.size()
+	if at != null:
+		var s := Sprite2D.new()
+		_fit(s, look.flag, load(look.flag.file))
+		s.modulate = Color(look.flag.color); s.z_index = 1  # поверх печенья и построек
+		s.position = at
+		things.add_child(s)
+		s.create_tween().tween_property(s, "modulate:a", look.flag.after, 0.5).set_delay(look.flag.show)
 	$Feedback.play("path")
-	hint("флажок %s" % BlackBox._clock(f.t), false)
+	hint("отмечено %s%s" % [BlackBox._clock(f.t), "" if at != null else " · тяни на стол"], false)
 
 
 func hint(text: String, error := true) -> void:
@@ -516,6 +557,7 @@ func _on_sim(what: String, data: Dictionary) -> void:
 		"killed":
 			motion.hop(_units.get(data.get("by")), 2)
 		"whistle":
+			_whistled = sim.time
 			var t := create_tween()
 			t.tween_property(self, "bump", motion.cfg.table_jump.height, motion.cfg.table_jump.time / 2)
 			t.tween_property(self, "bump", 0.0, motion.cfg.table_jump.time / 2)
@@ -564,7 +606,7 @@ func _on_sim(what: String, data: Dictionary) -> void:
 		"ended":
 			var mate: bool = sim.mode.win == "home" and sim.of_side(1 - data.winner, "home").is_empty()
 			$End/Center/Box/Title.text = ("Мат! " if mate else "") + ("Победа!" if data.winner == Sim.PLAYER else "Поражение")
-			$End/Center/Box/Flags.text = "Флажки: " + box.times() if not box.flags.is_empty() else "Флажков нет, разбор всё равно уйдёт"
+			$End/Center/Box/Flags.text = "Отметки: " + box.times() if not box.flags.is_empty() else "Отметок нет. Разбор партии всё равно отправится"
 			$End/Center/Box/Send.text = "Отправить разбор"
 			var who := box.title(sim)
 			$End/Center/Box/Who.text = "Сегодня ты %s\n%s\n%s" % [who.name, who.line, who.hint]
