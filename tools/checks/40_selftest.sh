@@ -40,6 +40,7 @@ ONLY=L016 case_ "test_L016: токсин снова бьёт не родню" 50
 ONLY=L019 case_ "test_L019: существо без места в Альманахе" 50_zaplyv.sh red "python3 -c \"import json;p='$Z/almanah.json';d=json.load(open(p));d['items'].pop('amoeba');json.dump(d,open(p,'w'))\""
 case_ "test_L017: невидимый слой поверх кнопок «Заплыва»" 52_zaplyv_tap.sh red "sed -i 's|<div id=\"note\"|<div style=\"position:fixed;inset:0;z-index:99\"></div>&|' proby/zaplyv/index.html"
 case_ "test_L017: флажок молчит после касания" 52_zaplyv_tap.sh red "sed -i 's|n.classList.add(.on.);|/* нет отклика */|' proby/zaplyv/main.js"
+ONLY=L021 case_ "test_L021: значки генов пропали" 52_zaplyv_tap.sh red "sed -i 's/^function icon(g) {/function icon(g) { return String();/' $Z/main.js"
 ONLY=L020 case_ "test_L020: зелёные жгутики" 50_zaplyv.sh red "sed -i 's/\"color\": \[0.74, 0.87, 1.0\]/\"color\": [0.3, 1.0, 0.4]/' $Z/data.json"
 # Слой «вид и анимации» «Заплыва» (53_zaplyv_vid.sh): событие без анимации и умение, не видное на теле, обязаны дать красное.
 case_ "test_vid_events: удар о капсулу без анимации" 53_zaplyv_vid.sh red "sed -i \"s/if (k === 'bump') { R(0, 24); poke(x, y); }//\" $Z/fx.js"
