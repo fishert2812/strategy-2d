@@ -242,10 +242,10 @@ func can_build(side: int, kind: String, pos: Vector2) -> String:
 	var r: float = cfg.buildings[kind].size
 	for o in buildings:
 		if o.pos.distance_to(pos) < r + cfg.buildings[o.kind].size:
-			return "занято"
+			return "нельзя: тут постройка"
 	for d in deposits:
 		if d.gold > 0 and d.pos.distance_to(pos) < r + cfg.deposit_r:
-			return "на печенье"
+			return "нельзя на печенье"
 	return ""
 
 

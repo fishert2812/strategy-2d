@@ -225,6 +225,8 @@ func _move(pos: Vector2) -> void:
 			_drag.trail.append(at)
 		_points(_drag.line, [_drag.from.pos] + _drag.trail + [at])
 	elif _drag.has("what"):
+		if pos.distance_to(_drag.start) >= TAP:
+			_drag.moved = true
 		_show_ghost(pos)
 
 
@@ -256,7 +258,8 @@ func _release(pos: Vector2) -> void:
 	$Why.hide()
 	var at := world.to_local(pos)
 	var dragged: bool = _drag.has("what")
-	var tap: bool = pos.distance_to(_drag.start) < TAP
+	# Увёл палец и вернул на кнопку — это отмена, а не касание кнопки.
+	var tap: bool = pos.distance_to(_drag.start) < TAP and not _drag.has("moved")
 	var d := _drag
 	_drag = {}
 	if d.has("line"):
@@ -277,11 +280,23 @@ func _release(pos: Vector2) -> void:
 	# Перетягиванием здание встаёт там, где виден призрак (над пальцем), касанием — под пальцем.
 	if dragged:
 		at = lifted
-	var why := sim.can_build(Sim.PLAYER, d.what, at)
-	if why != "":
+	var why := sim.can_build(Sim.PLAYER, d.what, _on_table(at))
+	if why != "" and dragged:
+		# Причина остаётся там, где была над пальцем, и гаснет.
+		$Feedback.play("error")
+		$Why.show()
+		$Why.modulate.a = 1.0
+		create_tween().tween_property($Why, "modulate:a", 0.0, 1.0).set_delay(0.6)
+	elif why != "":
 		hint(why)
 	else:
-		sim.build(Sim.PLAYER, d.what, at)
+		sim.build(Sim.PLAYER, d.what, _on_table(at))
+
+
+## У края стола здание прижимается к краю, а не запрещается.
+func _on_table(at: Vector2) -> Vector2:
+	var field := Sim._v(sim.cfg.field)
+	return at.clamp(Vector2(30, 30), field - Vector2(30, 30))
 
 
 ## Отпустил постройку на кнопке — отмена; над остальной нижней полосой призрак ещё на столе.
@@ -292,14 +307,20 @@ func _over_button(pos: Vector2) -> bool:
 ## Призрак постройки над пальцем, чтобы палец его не закрывал; нельзя — красный, причина над ним.
 func _show_ghost(pos: Vector2) -> void:
 	var why: Label = $Why
-	ghost.position = world.to_local(pos) - Vector2(0, look.ghost_lift)
+	ghost.position = _on_table(world.to_local(pos) - Vector2(0, look.ghost_lift))
 	ghost.visible = not _over_button(pos)
 	var text := sim.can_build(Sim.PLAYER, _drag.what, ghost.position) if ghost.visible else ""
 	ghost.modulate = Color(1, 1, 1, 0.75) if text == "" else Color(1, 0.3, 0.3, 0.75)
 	why.visible = text != ""
 	why.text = text
 	why.reset_size()
-	why.global_position = world.to_global(ghost.position) - Vector2(why.size.x / 2, why.size.y + look[_drag.what].width * world.scale.y * 0.6)
+	why.modulate.a = 1.0
+	# Над призраком, а у верхнего края — под ним; не дальше краёв экрана и не на строке крошек.
+	var half: float = look[_drag.what].width * world.scale.y * 0.6
+	var at := world.to_global(ghost.position) - Vector2(why.size.x / 2, why.size.y + half)
+	if at.y < $Hud/Box/Top.get_global_rect().end.y:
+		at.y += why.size.y + half * 2
+	why.global_position = at.clamp(Vector2(8, 0), Vector2(size.x - why.size.x - 8, size.y))
 
 
 ## Выбор касанием: тронул кнопку или своё здание — следующее касание поля ставит здание или тропу.
