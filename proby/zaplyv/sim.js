@@ -105,7 +105,7 @@ export class World {
       const at = pt(), R = 30 + r() * 50;
       for (let i = 0; i < c.patch_food; i++) { const t = r() * 6.283, d = R * Math.sqrt(r()); this.food.push({ x: at.x + Math.cos(t) * d, y: at.y + Math.sin(t) * d, vx: 0, vy: 0, s: c.grain[0] + (c.grain[1] - c.grain[0]) * (1 - d / R) * r() }); } // в середине пятна куски крупнее
     }
-    if (far > c.bdello_from && this.stats.gen > 0 && r() < c.bdello_chance[b] * (1 + far * c.danger_growth) * Math.min(2, this.me.length / 2)) /* хищник идёт на густую добычу: пока ты один, его нет */ this.bdellos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: r(), id: ++this.ids });
+    if (far > c.bdello_from && this.stats.gen > 0 && r() < c.bdello_chance[b] * (1 + (this.stats.time < c.grace ? 0 : far * c.danger_growth)) * Math.min(2, this.me.length / 2)) /* хищник идёт на густую добычу: пока ты один, его нет */ this.bdellos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: r(), id: ++this.ids });
     if (far > c.slipper_from && r() < c.slipper_chance[b]) this.slippers.push({ ...pt(), a: r() * 6.283, back: 0, id: ++this.ids });
     if (far > c.donor_from && r() < c.donor_chance[b]) this.donors.push({ ...pt(), a: r() * 6.283, link: 0, gave: false, id: ++this.ids });
     if (!safe && far > c.pseudo_from && r() < c.pseudo_chance[b]) this.pseudos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: 0, cool: 0, id: ++this.ids });
@@ -121,7 +121,8 @@ export class World {
     if (!safe) for (const p of this.plants.slice(nPlants)) if (!p.bell && r() < c.bell_chance) { // только на водорослях этого квадрата // сувойка сидит на нити водоросли
       p.bell = true; const d = r() * 6.283; this.bells.push({ x: p.x + Math.cos(d) * 30, y: p.y + Math.sin(d) * 30, dir: d, shut: 0, id: ++this.ids });
     }
-    if (!safe && r() < c.amoeba_chance[b] * (1 + far * c.danger_growth))
+    const early = this.stats.time < c.grace; // первые grace секунд новичок учится плавать: опасность не растёт, амёба не ближе bdello_from (коридор темпа, L028)
+    if (!safe && !(early && far <= c.bdello_from) && r() < c.amoeba_chance[b] * (1 + (early ? 0 : far * c.danger_growth)))
       this.amoebas.push({ ...pt(), vx: 0, vy: 0, m: 3 + r() * (3 + far), id: ++this.ids });
     if (!safe && b === 1 && r() < c.phage_chance) {
       const at = pt();
@@ -147,11 +148,11 @@ export class World {
     this.me.push(...born.slice(0, room));
     this.stats.most = Math.max(this.stats.most, this.me.length);
     this.splits += born.length;
-    const k = s => s < this.cfg.gene_first ? -1 : Math.floor((s - this.cfg.gene_first) / this.cfg.gene_every);
-    if (k(this.splits) > k(this.splits - born.length) && !this.choice.length && Object.keys(this.cfg.genes).some(g => !this.genes[g])) { // первое деление и потом каждое gene_every-е; потолка нет, пока есть гены
+    const k = s => this.cfg.gene_steps.filter(n => n <= s).length; // выбор мутации на поколениях gene_steps: первый сразу, дальше всё реже (коридор темпа)
+    if (k(this.stats.gen) > k(this.gen0 || 0) && !this.choice.length && Object.keys(this.cfg.genes).some(g => !this.genes[g])) { // потолка нет, пока есть гены
       const left = Object.keys(this.cfg.genes).filter(g => !this.genes[g]);
       for (let i = left.length - 1; i > 0; i--) { const j = Math.floor(this.r() * (i + 1)); [left[i], left[j]] = [left[j], left[i]]; }
-      this.choice = left.slice(0, 2); // две дочки — у каждой своя мутация
+      this.choice = left.slice(0, 2); this.gen0 = this.stats.gen; // две дочки — у каждой своя мутация
     }
     return born.length;
   }
@@ -304,7 +305,7 @@ export class World {
   flow(x, y) { const t = hash(Math.floor(x / 500), Math.floor(y / 500), 77) * 6.283 + this.stats.time * 0.05; return [Math.cos(t) * this.cfg.flow, Math.sin(t) * this.cfg.flow]; }
 
   grow(a, v) { a.m = Math.min(this.cfg.max_m, a.m + v * (this.genes.lock ? this.cfg.lock_food : 1) * (1 + this.rush)); } // сменил замок: та же пора впускает и еду — медленнее
-  split() { return this.genes.fast ? this.cfg.split * this.cfg.fast_split : this.cfg.split; } // быстрый рост: больше рибосом — делишься раньше
+  split() { return (this.genes.fast ? this.cfg.split * this.cfg.fast_split : this.cfg.split) * (1 + this.cfg.split_step * Math.max(0, this.me.length - 1)); } // мягкая горка: в толпе делиться труднее, потолка нет // быстрый рост: больше рибосом — делишься раньше
   // Съел — серия: куски подряд (не дольше cfg.rush_gap между ними) разгоняют рост, как в экспоненциальной фазе.
   fed(x, y, size) { const c = this.cfg; this.rush = Math.min(c.rush_max, this.rush + (this.stats.time - this.lastEat < c.rush_gap ? c.rush_step * size : 0)); this.lastEat = this.stats.time; this.stats.eaten++; this.events.push(['eat', x, y, size]); }
 

@@ -500,11 +500,11 @@ check('фимбрии: отпустил палец у водоросли — п�
   if (swim[0] < 50) return 'прилипшая клетка не уплывает пальцем';
 });
 
-check('test_L012: потолка мутаций нет — долгий бот без опасностей получает больше 5 мутаций; полная колония отпускает дочек, и мутации копятся дальше', () => {
+check('test_L012: потолка мутаций нет — бот без опасностей за 10 минут получает не меньше 5 мутаций (они всё реже, коридор темпа L028); полная колония отпускает дочек, и мутации копятся дальше', () => {
   const res = [];
   for (let s = 1; s <= 3; s++) {
     const w = new World(cfg, s * 37);
-    for (let i = 0; i < 30 * 120 && w.me.length; i++) {
+    for (let i = 0; i < 30 * 600 && w.me.length; i++) {
       if (w.choice.length) w.pick(w.choice[0]);
       w.amoebas = []; w.bdellos = []; w.slippers = []; w.bells = []; w.rotis = []; w.pseudos = []; w.phages = [];
       const c = w.center(); let best = null, bd = 1e9; for (const f of w.food) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } }
@@ -512,8 +512,8 @@ check('test_L012: потолка мутаций нет — долгий бот �
     }
     res.push([Object.keys(w.genes).length, w.splits, w.me.length]);
   }
-  console.log('    паспорт: за 2 минуты мутаций/делений/клеток', res.map(r => r.join('/')).join(' | '), '| генов в игре', Object.keys(cfg.genes).length);
-  if (res.some(r => r[0] <= 5)) return 'потолок: мутаций ' + res.map(r => r[0]).join(',');
+  console.log('    паспорт: за 10 минут мутаций/делений/клеток', res.map(r => r.join('/')).join(' | '), '| генов в игре', Object.keys(cfg.genes).length);
+  if (res.some(r => r[0] < 5)) return 'потолок: мутаций ' + res.map(r => r[0]).join(',');
   if (res.some(r => r[2] > cfg.me_max)) return 'колония выросла больше me_max';
 });
 
