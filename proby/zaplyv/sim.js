@@ -34,7 +34,7 @@ export class World {
     this.seed = seed >>> 0;
     this.r = rng(seed);
     this.me = [{ x: 0, y: 0, vx: 0, vy: 0, m: 1, a: -Math.PI / 2, sick: -1, id: 1 }];
-    this.food = []; this.prey = []; this.amoebas = []; this.phages = []; this.plants = []; this.crumbs = [];
+    this.food = []; this.prey = []; this.amoebas = []; this.phages = []; this.plants = []; this.crumbs = []; this.bdellos = [];
     this.genes = {};
     this.choice = []; // три гена на выбор; пока не пусто — мир стоит
     this.stats = { eaten: 0, most: 1, path: 0, time: 0, gen: 0, lost: {}, killer: null };
@@ -87,6 +87,7 @@ export class World {
       const at = pt(), R = 30 + r() * 50;
       for (let i = 0; i < c.patch_food; i++) { const t = r() * 6.283, d = R * Math.sqrt(r()); this.food.push({ x: at.x + Math.cos(t) * d, y: at.y + Math.sin(t) * d, vx: 0, vy: 0 }); }
     }
+    if (far > c.bdello_from && r() < c.bdello_chance[b] * (1 + far * c.danger_growth)) this.bdellos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: r(), id: ++this.ids });
     if (r() < c.crumb_chance[b]) this.crumbs.push({ ...pt(), m: 2 + r() * 3, id: ++this.ids }); // детрит: бурый комок, медленно тонет
     const np = 1 + Math.floor(r() * c.prey_per_chunk[b]);
     for (let i = 0; i < np; i++) this.prey.push({ ...pt(), vx: 0, vy: 0, m: 0.3 + r() * (0.9 + far * 0.5), a: r() * 6.3, id: ++this.ids, pair: r() < 0.4 });
@@ -105,7 +106,7 @@ export class World {
   divide() {
     const born = [];
     for (const c of this.me) {
-      if (c.m < this.cfg.split || c.sick >= 0) continue;
+      if (c.m < this.cfg.split || c.sick >= 0 || c.held > 0) continue;
       c.m /= 2; c.gen = (c.gen || 0) + 1; this.stats.gen = Math.max(this.stats.gen, c.gen);
       const ax = Math.cos(c.a), ay = Math.sin(c.a), r = radius(c.m);
       born.push({ x: c.x - ax * r * 1.2, y: c.y - ay * r * 1.2, vx: c.vx - ax * 60, vy: c.vy - ay * 60, m: c.m, a: c.a, sick: -1, gen: c.gen, id: ++this.ids });
@@ -154,7 +155,7 @@ export class World {
         }
         const turn = a.tumble ? sw.tumble_turn : sw.turn;
         a.a += Math.sign(d) * Math.min(Math.abs(d), turn * dt);
-        thrust = a.tumble ? s * 0.12 : s * Math.max(0.25, Math.cos(wrap(want - a.a)));
+        thrust = (a.tumble ? s * 0.12 : s * Math.max(0.25, Math.cos(wrap(want - a.a)))) * (a.held > 0 ? 0.3 : 1); // в шарике почти не плывёт
       } else { // палец отпущен: в воде клетка встаёт сразу (вязкость); её медленно сносит и поворачивает (~90° за 10 с)
         a.drift = (a.drift ?? r() * 6.283) + (r() - 0.5) * dt * 1.5;
         a.a += (a.id % 2 ? 0.16 : -0.16) * dt;
@@ -260,26 +261,54 @@ export class World {
 
   hunters(dt) {
     const c = this.cfg, r = this.r;
-    for (const q of this.prey) { // кокки бродят; от крупной клетки удирают, на мелкую нападают
+    for (const q of this.prey) { // кокки бродят; мелкие удирают от тебя; крупные не по зубам, но и не нападают — бактерии друг друга не глотают
       const a = this.nearest(q, 220);
       let wx = q.vx, wy = q.vy;
       if (a) {
         const d = dist(a, q) || 1, ux = (q.x - a.x) / d, uy = (q.y - a.y) / d;
         if (q.m < a.m * 0.8) { wx = ux * 75; wy = uy * 75; }
-        else if (q.m > a.m * 1.25) {
-          wx = -ux * 70; wy = -uy * 70;
-          if (d < radius(q.m) + radius(a.m) * 0.4) { this.lose(a, q.x, q.y, 'coccus'); q.m = Math.min(q.m + a.m * 0.5, 12); }
-        }
       } else if (r() < dt) { const t = r() * 6.283; wx = Math.cos(t) * 30; wy = Math.sin(t) * 30; }
       const k = Math.min(1, 2 * dt);
       q.vx += (wx - q.vx) * k; q.vy += (wy - q.vy) * k; q.x += q.vx * dt; q.y += q.vy * dt;
     }
-    for (const m of this.amoebas) { // амёба медленно ползёт к ближайшей клетке, которую может проглотить
+    // Бделловибрион: вдвое мельче тебя, мчится по прямой почти наугад, замирает и меняет курс.
+    // Врезался в клетку без капсулы — прилип, клетка округляется в шарик и через cfg.bdello_kill с погибает,
+    // из неё выходят новые хищники. С капсулой отскакивает.
+    for (const b of this.bdellos) {
+      if (b.on) {
+        const h = b.on;
+        if (this.me.indexOf(h) < 0) { b.on = null; continue; }
+        b.x = h.x + Math.cos(b.a + Math.PI) * radius(h.m) * 0.7; b.y = h.y + Math.sin(b.a + Math.PI) * radius(h.m) * 0.7;
+        h.held -= dt;
+        if (h.held <= 0) {
+          this.lose(h, h.x, h.y, 'bdello'); b.on = null; b.t = 0;
+          for (let i = 0; i < 2; i++) this.bdellos.push({ x: h.x, y: h.y, vx: 0, vy: 0, a: r() * 6.283, t: 0.5, id: ++this.ids });
+        }
+        continue;
+      }
+      b.t -= dt;
+      if (b.t <= 0) { // рывок окончен: пауза и новый курс — почти наугад, чуть к добыче, если она рядом
+        const prey = this.nearest(b, c.bdello_sense);
+        b.a = prey && r() < 0.4 ? Math.atan2(prey.y - b.y, prey.x - b.x) + (r() - 0.5) * 0.6 : r() * 6.283;
+        b.rest = 0.3 + r() * 0.5; b.t = b.rest + 0.6 + r() * 0.8;
+      }
+      const go = b.t > (b.rest || 0) ? c.bdello_speed : 0, k = Math.min(1, 8 * dt);
+      b.vx += (Math.cos(b.a) * go - b.vx) * k; b.vy += (Math.sin(b.a) * go - b.vy) * k;
+      b.x += b.vx * dt; b.y += b.vy * dt;
+      for (const a of this.me) if (dist(a, b) < radius(a.m) + 4) {
+        if (this.genes.capsule) { b.a += Math.PI; b.x += Math.cos(b.a) * 6; b.y += Math.sin(b.a) * 6; this.events.push(['bump', b.x, b.y]); break; }
+        if (a.held > 0) break;
+        b.on = a; b.a = Math.atan2(b.y - a.y, b.x - a.x) + Math.PI; a.held = c.bdello_kill; this.events.push(['sick', a.x, a.y]); break;
+      }
+    }
+    for (const m of this.amoebas) { // амёба ползёт только по дну и нитям; в открытой воде почти стоит
       const a = this.nearest(m, 340);
       let wx = 0, wy = 0;
       if (a && a.m < m.m * 0.8) {
         const d = dist(a, m) || 1;
-        wx = (a.x - m.x) / d * c.amoeba; wy = (a.y - m.y) / d * c.amoeba;
+        const ground = this.biome(m.x, m.y) === 2 || this.plants.some(p => dist(p, m) < 160) || this.crumbs.some(k => dist(k, m) < 120);
+        const v = c.amoeba * (ground ? 1 : c.amoeba_open);
+        wx = (a.x - m.x) / d * v; wy = (a.y - m.y) / d * v;
         if (d < radius(m.m) + radius(a.m) * 0.3 && !this.genes.capsule) { this.lose(a, m.x, m.y, 'amoeba'); m.m += a.m * 0.5; }
       }
       const k = Math.min(1, dt);
@@ -327,7 +356,7 @@ export class World {
   forget(x, y) {
     const C = this.cfg.chunk, kx = Math.floor(x / C), ky = Math.floor(y / C);
     const near = o => Math.abs(Math.floor(o.x / C) - kx) <= 2 && Math.abs(Math.floor(o.y / C) - ky) <= 2;
-    for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'crumbs']) this[k] = this[k].filter(near);
+    for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'crumbs', 'bdellos']) this[k] = this[k].filter(near);
     for (const key of [...this.chunks]) {
       const [a, b] = key.split(',').map(Number);
       if (Math.abs(a - kx) > 2 || Math.abs(b - ky) > 2) this.chunks.delete(key);

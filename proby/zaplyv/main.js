@@ -194,6 +194,7 @@ function events() {
     if (k === 'stick') { ring(x, y, 1, 22); beep(520, 0.06, 0.04, 'square'); } // прилип фаг: резко развернись — стряхнёшь
     if (k === 'shake') { ring(x, y, 0, 30); beep(700, 0.07, 0.03); }
     if (k === 'cut') ring(x, y, 2, 26);
+    if (k === 'bump') { ring(x, y, 0, 24); beep(880, 0.05, 0.03); } // капсула: хищник отскочил
     if (k === 'pop') ring(x, y, 2, 90); // чужая клетка лопнула облаком фагов
     if (k === 'sick') { ring(x, y, 1, 50); beep(180, 0.3, 0.05, 'sawtooth', 0.7); }
     if (k === 'burst' || k === 'eaten') { ring(x, y, 1, 150); shake = 1; beep(110, 0.45, 0.09, 'triangle', 0.5); }
@@ -233,7 +234,7 @@ function tick(dt) {
 // кокки — одиночки, пары, цепочки, грозди; амёба с ложноножками, током зёрен, ядром и вакуолью;
 // фаг T4 — вытянутая головка, хвост, пластинка и шесть ножек; вдали частицы в расфокусе кольцами.
 const SPIKES = [[1, 0.45, 0.75], [1, 0.6, 0.2], [0.45, 0.7, 1], [0.8, 0.5, 1]];
-const BALL = [null, [1, 0.42, 0.12], [0.55, 0.95, 0.3]], BRIM = [null, [1, 0.85, 0.5], [0.85, 1, 0.6]]; // опасное, съедобное
+const BALL = [null, [0.55, 0.48, 0.8], [0.55, 0.95, 0.3]], BRIM = [null, [0.85, 0.8, 1], [0.85, 1, 0.6]]; // не по зубам (сиреневые), съедобное
 const ball = (x, y, r, side, seed) => bodies.sphere(x, y, r, BALL[side], BRIM[side], seed);
 function paint(time) {
   const z = view.z, big = world.biggest();
@@ -259,7 +260,7 @@ function paint(time) {
     }
     for (let i = 0; i < 10; i++) { const t = i * 0.628 + k.id, d = r * (0.55 + 0.2 * Math.sin(i * 1.7 + time * 0.3)); ink.put(x + Math.cos(t) * d, y + Math.sin(t) * d, 1.1 * z + 0.4, 0.95, 0.85, 0.6, 0.55); }
   }
-  for (const q of world.prey) { // кокки; крупнее тебя — красные, их не тронь
+  for (const q of world.prey) { // кокки: мелкие зелёные — еда, крупные сиреневые — не по зубам (но и не нападают)
     const [x, y] = scr(q.x, q.y); if (!on(x, y)) continue;
     const side = q.m > big * 1.25 ? 1 : 2, r = radius(q.m) * z, kind = q.id % 4, a = q.a + time * 0.2;
     const ux = Math.cos(a), uy = Math.sin(a);
@@ -275,6 +276,15 @@ function paint(time) {
       const w = Math.sin(time * 1.5 + k + q.id) * r * 0.15;
       ball(x + ux * k * r * 0.55 - uy * w, y + uy * k * r * 0.55 + ux * w, r * 0.4, side, q.id + k);
     } else for (let k = 0; k < 5; k++) { const t = k * 1.2566 + q.id, d = k ? r * 0.42 : 0; ball(x + Math.cos(t) * d, y + Math.sin(t) * d, r * 0.43, side, q.id + k); } // гроздь
+  }
+  for (const b of world.bdellos) { // бделловибрион: запятая вдвое мельче тебя, один толстый жгутик; на рывке — след
+    const [x, y] = scr(b.x, b.y); if (!on(x, y)) continue;
+    const w = 4.2 * z, sp = Math.hypot(b.vx, b.vy), ang = b.a, ux = Math.cos(ang), uy = Math.sin(ang);
+    bodies.rod(x, y, ang, w * 1.5, w, 0, [1, 0.38, 0.15], [0.75, 0.12, 0.08], b.id, w * 0.35); // слегка изогнутая запятая
+    glow.put(x, y, w * 4, 1, 0.3, 0.1, 0.12 + (b.on ? 0.1 * Math.sin(time * 16) : 0));
+    for (let k = 1; k <= 22; k++) { const s = k / 22, wv = Math.sin(s * 9 - time * 30) * w * 0.5 * s;
+      glow.put(x - ux * (w * 1.5 + s * w * 6) - uy * wv, y - uy * (w * 1.5 + s * w * 6) + ux * wv, 1.1 * Math.max(z, 0.7), 1, 0.55, 0.3, 0.6 * (1 - s * 0.6)); }
+    if (sp > 150) for (let k = 1; k <= 8; k++) ink.put(x - b.vx * 0.012 * k * z, y - b.vy * 0.012 * k * z, w * (1 - k / 10), 1, 0.4, 0.2, 0.18 * (1 - k / 9)); // рывок
   }
   for (const m of world.amoebas) {
     const [x, y] = scr(m.x, m.y); if (!on(x, y, 320)) continue;
@@ -294,7 +304,7 @@ function paint(time) {
   for (const a of world.me) { // палочка: мягкое тело — перёд ведёт, корма и пучок жгутиков идут по его следу
     const w = 8.5 * Math.pow(a.m, 0.3) * z, sp = Math.hypot(a.vx, a.vy);
     const run = sp > 25 && !a.tumble, wob = run ? 0.05 : 0.02; // встречное вращение тела к пучку: 3 раза в секунду
-    const half = w * (1.6 + 1.0 * Math.min(a.m, cfg.split) / cfg.split), tailW = w * 7.5 / z;
+    const half = a.held > 0 ? w * (1.05 + 0.6 * a.held / cfg.bdello_kill) : w * (1.6 + 1.0 * Math.min(a.m, cfg.split) / cfg.split), tailW = w * 7.5 / z; // хищник внутри — клетка округляется в шарик
     const body = follow(a, half / z, tailW);
     const [x0, y0] = scr(body.cx, body.cy), sag = body.sag * z;
     const ang = body.ang + Math.sin(time * 18.8 + a.id) * wob, ax = Math.cos(ang), ay = Math.sin(ang);
