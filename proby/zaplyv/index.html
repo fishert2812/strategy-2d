@@ -22,6 +22,9 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 #genes { justify-content: flex-start; padding-top: calc(env(safe-area-inset-top) + 70px); background: linear-gradient(rgba(2, 4, 10, 0.7), transparent 30%, transparent 62%, rgba(2, 4, 10, 0.75)); backdrop-filter: none; -webkit-backdrop-filter: none; }
 #cards { position: absolute; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 28px); display: flex; gap: 12px; }
 #cards button { width: auto; flex: 1; font-size: 19px; }
+.gicon { display: block; width: 44px; height: 44px; border-radius: 50%; border: 2px solid #7cc8ff; margin: 0 auto 6px; object-fit: cover; } /* значок гена: снимок клетки, ген подсвечен */
+#gcard .gicon.big { float: left; width: 64px; height: 64px; margin: 2px 12px 4px 0; }
+.ticon { width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; border: 1.5px solid #7cc8ff; margin-right: 10px; }
 #genes .kid { position: absolute; top: 24%; bottom: 30%; width: 46%; background: transparent; border: none; } /* касание самой дочки */
 .layer h1 { margin: 0 0 8px; font-size: 32px; font-weight: 600; }
 .layer p { margin: 0 0 12px; font-size: 18px; opacity: 0.8; text-align: center; line-height: 1.5; }
@@ -87,7 +90,7 @@ button.round { width: 44px; height: 44px; min-height: 44px; padding: 0; border-r
 #kswim { width: 100%; min-height: 56px; }
 button.ghost { background: transparent; min-height: 52px; font-size: 18px; }
 #toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 44px); transform: translate(-50%, -10px); padding: 8px 16px; border-radius: 16px;
-  background: rgba(120, 220, 255, 0.16); border: 1px solid rgba(120, 220, 255, 0.4); font-size: 15px; white-space: nowrap;
+  background: rgba(120, 220, 255, 0.16); border: 1px solid rgba(120, 220, 255, 0.4); font-size: 15px; width: max-content; max-width: calc(100vw - 32px); box-sizing: border-box; display: flex; align-items: center; /* длинная подпись переносится, а не уходит за край */
   opacity: 0; transition: opacity 0.3s, transform 0.3s; pointer-events: none; }
 #toast.on { opacity: 0.95; transform: translate(-50%, 0); }
 button { width: min(340px, 86vw); min-height: 64px; border-radius: 22px; border: 1px solid rgba(120, 255, 210, 0.45);
@@ -126,6 +129,7 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
 #gchips span { white-space: nowrap; font-size: 14px; padding: 5px 12px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(2, 4, 10, 0.6); }
 #gcard { max-height: 34vh; overflow-y: auto; flex-shrink: 0; width: 100%; max-width: 420px; box-sizing: border-box; border-radius: 20px; padding: 10px 16px; background: rgba(8, 22, 34, 0.92); border: 1px solid rgba(120, 220, 255, 0.35); z-index: 1; }
 #gcard.no { border-style: dashed; }
+#gcard { -webkit-mask-image: linear-gradient(#000 calc(100% - 22px), rgba(0,0,0,0.35)); mask-image: linear-gradient(#000 calc(100% - 22px), rgba(0,0,0,0.35)); padding-bottom: 18px; } /* низ гаснет: видно, что карточка листается, а не обрезана */
 #gcard h2 { margin: 0; font-size: 21px; font-weight: 600; }
 #gcard h2 i { color: #9fe0ff; font-family: ui-monospace, Menlo, monospace; font-size: 17px; }
 #gcard .sub { font-size: 13px; opacity: 0.6; margin: 1px 0 6px; }

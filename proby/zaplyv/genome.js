@@ -28,7 +28,7 @@ export function card(slot, genes, from, names, G, arcName) {
 const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent?.appendChild(e); return e; };
 const pt = (r, deg) => { const t = deg * Math.PI / 180; return `${(r * Math.cos(t)).toFixed(1)} ${(r * Math.sin(t)).toFixed(1)}`; };
 
-export function genomeScreen({ G, cfg, world, onOpen, onClose, onCabinet, onSend = () => {}, onDraw = () => {} }) {
+export function genomeScreen({ G, cfg, world, icon = () => '', onOpen, onClose, onCabinet, onSend = () => {}, onDraw = () => {} }) {
   const $ = id => document.getElementById(id);
   const svg = $('ring'), box = $('gcard');
   const S = { open: false, blink: null }; G.pipe = cfg.plasmid_genes;
@@ -53,9 +53,16 @@ export function genomeScreen({ G, cfg, world, onOpen, onClose, onCabinet, onSend
         if (have) el('circle', { cx: tx, cy: ty, r: 34, fill: p.color, opacity: 0.15 }, s); // колечко светится
         el('circle', { cx: tx, cy: ty, r: 25, fill: 'rgba(2,4,10,0.6)', stroke: on ? '#fff' : p.color, 'stroke-width': have ? 7 : 4, 'stroke-dasharray': have ? 'none' : '3 4', opacity: have || on ? 1 : 0.6 }, s);
       }
-      const t = el('text', { x: tx, y: ty + 5, 'text-anchor': 'middle', 'font-size': 14, 'font-style': 'italic', 'font-weight': have ? 700 : 400,
+      const src = live ? icon(id) : '';
+      if (src) { // значок гена: снимок клетки, подсвечена часть, которую он даёт; включённый — ярко, спящий — тускло
+        const r = p.plasmid ? 21 : 17, cid = 'gc' + id;
+        el('circle', { cx: tx, cy: ty, r, id: cid }, el('clipPath', { id: 'k' + cid }, s));
+        el('image', { href: src, x: tx - r, y: ty - r, width: 2 * r, height: 2 * r, 'clip-path': `url(#k${cid})`, opacity: have ? 1 : 0.6 }, s);
+        el('circle', { cx: tx, cy: ty, r, fill: 'none', stroke: p.color, 'stroke-width': have ? 2 : 1, opacity: have ? 1 : 0.6 }, s);
+      }
+      const t = el('text', { x: tx, y: src ? ty + (p.plasmid ? 38 : 0) : ty + 5, 'text-anchor': 'middle', 'font-size': 14, 'font-style': 'italic', 'font-weight': have ? 700 : 400,
         fill: have && !p.plasmid ? '#02040a' : p.color, opacity: have ? 1 : 0.75, 'font-family': 'ui-monospace, Menlo, monospace' }, s);
-      t.textContent = p.slot.gene;
+      t.textContent = src && !p.plasmid ? '' : p.slot.gene; // на кольце у живого гена — значок, латинское имя в карточке
       el('circle', { cx: tx, cy: ty, r: 32, fill: 'transparent' }, s); // касание: не меньше 44 pt и в Safari, где кольцо мельче (урок L017); соседние места не налезают: между центрами 67
       s.onclick = e => { e.stopPropagation(); select(p.slot, p.arc); };
     }
@@ -76,6 +83,7 @@ export function genomeScreen({ G, cfg, world, onOpen, onClose, onCabinet, onSend
     pick = slot; const w = world(), c = card(slot, w.genes, w.from || {}, cfg.genes, G, arc >= 0 ? G.arcs[arc].name : '');
     S.blink = slot.id && cfg.genes[slot.id] ? slot.id : null; // на клетке мигает то, что меняет ген (спящий — показывает, каким станешь)
     box.innerHTML = '';
+    if (slot.id && cfg.genes[slot.id] && icon(slot.id)) { const im = document.createElement('img'); im.className = 'gicon big'; im.alt = ''; im.src = icon(slot.id); im.style.borderColor = arc >= 0 ? G.arcs[arc].color : slot.color; box.appendChild(im); }
     const h = document.createElement('h2'); h.textContent = c.title + ' '; const i = document.createElement('i'); i.textContent = c.latin; h.appendChild(i); box.appendChild(h);
     const sub = document.createElement('div'); sub.className = 'sub'; sub.textContent = c.sub; box.appendChild(sub);
     for (const [k, v] of c.lines) { const p = document.createElement('p'); const b = document.createElement('b'); b.textContent = k; p.appendChild(b); p.appendChild(document.createTextNode(v)); box.appendChild(p); }
