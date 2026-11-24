@@ -6,6 +6,8 @@
 // забываются позади. Среда в точке — по шуму: чистая вода, сладкая вода, ил.
 // Числа — в data.json. Модуль без экрана: его гоняет test.mjs (node) и рисует main.js.
 
+import { zhizn } from './zhizn.js'; // соседи живут сами: движок по паспорту существ (zhizn.json)
+
 export const radius = m => 13 * Math.sqrt(m);
 
 function rng(seed) {
@@ -39,7 +41,7 @@ export class World {
     this.choice = []; // три гена на выбор; пока не пусто — мир стоит
     this.rush = 0; this.lastEat = -9; // разгон роста от серии
     this.stats = { eaten: 0, most: 1, path: 0, time: 0, gen: 0, lost: {}, killer: null };
-    this.met = new Set(['me']); this.look = 0;
+    this.met = new Set(['me']); this.look = 0; this.posle = {}; this.known = new Set(); // posle и known (Альманах) ставит main.js из книги
     this.splits = 0; this.away = []; // уплывшие дочки: видны пару секунд, потом теряются вдали // делений за заплыв: каждое gene_every-е даёт выбор из двух дочек, пока есть гены
     this.chunks = new Set(); this.seen = new Set();
     this.events = []; // [вид, x, y] — для вспышек на экране, экран их забирает
@@ -106,14 +108,14 @@ export class World {
       for (let i = 0; i < c.patch_food; i++) { const t = r() * 6.283, d = R * Math.sqrt(r()); this.food.push({ x: at.x + Math.cos(t) * d, y: at.y + Math.sin(t) * d, vx: 0, vy: 0, s: c.grain[0] + (c.grain[1] - c.grain[0]) * (1 - d / R) * r() }); } // в середине пятна куски крупнее
     }
     if (far > c.bdello_from && this.stats.gen > 0 && r() < c.bdello_chance[b] * (1 + (this.stats.time < c.grace ? 0 : far * c.danger_growth)) * Math.min(2, this.me.length / 2)) /* хищник идёт на густую добычу: пока ты один, его нет */ this.bdellos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: r(), id: ++this.ids });
-    const rare = k => this.met && !this.met.has(k) ? 1 + c.rare.time * this.stats.time / 60 + c.rare.far * far : 1; // ещё не встреченные мирные соседи (донор, соперница, детрит) заводятся тем чаще, чем дольше жив и дальше ушёл: поздняя награда — встреча
+    const rare = k => !this.met.has(k) ? 1 + c.rare.time * this.stats.time / 60 + c.rare.far * far : 1; // ещё не встреченные мирные соседи (донор, соперница, детрит) заводятся тем чаще, чем дольше жив и дальше ушёл: поздняя награда — встреча
     if (far > c.slipper_from && r() < c.slipper_chance[b]) this.slippers.push({ ...pt(), a: r() * 6.283, back: 0, id: ++this.ids });
-    if (far > c.donor_from && r() < c.donor_chance[b] * rare('donors')) this.donors.push({ ...pt(), a: r() * 6.283, link: 0, gave: false, id: ++this.ids });
-    if (!safe && far > c.pseudo_from && r() < c.pseudo_chance[b] * rare('pseudos')) this.pseudos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: 0, cool: 0, id: ++this.ids });
-    if (!safe && far > c.strain_from && r() < c.strain_chance[b]) this.pseudos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: 0, cool: 0, strain: true, id: ++this.ids }); // чужой штамм кишечной палочки: серая соперница за еду
+    if (far > c.donor_from && r() < c.donor_chance[b] * rare('donor')) this.donors.push({ ...pt(), a: r() * 6.283, link: 0, gave: false, id: ++this.ids });
+    if (!safe && far > c.pseudo_from && r() < c.pseudo_chance[b] * rare('pseudo')) this.pseudos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: 0, cool: 0, id: ++this.ids });
+    if (!safe && far > c.strain_from && r() < c.strain_chance[b] * rare('strain')) this.pseudos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: 0, cool: 0, strain: true, id: ++this.ids }); // чужой штамм кишечной палочки: серая соперница за еду
     if (!safe && far > c.roti_from && r() < c.roti_chance[b]) this.rotis.push({ ...pt(), a: r() * 6.283, sit: false, t: r() * c.roti_swim, id: ++this.ids });
     if (r() < c.slime_chance[b]) { const at = pt(); this.slime.push({ ...at, a: r() * 3.14, len: 160 + r() * 220, w: 22 + r() * 22, id: ++this.ids }); } // тяж слизи: вязкий гель
-    if (r() < c.crumb_chance[b] * rare('crumbs')) this.crumbs.push({ ...pt(), m: 2 + r() * 3, id: ++this.ids }); // детрит: бурый комок, медленно тонет
+    if (r() < c.crumb_chance[b] * rare('crumb')) this.crumbs.push({ ...pt(), m: 2 + r() * 3, id: ++this.ids }); // детрит: бурый комок, медленно тонет
     const np = 1 + Math.floor(r() * c.prey_per_chunk[b]);
     for (let i = 0; i < np; i++) this.prey.push({ ...pt(), vx: 0, vy: 0, m: 0.3 + r() * (0.9 + far * 0.5), a: r() * 6.3, id: ++this.ids, pair: r() < 0.4 });
     const nPlants = this.plants.length;
@@ -150,8 +152,8 @@ export class World {
     this.stats.most = Math.max(this.stats.most, this.me.length);
     this.splits += born.length;
     const k = s => this.cfg.gene_steps.filter(n => n <= s).length; // выбор мутации на поколениях gene_steps: первый сразу, дальше всё реже (коридор темпа)
-    if (k(this.stats.gen) > k(this.gen0 || 0) && !this.choice.length && Object.keys(this.cfg.genes).some(g => !this.genes[g])) { // потолка нет, пока есть гены
-      const left = Object.keys(this.cfg.genes).filter(g => !this.genes[g]);
+    if (k(this.stats.gen) > k(this.gen0 || 0) && !this.choice.length && Object.keys(this.cfg.genes).some(g => this.offer(g))) { // потолка нет, пока есть гены
+      const left = Object.keys(this.cfg.genes).filter(g => this.offer(g));
       for (let i = left.length - 1; i > 0; i--) { const j = Math.floor(this.r() * (i + 1)); [left[i], left[j]] = [left[j], left[i]]; }
       this.choice = left.slice(0, 2); this.gen0 = this.stats.gen; // две дочки — у каждой своя мутация
     }
@@ -159,6 +161,7 @@ export class World {
   }
 
   inherit(genes) { for (const g of genes) if (this.cfg.genes[g]) { this.genes[g] = true; this.from[g] = 'kid'; } } // «Ночь рода»: заплыв начинается веткой рода
+  offer(g) { return !this.genes[g] && (this.posle[g] || []).every(k => this.met.has(k) || this.known.has(k)); } // умение дочке — только после встречи с тем, от кого оно (книга, поле posle)
   pick(g) { this.genes[g] = true; this.from[g] = 'kid'; this.choice = []; }
 
   // Шаг мира. target — джойстик {dx, dy, p}, точка мира {x, y} или null, если палец отпущен.
@@ -233,10 +236,10 @@ export class World {
       if (a.spore > 0) { a.spore -= dt; if (a.spore <= 0) this.events.push(['sprout', a.x, a.y]); } // спора проросла
     }
     const c1 = this.center();
-    if ((this.metT = (this.metT || 0) + dt) > 0.5) { this.metT = 0; this.met = this.met || new Set(); for (const k of ['amoebas', 'phages', 'bdellos', 'slippers', 'bells', 'rotis', 'pseudos', 'donors', 'plants', 'crumbs', 'prey']) if (!this.met.has(k) && this[k].some(q => dist(q, c1) < c.rare.see)) this.met.add(k); } // кого колония уже видела
     this.stats.path += dist(c0, c1);
     this.life(dt);
     this.eat(dt);
+    zhizn(this, dt, radius);
     this.hunters(dt);
     this.hold(dt);
     this.rush = Math.max(0, this.rush - (this.stats.time - this.lastEat > c.rush_gap ? c.rush_fall * dt : 0));
@@ -253,7 +256,7 @@ export class World {
     if (this.look <= 0 && this.me.length) { // встречи: кого увидел впервые — в кабинет (событие 'meet' без паузы)
       this.look = 0.5;
       const R = this.cfg.meet;
-      for (const [k, list] of [['coccus', this.prey], ['plant', this.plants], ['crumb', this.crumbs], ['phage', this.phages], ['amoeba', this.amoebas], ['bdello', this.bdellos], ['slipper', this.slippers], ['bell', this.bells], ['roti', this.rotis], ['pseudo', this.pseudos.filter(q => !q.strain)], ['strain', this.pseudos.filter(q => q.strain)], ['donor', this.donors]])
+      for (const [k, list] of [['coccus', this.prey], ['plant', this.plants], ['slime', this.slime], ['crumb', this.crumbs], ['phage', this.phages], ['amoeba', this.amoebas], ['bdello', this.bdellos], ['slipper', this.slippers], ['bell', this.bells], ['roti', this.rotis], ['pseudo', this.pseudos.filter(q => !q.strain)], ['strain', this.pseudos.filter(q => q.strain)], ['donor', this.donors]])
         if (!this.met.has(k) && list.some(o => this.me.some(a => dist(a, o) < R))) { this.met.add(k); this.events.push(['meet', k]); }
     }
     this.tidy -= dt;
