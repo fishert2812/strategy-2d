@@ -233,7 +233,7 @@ export class World {
       if (a.stun > 0) a.stun -= dt;
       if (a.pinch > 0) a.pinch -= dt;
       if (this.genes.fast) a.m = Math.max(0.6, a.m - c.fast_burn * dt); // …но и голодаешь быстрее: рибосомы едят силы
-      if (a.spore > 0) { a.spore -= dt; if (a.spore <= 0) this.events.push(['sprout', a.x, a.y]); } // спора проросла
+      if (a.spore > 0) { if (!this.amoebas.some(m => dist(m, a) < radius(m.m) + c.spore_safe) && !this.bdellos.some(b => dist(b, a) < c.spore_safe)) a.spore -= dt; if (a.spore <= 0) { a.free = 1; this.events.push(['sprout', a.x, a.y]); } } // спора проросла — только когда охотник ушёл (L032)
     }
     const c1 = this.center();
     this.stats.path += dist(c0, c1);
@@ -554,8 +554,9 @@ export class World {
     for (const m of this.amoebas) { // амёба ползёт только по дну и нитям; в открытой воде почти стоит
       const a = this.nearest(m, 340);
       let wx = 0, wy = 0;
-      m.hunt = !!(a && a.m < m.m * 0.8 && !this.genes.capsule); // охотится: видна её зона захвата (L030)
-      if (a && a.m < m.m * 0.8) {
+      m.hunt = !!(a && a.m < m.m * 0.8 && !this.genes.capsule && !(a.spore > 0)); // охотится: видна её зона захвата (L030); спящую не ловит
+      if (a && a.spore > 0) { const d = dist(a, m) || 1; wx = (m.x - a.x) / d * c.amoeba * c.spore_shy; wy = (m.y - a.y) / d * c.amoeba * c.spore_shy; } // спящую не берут: обнюхала и уползает (L032)
+      else if (a && a.m < m.m * 0.8) {
         const d = dist(a, m) || 1;
         const ground = this.biome(m.x, m.y) === 2 || this.plants.some(p => dist(p, m) < 160) || this.crumbs.some(k => dist(k, m) < 120);
         const v = c.amoeba * (ground ? 1 : c.amoeba_open);
