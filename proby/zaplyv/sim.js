@@ -35,7 +35,7 @@ export class World {
     this.r = rng(seed);
     this.me = [{ x: 0, y: 0, vx: 0, vy: 0, m: 1, a: -Math.PI / 2, sick: -1, id: 1 }];
     this.food = []; this.prey = []; this.amoebas = []; this.phages = []; this.plants = []; this.crumbs = []; this.bdellos = []; this.slime = []; this.slippers = []; this.bells = []; this.rotis = []; this.pseudos = []; this.donors = [];
-    this.genes = {};
+    this.genes = {}; this.from = {}; // откуда пришёл ген: kid — дочка, pipe — трубочка
     this.choice = []; // три гена на выбор; пока не пусто — мир стоит
     this.rush = 0; this.lastEat = -9; // разгон роста от серии
     this.stats = { eaten: 0, most: 1, path: 0, time: 0, gen: 0, lost: {}, killer: null };
@@ -135,7 +135,7 @@ export class World {
     return born.length;
   }
 
-  pick(g) { this.genes[g] = true; this.choice = []; }
+  pick(g) { this.genes[g] = true; this.from[g] = 'kid'; this.choice = []; }
 
   // Шаг мира. target — джойстик {dx, dy, p}, точка мира {x, y} или null, если палец отпущен.
   step(dt, target) {
@@ -414,7 +414,7 @@ export class World {
       if (a && d.link >= c.conj) {
         d.rest = c.donor_rest[0] + this.r() * (c.donor_rest[1] - c.donor_rest[0]); d.link = 0; // копия плазмиды остаётся у него, пауза
         const left = c.plasmid_genes.filter(g => !this.genes[g]); // по плазмидам ходят токсины, капсула, CRISPR — не жгутик и не хемотаксис
-        if (left.length) { const g = left[Math.floor(this.r() * left.length)]; this.genes[g] = true; this.plasmid = true; this.events.push(['gene', d.x, d.y, g]); }
+        if (left.length) { const g = left[Math.floor(this.r() * left.length)]; this.genes[g] = true; this.from[g] = 'pipe'; this.plasmid = true; this.events.push(['gene', d.x, d.y, g]); }
       }
     }
     this.bdellos = this.bdellos.filter(b => !b.gone);

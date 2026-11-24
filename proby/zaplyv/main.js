@@ -8,9 +8,11 @@ import { Stick } from './controls.js';
 import { follow } from './soft.js';
 import { look } from './look.js';
 import { Bodies } from './body3d.js';
+import { genomeScreen } from './genome.js';
 
 const cfg = await (await fetch('data.json')).json();
 const cards = await (await fetch('cards.json')).json();
+const genomeData = await (await fetch('genome.json')).json();
 const W = 720; // ширина экрана в единицах игры
 const canvas = document.getElementById('c');
 const gl = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' });
@@ -194,7 +196,7 @@ const KEYS = Object.keys(cards).filter(k => k !== '_');
 let met = new Set(['me']);
 try { for (const k of JSON.parse(localStorage.getItem('zaplyv.met') || '[]')) met.add(k); } catch (_) {}
 const saveMet = () => { try { localStorage.setItem('zaplyv.met', JSON.stringify([...met])); } catch (_) {} };
-const cabLabel = () => { $('cab').textContent = `Кабинет · ${KEYS.filter(k => met.has(k)).length} из ${KEYS.length}`; };
+const cabLabel = () => { $("cab").textContent = $("gcab").textContent = `Кабинет · ${KEYS.filter(k => met.has(k)).length} из ${KEYS.length}`; };
 cabLabel();
 $('cab').onclick = () => {
   const shelf = $('shelf'); shelf.innerHTML = '';
@@ -209,6 +211,12 @@ $('cab').onclick = () => {
 };
 $('back').onclick = () => $('cabinet').classList.remove('on');
 let toastT = 0;
+// Пауза с геномом: мир замирает, твоя клетка крупно в середине кольца ДНК.
+let paused = false;
+const genome = genomeScreen({ G: genomeData, cfg, world: () => world,
+  onOpen: () => { paused = true; document.body.classList.add('paused'); pad.end(0); down = null; finger = null; },
+  onClose: () => { paused = false; document.body.classList.remove('paused'); },
+  onCabinet: () => $('cab').onclick() });
 function meet(k) { // первая встреча: на секунду имя у края экрана, без паузы и без нажатий
   if (met.has(k) || !cards[k]) return;
   met.add(k); saveMet(); cabLabel();
@@ -495,7 +503,7 @@ function paint(time) {
     bubbles.put(x - hx * r * 0.45 - hy * r * 0.2, y - hy * r * 0.45 + hx * r * 0.2, r * 0.18 * Math.sqrt(v) + 1, 0.85, 0.95, 1, 0.3 * (1 - v * v * v));
   }
   const [cr, cg, cb] = [CELL[0].r, CELL[0].g, CELL[0].b];
-  const lkAll = look(world.genes, cfg.look);
+  const b = genome.blink, lkAll = look(b && Math.sin(time * 9) > 0 ? { ...world.genes, [b]: !world.genes[b] } : world.genes, cfg.look); // на паузе мигает часть клетки, которую меняет выбранный ген
   if (kids) kids.forEach((a, i) => { a.x = view.x + (i ? 1 : -1) * W * 0.24 / z; a.y = view.y - 20 / z; a.a = -Math.PI / 2 + Math.sin(time * 0.8 + i * 2) * 0.12; a.m = 1.7 + 0.1 * Math.sin(time * 1.3 + i); }); // дочки покачиваются на месте
   const phageNear = world.phages.some(g => g.host === 'me' && Math.hypot(g.x - view.x, g.y - view.y) < 220);
   const foodNear = world.food.some(f => Math.hypot(f.x - view.x, f.y - view.y) < 120);
@@ -653,7 +661,14 @@ function frame(now) {
   if (play) { acc.push(now - last); if (acc.length > 300) acc.shift(); }
   last = now;
   const t0 = performance.now();
-  if (!ended) tick(dt);
+  if (!ended && !paused) tick(dt);
+  if (paused && world.me.length) { // клетка — в середину кольца, крупно
+    const c = world.me.reduce((b, a) => a.m > b.m ? a : b), [fx, fy] = genome.center(), k = Math.min(1, dt * 4);
+    const z = cfg.genome_zoom * genome.inner() * W / innerWidth / (25 * Math.pow(c.m, 0.3)); // полклетки ≈ 25·m^0.3 единиц мира
+    view.z += (z - view.z) * k;
+    view.x += (c.x - (fx - 0.5) * W / view.z - view.x) * k; view.y += (c.y - (fy - 0.5) * H / view.z - view.y) * k;
+  }
+  { const hide = ended || paused || !!kids; if (hide !== frame.hid) { frame.hid = hide; $('pause').style.display = hide ? 'none' : ''; } }
   for (const r of rings) r.t += dt;
   rings = rings.filter(r => r.t < 0.6);
   shake = Math.max(0, shake - dt * 0.9);
