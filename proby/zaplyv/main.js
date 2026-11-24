@@ -219,6 +219,7 @@ function studio(k, it) {
   return w;
 }
 function snap(k, it) {
+  if (it.gene) return geneShot(it.gene, 480, 300); // ген в Альманахе — тот же снимок, что значок: часть, которую он даёт, подсвечена
   const keep = [world, view, kids, down, moved, fx.rings, puffs, fx.zaps, paint.t];
   const out = document.createElement('canvas'); out.width = 480; out.height = 300;
   try {
@@ -231,6 +232,47 @@ function snap(k, it) {
   } finally { [world, view, kids, down, moved, fx.rings, puffs, fx.zaps, paint.t] = keep; }
   return out.toDataURL('image/jpeg', 0.86);
 }
+// Значок гена (макет дизайнера: круг, тело приглушено, часть, которую даёт ген, подсвечена). Снимаем клетку без гена и с геном
+// той же студией, что Альманах, и оставляем ярким только то, что изменилось: сам ген на теле. Кеш — снимаем один раз.
+const icons = new Map();
+function geneShot(g, NW, NH, crop = 0) {
+  const grab = genes => {
+    const keep = [world, view, kids, down, moved, fx.rings, puffs, fx.zaps, paint.t], c = document.createElement('canvas'); c.width = NW; c.height = NH;
+    try {
+      world = studio('me', { a: -0.5 }); world.genes = genes; kids = null; down = null; moved = true; fx.reset(); puffs = [];
+      const side = Math.min(W, H) * 0.9; view = { x: 0, y: 0, z: side * 0.62 / cfg.icon_span, tint: [...TINT[0]] };
+      for (let i = 0; i < 4; i++) { paint.t = 30; render(30); } // время стоит: оба снимка в одной позе, разница — только ген
+      const sx = canvas.width / W, cw = side * sx * 0.62 * Math.max(1, NW / NH), ch = cw * NH / NW;
+      c.getContext('2d').drawImage(canvas, (canvas.width - cw) / 2, (canvas.height - ch) / 2, cw, ch, 0, 0, NW, NH);
+    } finally { [world, view, kids, down, moved, fx.rings, puffs, fx.zaps, paint.t] = keep; }
+    return c.getContext('2d').getImageData(0, 0, NW, NH);
+  };
+  const A = grab({}), B = grab({ [g]: true }), a = A.data, b = B.data;
+  for (let i = 0; i < a.length; i += 4) {
+    const d = Math.min(1, (Math.abs(b[i] - a[i]) + Math.abs(b[i + 1] - a[i + 1]) + Math.abs(b[i + 2] - a[i + 2])) / 90);
+    for (let j = 0; j < 3; j++) b[i + j] = a[i + j] * cfg.icon_dim * (1 - d) + Math.min(255, b[i + j] * 1.25) * d;
+  }
+  const c = document.createElement('canvas'); c.width = NW; c.height = NH; c.getContext('2d').putImageData(B, 0, 0);
+  if (!crop) return c.toDataURL('image/jpeg', 0.85);
+  // Значок кадрируется по подсвеченной части: она занимает не меньше половины кружка, тело лишь краем (дизайнер, Э16).
+  const D = new Float32Array(NW * NH); let x0 = NW, y0 = NH, x1 = -1, y1 = -1;
+  for (let y = 0; y < NH; y++) for (let x = 0; x < NW; x++) { const i = (y * NW + x) * 4, v = Math.abs(b[i] - a[i] * cfg.icon_dim) + Math.abs(b[i + 1] - a[i + 1] * cfg.icon_dim) + Math.abs(b[i + 2] - a[i + 2] * cfg.icon_dim);
+    if (v > 150) { D[y * NW + x] = 1; x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); } }
+  const S = x1 < 0 ? NW : Math.max(NW * 0.3, Math.min(NW * 0.5, Math.max(x1 - x0, y1 - y0) * 1.5)); // окно: часть крупно, тело краем
+  let best = -1, cx = NW / 2, cy = NH / 2; // окно ставим туда, где подсвеченного больше всего
+  if (x1 >= 0) for (let y = 0; y + S <= NH; y += 8) for (let x = 0; x + S <= NW; x += 8) { let n = 0; for (let v = y; v < y + S; v += 4) for (let u = x; u < x + S; u += 4) n += D[(v | 0) * NW + (u | 0)];
+    if (n > best) { best = n; cx = x + S / 2; cy = y + S / 2; } }
+  const o = document.createElement('canvas'); o.width = o.height = crop;
+  o.getContext('2d').drawImage(c, Math.max(0, Math.min(NW - S, cx - S / 2)), Math.max(0, Math.min(NH - S, cy - S / 2)), S, S, 0, 0, crop, crop);
+  return o.toDataURL('image/jpeg', 0.85);
+}
+const geneColor = g => { for (const a of genomeData.arcs) if (a.slots.some(x => x.id === g)) return a.color; const p = genomeData.plasmids.find(x => x.id === g); return p ? p.color : '#7cc8ff'; }; // рамка значка — цвет группы гена
+function icon(g) {
+  if (!icons.has(g)) { let url = ''; try { url = geneShot(g, 320, 320, 128); } catch (e) { url = ''; } icons.set(g, url); }
+  return icons.get(g);
+}
+const idle = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 2000 }) : setTimeout(f, 300));
+setTimeout(function warm(i = 0) { const g = Object.keys(cfg.genes)[i]; if (!g) return; idle(() => { if (!paused && !ended) icon(g); setTimeout(() => warm(i + 1), 400); }); }, 6000); // значки заранее, по одному в свободную минуту: без рывка при первом гене и под пальцем
 GENY.gruppa = Object.fromEntries([...genomeData.arcs.flatMap(a => a.slots.map(x => [x.id, a.name])), ...genomeData.plasmids.map(x => [x.id, 'Чужие'])].filter(x => x[0])); // группа гена — дуга кольца
 const kab = almanahScreen({ K: KAB, cards, T: TEKSTY, G: GENY, met, snap, onSwim: () => { if (ended) start(); else if (paused) genome.close(); } });
 const cabLabel = () => { $('cab').textContent = $('gcab').textContent = kab.label(); };
@@ -240,7 +282,7 @@ $('cab').onclick = () => { knowGenes(); kab.open(); };
 let toastT = 0;
 // Пауза с геномом: мир замирает, твоя клетка крупно в середине кольца ДНК.
 let paused = false;
-const genome = genomeScreen({ G: genomeData, cfg, world: () => world,
+const genome = genomeScreen({ G: genomeData, cfg, world: () => world, icon: g => icon(g),
   onOpen: () => { paused = true; document.body.classList.add('paused'); pad.end(0); down = null; finger = null; },
   onClose: () => { paused = false; document.body.classList.remove('paused'); },
   onCabinet: () => $('cab').onclick(), onSend: () => send(), onDraw: () => showMarks() });
@@ -285,7 +327,7 @@ function meet(k) { // первая встреча: на секунду имя у
   say('Новая запись в Альманахе · ' + (TEKSTY[k]?.imya || cards[k].name), 1600);
   beep(990, 0.12, 0.03, 'sine', 1.3);
 }
-function say(text, ms) { $('toast').textContent = text; $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => $('toast').classList.remove('on'), ms); }
+function say(text, ms, gene) { $('toast').textContent = text; if (gene) { const im = new Image(); im.src = icon(gene); im.className = 'ticon'; im.alt = ''; im.style.borderColor = geneColor(gene); $('toast').prepend(im); } $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => $('toast').classList.remove('on'), ms); }
 const told = new Set(); // подсказка — один раз и только в момент, когда она нужна
 function tell(k, text) { if (told.has(k)) return; told.add(k); say(text, 2600); }
 start();
@@ -321,7 +363,7 @@ function ask() {
   world.choice.forEach((g, i) => {
     const go = () => { world.pick(g); kids = null; $('genes').classList.remove('on'); fx.ring(world.center().x, world.center().y, 0, 300); beep(660, 0.4, 0.06, 'sine', 1.5); };
     const b = document.createElement('button');
-    b.innerHTML = cfg.genes[g][0] + '<small>' + cfg.genes[g][1] + '</small>'; b.onclick = go; box.appendChild(b);
+    b.innerHTML = '<img class="gicon" alt="">' + cfg.genes[g][0] + '<small>' + cfg.genes[g][1] + '</small>'; b.firstChild.src = icon(g); b.firstChild.style.borderColor = geneColor(g); b.onclick = go; box.appendChild(b);
     const k = document.createElement('button'); k.className = 'kid'; k.style.left = i ? '52%' : '2%'; k.onclick = go; k.setAttribute('aria-label', cfg.genes[g][0]); $('genes').appendChild(k);
   });
   $('genes').classList.add('on');
@@ -345,7 +387,7 @@ function events() {
     fx.on(k, x, y, size, y2); // вид — fx.js, здесь звук и подписи
     if (k === 'spore') { beep(200, 0.6, 0.06, 'sine', 0.5); say('Уснула! Спящую не берут — переждёшь беду', 2600); }
     if (k === 'sprout') { beep(520, 0.3, 0.05, 'sine', 2); }
-    if (k === 'gene') { beep(780, 0.3, 0.05, 'sine', 1.6); say('Ген от сородича: ' + cfg.genes[size][0] + ' — ' + cfg.genes[size][1], 2600); } // конъюгация
+    if (k === 'gene') { beep(780, 0.3, 0.05, 'sine', 1.6); say('Ген от сородича: ' + cfg.genes[size][0] + ' — ' + cfg.genes[size][1], 2600, size); } // конъюгация
     if (k === 'zap') { beep(1500, 0.05, 0.05, 'square', 0.4); } // выстрел гарпуна синегнойки
     if (k === 'grab') { beep(240, 0.2, 0.05, 'sawtooth', 1.6); tell('grab', 'Схватили! Резко развернись — вырвешься'); }
     if (k === 'sick' && world.me.some(a => a.held > 0)) tell('bdello', 'Прилип хищник! Резко развернись — стряхнёшь');
