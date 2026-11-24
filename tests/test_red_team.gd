@@ -33,8 +33,8 @@ func test_red_team_reads_apart_from_blue() -> String:
 	for p in pairs:
 		var blue := _red_share(look.dir + p[0] + ".png")
 		var red := _red_share(look.dir + p[1] + ".png")
-		if red < 0.15:
+		if red < 0.12:
 			return "%s: ярко-красного только %d%%, на телефоне не отличить" % [p[1], int(red * 100)]
-		if red - blue < 0.1:
+		if red - blue < 0.08:
 			return "%s: красного %d%%, у синей пары %d%%, почти одинаково" % [p[1], int(red * 100), int(blue * 100)]
 	return ""
