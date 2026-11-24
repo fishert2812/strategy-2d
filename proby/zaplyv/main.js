@@ -579,7 +579,7 @@ function events() {
     if (k === 'shrug') beep(1100, 0.05, 0.03); // новая дверь сработала: вирус отброшен
     if (k === 'bump') { beep(880, 0.05, 0.03); } // капсула: хищник отскочил
     if (k === 'pop') { beep(260, 0.25, 0.06, 'triangle', 0.6); } // чужая клетка лопнула
-    if (k === 'immune') { tells.push({ x, y, t: 0 }); beep(900, 0.08, 0.03, 'sine', 0.7); } // яд не берёт эту клетку: вспышка гаснет на её оболочке
+    if (k === 'immune') { tells.push({ x, y, t: 0, ang: size, r: y2 }); beep(900, 0.08, 0.03, 'sine', 0.7); } // яд не берёт эту клетку: вспышка гаснет на её оболочке
     if (k === 'pinch') { beep(1400, 0.05, 0.03, 'square', 0.6); tell('pinch', 'Кокк щиплет своим ядом — отплыви'); }
     if (k === 'sick') { beep(180, 0.3, 0.05, 'sawtooth', 0.7); }
     if (k === 'burst' || k === 'eaten') { shake = 0.35; beep(110, 0.45, 0.09, 'triangle', 0.5); }
@@ -755,9 +755,9 @@ function paint(time) {
       for (let k = 0; k <= 14; k++) { const u = k / 14 * f; ink.put(x + (tx - x) * u, y + (ty - y) * u, 1.2 * z + 0.4, 1, 0.95, 0.6, 0.8); }
       glow.put(x + (tx - x) * ((time * 2) % 1) * f, y + (ty - y) * ((time * 2) % 1) * f, 3 * z, 1, 0.9, 0.5, 0.6); }
   }
-  for (const f of tells) { f.t += 1 / 60; const [x, y] = scr(f.x, f.y), k = f.t / cfg.toxin_tell.flash; // яд не подействовал: фиолетовые искры сходятся и гаснут, серое кольцо оболочки
-    for (let i = 0; i < 12; i++) { const t = i * 0.5236 + f.x, R = (20 - 12 * k) * z; glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 2 * z + 0.5, 0.85, 0.6, 1, 0.95 * (1 - k)); }
-    for (let i = 0; i < 20; i++) { const t = i * 0.314, R = 10 * z; glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 1.6 * z + 0.4, 0.8, 0.84, 0.9, 0.7 * (1 - k)); } }
+  for (const f of tells) { f.t += 1 / 60; const [x, y] = scr(f.x, f.y), k = f.t / cfg.toxin_tell.flash; // яд не подействовал: короткая дуга цвета яда на оболочке цели, со стороны касания, гаснет (дизайнер)
+    for (let i = -10; i <= 10; i++) { const t = f.ang + i * 0.11, R = (f.r + 3) * z; glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 1.9 * z + 0.5, 0.85, 0.6, 1, 0.95 * (1 - k) * (1 - Math.abs(i) / 12)); }
+    for (let i = -6; i <= 6; i++) { const t = f.ang + i * 0.16, R = (f.r + 3 + 10 * k) * z; glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 1.2 * z + 0.3, 0.8, 0.84, 0.9, 0.5 * (1 - k)); } }
   tells = tells.filter(f => f.t < cfg.toxin_tell.flash);
   for (const q of world.pseudos) { // синегнойка: палочка как ты, зеленоватая, один жгутик сзади
     const [x, y] = scr(q.x, q.y); if (!on(x, y)) continue;
