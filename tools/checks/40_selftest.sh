@@ -35,6 +35,8 @@ ONLY=L010 case_ "test_L010: еда без размера" 50_zaplyv.sh red "sed 
 ONLY=L011 case_ "test_L011: рывки в разворотах" 50_zaplyv.sh red "sed -i 's/a.a += Math.abs(a.om \\* dt) > Math.abs(d) ? d : a.om \\* dt;/a.a += d;/' $Z/sim.js"
 case_ "test_L028: темп снова на глаз (потолок колонии 4, мутация каждое поколение)" 57_zaplyv_temp.sh red "sed -i 's/\"auto_max\": 12/\"auto_max\": 4/; s/\"gene_steps\": \[1, 2, 4, 6, 9, 12, 16, 20, 25\]/\"gene_steps\": [1, 2, 3, 4, 5, 6, 7, 8, 9]/' $Z/data.json"
 ONLY=L012 case_ "test_L012: потолок мутаций" 50_zaplyv.sh red "sed -i 's/\"gene_steps\": \[1, 2, 4, 6, 9, 12, 16, 20, 25\]/\"gene_steps\": [1, 3]/' $Z/data.json"
+ONLY=L030 case_ "test_L030: запятая кусает без прицела" 50_zaplyv.sh red "sed -i 's/if (!b.aim) { b.a += Math.PI;/if (false) { b.a += Math.PI;/' $Z/sim.js"
+ONLY=L030 case_ "test_L030: признак воронки в последний миг" 50_zaplyv.sh red "sed -i 's/\"lead\": 1.5,/\"lead\": 0.01,/' $Z/data.json"
 ONLY=L013 case_ "test_L013: опасность у самого старта" 50_zaplyv.sh red "sed -i 's/const safe = far < c.safe_chunks;/const safe = false;/' $Z/sim.js"
 ONLY=L014 case_ "test_L014: запятая не рождается в мире" 50_zaplyv.sh red "sed -i 's/ this.bdellos.push({ ...pt()/ 0 \&\& this.bdellos.push({ ...pt()/' $Z/sim.js"
 ONLY=L016 case_ "test_L016: токсин снова бьёт не родню" 50_zaplyv.sh red "sed -i 's/if (q.strain \&\& !q.gone/if (!q.gone/' $Z/sim.js"

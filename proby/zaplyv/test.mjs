@@ -150,7 +150,7 @@ check('экран гибели называет, кто убил, и у кажд
   const empty = s => { const w = new World(cfg, s); w.food = []; w.prey = []; w.amoebas = []; w.phages = []; w.plants = []; w.bdellos = []; w.crumbs = []; w.slippers = []; w.bells = []; w.tidy = 1e9; return w; };
   let w = empty(3); w.amoebas = [{ x: 150, y: 0, vx: 0, vy: 0, m: 6, id: 99 }]; run(w, 10, null); got.amoeba = w.stats.killer;
   w = empty(5); w.cloud(radius(1) + 1, 0, 'me', 0); run(w, cfg.inject + cfg.sick + 1, null); got.phage = w.stats.killer;
-  w = empty(4); w.bdellos = [{ x: 60, y: 0, vx: 0, vy: 0, a: Math.PI, t: 2, id: 98 }]; run(w, 5, null); got.bdello = w.stats.killer;
+  w = empty(4); w.bdellos = [{ x: 60, y: 0, vx: 0, vy: 0, a: Math.PI, t: 2, id: 98, aim: w.me[0] }]; // бросок уже начат run(w, 5, null); got.bdello = w.stats.killer;
   console.log('    паспорт: убийцы', JSON.stringify(got));
   for (const [k, v] of Object.entries(got)) {
     if (v !== k) return 'смерть от ' + k + ' записана как ' + v;
@@ -222,7 +222,7 @@ check('враги как настоящие: хищник мчится прям�
   const w = bare(31); w.me[0].x = 5000; const b = { x: 0, y: 0, vx: 0, vy: 0, a: 0, t: 0, id: 9 }; w.bdellos = [b];
   let turns = 0, top = 0, last = null;
   for (let i = 0; i < 300; i++) { w.step(1 / 30, null); top = Math.max(top, Math.hypot(b.vx, b.vy)); if (last !== null && Math.abs(b.a - last) > 0.01) turns++; last = b.a; }
-  const cap = bare(32); cap.genes.capsule = true; cap.bdellos = [{ x: 60, y: 0, vx: 0, vy: 0, a: Math.PI, t: 2, id: 8 }]; run(cap, 5, null);
+  const cap = bare(32); cap.genes.capsule = true; cap.bdellos = [{ x: 60, y: 0, vx: 0, vy: 0, a: Math.PI, t: 2, id: 8, aim: cap.me[0] }]; run(cap, 5, null);
   const big = bare(33); big.prey = [{ x: 40, y: 0, vx: 0, vy: 0, m: 4, a: 0, id: 7 }]; run(big, 6, null);
   const am = bare(34); let open = 0;
   for (let i = 0; i < 400 && !open; i++) { const x = i * 997 % 20000, y = i * 1777 % 20000; if (am.biome(x, y) !== 2) open = { x, y }; }
@@ -359,7 +359,7 @@ check('пасть держит, а не глотает сразу: кувыро�
     for (let i = 0; i < 90; i++) { w.step(1 / 30, flip && grabbed ? { dx: -1, dy: 0.2, p: 1 } : null); grabbed ||= !!(w.me[0] && w.me[0].grab); }
     w.slippers = []; run(w, 1, null); return [grabbed, w.me.length, w.me[0] ? w.me[0].m.toFixed(2) : '-']; };
   const idle = caught(81, false), flip = caught(82, true);
-  const bd = (s, flip) => { const w = bare(s), a = w.me[0]; a.a = 0; w.bdellos = [{ x: a.x - 40, y: a.y, vx: 0, vy: 0, a: 0, t: 5, rest: 0, id: 9 }]; let on = false;
+  const bd = (s, flip) => { const w = bare(s), a = w.me[0]; a.a = 0; w.bdellos = [{ x: a.x - 40, y: a.y, vx: 0, vy: 0, a: 0, t: 5, rest: 0, id: 9, aim: a }]; let on = false;
     for (let i = 0; i < 90; i++) { w.step(1 / 30, flip && on ? { dx: -1, dy: 0.2, p: 1 } : { dx: 1, dy: 0, p: 0.01 }); on ||= a.held > 0; } return [on, w.me.length]; };
   const bIdle = bd(83, false), bFlip = bd(84, true);
   console.log('    паспорт: туфелька поймала', idle[0], '— стоял: клеток', idle[1], '| развернулся: клеток', flip[1], 'масса', flip[2], '| запятая прилипла', bIdle[0], '— стоял: клеток', bIdle[1], '| развернулся: клеток', bFlip[1]);
@@ -609,7 +609,7 @@ check('test_L019: Альманах — разделы, счёт словами, 
   if (P.blocks.map(b => b[0]).join() !== 'КТО ЭТО,СОВЕТ,В ПРИРОДЕ' || !P.blocks[2][3].includes('С3')) return 'страница: ' + JSON.stringify(P.blocks.map(b => [b[0], b[3]]));
   G.gruppa = Object.fromEntries(J('./genome.json').arcs.flatMap(a => a.slots.map(x => [x.id, a.name])));
   const Gq = page('gene:capsule', K, E, cards, T, G, met); if (Gq.line !== 'Защита · Г11' || Gq.blocks[0][1] === Gq.line) return 'подзаголовок гена не «группа · номер»: ' + Gq.line;
-  if (Gp.name !== 'Скользкая шуба' || Gp.blocks[1][0] !== 'В ПРИРОДЕ' || !Gp.blocks[1][3].includes('Г11')) return 'страница гена: ' + JSON.stringify(Gp);
+  if (Gp.name !== 'Скользкая оболочка' || Gp.blocks[1][0] !== 'В ПРИРОДЕ' || !Gp.blocks[1][3].includes('Г11')) return 'страница гена: ' + JSON.stringify(Gp);
   if (N.met || N.name === T.bdello.imya || !N.line) return 'невстреченный выдаёт имя или не говорит, где искать';
   console.log('    паспорт: ' + S2.count + '; ' + S2.pills.map(p => p.label).join(' / ') + '; амёба: ' + P.blocks.map(b => b[0]).join(' · ') + '; ген: ' + Gp.name);
 });
@@ -662,7 +662,7 @@ check('test_L022: убийцу видно и называют верно — ф�
   if (!(sat(P) < 0.25 || Math.min(Math.abs(hue(P) - hue(B)), 360 - Math.abs(hue(P) - hue(B))) > 90)) return 'свечение фага того же цвета, что хищная запятая: ' + P;
   const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
   const out = [];
-  for (const [who, put] of [['phage', w => w.cloud(radius(1) + 1, 0, 'me', 0)], ['bdello', w => { w.bdellos = [{ x: 40, y: 0, vx: 0, vy: 0, a: Math.PI, t: 2, id: 8 }]; }],
+  for (const [who, put] of [['phage', w => w.cloud(radius(1) + 1, 0, 'me', 0)], ['bdello', w => { w.bdellos = [{ x: 40, y: 0, vx: 0, vy: 0, a: Math.PI, t: 2, id: 8, aim: w.me[0] }]; }],
     ['amoeba', w => { w.amoebas = [{ x: 5, y: 0, vx: 0, vy: 0, m: 9, id: 50 }]; }]]) {
     const w = bare(140 + out.length); w.me[0].x = 0; w.me[0].y = 0; put(w); run(w, cfg.inject + cfg.sick + 6, null);
     if (w.me.length) return `«${who}» не убил голую клетку — сценарий не тот`;
@@ -673,9 +673,9 @@ check('test_L022: убийцу видно и называют верно — ф�
   }
   // защита, обещанная картой гена, держит: капсула — от амёбы, новая дверь — от вируса, память — второй вирус бессилен
   const cap = bare(150); cap.genes.capsule = true; cap.amoebas = [{ x: 5, y: 0, vx: 0, vy: 0, m: 9, id: 50 }]; cap.me[0].x = cap.me[0].y = 0; run(cap, 6, null);
-  if (!cap.me.length) return '«Скользкая шуба» обещает выскользнуть от амёбы, а амёба съела';
+  if (!cap.me.length) return '«Скользкая оболочка» обещает выскользнуть от амёбы, а амёба съела';
   const lock = bare(151); lock.genes.lock = true; lock.me[0].x = lock.me[0].y = 0; lock.cloud(radius(1) + 1, 0, 'me', 0); run(lock, cfg.inject + cfg.sick + 1, null);
-  if (!lock.me.length) return '«Новая дверь» обещает, что вирус не сядет, а вирус убил';
+  if (!lock.me.length) return '«Вирус не прилипает» обещает, что вирус не сядет, а вирус убил';
   console.log('    паспорт: фаг ' + P + ', запятая ' + B + '; ' + out.join(' | '));
 });
 
@@ -702,6 +702,35 @@ check('пруд с планом (К1): слои сверху вниз посто
   if (c.x > E.x0 + 200) return 'до края не доплыла за 60 с: ' + Math.round(c.x - E.x0);
   if (w.seen.size <= seen0 + 2) return 'туман не расходится: открыто клеток ' + w.seen.size;
   console.log('    паспорт: пруд ' + P.w + '×' + P.h + ', старт на глубине ' + w.depth(0).toFixed(2) + ', у левого края x=' + Math.round(c.x) + ', открыто клеток ' + w.seen.size + ' из ' + P.grid[0] * P.grid[1]);
+});
+
+check('test_L030: у каждой воронки видимая зона и признак за zone.lead секунд хода до края; тревога только у ближайшей', () => {
+  const bare = () => { const w = new World(cfg, 5); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
+  const out = [];
+  for (const [kind, list, mk] of [['slipper', 'slippers', a => ({ x: a.x, y: a.y, a: 0, back: 0, id: 3 })], ['bell', 'bells', a => ({ x: a.x, y: a.y, dir: 0, shut: 0, id: 3 })], ['roti', 'rotis', a => ({ x: a.x, y: a.y, a: 0, sit: true, t: 9, id: 3 })]]) {
+    const w = bare(), a = w.me[0]; w[list] = [mk({ x: 0, y: 0 })]; const zn = w.zones()[0], R = zn[2], lead = cfg.speed * cfg.zone.lead;
+    const at = d => { a.x = zn[0] - R - d; a.y = zn[1]; const v = w.warning(); return v ? v.level : 0; };
+    const near = at(lead * 0.5), edge = at(0), far = at(lead * 1.2);
+    let pull = 0; { a.x = zn[0] - R * 0.6; a.y = zn[1]; const [fx] = w.suck(a.x, a.y); pull = fx; }
+    out.push(`${kind} R${R}: ${near.toFixed(2)}/${edge.toFixed(2)}/${far.toFixed(2)} тянет ${pull.toFixed(0)}`);
+    if (!(near > 0.3 && edge === 1 && far === 0)) return `${kind}: признак у края ${edge}, за полсрока ${near}, далеко ${far}`;
+    if (!(pull > 0)) return `${kind}: зона на воде не совпадает с тем, где тянет`; }
+  const w = bare(), a = w.me[0]; w.bells = [{ x: 200, y: 0, dir: 0, shut: 0, id: 3 }, { x: -400, y: 0, dir: 3.14, shut: 0, id: 4 }]; a.x = 0; a.y = 0;
+  const v = w.warning(); if (!v || v.zone[0] < 0) return 'тревога не у ближайшей воронки';
+  console.log('    паспорт: тревога за полсрока / у края / далеко —', out.join(' | '));
+});
+
+check('test_L030: запятая сначала целится zone.lead секунд со светом и только потом бросается; без прицела отскакивает', () => {
+  const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; w.stats.gen = 0; return w; };
+  const leads = [];
+  for (let s = 1; s <= 6; s++) { const w = bare(200 + s), a = w.me[0]; w.bdellos = [{ x: a.x + 180, y: a.y, vx: 0, vy: 0, a: 0, t: 0, id: 9 }]; let first = null;
+    for (let i = 0; i < 30 * 30 && !(a.held > 0); i++) { w.step(1 / 30, null); a.vx = a.vy = 0; if (a.held > 0) break; const v = w.warning(); if (v && v.zone[3] === 'bdello') { if (first === null) first = w.stats.time; } else first = null; }
+    if (a.held > 0) leads.push(first === null ? 0 : w.stats.time - first); }
+  const w = bare(7), a = w.me[0]; w.bdellos = [{ x: a.x + 14, y: a.y, vx: 0, vy: 0, a: Math.PI, t: 2, id: 9 }]; w.step(1 / 30, null); const bounced = !(a.held > 0);
+  console.log('    паспорт: признак до укуса, с —', leads.map(x => x.toFixed(1)).join(' '), '| без прицела отскочила', bounced);
+  if (!leads.length) return 'запятая так и не напала за 30 с';
+  if (leads.some(x => x < cfg.zone.lead * 0.9)) return 'укус без признака за zone.lead: ' + leads.map(x => x.toFixed(1)).join(', ');
+  if (!bounced) return 'запятая без прицела вцепилась';
 });
 
 console.log(bad ? 'ЗАПЛЫВ: провалов ' + bad : 'ЗАПЛЫВ: все проверки прошли');
