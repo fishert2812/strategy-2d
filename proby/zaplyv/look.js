@@ -10,5 +10,6 @@ export function look(genes, L) {
     ribosomes: genes.fast ? L.ribosomes[1] : L.ribosomes[0],
     toxin: genes.toxin ? L.toxin : 0,
     receptors: genes.sense ? L.receptors : 0,
+    forespore: !!genes.spore, // спора: у кормы внутри светлое преломляющее зёрнышко — будущая спора
   };
 }
