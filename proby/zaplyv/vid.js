@@ -5,7 +5,7 @@ import { whip } from './whip.js';
 const flags = new Map(); // состояние жгутиков каждой клетки между кадрами (whip.js)
 export function whips(a, run, dt, beat, cfg, alive) {
   let F = flags.get(a.id); if (!F) { F = { b: run ? 1 : 0, fan: 0, ph: 0, om: 4, t: Math.random() * 9 }; flags.set(a.id, F); }
-  whip(F, a.tumble ? 'tumble' : run ? 'run' : 'rest', dt, beat, cfg.flag);
+  whip(F, a.tumble || a.snap > 0 ? 'tumble' : run ? 'run' : 'rest', dt, beat, cfg.flag); // щелчок разворота (ген snap, один хвост): нить на миг изгибается вбок, как в кувырке
   if (flags.size > 64) for (const k of flags.keys()) { if (!alive.some(c => c.id === k)) flags.delete(k); }
   return F;
 }
@@ -31,7 +31,7 @@ const mem = new Map(); // плавные состояния каждой кле�
 const keep = (a, alive) => { let m = mem.get(a.id); if (!m) { m = { smell: 0, beads: -1, grow: 1, tl: 0 }; mem.set(a.id, m); }
   if (mem.size > 64) for (const k of mem.keys()) if (!alive.some(c => c.id === k)) mem.delete(k); return m; };
 // Где и какой формы клетка была в последнем кадре (мир): по ней fx.js рисует пустую оболочку-призрак после лопания.
-export function seen(x, y) { let best = null, bd = 80; for (const m of mem.values()) { const d = Math.hypot(m.x - x, m.y - y); if (d < bd) { bd = d; best = m; } } return best; }
+export function seen(x, y, R = 80, alive = null) { let best = null, bd = R; for (const m of mem.values()) { if (alive && alive.some(c => c.id === m.id)) continue; const d = Math.hypot(m.x - x, m.y - y); if (d < bd) { bd = d; best = m; } } return best; } // alive — живые клетки: их не путать с погибшей
 const mix = (p, q, k) => [p[0] + (q[0] - p[0]) * k, p[1] + (q[1] - p[1]) * k, p[2] + (q[2] - p[2]) * k];
 
 // Спящая клетка (сон-персистер, биолог: design/zaplyv_vid_i_fizika.md, «Сон»). Не светится и не бледнеет: темнеет и плотнеет по краю,
@@ -62,11 +62,17 @@ export function skin(c) {
   const { a, lk, x, y, ang, ax, ay, half, w, z, along, arc, body, scr, time, pdt, run, phageNear, foodNear, spacers, plasmid, cfg, alive, glow, ink } = c;
   const fc = cfg.flag.color, L = half - w, m = keep(a, alive);
   const at = (u, o) => along(u, o + arc(u / z));
-  Object.assign(m, { x: a.x, y: a.y, ang, L: L / z, w: w / z });
+  Object.assign(m, { id: a.id, x: a.x, y: a.y, ang, L: L / z, w: w / z });
   // Заражена фагом (биолог: «Вирус: впрыск», «Дальше»): снаружи плывёт как обычно, но тело мутнеет от середины,
   // крупинки замирают, жгутик сбивается с ритма; в последнюю четверть стенка натягивается — клетка вспухает перед прорывом.
   const ill = a.sick >= 0 ? Math.min(1, 1 - a.sick / cfg.sick) : 0, I = V.ill;
   m.tl += pdt * (1 - ill * 0.9);
+  if (a.held > 0) { // красная запятая внутри (биолог: «шарик»): клетка округлилась, в ней растёт свёрнутая кольцом нить хищника, к концу делится на части
+    const hb = Math.min(1, 1 - a.held / cfg.bdello_kill), n = Math.round(6 + 22 * hb), parts = hb > 0.75 ? cfg.bdello_brood : 1;
+    for (let k = 0; k < n; k++) { const s = k / n, t = s * 6.283 * 1.3 + time * 0.6, r = w * (0.25 + 0.3 * s);
+      if (parts > 1 && (s * parts) % 1 < 0.18) continue; // перехваты между будущими хищниками
+      const [px, py] = at(Math.cos(t) * r * 0.9, Math.sin(t) * r * 0.7); ink.put(px, py, w * 0.11, 0.85, 0.3, 0.12, 0.55 + 0.3 * hb); }
+  }
   if (ill > 0) {
     for (let k = 0; k < I.cloud; k++) { const t = k * 2.39996, r = Math.sqrt((k + 0.5) / I.cloud) * ill, [px, py] = at(Math.cos(t) * r * (half - w * 0.5), Math.sin(t) * r * w * 0.6); ink.put(px, py, w * 0.32, I.color[0], I.color[1], I.color[2], I.alpha * ill); }
     const sw = Math.max(0, (ill - 0.75) / 0.25), st = (4 * L + 2 * Math.PI * w) / 40; // вспухание: стенка отходит наружу и светлеет
@@ -138,7 +144,7 @@ export function skin(c) {
   const F = whips(a, run, pdt, lk.beat * (1 - ill * 0.6 * (0.5 + 0.5 * Math.sin(time * 7 + a.id))), cfg, alive); // заражённая сбивается с ритма
   const mid = (lk.flagella - 1) / 2, sp5 = 5 / lk.flagella, B = F.b, P = F.fan, sb = Math.sin(ang), cb = Math.cos(ang);
   for (let f = 0; f < lk.flagella; f++) {
-    const t0 = f * 6.283 / lk.flagella + 0.6 + a.id, c0 = Math.cos(t0), s0 = Math.sin(t0); // место мотора на боку (жгутики по всему телу)
+    const t0 = lk.flagella === 1 ? Math.PI : f * 6.283 / lk.flagella + 0.6 + a.id, c0 = Math.cos(t0), s0 = Math.sin(t0); // место мотора на боку (жгутики по всему телу); один хвост — на корме, как у вибриона
     const [rx0, ry0] = along(c0 * (half - w * 0.5), s0 * w * 0.9), l0 = Math.hypot(c0 * 1.2 - 0.8, s0 * 1.8) || 1;
     const rdx = (ax * (c0 * 1.2 - 0.8) - ay * s0 * 1.8) / l0, rdy = (ay * (c0 * 1.2 - 0.8) + ax * s0 * 1.8) / l0; // в покое — вбок и чуть назад
     const [sx0, sy0] = along(-half + w * 0.3, (f - mid) * w * 0.22 * sp5 + arc(half / z)), spread = (f - mid) * 0.6 * sp5;
