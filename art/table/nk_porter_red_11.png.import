@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://gbpgak7hshac"
-path="res://.godot/imported/porter_red.png-0a6e7c9b06749137dea34ede2943935e.ctex"
+uid="uid://b62w7lsbo01t4"
+path="res://.godot/imported/nk_porter_red_11.png-6af8730d379f9cd369904a1092384368.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/table/porter_red.png"
-dest_files=["res://.godot/imported/porter_red.png-0a6e7c9b06749137dea34ede2943935e.ctex"]
+source_file="res://art/table/nk_porter_red_11.png"
+dest_files=["res://.godot/imported/nk_porter_red_11.png-6af8730d379f9cd369904a1092384368.ctex"]
 
 [params]
 

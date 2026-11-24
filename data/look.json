@@ -21,9 +21,15 @@
     "files": ["nk_barracks_blue", "nk_barracks_red"],
     "width": 140
   },
+  "_carrier": "Носильщик Романа: 0–7 шаг налегке (лист кадров, tools/art/sheet_frames.py), 8–15 шаг с полным мешком (пакет «Ночь на кухне»). runs — шаг по походке из motion.gait.",
   "carrier": {
-    "files": ["porter_blue", "porter_red"],
-    "width": 56,
+    "files": ["nk_porter_blue_00", "nk_porter_red_00"],
+    "frames": [
+      ["nk_porter_blue_00", "nk_porter_blue_01", "nk_porter_blue_02", "nk_porter_blue_03", "nk_porter_blue_04", "nk_porter_blue_05", "nk_porter_blue_06", "nk_porter_blue_07", "nk_porter_blue_08", "nk_porter_blue_09", "nk_porter_blue_10", "nk_porter_blue_11", "nk_porter_blue_12", "nk_porter_blue_13", "nk_porter_blue_14", "nk_porter_blue_15"],
+      ["nk_porter_red_00", "nk_porter_red_01", "nk_porter_red_02", "nk_porter_red_03", "nk_porter_red_04", "nk_porter_red_05", "nk_porter_red_06", "nk_porter_red_07", "nk_porter_red_08", "nk_porter_red_09", "nk_porter_red_10", "nk_porter_red_11", "nk_porter_red_12", "nk_porter_red_13", "nk_porter_red_14", "nk_porter_red_15"]
+    ],
+    "pose": {"run": [0, 1, 2, 3, 4, 5, 6, 7], "runs": {"carrier_loaded": [8, 9, 10, 11, 12, 13, 14, 15]}, "stride": 6, "stand": 0},
+    "width": 84,
     "anchor": [0.5, 0.8672]
   },
   "_warrior": "Воин из раскадровки Романа «Ночь на кухне» (tools/art/pack_import.py). files — стойка; frames — все кадры по цветам: 0–7 шаг, 8 стойка, 9 замах, 10 удар. pose: run — порядок кадров бега, stride — путь в точках поля на один кадр, stand — кадр на месте, windup и thrust — замах и удар, blow — доли удара, когда замах сменяется ударом и удар стойкой.",
@@ -70,8 +76,8 @@
   "_motion": "Движения готовых картинок, в точках поля. gait: hop — высота прыжка, rate — прыжков в секунду, squash — сплющивание при приземлении, sway — покачивание в градусах. strike: windup — замах назад, lunge — выпад, knock — отлёт цели, squash — сплющивание цели, time — длина удара в секундах.",
   "motion": {
     "gait": {
-      "carrier": {"hop": 7, "rate": 3.6, "squash": 0.14, "sway": 5},
-      "carrier_loaded": {"hop": 2, "rate": 2.0, "squash": 0.06, "sway": 10},
+      "carrier": {"hop": 0, "rate": 3.6, "squash": 0.0, "sway": 0},
+      "carrier_loaded": {"hop": 0, "rate": 2.0, "squash": 0.0, "sway": 0},
       "warrior": {"hop": 0, "rate": 2.6, "squash": 0.0, "sway": 0},
       "fidget": {"hop": 2, "rate": 0.8, "squash": 0.05, "sway": 3}
     },

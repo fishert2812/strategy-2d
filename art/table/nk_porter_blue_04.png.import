@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://owbcm8r12pak"
-path="res://.godot/imported/porter_blue.png-781340bf7a927798ec4e4243340203d1.ctex"
+uid="uid://dvmjf47ak7vfq"
+path="res://.godot/imported/nk_porter_blue_04.png-2a0e54381a57391bcaf040765b6d557e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/table/porter_blue.png"
-dest_files=["res://.godot/imported/porter_blue.png-781340bf7a927798ec4e4243340203d1.ctex"]
+source_file="res://art/table/nk_porter_blue_04.png"
+dest_files=["res://.godot/imported/nk_porter_blue_04.png-2a0e54381a57391bcaf040765b6d557e.ctex"]
 
 [params]
 
