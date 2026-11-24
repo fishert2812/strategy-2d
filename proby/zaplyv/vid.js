@@ -170,3 +170,13 @@ export function skin(c) {
     }
   }
 }
+
+// Знак гена на сопернице (zhizn.js, С27: соседка научила её): тот же вид, что на твоей клетке, проще — ободок шубы, нити яда, бусины памяти.
+// main.js зовёт там, где рисует соперниц: marks(q, { scr, z, glow, ink }).
+export function marks(q, d) {
+  const g = q.genes; if (!g) return; const { scr, z, glow, ink } = d, N = V.sosed.strain, L = N.L, w = N.w, ca = Math.cos(q.a || 0), sa = Math.sin(q.a || 0);
+  const P = (u, o) => scr(q.x + ca * u - sa * o, q.y + sa * u + ca * o);
+  if (g.capsule) for (let i = 0; i < 28; i++) { const [u, o] = rim(i / 28, L, w * V.capsule.r), [x, y] = P(u, o); glow.put(x, y, 2 * z, 0.6, 0.9, 1, 0.3); }
+  if (g.toxin) for (let f = 0; f < 4; f++) { const [u0, o0, nu, no] = rim(f / 4 + 0.12, L, w); for (let k = 1; k <= 5; k++) { const s = k / 5 * w * V.toxin.len, [x, y] = P(u0 + nu * s, o0 + no * s); ink.put(x, y, (k === 5 ? 1.4 : 0.8) * z, 0.95, 0.5, 0.3, 0.8); } }
+  if (g.crispr) for (let i = 0; i < 3; i++) { const [x, y] = P(-L * 0.6 + i * w * 0.35, 0); ink.put(x, y, 1.3 * z, 0.7, 1, 0.6, 0.8); }
+}

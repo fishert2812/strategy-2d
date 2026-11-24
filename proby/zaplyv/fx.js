@@ -26,6 +26,8 @@ export class Fx {
     if (k === 'snap') R(0, 60); // сувойка сжалась пружиной
     if (k === 'bump') { R(0, 24); poke(x, y); } // капсула: хищник отскочил, плёнка прогнулась
     if (k === 'pop') { const N = V.sosed[size] || V.sosed.strain; this.lyse(x, y, { ang: Math.random() * 6.283, L: N.L, w: N.w }, N.drops); } // чужая клетка лопнула — как твоя от вируса, мельче
+    if (k === 'gene_other') { let src = null, bd = 1e9; for (const o of (this.world && this.world.donors) || []) { const d = Math.hypot(o.x - x, o.y - y); if (d < bd) { bd = d; src = o; } } // соседка научила соперницу: колечко бежит от неё к сопернице
+      this.genes.push({ x: src && bd < 200 ? src.x : x, y: src && bd < 200 ? src.y : y, to: { x, y }, t: 0, col: V.gcol[size] || V.gene.color }); }
     if (k === 'eaten_other') this.swallow(x, y, size, y2); // соседа съел едок без тебя (zhizn.js): тот же рот, масштаб соседа
     if (k === 'divide_other') { const N = V.sosed[size] || V.sosed.strain, a = Math.random() * 6.283; for (const s of [-1, 1]) this.drops.push({ x, y, vx: Math.cos(a) * s * 35, vy: Math.sin(a) * s * 35, t: 0.5, r: 1.1 * N.w / 4, c: 0 }); } // сосед поделился: две искры расходятся, как у твоего деления, но тише
     if (k === 'pinch') R(1, 50);
@@ -137,9 +139,11 @@ export class Fx {
       const ex = g.on.x + (g.x - g.on.x) * 0.35, ey = g.on.y + (g.y - g.on.y) * 0.35;
       for (let i = 0; i < I.dots; i++) { const u = i / (I.dots - 1); if (u > p) break; const [x, y] = scr(hx + (ex - hx) * u, hy + (ey - hy) * u); ink.put(x, y, 1.3 * z + 0.4, ...I.color, 0.8); }
       const [bx, by] = scr(hx + (ex - hx) * p, hy + (ey - hy) * p); glow.put(bx, by, 3 * z, ...I.color, 0.6 * (0.6 + 0.4 * Math.sin(this.tt * 18))); }
+    for (const o of (this.world && this.world.donors) || []) { const q = o.toOther; if (!q || !(o.pull > 0)) continue; // трубочка к сопернице растёт, пока они рядом
+      const k = Math.min(1, o.pull / (this.cfg.conj || 3)); for (let i = 0; i <= 16; i++) { const u = i / 16 * k, [x, y] = scr(o.x + (q.x - o.x) * u, o.y + (q.y - o.y) * u); ink.put(x, y, 2.4 * z, 0.2, 0.15, 0.05, 0.4); glow.put(x, y, 1.5 * z, ...V.gene.color, 0.8); } }
     for (const q of this.genes) { const G = V.gene, f = q.t / G.life, run = Math.min(1, q.t / G.run), tx = q.to ? q.to.x : q.x, ty = q.to ? q.to.y : q.y; // колечко бежит, внутри раскрывается
       const cx = q.x + (tx - q.x) * run, cy = q.y + (ty - q.y) * run, R = G.r * (1 + (run >= 1 ? 1.5 * (q.t - G.run) / (G.life - G.run) : 0)), a = run < 1 ? 0.9 : 0.9 * (1 - f);
-      for (let i = 0; i < 12; i++) { const t = i / 12 * 6.283 + q.t * 3, [x, y] = scr(cx + Math.cos(t) * R, cy + Math.sin(t) * R); glow.put(x, y, 2 * z, ...G.color, a); } }
+      for (let i = 0; i < 12; i++) { const t = i / 12 * 6.283 + q.t * 3, [x, y] = scr(cx + Math.cos(t) * R, cy + Math.sin(t) * R); glow.put(x, y, 2 * z, ...(q.col || G.color), a); } }
     for (const q of this.naps) { const N = V.nap, f = q.t / N.life, k = q.wake ? f : 1 - f, R = N.r * (0.6 + 1.6 * k), c = q.wake ? N.wake : N.sleep, [x, y] = scr(q.x, q.y); // мягко, без вспышки
       for (let i = 0; i < 36; i++) { const t = i / 36 * 6.283; glow.put(x + Math.cos(t) * R * z, y + Math.sin(t) * R * z, 2.4 * z, ...c, 0.35 * Math.sin(f * Math.PI)); } }
     for (const r of this.rings) { // вспышка-кольцо
