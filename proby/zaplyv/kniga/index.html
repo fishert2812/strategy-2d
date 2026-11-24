@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Книга «Заплыва»</title>
+<style>
+:root { --bg: #04121a; --ink: #e8f6ff; --dim: rgba(232, 246, 255, 0.62); --accent: #3cffc8; --line: rgba(120, 220, 255, 0.22);
+  --move: #6fd3ff; --energy: #ffd166; --guard: #c39bff; --plasmid: #8dffb4; --warn: #ff9a73; }
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; color: var(--ink); font: 16px/1.45 -apple-system, system-ui, sans-serif; -webkit-text-size-adjust: 100%;
+  background: radial-gradient(ellipse at 30% -10%, rgba(60, 200, 210, 0.22), transparent 60%), var(--bg); min-height: 100vh;
+  padding: calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 32px); }
+main { max-width: 640px; margin: 0 auto; }
+nav { position: sticky; top: 0; z-index: 2; margin: 0 -16px 12px; padding: 8px 16px; display: flex; gap: 8px; overflow-x: auto;
+  background: rgba(4, 18, 26, 0.88); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); scrollbar-width: none; }
+nav a { flex: 0 0 auto; min-height: 44px; display: flex; align-items: center; padding: 0 14px; border-radius: 22px; color: var(--ink);
+  text-decoration: none; border: 1px solid var(--line); font-size: 15px; }
+nav a.on { border-color: var(--accent); background: rgba(60, 255, 200, 0.14); }
+h1 { font-size: 28px; margin: 12px 0 8px; } h2 { font-size: 22px; margin: 28px 0 8px; } h3 { font-size: 18px; margin: 20px 0 6px; }
+p, li { color: var(--ink); } ul, ol { padding-left: 22px; } li { margin: 4px 0; }
+em { color: var(--guard); font-family: ui-monospace, Menlo, monospace; font-size: 0.92em; }
+code { font-family: ui-monospace, Menlo, monospace; font-size: 0.9em; color: var(--plasmid); }
+hr { border: none; border-top: 1px solid var(--line); margin: 24px 0; }
+img { width: min(100%, 320px); display: block; margin: 12px auto; border-radius: 18px; border: 1px solid var(--line); }
+a { color: var(--accent); }
+.card { border: 1px solid var(--line); border-radius: 20px; padding: 12px 16px; margin: 10px 0; background: rgba(120, 220, 255, 0.05); }
+.card .t { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+.card .r { display: flex; gap: 10px; font-size: 15px; margin: 3px 0; }
+.card .r b { flex: 0 0 96px; font-weight: 500; color: var(--dim); }
+.code { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 32px; margin-right: 6px; padding: 0 8px;
+  border-radius: 12px; background: rgba(60, 255, 200, 0.16); border: 1px solid rgba(60, 255, 200, 0.45); color: var(--accent);
+  font-weight: 700; font-size: 15px; cursor: pointer; }
+.warn { color: var(--warn); }
+#toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 24px); transform: translateX(-50%); padding: 10px 18px;
+  border-radius: 18px; background: rgba(10, 40, 50, 0.95); border: 1px solid var(--accent); opacity: 0; transition: opacity 0.25s; pointer-events: none; }
+#toast.on { opacity: 1; }
+</style>
+</head>
+<body>
+<main><nav id="nav"></nav><article id="page"></article></main>
+<div id="toast"></div>
+<script>
+// Книга «Заплыва»: страницы — .md рядом, этот файл только показывает их под телефон. Таблицы становятся карточками.
+const PAGES = [['oblozhka', 'Книга'], ['igra', 'Игра'], ['dvizhenie', 'Плыть'], ['mir', 'Мир'], ['sushchestva', 'Существа'],
+  ['geny', 'Гены'], ['puti', 'Пути генов'], ['ekrany', 'Экраны'], ['plan', 'План'], ['zhurnal', 'Журнал']];
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function inline(s) {
+  return esc(s)
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img alt="$1" src="$2" loading="lazy">')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([А-ЯA-Z]{1,2}\d{1,3})\*\*/g, '<span class="code">$1</span>')
+    .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/⚠️[^·|]*/g, m => '<span class="warn">' + m + '</span>');
+}
+const cells = l => l.trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+function render(md) {
+  const L = md.split('\n'), out = [];
+  for (let i = 0; i < L.length; i++) {
+    const l = L[i];
+    if (!l.trim()) continue;
+    let m;
+    if ((m = l.match(/^(#{1,3}) (.*)/))) { out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`); continue; }
+    if (/^---+$/.test(l.trim())) { out.push('<hr>'); continue; }
+    if (l.startsWith('|')) { // таблица → карточки: первая ячейка — заголовок, остальные — «шапка: значение»
+      const head = cells(l); i += 2;
+      while (i < L.length && L[i].startsWith('|')) {
+        const c = cells(L[i++]);
+        out.push('<div class="card"><div class="t">' + inline(c[0]) + '</div>' +
+          c.slice(1).map((v, k) => v && v !== '—' ? `<div class="r"><b>${esc(head[k + 1] || '')}</b><span>${inline(v)}</span></div>` : '').join('') + '</div>');
+      }
+      i--; continue;
+    }
+    if ((m = l.match(/^(\s*)(-|\d+\.) /))) {
+      const tag = m[2] === '-' ? 'ul' : 'ol', items = [];
+      while (i < L.length && /^(-|\d+\.) /.test(L[i])) items.push('<li>' + inline(L[i++].replace(/^(-|\d+\.) /, '')) + '</li>');
+      i--; out.push(`<${tag}>${items.join('')}</${tag}>`); continue;
+    }
+    out.push('<p>' + inline(l) + '</p>');
+  }
+  return out.join('\n');
+}
+async function show() {
+  const id = (location.hash.slice(1) || 'oblozhka');
+  const page = PAGES.find(p => p[0] === id) ? id : 'oblozhka';
+  document.getElementById('nav').innerHTML = PAGES.map(([k, n]) => `<a href="#${k}" class="${k === page ? 'on' : ''}">${n}</a>`).join('');
+  document.querySelector('nav a.on').scrollIntoView({ inline: 'center', block: 'nearest' });
+  const r = await fetch(page + '.md', { cache: 'no-cache' });
+  document.getElementById('page').innerHTML = r.ok ? render(await r.text()) : '<p>Страница не открылась.</p>';
+  scrollTo(0, 0);
+}
+document.addEventListener('click', e => { // касание номера пункта копирует «Книга Г7: » для чата
+  const c = e.target.closest('.code'); if (!c) return;
+  const text = 'Книга ' + c.textContent + ': ';
+  (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).catch(() => {});
+  const t = document.getElementById('toast'); t.textContent = 'Скопировано: ' + c.textContent; t.classList.add('on');
+  setTimeout(() => t.classList.remove('on'), 1400);
+});
+addEventListener('hashchange', show); show();
+</script>
+</body>
+</html>
