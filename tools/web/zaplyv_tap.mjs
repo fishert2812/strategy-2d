@@ -77,6 +77,20 @@ await p.evaluate(() => [...document.querySelectorAll('#ring .slot')].find(s => s
 await p.waitForTimeout(300);
 say(await p.evaluate(() => { const i = document.querySelector('#gcard .gicon'); return !!i && i.getBoundingClientRect().width >= 60 && i.src.length > 3000; }), 'test_L021: в карточке гена — значок');
 if (await tap('#gon', '«Плыть дальше»')) { await p.waitForTimeout(500); say(!(await on('genome')) && await p.evaluate(() => zaplyvWorld().stats.time) > t0, '«Плыть дальше» закрывает геном, мир идёт'); }
+// test_L023 (Б16, Роман: «куда я его могу поставить чтобы игра вырезала…»): флажок тянут пальцем на место — игра вырезает кусок кадра и спрашивает словами.
+{ const fb = await p.locator('#flag').boundingBox(), sx = fb.x + fb.width / 2, sy = fb.y + fb.height / 2; m = await marks();
+  await p.mouse.move(sx, sy); await p.mouse.down(); for (let i = 1; i <= 10; i++) await p.mouse.move(sx + (195 - sx) * i / 10, sy + (430 - sy) * i / 10);
+  const frozen = await p.evaluate(() => { const t = zaplyvWorld().stats.time; return new Promise(r => setTimeout(() => r(zaplyvWorld().stats.time === t), 300)); });
+  await p.mouse.up(); await p.waitForTimeout(400);
+  const img = await p.evaluate(() => document.getElementById('fsheet').classList.contains('on') ? document.getElementById('fimg').src.length : 0);
+  say(frozen && img > 3000, 'test_L023: флажок тянется на место, мир замер, кусок кадра вырезан (' + img + ' байт)');
+  await p.fill('#ftext', 'тут странно'); if (await tap('#fsave', '«Записать» отметку с картинкой')) {
+    const last = await p.evaluate(() => { const q = JSON.parse(localStorage.getItem('zaplyv.marks') || '[]'); return q[q.length - 1] || {}; });
+    say(await marks() === m + 1 && (last.text || '').includes('тут странно') && (last.img || '').length > 3000 && !(await on('fsheet')), 'test_L023: отметка со словами и картинкой записана, лист закрыт');
+    await p.evaluate(() => { navigator.canShare = () => true; navigator.share = async d => { window.shared = d.text; window.sharedFiles = (d.files || []).map(f => [f.name, f.size, f.type]); }; window.sharedFiles = null; });
+    if (await tap('#pause', 'пауза перед отправкой') && await tap('#gsend', '«Отправить» отметку с местом')) { await p.waitForFunction(() => window.sharedFiles, null, { timeout: 5000 }).catch(() => {}); const sf = await p.evaluate(() => [window.shared || '', window.sharedFiles || []]);
+      say(sf[0].includes('тут странно') && sf[1].some(f => f[1] > 3000 && /mesto/.test(f[0]) && f[2] === 'image/jpeg'), 'test_L023: «Отправить» отдаёт слова и картинку места (' + sf[1].map(f => f[0]).join(', ') + ')'); }
+    if (await on('genome')) await tap('#gon', '«Плыть дальше» после отправки'); } }
 // Выбор дочки при делении: касание самой дочки берёт её ген.
 await p.evaluate(() => { const w = zaplyvWorld(), all = Object.keys(w.cfg.genes).filter(g => !w.genes[g]); w.choice = all.slice(0, 2); });
 await p.waitForTimeout(600);
@@ -88,6 +102,16 @@ await p.evaluate(() => { const w = zaplyvWorld(), all = Object.keys(w.cfg.genes)
 await p.waitForTimeout(600);
 const g0 = await p.evaluate(() => zaplyvWorld().choice[0]);
 if (await tap('#cards button', 'карточка гена дочки')) say(await p.evaluate(g => zaplyvWorld().genes[g], g0), 'карточка дочки даёт её ген');
+// test_L029 (Роман 24.11: «хоть все бактерии уже по краям мертвы игра обратно не приближается»): колония расползлась — камера отъехала;
+// дальние погибли или застряли вдали — за 3 с камера снова у живых, и клетка на экране не мельче cfg.cam.min_px.
+{ const z = () => p.evaluate(() => zaplyvProbe.z), cam = async (f, a) => { await p.evaluate(f, a); await p.waitForTimeout(3000); return z(); };
+  await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 1; Object.assign(w.me[0], { m: 1, grab: null, held: 0, sick: -1 }); for (const l of ['amoebas', 'bdellos', 'slippers', 'bells', 'rotis', 'phages']) w[l].length = 0; });
+  await p.waitForTimeout(3000); const z1 = await z();
+  const zs = await cam(() => { const w = zaplyvWorld(), a = w.me[0]; for (let i = 0; i < 6; i++) w.me.push({ ...a, id: 900 + i, x: a.x + Math.cos(i) * 450, y: a.y + Math.sin(i) * 450, vx: 0, vy: 0 }); });
+  const zd = await cam(() => { zaplyvWorld().me.length = 1; });
+  const zf = await cam(() => { const w = zaplyvWorld(), a = w.me[0]; for (let i = 0; i < 3; i++) w.me.push({ ...a, id: 950 + i, x: a.x - 2000, y: a.y + i * 30, vx: 0, vy: 0, stun: 1e9 }); });
+  const px = await p.evaluate(() => { const w = zaplyvWorld(); return 13 * Math.sqrt(w.me[0].m) * zaplyvProbe.z >= w.cfg.cam.min_px; });
+  say(zs < z1 * 0.8 && zd > z1 * 0.9 && zf > z1 * 0.9 && px, `test_L029: камера отъехала к расползшейся колонии (${z1.toFixed(2)} → ${zs.toFixed(2)}), вернулась после гибели дальних (${zd.toFixed(2)}) и не уходит к застрявшим вдали (${zf.toFixed(2)})`); }
 await p.evaluate(() => { const w = zaplyvWorld(); w.genes.spore = false; w.stats.killer = 'amoeba'; w.me.length = 0; });
 await p.waitForTimeout(1200);
 await whole(['#again', '#tomenu', '#cab', '#eno'], 'экран гибели'); // до любых касаний: экран не прокручен

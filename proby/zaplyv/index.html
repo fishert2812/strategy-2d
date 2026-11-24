@@ -127,6 +127,15 @@ button:active { background: rgba(60, 255, 200, 0.3); }
 /* Пауза с геномом (макет design/zaplyv_genom_maket.png) */
 #pause { position: fixed; z-index: 20; left: 10px; top: calc(env(safe-area-inset-top) + 8px); width: 48px; min-height: 48px; height: 48px; padding: 0; border-radius: 50%;
   background: rgba(2, 4, 10, 0.35); border: 1px solid rgba(120, 255, 210, 0.35); display: flex; align-items: center; justify-content: center; gap: 5px; }
+#flag { touch-action: none; }
+#fpin { position: fixed; z-index: 70; width: 44px; height: 44px; margin: -40px 0 0 -6px; font-size: 34px; color: #ffb48a; text-shadow: 0 0 6px #000; pointer-events: none; }
+#fsheet { z-index: 65; justify-content: flex-end; background: rgba(2, 6, 10, 0.5); padding: 0 12px calc(env(safe-area-inset-bottom) + 12px); }
+#fbox { width: 100%; max-width: 420px; border-radius: 22px; padding: 14px; background: rgba(8, 22, 30, 0.97); border: 1px solid rgba(255, 170, 120, 0.45); display: flex; flex-direction: column; gap: 10px; align-items: center; }
+#fimg { width: 180px; height: 180px; border-radius: 16px; object-fit: cover; } #fsheet p { margin: 0; font-size: 17px; }
+#ftext { width: 100%; box-sizing: border-box; font: 17px -apple-system, system-ui, sans-serif; border-radius: 14px; padding: 10px; background: #04121a; color: #e8f2f2; border: 1px solid rgba(207, 227, 230, 0.35); }
+#fbtns { display: flex; gap: 10px; width: 100%; align-items: center; } #fbtns button { flex: 1; width: auto; } #fsave { min-height: 56px; } #fcancel { min-height: 44px; font-size: 17px; }
+#fsheet.top { justify-content: flex-start; padding-top: calc(env(safe-area-inset-top) + 12px); }
+#note.ok { background: rgba(6, 22, 28, 0.95); border-color: rgba(120, 255, 210, 0.6); color: #e8f2f2; } /* записано — не опасность */
 #flag { position: fixed; z-index: 20; right: 10px; top: calc(env(safe-area-inset-top) + 8px); width: 48px; min-height: 48px; height: 48px; padding: 0; border-radius: 50%;
   background: rgba(2, 4, 10, 0.35); border: 1px solid rgba(255, 170, 120, 0.45); color: #ffb48a; font-size: 20px; }
 button.flag { border-color: rgba(255, 170, 120, 0.55); color: #ffc9a8; background: transparent; }
@@ -202,7 +211,10 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
 <div id="hud"><span id="count"></span><span id="eaten"></span></div>
 <div id="ver"></div>
 <button id="pause" aria-label="Пауза: геном"><i></i><i></i></button>
-<button id="flag" aria-label="Не так: поставить отметку">⚑</button>
+<button id="flag" aria-label="Не так: коснись — отметка, тяни на место — отметка с картинкой">⚑</button>
+<div id="fpin" hidden>⚑</div>
+<div class="layer" id="fsheet"><div id="fbox"><img id="fimg" alt="Кусок кадра вокруг флажка"><p>Что здесь не так?</p><textarea id="ftext" rows="3" placeholder="Скажи словами — можно голосом с клавиатуры"></textarea>
+  <div id="fbtns"><button id="fcancel" class="ghost">Отмена</button><button id="fsave">Записать</button></div></div></div>
 <div id="scalebox"><div id="scale"></div>10 мкм</div>
 <div class="layer" id="genes"><h1>Две дочки</h1><p>Они получились разными. Коснись той, кем плыть дальше</p><div id="cards"></div></div>
 <div class="layer" id="end">
