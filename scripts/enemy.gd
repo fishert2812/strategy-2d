@@ -6,6 +6,8 @@ extends RefCounted
 var sim: Sim
 var side := Sim.ENEMY
 var _wait := 0.0
+var _whistle := 0.0
+var _kills := {}  # башня игрока → сколько она сбила к прошлому свистку
 
 
 func _init(s: Sim) -> void:
@@ -13,6 +15,9 @@ func _init(s: Sim) -> void:
 
 
 func step(dt: float) -> void:
+	if sim.whistle > _whistle:
+		_avenge()
+	_whistle = sim.whistle
 	_wait -= dt
 	if _wait > 0 or sim.winner != -1:
 		return
@@ -38,6 +43,25 @@ func step(dt: float) -> void:
 				sim.set_path(camp, d.pos)
 	elif sim.time >= e.barracks_after and barracks < mini(e.max_barracks, maxi(sim.of_side(1 - side, "barracks").size(), 1 + int(sim.time / e.extra_barracks_every))):
 		_build("barracks", Sim._v(sim.cfg.homes[1 - side]))
+
+
+## Башня, сбившая наших за прошлый свисток, — первая цель набега: на неё идут сразу две казармы.
+func _avenge() -> void:
+	var guilty := {}
+	var most := 0
+	for t in sim.of_side(1 - side, "tower"):
+		var n: int = t.get("kills", 0) - _kills.get(t.id, 0)
+		_kills[t.id] = t.get("kills", 0)
+		if n > most:
+			most = n
+			guilty = t
+	if guilty.is_empty():
+		return
+	var bs := sim.of_side(side, "barracks")
+	bs = bs.slice(sim.cfg.enemy.guards) + bs.slice(0, sim.cfg.enemy.guards)
+	for b in bs.slice(0, sim.cfg.enemy.avenge):
+		if not is_same(b.target, guilty):
+			sim.set_path(b, guilty.pos)
 
 
 ## Ближайшая к точке залежь с золотом, к которой ещё не идёт наша тропа.

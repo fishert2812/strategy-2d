@@ -35,5 +35,6 @@
   "_defend": "Защита: бьют лагерь, казарму или башню — ждущие свистка воины казарм не дальше radius от неё бегут защищать; seconds без ударов — возвращаются на пост.",
   "defend": {"radius": 300, "seconds": 5},
   "warrior": {"cost": 4, "speed": 75, "hp": 60, "damage": 10, "hit_every": 0.8, "reach": 26, "aggro": 90, "march_aggro": 100, "siege": 3},
-  "enemy": {"spread": 150, "think": 2.0, "camps": 2, "extra_camp_every": 120, "barracks_after": 20, "extra_barracks_every": 45, "max_barracks": 4, "raid_after": 90, "guards": 1}
+  "_enemy_avenge": "avenge — сколько казарм врага разом идут на башню, сбившую его людей за прошлый свисток.",
+  "enemy": {"spread": 150, "think": 2.0, "camps": 2, "extra_camp_every": 120, "barracks_after": 20, "extra_barracks_every": 45, "max_barracks": 4, "raid_after": 90, "guards": 1, "avenge": 2}
 }
