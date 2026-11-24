@@ -21,5 +21,8 @@
   "bdello": { "ghost": true, "fight": 0, "life": 3.5, "shrink": 0.3 },
   "pseudo": { "fight": 0.5, "life": 2, "shrink": 0.7 },
   "other": { "fight": 0.5, "life": 1.5, "shrink": 1 }
- }
+ },
+ "flick": { "life": 0.45, "gap": 4, "arc": 9, "span": 14, "streak": 7, "len": 40, "lock": [0.55, 0.8, 1], "shake": [0.9, 0.95, 1] },
+ "torn": { "drops": 10, "speed": 120 },
+ "slip": { "drops": 8, "speed": 70 }
 }
