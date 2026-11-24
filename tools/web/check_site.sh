@@ -13,14 +13,19 @@ done
 for f in index.html manifest.json index.js index.pck.wasm index.wasm.part0.wasm index.apple-touch-icon.png; do
   curl -s -o /dev/null -w "%{http_code} %{content_type} %{size_download} $f\n" "$URL/$f" | tee /dev/stderr | grep -q '^200 ' || exit 1
 done
-D=$(mktemp -d); cd "$D"
-# apt без вопросов: needrestart и debconf иначе ждут ответа и вешают установку.
-export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a
+# Playwright и WebKit ставятся один раз на машину (папка ~/.webcheck), дальше прогоны идут сразу.
 # Прогон, не дошедший до игры, — провал проверки, а не «прошёл» и не «игра виновата» (урок L002).
-{ timeout 300 npm i --no-audit --no-fund playwright@1.56.1 &&
-  timeout 600 sudo -E env "PATH=$PATH" npx playwright install-deps webkit &&
-  timeout 300 npx playwright install webkit; } > install.log 2>&1 || {
-  tail -15 install.log; echo "ПАСПОРТ: установка WebKit не удалась, до игры не дошёл"; exit 1; }
+W=~/.webcheck; mkdir -p "$W"; cd "$W"
+if [ ! -f installed ]; then
+  # apt без вопросов; на свежем раннере dpkg занят фоновым apt — ждём замок до 10 минут, а не падаем и не виснем.
+  export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a
+  for i in $(seq 1 120); do sudo fuser /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock >/dev/null 2>&1 || break; sleep 5; done
+  { timeout 300 npm i --no-audit --no-fund playwright@1.56.1 &&
+    timeout 600 sudo -E env "PATH=$PATH" npx playwright install-deps webkit &&
+    timeout 300 npx playwright install webkit; } > install.log 2>&1 || {
+    tail -15 install.log; echo "ПАСПОРТ: установка WebKit не удалась, до игры не дошёл"; exit 1; }
+  touch installed
+fi
 cat > t.js <<'JS'
 // Паспорт: меню (зонд видит кнопку Play) -> касание Play по имени узла -> партия (сцена Battle) -> 30 с в партии.
 const { webkit, devices } = require('playwright');
