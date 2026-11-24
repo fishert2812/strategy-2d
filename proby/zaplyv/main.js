@@ -229,6 +229,7 @@ function snap(k, it) {
   } finally { [world, view, kids, down, moved, rings, puffs, zaps, paint.t] = keep; }
   return out.toDataURL('image/jpeg', 0.86);
 }
+GENY.gruppa = Object.fromEntries([...genomeData.arcs.flatMap(a => a.slots.map(x => [x.id, a.name])), ...genomeData.plasmids.map(x => [x.id, 'Чужие'])].filter(x => x[0])); // группа гена — дуга кольца
 const kab = almanahScreen({ K: KAB, cards, T: TEKSTY, G: GENY, met, snap, onSwim: () => { if (ended) start(); else if (paused) genome.close(); } });
 const cabLabel = () => { $('cab').textContent = $('gcab').textContent = kab.label(); };
 cabLabel();

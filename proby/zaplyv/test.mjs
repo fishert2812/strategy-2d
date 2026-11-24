@@ -605,6 +605,8 @@ check('test_L019: Альманах — разделы, счёт словами, 
   if (!S2.pills.some(p => p.s === 'gene') || !S2.list.every(k => E[k].sec === 'gene') || !S2.count.endsWith('· 1 ген')) return 'раздел генов: ' + S2.count;
   const P = page('amoeba', K, E, cards, T, G, met), N = page('bdello', K, E, cards, T, G, met), Gp = page('gene:capsule', K, E, cards, T, G, met);
   if (P.blocks.map(b => b[0]).join() !== 'КТО ЭТО,СОВЕТ,В ПРИРОДЕ' || !P.blocks[2][3].includes('С3')) return 'страница: ' + JSON.stringify(P.blocks.map(b => [b[0], b[3]]));
+  G.gruppa = Object.fromEntries(J('./genome.json').arcs.flatMap(a => a.slots.map(x => [x.id, a.name])));
+  const Gq = page('gene:capsule', K, E, cards, T, G, met); if (Gq.line !== 'Защита · Г11' || Gq.blocks[0][1] === Gq.line) return 'подзаголовок гена не «группа · номер»: ' + Gq.line;
   if (Gp.name !== 'Скользкая шуба' || Gp.blocks[1][0] !== 'В ПРИРОДЕ' || !Gp.blocks[1][3].includes('Г11')) return 'страница гена: ' + JSON.stringify(Gp);
   if (N.met || N.name === T.bdello.imya || !N.line) return 'невстреченный выдаёт имя или не говорит, где искать';
   console.log('    паспорт: ' + S2.count + '; ' + S2.pills.map(p => p.label).join(' / ') + '; амёба: ' + P.blocks.map(b => b[0]).join(' · ') + '; ген: ' + Gp.name);

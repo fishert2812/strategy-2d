@@ -47,8 +47,8 @@ button.round { width: 44px; height: 44px; min-height: 44px; padding: 0; border-r
 #kcount { margin: 4px 0 8px; font-size: 16px; opacity: 0.8; text-align: left; }
 #kbar { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.12); margin-bottom: 14px; }
 #kbar i { display: block; height: 100%; border-radius: 2px; background: #3ee0a8; }
-#kpills { display: flex; gap: 8px; overflow-x: auto; margin: 0 -16px 14px; padding: 0 16px; scrollbar-width: none; }
-#kpills button { width: auto; min-height: 44px; height: 44px; flex-shrink: 0; padding: 0 16px; border-radius: 22px; font-size: 16px; background: transparent; border-color: rgba(255, 255, 255, 0.25); color: rgba(255, 255, 255, 0.8); }
+#kpills { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; } /* все разделы видны сразу, без прокрутки и обрезанных слов */
+#kpills button { width: auto; min-height: 44px; height: 44px; flex-shrink: 0; padding: 0 14px; border-radius: 22px; font-size: 16px; background: transparent; border-color: rgba(255, 255, 255, 0.25); color: rgba(255, 255, 255, 0.8); }
 #kpills button.on { border-color: #3ee0a8; background: rgba(62, 224, 168, 0.14); color: #fff; }
 #shelf { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .kc { position: relative; width: auto; min-height: 0; padding: 8px 8px 12px; border-radius: 20px; text-align: left; font-size: 16px; display: flex; flex-direction: column; gap: 4px;
