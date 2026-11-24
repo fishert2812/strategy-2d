@@ -7,7 +7,7 @@ SITE=$(cd "$1" && pwd); B=${2:-webkit}
 test -f "$SITE/zaplyv/index.html" || { echo "ПАСПОРТ: в сборке нет zaplyv/index.html"; exit 1; }
 python3 -m http.server 8766 --directory "$SITE" >/dev/null 2>&1 & srv=$!
 trap 'kill $srv' EXIT
-W=~/.webcheck; mkdir -p "$W"; cd "$W"
+ROOT=$(pwd); W=~/.webcheck; mkdir -p "$W"; cd "$W"
 [ -d node_modules/playwright ] || timeout 300 npm i --no-audit --no-fund playwright@1.56.1 >/dev/null 2>&1 || true
 cat > z.js <<'JS'
 const pw = require(process.env.PW || 'playwright');
@@ -35,3 +35,5 @@ const say = t => console.log('ПАСПОРТ: ' + t);
 })().catch(e => { say('прогон упал: ' + e.message); process.exit(1); });
 JS
 node z.js "http://localhost:8766/zaplyv/index.html" "$B"
+# урок L017: каждая кнопка отвечает пальцу и в этом браузере
+PW=$W/node_modules/playwright/index.mjs node "$ROOT/tools/web/zaplyv_tap.mjs" "http://localhost:8766/zaplyv/" "$B"

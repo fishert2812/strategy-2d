@@ -26,7 +26,8 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 .layer h1 { margin: 0 0 8px; font-size: 32px; font-weight: 600; }
 .layer p { margin: 0 0 12px; font-size: 18px; opacity: 0.8; text-align: center; line-height: 1.5; }
 #end { justify-content: flex-start; overflow-y: auto; padding: calc(env(safe-area-inset-top) + 28px) 20px calc(env(safe-area-inset-bottom) + 24px); gap: 10px; }
-#end button { position: sticky; bottom: 0; flex-shrink: 0; background: rgba(10, 60, 50, 0.92); }
+#ebtns { position: sticky; bottom: 0; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; } /* кнопки одним столбиком: каждая на своём месте, не друг на друге (урок L017) */
+#end button { flex-shrink: 0; background: rgba(10, 60, 50, 0.92); }
 #card, #path { width: min(380px, 100%); box-sizing: border-box; border-radius: 20px; padding: 12px 16px; }
 #card { background: rgba(255, 90, 60, 0.1); border: 1px solid rgba(255, 140, 100, 0.35); }
 #path { background: rgba(80, 200, 255, 0.07); border: 1px solid rgba(120, 220, 255, 0.25); }
@@ -53,15 +54,22 @@ button { width: min(340px, 86vw); min-height: 64px; border-radius: 22px; border:
 button small { display: block; font-size: 15px; opacity: 0.7; margin-top: 3px; }
 button:active { background: rgba(60, 255, 200, 0.3); }
 /* Пауза с геномом (макет design/zaplyv_genom_maket.png) */
-#pause { position: fixed; left: 10px; top: calc(env(safe-area-inset-top) + 2px); width: 48px; min-height: 48px; height: 48px; padding: 0; border-radius: 50%;
+#pause { position: fixed; z-index: 20; left: 10px; top: calc(env(safe-area-inset-top) + 8px); width: 48px; min-height: 48px; height: 48px; padding: 0; border-radius: 50%;
   background: rgba(2, 4, 10, 0.35); border: 1px solid rgba(120, 255, 210, 0.35); display: flex; align-items: center; justify-content: center; gap: 5px; }
-#flag { position: fixed; right: 10px; top: calc(env(safe-area-inset-top) + 2px); width: 48px; min-height: 48px; height: 48px; padding: 0; border-radius: 50%;
+#flag { position: fixed; z-index: 20; right: 10px; top: calc(env(safe-area-inset-top) + 8px); width: 48px; min-height: 48px; height: 48px; padding: 0; border-radius: 50%;
   background: rgba(2, 4, 10, 0.35); border: 1px solid rgba(255, 170, 120, 0.45); color: #ffb48a; font-size: 20px; }
 button.flag { border-color: rgba(255, 170, 120, 0.55); color: #ffc9a8; background: transparent; }
-#gchips button { white-space: nowrap; width: auto; min-height: 32px; font-size: 14px; padding: 5px 12px; border-radius: 16px; }
+#gchips button { white-space: nowrap; width: auto; min-height: 44px; font-size: 14px; padding: 5px 14px; border-radius: 22px; /* палец: не меньше 44 pt (урок L017) */ }
 #grow { display: flex; gap: 10px; width: 100%; max-width: 420px; flex-shrink: 0; z-index: 1; }
 #grow button { flex: 1; width: auto; min-height: 46px; font-size: 17px; }
 body.paused #flag { visibility: hidden; }
+button { touch-action: manipulation; } /* касание — сразу нажатие, без ожидания двойного касания */
+#note { position: fixed; z-index: 60; right: 10px; top: calc(env(safe-area-inset-top) + 62px); max-width: 80vw; padding: 8px 14px; border-radius: 16px;
+  background: rgba(60, 20, 10, 0.92); border: 1px solid rgba(255, 170, 120, 0.7); color: #ffd9c4; font-size: 15px; pointer-events: none;
+  opacity: 0; transform: translateY(-6px); transition: opacity 0.2s, transform 0.2s; }
+#note.on { opacity: 1; transform: none; }
+@keyframes hit { 0% { box-shadow: 0 0 0 0 rgba(255, 170, 120, 0.9); background: rgba(255, 150, 100, 0.6); } 100% { box-shadow: 0 0 0 18px rgba(255, 170, 120, 0); } }
+.hit { animation: hit 0.6s ease-out; }
 #pause i { display: block; width: 5px; height: 16px; border-radius: 2px; background: #fff; opacity: 0.85; }
 #genome { background: linear-gradient(rgba(2, 4, 10, 0.55), transparent 18%, transparent 55%, rgba(2, 4, 10, 0.7) 75%); justify-content: flex-start; gap: 8px;
   padding: calc(env(safe-area-inset-top) + 8px) 14px calc(env(safe-area-inset-bottom) + 12px); overflow: hidden; }
@@ -73,7 +81,7 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
 #gback { width: 92px; min-height: 44px; font-size: 17px; border-radius: 22px; padding: 4px 8px; }
 #ring { width: 100%; max-width: 460px; flex: 1 1 0; min-height: 180px; overflow: visible; }
 #ring .slot { cursor: pointer; }
-#gchips { display: flex; gap: 8px; z-index: 1; }
+#gchips { display: flex; gap: 8px; align-items: center; z-index: 1; }
 #gchips span { white-space: nowrap; font-size: 14px; padding: 5px 12px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(2, 4, 10, 0.6); }
 #gcard { max-height: 34vh; overflow-y: auto; flex-shrink: 0; width: 100%; max-width: 420px; box-sizing: border-box; border-radius: 20px; padding: 10px 16px; background: rgba(8, 22, 34, 0.92); border: 1px solid rgba(120, 220, 255, 0.35); z-index: 1; }
 #gcard.no { border-style: dashed; }
@@ -97,9 +105,9 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
 <div class="layer" id="end">
   <div id="card"><div id="who"></div><h2 id="cname"></h2><p id="ctext"></p><p id="cfact"></p><p id="ctip"></p></div>
   <div id="path"><h3>Твой путь</h3><p id="stats"></p></div>
-  <button id="again">Плыть снова</button>
+  <div id="ebtns"><button id="again">Плыть снова</button>
   <button id="cab" class="ghost"></button>
-  <button id="eno" class="flag ghost">⚑ Не так</button><button id="esend" class="ghost" style="display:none"></button>
+  <button id="eno" class="flag ghost">⚑ Не так</button><button id="esend" class="ghost" style="display:none"></button></div>
 </div>
 <div class="layer" id="genome">
   <div id="ghead"><button id="gback" class="ghost">‹ Плыть</button><div><h1>Геном</h1></div><button id="gflag" class="flag" style="width:48px;min-height:48px;padding:0;border-radius:50%;margin-left:44px" aria-label="Не так">⚑</button></div>
@@ -112,6 +120,7 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
 </div>
 <div class="layer" id="cabinet"><h1>Кабинет</h1><p>Кого ты встречал в капле</p><div id="shelf"></div><button id="back">Назад</button></div>
 <div id="toast"></div>
+<div id="note" role="status"></div>
 <script type="module" src="main.js"></script>
 </body>
 </html>
