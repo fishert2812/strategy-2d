@@ -20,7 +20,7 @@ const player = w => {
   let best = null, bd = 1e9;
   for (const f of [...w.food, ...w.prey.filter(q => q.m < big * 0.8)]) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } }
   let tx = best ? best.x : c.x, ty = best ? best.y - 1 : c.y - 100;
-  for (const e of [...w.amoebas, ...w.phages, ...w.bdellos, ...w.slippers.map(p => { const [x, y] = w.mouth(p); return { x, y }; }), ...w.bells.map(v => { const [x, y] = w.bell(v); return { x, y }; }), ...w.rotis.map(q => { const [x, y] = w.head(q); return { x, y }; })]) {
+  for (const e of [...w.amoebas, ...w.phages, ...w.bdellos, ...w.slippers.map(p => { const [x, y] = w.mouth(p); return { x, y }; }), ...w.bells.map(v => { const [x, y] = w.bell(v); return { x, y }; }), ...w.rotis.map(q => { const [x, y] = w.head(q); return { x, y }; }), ...w.pseudos]) {
     const d = Math.hypot(e.x - c.x, e.y - c.y);
     if (d < 260) { tx = c.x + (c.x - e.x) * 2; ty = c.y + (c.y - e.y) * 2; }
   }
@@ -272,7 +272,7 @@ check('кабинет: встреченное существо попадает 
   run(w, 1, null);
   const seen = w.events.filter(e => e[0] === 'meet').map(e => e[1]);
   const missing = Object.keys(cards).filter(k => k !== '_').filter(k => !['name', 'text', 'fact'].every(f => cards[k][f]));
-  const kinds = ['coccus', 'plant', 'crumb', 'phage', 'amoeba', 'bdello', 'slipper', 'bell', 'roti'].filter(k => !cards[k]);
+  const kinds = ['coccus', 'plant', 'crumb', 'phage', 'amoeba', 'bdello', 'slipper', 'bell', 'roti', 'pseudo'].filter(k => !cards[k]);
   console.log('    паспорт: в начале', before.join(), '| увидел водоросль →', seen.join() || 'ничего', '| далёкий детрит в кабинете?', w.met.has('crumb'), '| карточек', Object.keys(cards).length - 1);
   if (!w.met.has('plant') || !seen.includes('plant')) return 'встреча с водорослью не записана';
   if (w.met.has('crumb')) return 'записан детрит, которого не видел';
@@ -368,10 +368,24 @@ check('крупный кусок кормит больше мелкого; ку�
   if (!(gains[5] > gains[0] * 1.3)) return 'серия не разгоняет рост';
 });
 
+check('синегнойка сама не нападает; врежешься в неё первым — гарпун (урон, не смерть); запятая, врезавшись в неё, гибнет', () => {
+  const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos']) w[k] = []; w.tidy = 1e9; return w; };
+  const ram = bare(101), a = ram.me[0]; a.a = 0; a.m = 1.5; const q = { x: 90, y: 0, vx: 0, vy: 0, a: Math.PI / 2, t: 9, rest: 9, cool: 0, id: 5 }; ram.pseudos = [q];
+  let zap = 0; for (let i = 0; i < 45; i++) { ram.step(1 / 30, { dx: 1, dy: 0, p: 1 }); zap += ram.events.filter(e => e[0] === 'zap').length; ram.events.length = 0; }
+  const hit = bare(102), b = hit.me[0]; b.a = Math.PI / 2; b.m = 1.5; const p = { x: -120, y: 0, vx: 0, vy: 0, a: 0, t: 9, rest: 0, cool: 0, id: 6 }; hit.pseudos = [p];
+  let zap2 = 0; for (let i = 0; i < 45; i++) { hit.step(1 / 30, null); zap2 += hit.events.filter(e => e[0] === 'zap').length; hit.events.length = 0; }
+  const bd = bare(103); bd.me[0].x = -3000; bd.pseudos = [{ x: 0, y: 0, vx: 0, vy: 0, a: 0, t: 9, rest: 9, cool: 0, id: 7 }]; bd.bdellos = [{ x: -60, y: 0, vx: 0, vy: 0, a: 0, t: 5, rest: 0, id: 8 }];
+  run(bd, 1, null);
+  console.log('    паспорт: врезалась сама — выстрелов', zap, ', клетка', ram.me.length ? 'цела, масса ' + ram.me[0].m.toFixed(2) : 'погибла', '| синегнойка налетела на тебя — выстрелов', zap2, ', масса', hit.me[0].m.toFixed(2), '| запятая врезалась в неё — запятых', bd.bdellos.length);
+  if (zap < 1 || !ram.me.length || !(ram.me[0].m < 1.5)) return 'за первый удар нет ответного выстрела или он смертелен';
+  if (zap2 !== 0 || hit.me[0].m < 1.5) return 'синегнойка выстрелила, хотя первой налетела сама';
+  if (bd.bdellos.length) return 'запятая не погибла о синегнойку';
+});
+
 check('мир без краёв: уплыл далеко — вокруг снова еда, позади забыто', () => {
   const w = new World(cfg, 11);
   w.genes.capsule = w.genes.crispr = true;
-  run(w, 60, w => { if (w.choice.length) w.pick(w.choice[0]); w.slippers = []; w.bells = []; w.rotis = []; w.bdellos = []; w.amoebas = []; return { x: w.center().x + 500, y: w.center().y }; }); // проверяем мир, а не опасности
+  run(w, 60, w => { if (w.choice.length) w.pick(w.choice[0]); w.slippers = []; w.bells = []; w.rotis = []; w.pseudos = []; w.bdellos = []; w.amoebas = []; return { x: w.center().x + 500, y: w.center().y }; }); // проверяем мир, а не опасности
   const c = w.center();
   const near = w.food.filter(f => Math.hypot(f.x - c.x, f.y - c.y) < 700).length;
   console.log('    паспорт: уплыл на', Math.round(c.x), 'еды рядом', near, 'всего еды', w.food.length, 'квадратов', w.chunks.size);
