@@ -27,9 +27,11 @@ export function rim(p, L, R) {
 const dents = [];
 export function poke(x, y) { dents.push({ x, y, t: 0 }); if (dents.length > 8) dents.shift(); }
 export function stepVid(dt) { for (const d of dents) d.t += dt; while (dents.length && dents[0].t > V.capsule.dent_t) dents.shift(); }
-const mem = new Map(); // плавные состояния каждой клетки: нюх разгорается, новая бусина памяти растёт
-const keep = (a, alive) => { let m = mem.get(a.id); if (!m) { m = { smell: 0, beads: -1, grow: 1 }; mem.set(a.id, m); }
+const mem = new Map(); // плавные состояния каждой клетки: нюх разгорается, новая бусина памяти растёт; где была и какой формы — для призрака
+const keep = (a, alive) => { let m = mem.get(a.id); if (!m) { m = { smell: 0, beads: -1, grow: 1, tl: 0 }; mem.set(a.id, m); }
   if (mem.size > 64) for (const k of mem.keys()) if (!alive.some(c => c.id === k)) mem.delete(k); return m; };
+// Где и какой формы клетка была в последнем кадре (мир): по ней fx.js рисует пустую оболочку-призрак после лопания.
+export function seen(x, y) { let best = null, bd = 80; for (const m of mem.values()) { const d = Math.hypot(m.x - x, m.y - y); if (d < bd) { bd = d; best = m; } } return best; }
 const mix = (p, q, k) => [p[0] + (q[0] - p[0]) * k, p[1] + (q[1] - p[1]) * k, p[2] + (q[2] - p[2]) * k];
 
 // Спящая клетка (сон-персистер, биолог: design/zaplyv_vid_i_fizika.md, «Сон»). Не светится и не бледнеет: темнеет и плотнеет по краю,
@@ -60,6 +62,16 @@ export function skin(c) {
   const { a, lk, x, y, ang, ax, ay, half, w, z, along, arc, body, scr, time, pdt, run, phageNear, foodNear, spacers, plasmid, cfg, alive, glow, ink } = c;
   const fc = cfg.flag.color, L = half - w, m = keep(a, alive);
   const at = (u, o) => along(u, o + arc(u / z));
+  Object.assign(m, { x: a.x, y: a.y, ang, L: L / z, w: w / z });
+  // Заражена фагом (биолог: «Вирус: впрыск», «Дальше»): снаружи плывёт как обычно, но тело мутнеет от середины,
+  // крупинки замирают, жгутик сбивается с ритма; в последнюю четверть стенка натягивается — клетка вспухает перед прорывом.
+  const ill = a.sick >= 0 ? Math.min(1, 1 - a.sick / cfg.sick) : 0, I = V.ill;
+  m.tl += pdt * (1 - ill * 0.9);
+  if (ill > 0) {
+    for (let k = 0; k < I.cloud; k++) { const t = k * 2.39996, r = Math.sqrt((k + 0.5) / I.cloud) * ill, [px, py] = at(Math.cos(t) * r * (half - w * 0.5), Math.sin(t) * r * w * 0.6); ink.put(px, py, w * 0.32, I.color[0], I.color[1], I.color[2], I.alpha * ill); }
+    const sw = Math.max(0, (ill - 0.75) / 0.25), st = (4 * L + 2 * Math.PI * w) / 40; // вспухание: стенка отходит наружу и светлеет
+    if (sw > 0) for (let k = 0; k < 40; k++) { const [u, o] = rim(k / 40, L, w * (1 + I.swell * sw * sw)), [px, py] = at(u, o); glow.put(px, py, st * 1.4, 0.75, 0.9, 1, 0.1 + 0.15 * sw); }
+  }
   if (!lk.pili) for (let k = 0; k < 16; k++) { // пили: короткие ворсинки по всей оболочке (без гена фимбрий)
     const t = k / 16 * 6.283, c = Math.cos(t), s = Math.sin(t), l = 1 + 0.25 * Math.sin(time * 3 + k * 1.7 + a.id);
     for (const e of [1.08, 1.32 * l]) { const u = c * (half - w * 0.2) + c * w * (e - 1), [px, py] = along(u, s * w * e + arc(u / z)); ink.put(px, py, 0.9 * z + 0.4, 0.55, 0.9, 1, 0.55); }
@@ -108,14 +120,14 @@ export function skin(c) {
     ink.put(px, py, w * 0.07, 0.95, 0.72, 0.4, 0.55 + 0.3 * m.smell);
   }
   if (lk.receptors && m.smell > 0.02) { const [px, py] = at(L + w * 0.7, 0); glow.put(px, py, w * 0.55, 1, 0.7, 0.35, 0.22 * m.smell * (0.9 + 0.1 * Math.sin(time * 3))); } // у еды — тёплый тусклый огонёк
-  const R = V.grain, fast = lk.ribosomes > cfg.look.ribosomes[0], jit = (fast ? R.jit_fast : R.jit) * w; // крупинки внутри всегда мелко дрожат; у сытой — живее
+  const R = V.grain, fast = lk.ribosomes > cfg.look.ribosomes[0], jit = (fast ? R.jit_fast : R.jit) * w * (1 - ill), tl = m.tl; // крупинки внутри всегда мелко дрожат; у сытой — живее
   const J = (k, s) => Math.sin(time * 31 + k * 7.1 + s) * jit + Math.sin(time * 17 + k * 3.3) * jit * 0.6;
   for (let k = 0; k < (fast ? R.fast_n : lk.ribosomes); k++) { // рибосомы: розовые зёрна; быстрый рост — содержимое гуще и зернистее, темнее
-    const t = k * 2.4 + a.id, u = Math.sin(t + time * 0.2) * (half - w * 0.8), [px, py] = at(u + J(k, 0), Math.cos(t * 1.7 + time * 0.25) * w * 0.45 + J(k, 2));
+    const t = k * 2.4 + a.id, u = Math.sin(t + tl * 0.2) * (half - w * 0.8), [px, py] = at(u + J(k, 0), Math.cos(t * 1.7 + tl * 0.25) * w * 0.45 + J(k, 2));
     if (fast) ink.put(px, py, 1.3 * z + 0.4, 0.42, 0.06, 0.3, 0.6); else glow.put(px, py, 1.6 * z + 0.6, 1, 0.35, 0.75, 0.35);
   }
   for (let k = 0; k < 4; k++) { // зёрна плывут внутри
-    const t = time * (0.5 + k * 0.17) + a.id * 1.3 + k * 2.1, u = Math.sin(t) * (half - w * 0.6), [px, py] = at(u + J(k, 5), Math.cos(t * 1.3) * w * 0.4 + J(k, 7));
+    const t = tl * (0.5 + k * 0.17) + a.id * 1.3 + k * 2.1, u = Math.sin(t) * (half - w * 0.6), [px, py] = at(u + J(k, 5), Math.cos(t * 1.3) * w * 0.4 + J(k, 7));
     ink.put(px, py, 0.9 * z + 0.7, 0.85, 1, 0.95, 0.5);
   }
   // Жгутики (по книге, «Движение»; Berg, «E. coli in Motion»). Состояние у каждой клетки своё и меняется плавно, без щелчков:
@@ -123,7 +135,7 @@ export function skin(c) {
   // На ходу: пучок-штопор за кормой, по нему бежит спиральная волна, в повороте пучок запаздывает по следу тела.
   // Кувырок: моторы переключаются, пучок за долю секунды расходится веером; у части нитей спираль сжимается: шаг и размах вдвое меньше (биолог).
   // Покой: нити расходятся от боков, вяло колышутся и дрожат от ударов молекул воды; пучок собирается ~полсекунды.
-  const F = whips(a, run, pdt, lk.beat, cfg, alive);
+  const F = whips(a, run, pdt, lk.beat * (1 - ill * 0.6 * (0.5 + 0.5 * Math.sin(time * 7 + a.id))), cfg, alive); // заражённая сбивается с ритма
   const mid = (lk.flagella - 1) / 2, sp5 = 5 / lk.flagella, B = F.b, P = F.fan, sb = Math.sin(ang), cb = Math.cos(ang);
   for (let f = 0; f < lk.flagella; f++) {
     const t0 = f * 6.283 / lk.flagella + 0.6 + a.id, c0 = Math.cos(t0), s0 = Math.sin(t0); // место мотора на боку (жгутики по всему телу)

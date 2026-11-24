@@ -7,5 +7,7 @@
  "lock": { "n": 3, "gap": 0.7 },
  "sense": { "n": 9, "ease": 0.4 },
  "grain": { "jit": 0.025, "jit_fast": 0.06, "fast_n": 40 },
- "sleep": { "fall": 1, "wake": 2.5, "edge": 22, "skin": [0.22, 0.3, 0.42], "core": [0.3, 0.14, 0.32], "awake": [0.35, 0.85, 1.0], "awake_core": [0.85, 0.22, 0.62] }
+ "sleep": { "fall": 1, "wake": 2.5, "edge": 22, "skin": [0.22, 0.3, 0.42], "core": [0.3, 0.14, 0.32], "awake": [0.35, 0.85, 1.0], "awake_core": [0.85, 0.22, 0.62] },
+ "ill": { "cloud": 14, "alpha": 0.35, "color": [0.32, 0.28, 0.42], "swell": 0.25 },
+ "lysis": { "drops": 40, "speed": 260, "drag": 5, "life": 1.4, "ghost": 9, "ghost_a": 0.3, "sag": 0.35 }
 }
