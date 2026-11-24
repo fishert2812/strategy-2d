@@ -523,7 +523,7 @@ check('test_L013: новичок без касаний и уворотов не 
     const w = new World(cfg, s * 53); w.dir = s * 1.3; let t = null;
     for (let i = 0; i < 30 * 30 && w.me.length && t === null; i++) {
       w.step(1 / 30, novice(w)); if (w.choice.length) w.pick(w.choice[0]);
-      const e = w.events.find(e => ['grab', 'stick', 'sick', 'zap', 'eaten', 'burst', 'pinch'].includes(e[0])); w.events.length = 0;
+      const e = w.events.find(e => ['grab', 'stick', 'sick', 'bore', 'zap', 'eaten', 'burst', 'pinch'].includes(e[0])); w.events.length = 0;
       if (e || w.amoebas.some(m => w.me.some(a => Math.hypot(a.x - m.x, a.y - m.y) < 120))) t = w.stats.time;
     }
     out.push(t ?? 99);
@@ -622,6 +622,31 @@ check('test_L020: жгутики в цвете оболочки — светло
   if (Math.max(r, g, b) - Math.min(r, g, b) > 0.45) return 'нить слишком насыщенная: точки складываются светом и уходят в зелёный';
   if (!(cfg.flag.alpha <= 0.4)) return 'нить плотнее 0.4: на воде густо и ярко';
   console.log(`    паспорт: нить ${cfg.flag.color} (${h.toFixed(0)}°), оболочка ${hue(shell).toFixed(0)}°, прозрачность ${cfg.flag.alpha}`);
+});
+
+// Урок L022 (Роман, 0.33: «фаги меня убивают красного цвета даже после изучения таланта» — убивала хищная запятая, а прилипший фаг тоже светился красным).
+check('test_L022: убийцу видно и называют верно — фаг не красный, как запятая; экран гибели говорит словами книги, кто убил', () => {
+  const J = f => JSON.parse(readFileSync(new URL(f, import.meta.url))), T = J('./kniga/teksty_sushchestv.json').sushchestva, K = J('./almanah.json');
+  const hue = c => { const [r, g, b] = c, mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn || 1; return ((mx === r ? (g - b) / d : mx === g ? 2 + (b - r) / d : 4 + (r - g) / d) * 60 + 360) % 360; };
+  const sat = c => Math.max(...c) - Math.min(...c), P = cfg.danger.phage, B = cfg.danger.bdello;
+  if (!(sat(P) < 0.25 || Math.min(Math.abs(hue(P) - hue(B)), 360 - Math.abs(hue(P) - hue(B))) > 90)) return 'свечение фага того же цвета, что хищная запятая: ' + P;
+  const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
+  const out = [];
+  for (const [who, put] of [['phage', w => w.cloud(radius(1) + 1, 0, 'me', 0)], ['bdello', w => { w.bdellos = [{ x: 40, y: 0, vx: 0, vy: 0, a: Math.PI, t: 2, id: 8 }]; }],
+    ['amoeba', w => { w.amoebas = [{ x: 5, y: 0, vx: 0, vy: 0, m: 9, id: 50 }]; }]]) {
+    const w = bare(140 + out.length); w.me[0].x = 0; w.me[0].y = 0; put(w); run(w, cfg.inject + cfg.sick + 6, null);
+    if (w.me.length) return `«${who}» не убил голую клетку — сценарий не тот`;
+    if (w.stats.killer !== who) return `убил «${who}», а экран гибели назовёт «${w.stats.killer}»`;
+    const t = T[who]; if (!t || !t.ubil || !t.imya || !t.kto || !t.sovet) return `у «${who}» нет текстов книги для экрана гибели (ubil, imya, kto, sovet)`;
+    if (!K.items[who]) return `у «${who}» нет модели для экрана гибели`;
+    out.push(who + ': ' + t.ubil);
+  }
+  // защита, обещанная картой гена, держит: капсула — от амёбы, новая дверь — от вируса, память — второй вирус бессилен
+  const cap = bare(150); cap.genes.capsule = true; cap.amoebas = [{ x: 5, y: 0, vx: 0, vy: 0, m: 9, id: 50 }]; cap.me[0].x = cap.me[0].y = 0; run(cap, 6, null);
+  if (!cap.me.length) return '«Скользкая шуба» обещает выскользнуть от амёбы, а амёба съела';
+  const lock = bare(151); lock.genes.lock = true; lock.me[0].x = lock.me[0].y = 0; lock.cloud(radius(1) + 1, 0, 'me', 0); run(lock, cfg.inject + cfg.sick + 1, null);
+  if (!lock.me.length) return '«Новая дверь» обещает, что вирус не сядет, а вирус убил';
+  console.log('    паспорт: фаг ' + P + ', запятая ' + B + '; ' + out.join(' | '));
 });
 
 console.log(bad ? 'ЗАПЛЫВ: провалов ' + bad : 'ЗАПЛЫВ: все проверки прошли');
