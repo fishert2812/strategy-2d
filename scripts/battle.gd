@@ -11,6 +11,7 @@ const TEX := {
 ## Люди по сторонам: [наш, врага].
 const UNIT := {
 	"carrier": [preload("res://art/rts/medievalUnit_23.png"), preload("res://art/rts/medievalUnit_05.png")],
+	"warrior": [preload("res://art/rts/medievalUnit_03.png"), preload("res://art/rts/medievalUnit_09.png")],
 }
 const PATH_COLOR := [Color(0.2, 0.45, 1.0, 0.75), Color(0.95, 0.2, 0.15, 0.75)]
 ## Цвет стороны: синие мы, красные враг.
@@ -50,7 +51,7 @@ func restart() -> void:
 	for b in sim.buildings:
 		_on_sim("built", b)
 	for d in sim.deposits:
-		_add_sprite(d.id, TEX.rich if d.max >= 300 else TEX.small, d.pos)
+		_add_sprite(d.id, TEX.rich if d.max >= 400 else TEX.small, d.pos)
 	$End.hide()
 
 
@@ -65,7 +66,7 @@ func _process(dt: float) -> void:
 	for d in sim.deposits:
 		var s: Node2D = _sprites[d.id]
 		s.visible = d.gold > 0
-		s.scale = Vector2.ONE * lerpf(1.0, 2.2, d.gold / 400.0)
+		s.scale = Vector2.ONE * lerpf(1.0, 2.2, d.gold / 600.0)
 	for b in sim.buildings:
 		var bar: ProgressBar = _sprites[b.id].get_node("Hp")
 		bar.value = b.hp / b.max_hp * 100.0
@@ -143,7 +144,7 @@ func _press(pos: Vector2) -> void:
 			ghost.show()
 			return
 	var b := sim.building_at(world.to_local(pos), Sim.PLAYER)
-	if b.get("kind") == "camp":
+	if b.get("kind") in ["camp", "barracks"]:
 		_drag = {"from": b, "line": _line(PATH_COLOR[Sim.PLAYER].lightened(0.4))}
 
 
@@ -153,7 +154,7 @@ func _release(pos: Vector2) -> void:
 	if _drag.has("from"):
 		_drag.line.queue_free()
 		if not sim.set_path(_drag.from, at) and _drag.from.pos.distance_to(at) > 60:
-			hint("тяни тропу к залежи")
+			hint("тяни тропу к залежи" if _drag.from.kind == "camp" else "тяни тропу к зданию врага")
 		_drag = {}
 		return
 	var kind: String = _drag.what

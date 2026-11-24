@@ -45,49 +45,49 @@
         170,
         760
       ],
-      "gold": 150
+      "gold": 240
     },
     {
       "pos": [
         550,
         760
       ],
-      "gold": 150
+      "gold": 240
     },
     {
       "pos": [
         170,
         240
       ],
-      "gold": 150
+      "gold": 240
     },
     {
       "pos": [
         550,
         240
       ],
-      "gold": 150
+      "gold": 240
     },
     {
       "pos": [
         110,
         500
       ],
-      "gold": 400
+      "gold": 600
     },
     {
       "pos": [
         360,
         500
       ],
-      "gold": 400
+      "gold": 600
     },
     {
       "pos": [
         610,
         500
       ],
-      "gold": 400
+      "gold": 600
     }
   ],
   "camp": {
@@ -96,7 +96,19 @@
   },
   "carrier": {
     "speed": 110,
-    "load": 5,
+    "load": 2,
     "hp": 20
+  },
+  "barracks": {
+    "every": 4,
+    "max": 6
+  },
+  "warrior": {
+    "speed": 75,
+    "hp": 60,
+    "damage": 10,
+    "hit_every": 0.8,
+    "reach": 26,
+    "aggro": 90
   }
 }
