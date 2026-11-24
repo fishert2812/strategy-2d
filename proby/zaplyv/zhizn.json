@@ -1,5 +1,5 @@
 {
-	"_": "Паспорт существ: одна запись на существо, по ней их водит движок zhizn.js и по ней же пишется карточка осмотра. Ключи — как в cards.json. est — кого ест; rot — где у него рот (mouth туфелька, bell колокольчик, head коловратка, body амёба обтекает телом); tyaga — откуда тянет поток или как далеко чует (ключи data.json: радиус и сила); syt — после скольких съеденных и на сколько секунд сыт; sito — доля мелочи, что проскакивает сквозь сито; zarazhaet — на кого садится (вирус), zamok — доля тех, у кого замок другой, lipnet — с какого зазора садится, razlet — как быстро разлетаются новые из лопнувшей; gibel — что остаётся после гибели: lysate (лопается соком), nichego (съеден целиком); delitsya — делится: ot food — наевшись, raz_v — раз в столько секунд; opasen — опасен ли тебе.",
+	"_": "Паспорт существ: одна запись на существо, по ней их водит движок zhizn.js и по ней же пишется карточка осмотра. Ключи — как в cards.json. est — кого ест; rot — где у него рот (mouth туфелька, bell колокольчик, head коловратка, body амёба обтекает телом); tyaga — откуда тянет поток или как далеко чует (ключи data.json: радиус и сила); syt — после скольких съеденных и на сколько секунд сыт; sito — доля мелочи, что проскакивает сквозь сито; zarazhaet — на кого садится (вирус), zamok — доля тех, у кого замок другой, lipnet — с какого зазора садится, razlet — как быстро разлетаются новые из лопнувшей; gibel — что остаётся после гибели: lysate (лопается соком), nichego (съеден целиком); delitsya — делится: ot food — наевшись, raz_v — раз в столько секунд; opasen — опасен ли тебе; uchit — кому соседка протягивает трубочку с геном. geny — что ген, полученный соперницей от соседки, делает: ne_berut — кто её больше не берёт, bet — кого она бьёт касанием.",
 	"pasport": {
 		"slipper": { "est": ["coccus", "strain", "pseudo", "donor", "bdello"], "rot": "mouth", "tyaga": ["funnel_r", "funnel", "mouth_r"], "sito": { "bdello": 0.7 }, "syt": [6, 6], "zanyatie": "plyvet", "gibel": "nichego", "opasen": true },
 		"bell": { "est": ["coccus", "strain", "pseudo", "donor"], "rot": "bell", "tyaga": ["vortex_r", "vortex", "mouth_r"], "syt": [5, 6], "zanyatie": "zasada", "gibel": "nichego", "opasen": true },
@@ -10,8 +10,10 @@
 		"coccus": { "est": [], "zanyatie": "drift", "gibel": "lysate", "delitsya": { "raz_v": 20 }, "opasen": false },
 		"strain": { "est": ["food"], "zanyatie": "ryvki", "gibel": "lysate", "delitsya": { "ot": "food" }, "opasen": false },
 		"pseudo": { "est": ["food"], "zanyatie": "ryvki", "gibel": "lysate", "opasen": true },
-		"donor": { "est": [], "zanyatie": "drift", "gibel": "lysate", "opasen": false }
+		"donor": { "est": [], "uchit": ["strain"], "zanyatie": "drift", "gibel": "lysate", "opasen": false }
 	},
+	"geny": { "capsule": { "ne_berut": ["amoeba", "bdello"] }, "crispr": { "ne_berut": ["phage"] }, "toxin": { "bet": ["me"] } },
+	"uchit_r": 14,
 	"eat_r": 14,
 	"food_m": 0.12,
 	"split_m": 2,
