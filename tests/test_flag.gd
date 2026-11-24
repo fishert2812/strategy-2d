@@ -80,7 +80,7 @@ func test_end_screen_sends_in_one_tap() -> String:
 			return "в разборе нет «%s»: %s" % [need, sent.get("body", "").left(300)]
 	if sent.url.length() > max_url or not sent.url.contains("labels=feedback"):
 		return "адрес заявки %d знаков или без метки" % sent.url.length()
-	if send_text != "GitHub открыт: войди и нажми Create":
+	if send_text != "GitHub: войди и нажми Create":
 		return "кнопка не сказала, что разбор ушёл"
 	return ""
 
@@ -89,8 +89,12 @@ func test_end_screen_sends_in_one_tap() -> String:
 func test_mark_reads_as_not_right() -> String:
 	var battle: Control = await t._battle(t.SIZES[0])
 	var b: Button = battle.flag_button
+	var hud0: Vector2 = battle.get_node("Hud").size
+	var x0 := b.get_global_rect().position.x
 	var looks := [b.text, b.get_theme_color("icon_normal_color"), Color(battle.look.flag.color)]
 	t._tap(battle, _flag(battle))
+	await (Engine.get_main_loop() as SceneTree).process_frame
+	var wide := "%s %s до %s" % [b.get_global_rect(), battle.get_node("Hud").size, hud0] if b.get_global_rect().position.x != x0 or battle.get_node("Hud").size != hud0 else ""  # подсказка распёрла экран
 	var marks: int = battle.things.get_children().filter(func(s): return s is Sprite2D and s.texture.resource_path.ends_with("flag.png")).size()
 	for x in battle.sim.of_side(Sim.ENEMY):
 		battle.sim.damage(x, 1e9)
@@ -100,6 +104,8 @@ func test_mark_reads_as_not_right() -> String:
 	battle.get_parent().free()
 	if looks[0] != "не так" or looks[1] != looks[2]:
 		return "кнопка «%s» цвета %s, ждали «не так» и розовый" % [looks[0], looks[1]]
+	if wide != "":
+		return "подсказка после касания шире экрана, кнопки уехали: " + wide
 	if marks != 0:
 		return "касание оставило значок у кнопки"
 	if end != "Отметки: 0:00" or not title.contains("без слов") or title.contains("партия"):

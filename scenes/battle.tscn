@@ -122,9 +122,11 @@ modulate = Color(1, 1, 1, 0)
 layout_mode = 2
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 8
-theme_override_font_sizes/font_size = 34
+theme_override_font_sizes/font_size = 30
 text = " "
 horizontal_alignment = 1
+clip_text = true
+text_overrun_behavior = 3
 
 [node name="Spacer" type="Control" parent="Hud/Box"]
 layout_mode = 2
@@ -195,9 +197,11 @@ mouse_filter = 2
 theme_override_colors/font_color = Color(1, 0.86, 0.84, 1)
 theme_override_colors/font_outline_color = Color(0.35, 0, 0, 1)
 theme_override_constants/outline_size = 10
-theme_override_font_sizes/font_size = 34
+theme_override_font_sizes/font_size = 30
 text = " "
 horizontal_alignment = 1
+clip_text = true
+text_overrun_behavior = 3
 
 [node name="End" type="ColorRect" parent="."]
 visible = false
@@ -250,6 +254,7 @@ custom_minimum_size = Vector2(340, 96)
 layout_mode = 2
 theme_override_font_sizes/font_size = 40
 text = "Отправить разбор"
+clip_text = true
 
 [node name="Phrase" type="Button" parent="End/Center/Box"]
 custom_minimum_size = Vector2(340, 72)

@@ -52,7 +52,7 @@ func _ready() -> void:
 	# Прозрачная кнопка страницы ложится на «Отправить разбор», когда экран итога разложен.
 	$End/Center/Box/Send.item_rect_changed.connect(func(): if $End.visible: $Report.arm($End/Center/Box/Send))
 	$End/Center/Box/Phrase.pressed.connect($Report.open)
-	$Report.sent_out.connect(func(): $End/Center/Box/Send.text = "GitHub открыт: войди и нажми Create")
+	$Report.sent_out.connect(func(): $End/Center/Box/Send.text = "GitHub: войди и нажми Create")
 	flag_button.icon = load(look.flag.file)
 	for c in ["icon_normal_color", "icon_pressed_color", "icon_hover_color", "icon_focus_color"]:  # розовый, не белый флаг «сдаюсь»
 		flag_button.add_theme_color_override(c, Color(look.flag.color))
@@ -467,7 +467,7 @@ func put_flag(at: Variant) -> void:
 		things.add_child(s)
 		s.create_tween().tween_property(s, "modulate:a", look.flag.after, 0.5).set_delay(look.flag.show)
 	$Feedback.play("path")
-	hint("отмечено %s%s" % [BlackBox._clock(f.t), "" if at != null else " · тяни на стол, чтобы отметить место"], false)
+	hint("отмечено %s%s" % [BlackBox._clock(f.t), "" if at != null else " · тяни на стол"], false)
 
 
 func hint(text: String, error := true) -> void:
