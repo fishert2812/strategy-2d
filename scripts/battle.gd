@@ -42,6 +42,7 @@ var _glow := Node2D.new()
 
 func _ready() -> void:
 	_preload(look)
+	_warm_up()
 	$Hud/Box/Top/Sha.text = Version.label()
 	$Grass.texture = _tex(look.background)
 	$Grass.modulate = Color(look.background_tint)
@@ -122,6 +123,10 @@ func _process(dt: float) -> void:
 	for b in sim.buildings:
 		# Прочность кружки видна креном: чем сильнее побита, тем сильнее кренится.
 		if b.kind == "home":
+			for st in look.home.get("states", []):
+				if b.hp / b.max_hp > st[0]:
+					_sprites[b.id].texture = _tex(st[1][b.side])
+					break
 			_sprites[b.id].rotation_degrees = look.home_tilt[mini(3, int((1.0 - b.hp / b.max_hp) * 4.0))]
 		# Голодный коробок: крошек на воина нет — темнеет.
 		_sprites[b.id].self_modulate = Color(0.45, 0.42, 0.4) if b.hungry else Color.WHITE
@@ -160,6 +165,8 @@ func _sync_units(dt: float) -> void:
 			var s := Sprite2D.new()
 			_fit(s, look[u.kind], _tex(look[u.kind].files[u.side]))
 			motion.attach(s)
+			if look[u.kind].has("frames"):
+				motion.frames(s, look[u.kind].frames[u.side].map(_tex), look[u.kind].pose)
 			s.position = u.pos
 			things.add_child(s)
 			_units[u.id] = s
@@ -587,6 +594,24 @@ func _preload(v) -> void:
 			_preload(x)
 	elif v is String and not v.is_empty() and ResourceLoader.exists(look.dir + v + ".png"):
 		_loaded.append(_tex(v))
+
+
+## Каждую картинку один раз нарисовать при входе, крошечной и почти прозрачной: в браузере первая
+## отрисовка картинки (кадр удара посреди боя) давала рывок кадра. Через два кадра прогрев убираем.
+func _warm_up() -> void:
+	var warm := Node2D.new()
+	warm.name = "Warm"
+	warm.modulate.a = 0.01
+	for t in _loaded:
+		var s := Sprite2D.new()
+		s.texture = t
+		s.scale = Vector2.ONE * 8.0 / t.get_width()
+		s.position = Vector2(8, 8)
+		warm.add_child(s)
+	add_child(warm)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	warm.queue_free()
 
 
 func _tex(file: String) -> Texture2D:
