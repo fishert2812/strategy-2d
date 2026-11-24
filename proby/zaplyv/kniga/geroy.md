@@ -6,9 +6,19 @@
 
 ![Ты в игре](img/zaplyv.jpg)
 
-{{zapisi:geroy}}
+{{zapisi:geroy:Герой}}
+
+## Держаться вместе
+
+Роман, 24.11: «расплываются у нас в разные стороны бактерии… чтобы бактерии держались с друг другом вместе!… В общем проблему превратить в достоинство игры!»
+
+В природе это настоящее умение кишечной палочки, и у него настоящая цена. Поэтому в игре это не починка, а выбор: плотом или врассыпную.
+
+{{zapisi:geroy:Вместе}}
 
 ## Источники
 
 1. Madigan M. и др. *Brock Biology of Microorganisms*, 16-е изд., 2021.
 2. Blount Z. The unexhausted potential of *E. coli*. *eLife*, 2015.
+3. van der Woude M., Henderson I. Regulation and function of Ag43 (Flu). *Annual Review of Microbiology*, 2008.
+4. Matz C., Kjelleberg S. Off the hook: how bacteria survive protozoan grazing. *Trends in Microbiology*, 2005.
