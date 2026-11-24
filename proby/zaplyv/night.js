@@ -1,4 +1,4 @@
-// «Ночь рода» (книга, Э1–Э5; design/zaplyv_noch_roda_spec.md): после гибели твой род живёт 1000 поколений на «мега-чашке»
+// «Ночь рода» (книга, В18–В22; design/zaplyv_noch_roda_spec.md): после гибели твой род живёт 1000 поколений на «мега-чашке»
 // (Baym и др., Science, 2016): снизу вверх полосы всё гуще опасностью. Игрок выбирает только опасность; перемены случайны —
 // каждая перемена при делении будит спящий ген или теряет свой, и новый набор генов становится новой веткой.
 // Модуль без экрана (как sim.js): night() чистая, её гоняет test.mjs и рисует main.js. Числа — в night.json.
@@ -10,10 +10,10 @@ function rng(seed) {
 
 // start: { genes: [ключи], n: клеток на старте }, danger: 'phage' | 'maw' | 'hunger', all: все гены игры (ключи data.json genes)
 export function night(start, danger, seed, N, all) {
-  const r = rng(seed), C = Math.min(N.cols, N.cols_base + N.cols_per_cell * Math.max(1, start.n | 0)) /* большой род занимает чашку шире: больше делений — больше перемен (Э5) */, R = N.rows, W = N.weights[danger] || {}, nb = N.bands.length;
+  const r = rng(seed), C = Math.min(N.cols, N.cols_base + N.cols_per_cell * Math.max(1, start.n | 0)) /* большой род занимает чашку шире: больше делений — больше перемен (В22) */, R = N.rows, W = N.weights[danger] || {}, nb = N.bands.length;
   const grid = new Int32Array(C * R).fill(-1); // номер ветки или −1
   const band = y => Math.min(nb - 1, Math.floor(y / (R / nb))), power = y => N.bands[band(y)];
-  const upkeep = genes => N.grow * (1 - N.upkeep * genes.filter(g => !((W[g] || 0) > 0)).length); // ненужный ген — лишний груз: такие делятся реже (Э2)
+  const upkeep = genes => N.grow * (1 - N.upkeep * genes.filter(g => !((W[g] || 0) > 0)).length); // ненужный ген — лишний груз: такие делятся реже (В19)
   const shield = genes => { let s = 0; for (const g of genes) s += W[g] || 0; return Math.min(N.protect_max, s); };
   const branches = [{ id: 0, parent: -1, genes: [...start.genes].sort(), born: 0, color: N.palette[0], top: 0, alive: 0, shield: 0, grow: 0 }];
   branches[0].shield = shield(branches[0].genes); branches[0].grow = upkeep(branches[0].genes);
@@ -23,7 +23,7 @@ export function night(start, danger, seed, N, all) {
   const branchOf = (p, genes) => { const k = genes.join(','); if (key.has(k)) return key.get(k);
     const b = { id: branches.length, parent: p, genes, born: o.gen, color: N.palette[branches.length % N.palette.length], top: 0, alive: 0, shield: shield(genes), grow: upkeep(genes) };
     branches.push(b); key.set(k, b.id); return b.id; };
-  const mutate = id => { // перемена при делении: будит спящий ген или теряет свой; ненужное теряется охотнее (Э2)
+  const mutate = id => { // перемена при делении: будит спящий ген или теряет свой; ненужное теряется охотнее (В19)
     const own = branches[id].genes, sleep = all.filter(g => !own.includes(g));
     if (own.length && (!sleep.length || r() < 0.5)) {
       const w = own.map(g => (W[g] || 0) > 0 ? 1 : N.lose_useless), sum = w.reduce((a, b) => a + b); let q = r() * sum, i = 0;

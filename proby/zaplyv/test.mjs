@@ -625,7 +625,7 @@ check('test_L020: жгутики в цвете оболочки — светло
   console.log(`    паспорт: нить ${cfg.flag.color} (${h.toFixed(0)}°), оболочка ${hue(shell).toFixed(0)}°, прозрачность ${cfg.flag.alpha}`);
 });
 
-// «Ночь рода» (design/zaplyv_noch_roda_spec.md, книга Э1–Э5): гибель не стирает всё — за ночь род прорывается через полосы опасности.
+// «Ночь рода» (design/zaplyv_noch_roda_spec.md, книга В18–В22): гибель не стирает всё — за ночь род прорывается через полосы опасности.
 const NJ = JSON.parse(readFileSync(new URL('./night.json', import.meta.url))), ALL = Object.keys(cfg.genes);
 check('test_night_breakthrough: род без генов против фагов — выше всех доходит ветка с замком или CRISPR', () => {
   const o = night({ genes: [], n: 1 }, 'phage', 1, NJ, ALL).run(), res = o.result(), b = res.picks.find(p => p.id === res.best);
@@ -635,12 +635,12 @@ check('test_night_breakthrough: род без генов против фагов
   if (b.band < 3) return 'лучшая ветка не прошла выше третьей полосы: полоса ' + (b.band + 1);
   const root = res.picks.find(p => p.id === 0); if (root && root.band >= 3) return 'исходный род без защиты дошёл до густой полосы — опасность не мешает';
 });
-check('test_night_size: большой род даёт больше веток за ночь, чем одна клетка (Э5)', () => {
+check('test_night_size: большой род даёт больше веток за ночь, чем одна клетка (В22)', () => {
   let a = 0, b = 0; for (const s of [1, 2, 3, 4, 5]) { a += night({ genes: [], n: 1 }, 'phage', s, NJ, ALL).run().branches.length; b += night({ genes: [], n: 8 }, 'phage', s, NJ, ALL).run().branches.length; }
   console.log(`    паспорт: веток за пять ночей — из одной клетки ${a}, из восьми ${b}`);
   if (!(b > a)) return 'большой род не богаче ветками';
 });
-check('test_night_lose: против пасти ненужный быстрый рост теряется (Э2)', () => {
+check('test_night_lose: против пасти ненужный быстрый рост теряется (В19)', () => {
   const o = night({ genes: ['fast'], n: 3 }, 'maw', 2, NJ, ALL).run(); let all = 0, fast = 0;
   for (const v of o.grid) if (v >= 0) { all++; if (o.branches[v].genes.includes('fast')) fast++; }
   console.log(`    паспорт: выживших ${all}, с быстрым ростом ${fast} (${(fast / all * 100).toFixed(0)} %), на старте 100 %`);
