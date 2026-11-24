@@ -403,7 +403,7 @@ function flag(screen, btn) {
   marks.push({ at, text });
   try { localStorage.setItem('zaplyv.marks', JSON.stringify(marks)); } catch (_) {}
   showMarks();
-  const n = $('note'); n.textContent = `⚑ Отметка ${marks.length} записана` + (screen === 'игра' ? ' · отправить — на паузе' : ''); n.classList.add('on');
+  const n = $('note'); n.classList.remove('ok'); n.textContent = `⚑ Отметка ${marks.length} записана` + (screen === 'игра' ? ' · отправить — на паузе' : ''); n.classList.add('on');
   clearTimeout(noteT); noteT = setTimeout(() => n.classList.remove('on'), 2200);
   if (btn) { btn.classList.remove('hit'); void btn.offsetWidth; btn.classList.add('hit'); }
   try { beep(880, 0.08, 0.04, 'sine', 0.8); } catch (_) {}
@@ -411,7 +411,7 @@ function flag(screen, btn) {
 async function send() {
   const text = message(marks);
   try {
-    const files = []; for (const [i, m] of marks.entries()) if (m.img) try { files.push(new File([await (await fetch(m.img)).blob()], `ne_tak_${i + 1}.jpg`, { type: 'image/jpeg' })); } catch (_) {}
+    const files = []; for (const [i, m] of marks.entries()) for (const [u, nm] of [[m.img, 'mesto'], [m.full, 'kadr']]) if (u) try { files.push(new File([await (await fetch(u)).blob()], `ne_tak_${i + 1}_${nm}.jpg`, { type: 'image/jpeg' })); } catch (_) {} // кусок и весь кадр
     if (navigator.share && files.length && navigator.canShare?.({ files })) await navigator.share({ text, files }); // картинки мест — вместе со словами
     else if (navigator.share) await navigator.share({ text });
     else { await navigator.clipboard.writeText(text); say('Скопировано — вставь в чат', 2200); }
@@ -434,21 +434,23 @@ $('flag').addEventListener('pointercancel', () => { fdrag.on = false; if (fdrag.
 function flagAt(cx, cy) { // вырезаем кусок кадра вокруг флажка: 220 точек, флажок в нём
   $('fpin').hidden = true;
   render(paint.t || performance.now() / 1000); // свежий кадр в буфере — сразу снимаем
-  const k = canvas.width / innerWidth, S = cfg.flag_cut, c = document.createElement('canvas'); c.width = c.height = 320;
+  const k = canvas.width / innerWidth, S = Math.min(innerWidth, innerHeight) * cfg.flag_cut, c = document.createElement('canvas'); c.width = c.height = 320;
   const x0 = Math.max(0, Math.min(innerWidth - S, cx - S / 2)), y0 = Math.max(0, Math.min(innerHeight - S, cy - S / 2));
   const g = c.getContext('2d'); g.drawImage(canvas, x0 * k, y0 * k, S * k, S * k, 0, 0, 320, 320);
-  const fx = (cx - x0) / S * 320, fy = (cy - y0) / S * 320; g.strokeStyle = '#ffb48a'; g.lineWidth = 3; g.beginPath(); g.arc(fx, fy, 22, 0, 6.283); g.stroke(); // где стоял флажок
+  const fx = (cx - x0) / S * 320, fy = (cy - y0) / S * 320; g.strokeStyle = 'rgba(0,0,0,0.55)'; g.lineWidth = 7; g.beginPath(); g.arc(fx, fy, 22, 0, 6.283); g.stroke(); g.strokeStyle = '#ffb48a'; g.lineWidth = 3; g.stroke(); // где стоял флажок: рамка 3 на тёмном гало
   const [ux, uy] = unit({ clientX: cx, clientY: cy }), wp = toWorld(ux, uy);
   FLAG.img = c.toDataURL('image/jpeg', 0.8); FLAG.wp = wp;
+  const a = document.createElement('canvas'); a.width = 360; a.height = Math.round(360 * innerHeight / innerWidth); a.getContext('2d').drawImage(canvas, 0, 0, a.width, a.height); FLAG.full = a.toDataURL('image/jpeg', 0.7); // и весь кадр — где это было
+  $('fsheet').classList.toggle('top', cy > innerHeight / 2); // лист от дальнего края: место под флажком остаётся видно
   $('fimg').src = FLAG.img; $('ftext').value = ''; $('fsheet').classList.add('on');
 }
 const FLAG = {};
 $('fsave').onclick = () => {
   const words = $('ftext').value.trim(), now = new Date(), at = `${now.getDate()}.${String(now.getMonth() + 1).padStart(2, '0')} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
   let text; try { text = mark(world, cards, $('ver').textContent.replace('Заплыв ', ''), 'флажок на месте', cfg.flag_pin_r, FLAG.wp); } catch (e) { text = $('ver').textContent + ' · флажок на месте'; }
-  marks.push({ at, text: (words ? '«' + words + '» · ' : '') + text, img: FLAG.img });
-  try { localStorage.setItem('zaplyv.marks', JSON.stringify(marks)); } catch (_) { marks[marks.length - 1].img = ''; try { localStorage.setItem('zaplyv.marks', JSON.stringify(marks)); } catch (_) {} } // место кончилось — оставим слова
-  showMarks(); fclose(); const n = $('note'); n.textContent = `⚑ Отметка ${marks.length} записана с картинкой · отправить — на паузе`; n.classList.add('on'); clearTimeout(noteT); noteT = setTimeout(() => n.classList.remove('on'), 2200);
+  marks.push({ at, text: (words ? '«' + words + '» · ' : '') + text, img: FLAG.img, full: FLAG.full });
+  try { localStorage.setItem('zaplyv.marks', JSON.stringify(marks)); } catch (_) { marks[marks.length - 1].img = marks[marks.length - 1].full = ''; try { localStorage.setItem('zaplyv.marks', JSON.stringify(marks)); } catch (_) {} } // место кончилось — оставим слова
+  showMarks(); fclose(); const n = $('note'), q = marks.length; n.textContent = q > 1 ? `⚑ Записано · ${q} ${q % 10 >= 2 && q % 10 <= 4 && (q % 100 < 12 || q % 100 > 14) ? 'отметки ждут' : q % 10 === 1 && q % 100 !== 11 ? 'отметка ждёт' : 'отметок ждут'} отправки` : '⚑ Записано с картинкой · отправить — на паузе'; n.classList.add('on', 'ok'); clearTimeout(noteT); noteT = setTimeout(() => n.classList.remove('on'), 2200);
 };
 const fclose = () => { $('fsheet').classList.remove('on'); frozen = false; };
 $('fcancel').onclick = fclose;
