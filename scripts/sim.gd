@@ -118,7 +118,7 @@ func _hit(u: Dictionary, x: Dictionary) -> void:
 	if u.cd > 0:
 		return
 	u.cd = cfg.warrior.hit_every
-	changed.emit("hit", {"side": u.side, "pos": x.pos})
+	changed.emit("hit", {"side": u.side, "pos": x.pos, "id": x.id, "max_hp": x.get("max_hp", 0)})
 	if x.has("max_hp"):
 		damage(x, cfg.warrior.siege)
 		return

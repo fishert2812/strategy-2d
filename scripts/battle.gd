@@ -20,6 +20,7 @@ const TOP := 90.0
 const BOTTOM := 190.0
 
 var sim: Sim
+var shake := 0.0
 var enemy: Enemy
 var _sprites := {}
 var _drag := {}
@@ -49,6 +50,7 @@ func restart() -> void:
 	ghost.hide()
 	sim = Sim.new()
 	sim.changed.connect(_on_sim)
+	sim.changed.connect($Feedback.on_sim)
 	enemy = Enemy.new(sim)
 	for b in sim.buildings:
 		_on_sim("built", b)
@@ -62,6 +64,8 @@ func _process(dt: float) -> void:
 	sim.step(dt)
 	var field := Sim._v(sim.cfg.field)
 	world.position = Vector2((size.x - field.x) / 2, TOP + (size.y - TOP - BOTTOM - field.y) / 2)
+	world.position += Vector2(randf_range(-shake, shake), randf_range(-shake, shake))
+	shake = move_toward(shake, 0.0, dt * 40.0)
 	$Hud/Box/Top/Gold.text = "Золото %d" % sim.gold[Sim.PLAYER]
 	$Hud/Box/Top/Time.text = "%d:%02d" % [int(sim.time) / 60, int(sim.time) % 60]
 	for kind in buttons:
@@ -174,6 +178,7 @@ func _release(pos: Vector2) -> void:
 func hint(text: String) -> void:
 	var label: Label = $Hud/Box/Hint
 	label.text = text
+	$Feedback.play("error")
 	label.modulate.a = 1.0
 	create_tween().tween_property(label, "modulate:a", 0.0, 1.2).set_delay(0.6)
 
@@ -197,6 +202,10 @@ func _on_sim(what: String, data: Dictionary) -> void:
 		"ended":
 			$End/Center/Box/Title.text = "Победа!" if data.winner == Sim.PLAYER else "Поражение"
 			$End.show()
+
+
+func sprite_of(id: int) -> Node2D:
+	return _sprites.get(id, _units.get(id))
 
 
 func _add_sprite(id: int, tex: Texture2D, pos: Vector2) -> Sprite2D:
