@@ -102,5 +102,41 @@ check('test_vid_zap_instant: гарпун бьёт мгновенно — штр
   const first = strokes(); for (let i = 0; i < 9; i++) strokes(); // drawUnder сам продвигает гарпун на 1/60 с
   return first < 5 ? 'удара не видно' : strokes() ? 'штрих висит дольше ' + vid.V.zap.flash + ' с — это летящий снаряд, а не выстрел' : '';
 });
+check('test_vid_abort: сестра, умершая за своих, гаснет целой — без брызг и призрака, за 2–3 с', () => {
+  const C = { r: 1, g: 1, b: 1 }, fx = new Fx({}, [C, C, C]); fx.reset(); fx.on('abort', 0, 0, 0, 1);
+  if (!fx.dead.length) return 'гибели не видно';
+  if (fx.drops.length || fx.ghosts.length) return 'есть брызги или призрак — так лопается от вируса, а не гаснет за своих';
+  const dots = () => { let n = 0; const b = { put: () => n++ }; fx.drawUnder({ scr: (x, y) => [x, y], z: 1, time: 0, glow: b, ink: b }); return n; };
+  if (dots() < 20) return 'тело не нарисовано';
+  for (let i = 0; i < 60; i++) fx.step(1 / 30); if (!fx.dead.length) return 'погасла быстрее 2 с';
+  for (let i = 0; i < 30; i++) fx.step(1 / 30); return fx.dead.length ? 'не гаснет за 3 с' : '';
+});
+check('test_vid_eaten_each: у каждого едока своя гибель; в амёбе клетка бьётся в пузыре и плывёт вместе с ней', () => {
+  const C = { r: 1, g: 1, b: 1 }, miss = [], sig = new Set();
+  for (const who of ['amoeba', 'slipper', 'bell', 'roti', 'bdello', 'pseudo']) {
+    const fx = new Fx({}, [C, C, C]); fx.reset(); const am = { x: 0, y: 0 }; fx.world = { me: [], amoebas: [am], slippers: [am], bells: [am], rotis: [am] };
+    fx.on('eaten', 0, 0, who); if (!fx.eats.length) { miss.push(who + ': нет анимации'); continue; }
+    const S = fx.eats[0].S; sig.add(JSON.stringify(S));
+    if (S.life < 1.5) miss.push(who + ': короче 1,5 с');
+    if (who === 'amoeba') { const at = () => { let p = null; const b = { put: (x, y) => { p = p || [x, y]; } }; fx.drawOver({ scr: (x, y) => [x, y], z: 1, time: 0, glow: b, ink: b }); return p; };
+      const p0 = at(); am.x += 50; const p1 = at(); if (!p0 || !p1 || Math.abs(p1[0] - p0[0] - 50) > 1) miss.push('в амёбе пузырь не плывёт с ней');
+      if (S.fight < 2) miss.push('в амёбе клетка не бьётся секунды'); }
+  }
+  if (sig.size < 6) miss.push('смерти повторяются: разных ' + sig.size + ' из 6');
+  return miss.join('; ');
+});
+check('test_vid_defend: отбилась — у каждой защиты свой след: дуга на борту у врага, клочья при рывке из пасти, мазок слизи у амёбы', () => {
+  const C = { r: 1, g: 1, b: 1 }, miss = [], me = { x: 0, y: 0, vx: 220, vy: 0, m: 4, a: 0 };
+  const run = (k, x, y) => { const fx = new Fx({}, [C, C, C]); fx.reset(); fx.world = { me: [me], amoebas: [{ x: 60, y: 0 }] }; fx.on(k, x, y); fx.step(0.3);
+    const pts = []; const b = { put: (px, py) => pts.push([px, py]) }; fx.drawOver({ scr: (u, v) => [u, v], z: 1, time: 0, glow: b, ink: b }); return { fx, pts }; };
+  const sh = run('shrug', 30, 0); if (!sh.fx.flicks.length) miss.push('новая дверь: нет дуги');
+  else { const q = sh.fx.flicks[0]; if (q.x <= 0 || q.x >= 30) miss.push('дуга не на борту между клеткой и вирусом'); if (sh.pts.length < 8) miss.push('дуга не видна через 0,3 с'); }
+  const ph = run('shake', 30, 0); if (!ph.fx.flicks.length || ph.fx.flicks[0].kind !== 1) miss.push('стряхнула вирус: нет своего следа');
+  const es = run('shake', 0, 0); if (es.fx.flicks.length || es.fx.drops.length < 6) miss.push('вырвалась из пасти: нет клочьев');
+  else if (es.fx.drops.some(p => p.vx > 0)) miss.push('клочья летят вперёд, а не остаются позади');
+  const sl = run('slip', 0, 0); if (sl.fx.drops.length < 6 || sl.fx.drops.some(p => p.vx < 0)) miss.push('выскользнула: нет мазка слизи к амёбе');
+  for (const [n, r] of [['shrug', sh], ['shake', ph], ['slip', sl]]) if (r.fx.rings.length) miss.push(n + ': всё ещё простое кольцо');
+  return miss.join('; ');
+});
 console.log(bad ? 'ВИД: провалов ' + bad : 'ВИД: все проверки прошли');
 process.exit(bad ? 1 : 0);

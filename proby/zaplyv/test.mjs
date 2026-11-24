@@ -609,7 +609,7 @@ check('test_L019: Альманах — разделы, счёт словами, 
   if (P.blocks.map(b => b[0]).join() !== 'КТО ЭТО,СОВЕТ,В ПРИРОДЕ' || !P.blocks[2][3].includes('С3')) return 'страница: ' + JSON.stringify(P.blocks.map(b => [b[0], b[3]]));
   G.gruppa = Object.fromEntries(J('./genome.json').arcs.flatMap(a => a.slots.map(x => [x.id, a.name])));
   const Gq = page('gene:capsule', K, E, cards, T, G, met); if (Gq.line !== 'Защита · Г11' || Gq.blocks[0][1] === Gq.line) return 'подзаголовок гена не «группа · номер»: ' + Gq.line;
-  if (Gp.name !== 'Скользкая шуба' || Gp.blocks[1][0] !== 'В ПРИРОДЕ' || !Gp.blocks[1][3].includes('Г11')) return 'страница гена: ' + JSON.stringify(Gp);
+  if (Gp.name !== 'Скользкая оболочка' || Gp.blocks[1][0] !== 'В ПРИРОДЕ' || !Gp.blocks[1][3].includes('Г11')) return 'страница гена: ' + JSON.stringify(Gp);
   if (N.met || N.name === T.bdello.imya || !N.line) return 'невстреченный выдаёт имя или не говорит, где искать';
   console.log('    паспорт: ' + S2.count + '; ' + S2.pills.map(p => p.label).join(' / ') + '; амёба: ' + P.blocks.map(b => b[0]).join(' · ') + '; ген: ' + Gp.name);
 });
@@ -673,9 +673,9 @@ check('test_L022: убийцу видно и называют верно — ф�
   }
   // защита, обещанная картой гена, держит: капсула — от амёбы, новая дверь — от вируса, память — второй вирус бессилен
   const cap = bare(150); cap.genes.capsule = true; cap.amoebas = [{ x: 5, y: 0, vx: 0, vy: 0, m: 9, id: 50 }]; cap.me[0].x = cap.me[0].y = 0; run(cap, 6, null);
-  if (!cap.me.length) return '«Скользкая шуба» обещает выскользнуть от амёбы, а амёба съела';
+  if (!cap.me.length) return '«Скользкая оболочка» обещает выскользнуть от амёбы, а амёба съела';
   const lock = bare(151); lock.genes.lock = true; lock.me[0].x = lock.me[0].y = 0; lock.cloud(radius(1) + 1, 0, 'me', 0); run(lock, cfg.inject + cfg.sick + 1, null);
-  if (!lock.me.length) return '«Новая дверь» обещает, что вирус не сядет, а вирус убил';
+  if (!lock.me.length) return '«Вирус не прилипает» обещает, что вирус не сядет, а вирус убил';
   console.log('    паспорт: фаг ' + P + ', запятая ' + B + '; ' + out.join(' | '));
 });
 
