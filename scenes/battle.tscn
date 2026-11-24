@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/battle.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/feedback.gd" id="5"]
+[ext_resource type="Texture2D" path="res://art/table/icon_gold.png" id="6"]
 
 [ext_resource type="PackedScene" path="res://scenes/report.tscn" id="9"]
 
@@ -71,6 +72,34 @@ theme_override_constants/outline_size = 8
 theme_override_font_sizes/font_size = 40
 text = "0:00"
 horizontal_alignment = 1
+
+[node name="Whistle" type="TextureProgressBar" parent="Hud/Box/Top"]
+custom_minimum_size = Vector2(84, 84)
+layout_mode = 2
+mouse_filter = 2
+pivot_offset = Vector2(42, 42)
+max_value = 1.0
+step = 0.0
+value = 1.0
+fill_mode = 4
+nine_patch_stretch = true
+texture_under = ExtResource("6")
+texture_progress = ExtResource("6")
+tint_under = Color(0.25, 0.2, 0.15, 0.6)
+
+[node name="Left" type="Label" parent="Hud/Box/Top/Whistle"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 32
+text = "20"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="Sha" type="Label" parent="Hud/Box/Top"]
 layout_mode = 2
