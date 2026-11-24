@@ -235,7 +235,7 @@ function snap(k, it) {
 // Значок гена (макет дизайнера: круг, тело приглушено, часть, которую даёт ген, подсвечена). Снимаем клетку без гена и с геном
 // той же студией, что Альманах, и оставляем ярким только то, что изменилось: сам ген на теле. Кеш — снимаем один раз.
 const icons = new Map();
-function geneShot(g, NW, NH) {
+function geneShot(g, NW, NH, crop = 0) {
   const grab = genes => {
     const keep = [world, view, kids, down, moved, fx.rings, puffs, fx.zaps, paint.t], c = document.createElement('canvas'); c.width = NW; c.height = NH;
     try {
@@ -252,10 +252,23 @@ function geneShot(g, NW, NH) {
     const d = Math.min(1, (Math.abs(b[i] - a[i]) + Math.abs(b[i + 1] - a[i + 1]) + Math.abs(b[i + 2] - a[i + 2])) / 90);
     for (let j = 0; j < 3; j++) b[i + j] = a[i + j] * cfg.icon_dim * (1 - d) + Math.min(255, b[i + j] * 1.25) * d;
   }
-  const c = document.createElement('canvas'); c.width = NW; c.height = NH; c.getContext('2d').putImageData(B, 0, 0); return c.toDataURL('image/jpeg', 0.85);
+  const c = document.createElement('canvas'); c.width = NW; c.height = NH; c.getContext('2d').putImageData(B, 0, 0);
+  if (!crop) return c.toDataURL('image/jpeg', 0.85);
+  // Значок кадрируется по подсвеченной части: она занимает не меньше половины кружка, тело лишь краем (дизайнер, Э16).
+  const D = new Float32Array(NW * NH); let x0 = NW, y0 = NH, x1 = -1, y1 = -1;
+  for (let y = 0; y < NH; y++) for (let x = 0; x < NW; x++) { const i = (y * NW + x) * 4, v = Math.abs(b[i] - a[i] * cfg.icon_dim) + Math.abs(b[i + 1] - a[i + 1] * cfg.icon_dim) + Math.abs(b[i + 2] - a[i + 2] * cfg.icon_dim);
+    if (v > 150) { D[y * NW + x] = 1; x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); } }
+  const S = x1 < 0 ? NW : Math.max(NW * 0.3, Math.min(NW * 0.5, Math.max(x1 - x0, y1 - y0) * 1.5)); // окно: часть крупно, тело краем
+  let best = -1, cx = NW / 2, cy = NH / 2; // окно ставим туда, где подсвеченного больше всего
+  if (x1 >= 0) for (let y = 0; y + S <= NH; y += 8) for (let x = 0; x + S <= NW; x += 8) { let n = 0; for (let v = y; v < y + S; v += 4) for (let u = x; u < x + S; u += 4) n += D[(v | 0) * NW + (u | 0)];
+    if (n > best) { best = n; cx = x + S / 2; cy = y + S / 2; } }
+  const o = document.createElement('canvas'); o.width = o.height = crop;
+  o.getContext('2d').drawImage(c, Math.max(0, Math.min(NW - S, cx - S / 2)), Math.max(0, Math.min(NH - S, cy - S / 2)), S, S, 0, 0, crop, crop);
+  return o.toDataURL('image/jpeg', 0.85);
 }
+const geneColor = g => { for (const a of genomeData.arcs) if (a.slots.some(x => x.id === g)) return a.color; const p = genomeData.plasmids.find(x => x.id === g); return p ? p.color : '#7cc8ff'; }; // рамка значка — цвет группы гена
 function icon(g) {
-  if (!icons.has(g)) { let url = ''; try { url = geneShot(g, 128, 128); } catch (e) { url = ''; } icons.set(g, url); }
+  if (!icons.has(g)) { let url = ''; try { url = geneShot(g, 320, 320, 128); } catch (e) { url = ''; } icons.set(g, url); }
   return icons.get(g);
 }
 const idle = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 2000 }) : setTimeout(f, 300));
@@ -314,7 +327,7 @@ function meet(k) { // первая встреча: на секунду имя у
   say('Новая запись в Альманахе · ' + (TEKSTY[k]?.imya || cards[k].name), 1600);
   beep(990, 0.12, 0.03, 'sine', 1.3);
 }
-function say(text, ms, gene) { $('toast').textContent = text; if (gene) { const im = new Image(); im.src = icon(gene); im.className = 'ticon'; im.alt = ''; $('toast').prepend(im); } $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => $('toast').classList.remove('on'), ms); }
+function say(text, ms, gene) { $('toast').textContent = text; if (gene) { const im = new Image(); im.src = icon(gene); im.className = 'ticon'; im.alt = ''; im.style.borderColor = geneColor(gene); $('toast').prepend(im); } $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => $('toast').classList.remove('on'), ms); }
 const told = new Set(); // подсказка — один раз и только в момент, когда она нужна
 function tell(k, text) { if (told.has(k)) return; told.add(k); say(text, 2600); }
 start();
@@ -350,7 +363,7 @@ function ask() {
   world.choice.forEach((g, i) => {
     const go = () => { world.pick(g); kids = null; $('genes').classList.remove('on'); fx.ring(world.center().x, world.center().y, 0, 300); beep(660, 0.4, 0.06, 'sine', 1.5); };
     const b = document.createElement('button');
-    b.innerHTML = '<img class="gicon" alt="">' + cfg.genes[g][0] + '<small>' + cfg.genes[g][1] + '</small>'; b.firstChild.src = icon(g); b.onclick = go; box.appendChild(b);
+    b.innerHTML = '<img class="gicon" alt="">' + cfg.genes[g][0] + '<small>' + cfg.genes[g][1] + '</small>'; b.firstChild.src = icon(g); b.firstChild.style.borderColor = geneColor(g); b.onclick = go; box.appendChild(b);
     const k = document.createElement('button'); k.className = 'kid'; k.style.left = i ? '52%' : '2%'; k.onclick = go; k.setAttribute('aria-label', cfg.genes[g][0]); $('genes').appendChild(k);
   });
   $('genes').classList.add('on');
