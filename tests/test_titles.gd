@@ -15,8 +15,8 @@ func _play(style: String) -> String:
 		if style == "зритель" or t > 0:
 			continue
 		var camp := sim.build(Sim.PLAYER, "camp", home.pos + Vector2(-150, 0))
-		for i in 3:
-			sim.set_path(camp, sim.deposits[i].pos)
+		for i in 4:
+			sim.set_path(camp, sim.deposits[i % sim.deposits.size()].pos)
 		if style == "торопыга":
 			var barracks := sim.build(Sim.PLAYER, "barracks", home.pos + Vector2(150, 0))
 			sim.set_route(barracks, [foe.pos])
