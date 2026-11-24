@@ -51,6 +51,8 @@ export function sverka({ records, cards, genes, slots, pages, files, spisok, rin
     if (!v && s >= at('adaptaciya') && !r.nauka) bad.push(who + ': шаг «' + r.shag + '», а слоя науки нет');
     if (!v && s >= at('biolog') && !r.igra) bad.push(who + ': шаг «' + r.shag + '», а слоя «в игре» нет');
     if (!v && s >= at('gotov') && !(r.stroit && r.proverka)) bad.push(who + ': готов к стройке без слоёв «как строить» и «проверка»');
+    if (r.novaya && !r.roman && s >= at('stroyka')) bad.push(who + ': новая механика ушла в стройку без «да» Романа (поле roman: «да, дата»)');
+    if (r.roman && !/^да, \d\d\.\d\d/.test(r.roman)) bad.push(who + ': поле roman пишется «да, ДД.ММ» со слов Романа');
     if (!v && s >= at('gotov') && !(r.krugi && r.krugi.biolog)) bad.push(who + ': готов к стройке, а круг биолога не пройден');
     if (v && !r.versiya) bad.push(who + ': «в игре» без номера версии');
     if (v && !(r.kod && r.kod.length)) bad.push(who + ': «в игре», а ссылки на код нет');
@@ -129,6 +131,8 @@ if (process.argv.includes('--selftest')) {
     ['текст карточки в игре изменили мимо книги', s => { s.cards.phage.name = 'Другой'; return s; }, true],
     ['один номер у двух записей', s => { s.records.push({ ...s.records[0] }); return s; }, true],
     ['проба: полная запись у биолога', s => { s.records.push(proba()); return s; }, false],
+    ['новая механика в стройке без «да» Романа', s => { s.records.push({ ...proba(), shag: 'stroyka', stroit: 'с', proverka: 'п', krugi: { biolog: 'б' }, novaya: true, roman: '' }); return s; }, true],
+    ['новая механика в стройке с «да» Романа', s => { s.records.push({ ...proba(), shag: 'stroyka', stroit: 'с', proverka: 'п', krugi: { biolog: 'б' }, novaya: true, roman: 'да, 24.11' }); return s; }, false],
     ['готов к стройке без биолога', s => { s.records.push({ ...proba(), shag: 'gotov' }); return s; }, true],
     ['запись без слоя науки ушла дальше', s => { s.records.push({ ...proba(), nauka: '' }); return s; }, true],
     ['запись не показана в книге', s => { s.pages = {}; return s; }, true],
@@ -158,7 +162,7 @@ if (process.argv.includes('--selftest')) {
 const bad = sverka(S);
 const n = s => S.records.filter(r => r.shag === s).length;
 const wait = S.records.filter(r => !(r.krugi && r.krugi.biolog));
-console.log('  паспорт: записей ' + S.records.length + '; в игре ' + n('v_igre') + ', строим ' + n('stroyka') + ', готово к стройке ' + n('gotov') +
+console.log('  паспорт: записей ' + S.records.length + '; в игре ' + n('v_igre') + ', строим ' + n('stroyka') + ', готово к стройке ' + S.records.filter(r => r.shag === 'gotov' && !(r.novaya && !r.roman)).length + ', ждёт Романа ' + S.records.filter(r => r.novaya && !r.roman).length +
   ', у биолога ' + n('biolog') + ', адаптация ' + n('adaptaciya') + ', база науки ' + n('nauka') + '; карточек игры ' + (Object.keys(S.cards).length - 1) +
   ', генов игры ' + Object.keys(S.genes).length + '; ждут биолога: ' + (wait.map(r => r.id).join(' ') || 'нет'));
 for (const b of bad) console.log('  КНИГА: ' + b);
