@@ -32,6 +32,7 @@
 	"slipper_len": 150, "slipper_speed": 70, "slipper_avoid": 2.2, "slipper_back": 0.8, "slipper_chance": [0.12, 0.15, 0.06], "slipper_from": 1.6,
 	"funnel": 150, "funnel_r": 130, "mouth_r": 16,
 	"bell_chance": 0.5, "bell_stalk": 70, "bell_r": 18, "bell_jolt": 120, "bell_shut": 2.5, "vortex": 120, "vortex_r": 120,
+	"donor_speed": 35, "donor_r": 14, "conj": 1.5, "donor_chance": [0.15, 0.2, 0.1], "donor_from": 0.8,
 	"pseudo_speed": 230, "pseudo_sense": 300, "pseudo_r": 12, "pseudo_hit": 0.7, "pseudo_stun": 0.6, "pseudo_cool": 1.2, "pseudo_min": 0.55, "pseudo_chance": [0.15, 0.3, 0.1], "pseudo_from": 1.8,
 	"roti_len": 200, "roti_speed": 45, "roti_swim": 6, "roti_sit": 7, "roti_spin": 1.2, "roti_swim_k": 0.35, "roti_vortex": 190, "roti_r": 210, "roti_mouth": 20, "roti_chance": [0.05, 0.07, 0.1], "roti_from": 2.2,
 	"slime_chance": [0.5, 0.35, 0.8],

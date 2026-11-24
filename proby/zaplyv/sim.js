@@ -34,7 +34,7 @@ export class World {
     this.seed = seed >>> 0;
     this.r = rng(seed);
     this.me = [{ x: 0, y: 0, vx: 0, vy: 0, m: 1, a: -Math.PI / 2, sick: -1, id: 1 }];
-    this.food = []; this.prey = []; this.amoebas = []; this.phages = []; this.plants = []; this.crumbs = []; this.bdellos = []; this.slime = []; this.slippers = []; this.bells = []; this.rotis = []; this.pseudos = [];
+    this.food = []; this.prey = []; this.amoebas = []; this.phages = []; this.plants = []; this.crumbs = []; this.bdellos = []; this.slime = []; this.slippers = []; this.bells = []; this.rotis = []; this.pseudos = []; this.donors = [];
     this.genes = {};
     this.choice = []; // три гена на выбор; пока не пусто — мир стоит
     this.rush = 0; this.lastEat = -9; // разгон роста от серии
@@ -91,6 +91,7 @@ export class World {
     }
     if (far > c.bdello_from && this.stats.gen > 0 && r() < c.bdello_chance[b] * (1 + far * c.danger_growth) * Math.min(2, this.me.length / 2)) // хищник идёт на густую добычу: пока ты один, его нет this.bdellos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: r(), id: ++this.ids });
     if (far > c.slipper_from && r() < c.slipper_chance[b]) this.slippers.push({ ...pt(), a: r() * 6.283, back: 0, id: ++this.ids });
+    if (far > c.donor_from && r() < c.donor_chance[b]) this.donors.push({ ...pt(), a: r() * 6.283, link: 0, gave: false, id: ++this.ids });
     if (!safe && far > c.pseudo_from && r() < c.pseudo_chance[b]) this.pseudos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: 0, cool: 0, id: ++this.ids });
     if (!safe && far > c.roti_from && r() < c.roti_chance[b]) this.rotis.push({ ...pt(), a: r() * 6.283, sit: false, t: r() * c.roti_swim, id: ++this.ids });
     if (r() < c.slime_chance[b]) { const at = pt(); this.slime.push({ ...at, a: r() * 3.14, len: 160 + r() * 220, w: 22 + r() * 22, id: ++this.ids }); } // тяж слизи: вязкий гель
@@ -211,7 +212,7 @@ export class World {
     if (this.look <= 0 && this.me.length) { // встречи: кого увидел впервые — в кабинет (событие 'meet' без паузы)
       this.look = 0.5;
       const R = this.cfg.meet;
-      for (const [k, list] of [['coccus', this.prey], ['plant', this.plants], ['crumb', this.crumbs], ['phage', this.phages], ['amoeba', this.amoebas], ['bdello', this.bdellos], ['slipper', this.slippers], ['bell', this.bells], ['roti', this.rotis], ['pseudo', this.pseudos]])
+      for (const [k, list] of [['coccus', this.prey], ['plant', this.plants], ['crumb', this.crumbs], ['phage', this.phages], ['amoeba', this.amoebas], ['bdello', this.bdellos], ['slipper', this.slippers], ['bell', this.bells], ['roti', this.rotis], ['pseudo', this.pseudos], ['donor', this.donors]])
         if (!this.met.has(k) && list.some(o => this.me.some(a => dist(a, o) < R))) { this.met.add(k); this.events.push(['meet', k]); }
     }
     this.tidy -= dt;
@@ -386,6 +387,18 @@ export class World {
       }
       for (const b of this.bdellos) if (!b.on && !b.gone && Math.hypot(b.x - q.x, b.y - q.y) < c.pseudo_r + 4) { b.gone = true; this.events.push(['zap', q.x, q.y, b.x, b.y]); }
     }
+    // Сородич с плазмидой: мирно дрейфует. Побудь с ним рядом впритык cfg.conj с — он протянет пилю-мостик
+    // и передаст копию плазмиды с геном (конъюгация): мутация без деления. Каждый делится один раз.
+    for (const d of this.donors) {
+      d.a += Math.sin(this.stats.time * 0.5 + d.id) * 0.4 * dt; d.x += Math.cos(d.a) * c.donor_speed * dt; d.y += Math.sin(d.a) * c.donor_speed * dt;
+      const a = d.gave ? null : this.me.find(a => Math.hypot(a.x - d.x, a.y - d.y) < radius(a.m) + c.donor_r);
+      d.link = a ? d.link + dt : Math.max(0, d.link - dt * 2); d.to = a || null;
+      if (a && d.link >= c.conj) {
+        d.gave = true; d.link = 0;
+        const left = Object.keys(c.genes).filter(g => !this.genes[g]);
+        if (left.length) { const g = left[Math.floor(this.r() * left.length)]; this.genes[g] = true; this.events.push(['gene', d.x, d.y, g]); }
+      }
+    }
     this.bdellos = this.bdellos.filter(b => !b.gone);
     this.food = this.food.filter(f => !f.gone);
     for (const b of this.bdellos) {
@@ -513,7 +526,7 @@ export class World {
   forget(x, y) {
     const C = this.cfg.chunk, kx = Math.floor(x / C), ky = Math.floor(y / C);
     const near = o => Math.abs(Math.floor(o.x / C) - kx) <= 2 && Math.abs(Math.floor(o.y / C) - ky) <= 2;
-    for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'crumbs', 'bdellos', 'slime', 'slippers', 'bells', 'rotis', 'pseudos']) this[k] = this[k].filter(near);
+    for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'crumbs', 'bdellos', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) this[k] = this[k].filter(near);
     for (const key of [...this.chunks]) {
       const [a, b] = key.split(',').map(Number);
       if (Math.abs(a - kx) > 2 || Math.abs(b - ky) > 2) this.chunks.delete(key);
