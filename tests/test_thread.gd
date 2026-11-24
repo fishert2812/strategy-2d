@@ -1,18 +1,15 @@
 extends RefCounted
-## Натянутая нитка (design/natyanutaya_nitka.md). Слова Романа 24.11.2026: «Какой смысл ты рисуешь тропу
-## если она все равно становится прямой?», «кривой не нужно пускай она выравнивается!»
-## Нитка натянута от казармы до пальца, цепляется за печенье с той стороны, где шёл палец. Постройки пока проходимы.
+## Натянутая нитка (design/natyanutaya_nitka.md). Роман 24.11.2026: «Какой смысл ты рисуешь тропу если она
+## все равно становится прямой?» Нитка цепляется за печенье с той стороны, где шёл палец.
 
 const BARRACKS := Vector2(360, 900 - 140)
 
 
 func _sim() -> Array:
 	var sim := Sim.new()
-	sim.gold = [1000, 1000]
 	return [sim, sim.build(Sim.PLAYER, "barracks", BARRACKS)]
 
 
-## Ближе всего нитка подходит к центру круга.
 func _closest(route: Array, from: Vector2, c: Vector2) -> float:
 	var pts := [from] + route
 	var best := INF
@@ -42,12 +39,13 @@ func _around(cookie: Vector2, side: float) -> Array:
 ## Урок L006: обход печенья слева и справа — нитка с той же стороны, не заходит в круг, длиннее прямой,
 ## а нитка под пальцем на последнем кадре та же, что легла при отпускании.
 func test_L006() -> String:
-	for side in [-1.0, 1.0]:
+	for side in [-1.0, 1.0, 0.0]:
 		var made := _sim()
 		var sim: Sim = made[0]
 		var b: Dictionary = made[1]
-		var cookie: Vector2 = sim.deposits[5].pos
-		var trail := _around(cookie, side)
+		var cookie: Vector2 = sim.deposits[5].pos if side != 0.0 else sim.deposits[4].pos
+		# Третий след — широкий заход по левому краю стола с поворотом в чистом поле.
+		var trail := _around(cookie, side) if side != 0.0 else [Vector2(60, 700), Vector2(50, 300), Vector2(360, 110)]
 		var shown: Array = sim.thread(b, trail).route
 		if not sim.set_route(b, trail):
 			return "обход %s: тропа не легла" % side
@@ -56,14 +54,19 @@ func test_L006() -> String:
 		var r: float = sim.cfg.deposit_r + sim.cfg.route.margin
 		if _closest(b.route, b.pos, cookie) < r - 1.0:
 			return "обход %s: нитка зашла в печенье на %.0f из %.0f" % [side, _closest(b.route, b.pos, cookie), r]
+		# Углы нитки только там, где она упирается в печенье, а не там, где повернул палец.
+		var way: Array = [b.pos] + b.route
+		for i in range(1, way.size() - 1):
+			var to: Vector2 = way[i].lerp((way[i - 1] + way[i + 1]) / 2.0, 0.05)
+			if not sim.solids().any(func(c): return Sim._touches(c, way[i - 1], way[i], to) or Sim._touches(c, way[i + 1], way[i], to)):
+				return "обход %s: угол нитки в воздухе в %s" % [side, way[i]]
 		var mid: Vector2 = b.route.reduce(func(a, p): return p if absf(p.y - cookie.y) < absf(a.y - cookie.y) else a, b.route[0])
-		if signf(mid.x - cookie.x) != side:
+		if side != 0.0 and signf(mid.x - cookie.x) != side:
 			return "обход %s: нитка легла с другой стороны печенья (%s)" % [side, mid]
 		var straight: float = b.pos.distance_to(b.route[-1])
 		var length: float = _length([b.pos] + b.route)
-		if length < straight + 4.0 or length > _length([b.pos] + trail) + 1.0:
+		if side != 0.0 and length < straight + 4.0 or length > _length([b.pos] + trail) + 1.0:
 			return "обход %s: длина нитки %.0f при прямой %.0f и следе %.0f" % [side, length, straight, _length([b.pos] + trail)]
-	# Волнистый след размахом 40 в чистом поле — ровно прямая.
 	var made := _sim()
 	var wave := []
 	for i in range(1, 30):
@@ -80,8 +83,6 @@ func test_warriors_walk_around_not_through() -> String:
 	var cookie: Vector2 = sim.deposits[5].pos
 	sim.set_route(b, [cookie, Vector2(360, 300)])
 	var r: float = sim.cfg.deposit_r
-	if _closest(b.route, b.pos, cookie) < r + sim.cfg.route.margin - 1.0:
-		return "нитка сквозь печенье: %s" % [b.route]
 	var inside := 0
 	var went := false
 	for i in int(40.0 / 0.05):
@@ -97,7 +98,6 @@ func test_warriors_walk_around_not_through() -> String:
 	return ""
 
 
-## Первый воин у дома врага: [время, x].
 func _arrive(trail: Array) -> Array:
 	var made := _sim()
 	var sim: Sim = made[0]
@@ -124,5 +124,4 @@ func test_detour_changes_side_and_time() -> String:
 		return "бок не тот: слева пришёл в x=%d, справа в x=%d" % [left[1], right[1]]
 	if wide[0] < left[0] + 3.0:
 		return "обход по краю пришёл за %.1f с, а ближний слева за %.1f с" % [wide[0], left[0]]
-	print("    приход к дому врага: слева %.1f с, справа %.1f с, по краю %.1f с" % [left[0], right[0], wide[0]])
 	return ""

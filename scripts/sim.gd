@@ -89,17 +89,26 @@ func set_route(b: Dictionary, trail: Array) -> bool:
 		return false
 	b.target = t.target
 	b.route = t.route
+	_rejoin(b)
 	changed.emit("path", b)
 	return true
 
 
+## Отряд на новой нитке идёт с ближайшей к нему точки, а не напрямик к старой.
+func _rejoin(b: Dictionary) -> void:
+	for u in units:
+		if is_same(u.home, b):
+			u.leg = 0
+			for i in b.route.size():
+				u.leg = i if u.pos.distance_to(b.route[i]) < u.pos.distance_to(b.route[u.leg]) else u.leg
+
+
 ## Нитка по следу пальца: та же функция и под пальцем, и при отпускании. Возвращает route (без начала) и target.
 func thread(b: Dictionary, trail: Array) -> Dictionary:
-	var field := _v(cfg.field)
 	var pts: Array = [b.pos]
 	for p in trail:
-		pts.append(Vector2(p).clamp(Vector2.ZERO, field))
-	var target := {}
+		pts.append(Vector2(p).clamp(Vector2.ZERO, _v(cfg.field)))
+	var target := {}  # конец у постройки врага (в радиусе snap) прилипает к ней
 	for c in of_side(1 - b.side):
 		if c.pos.distance_to(pts[-1]) <= cfg.snap and (target.is_empty() or c.pos.distance_to(pts[-1]) < target.pos.distance_to(pts[-1])):
 			target = c
@@ -119,8 +128,7 @@ func solids() -> Array:
 	return out
 
 
-## Натянуть нитку по ломаной: точки внутри твёрдого выталкиваются на край с той стороны, где шёл палец,
-## потом лишние точки убираются, пока нитка не ляжет прямыми от одного обхода до другого.
+## Натянуть нитку: след из твёрдого — на край с той стороны, где шёл палец; лишние точки и углы в воздухе убрать.
 static func pull(trail: Array, circles: Array, step: float) -> Array:
 	var pts: Array = [trail[0]]
 	for i in range(1, trail.size()):
@@ -130,47 +138,40 @@ static func pull(trail: Array, circles: Array, step: float) -> Array:
 		pts.append(trail[i])
 	for again in 2:
 		for c in circles:
-			# С какой стороны круга шёл палец: по большинству точек следа внутри круга.
-			var side := 0.0
+			var side := 0.0  # с какой стороны круга шёл палец: по точкам следа внутри
 			for i in range(1, pts.size()):
 				if pts[i].distance_to(c[0]) < c[1]:
 					side += (pts[i] - c[0]).cross(pts[-1] - pts[0])
 			for i in range(1, pts.size()):
 				pts[i] = _out(pts[i], c, pts[-1] - pts[0], side)
-	# Отрезок задевает круг — вставить середину, вытолкнутую на край.
-	for guard in 200:
-		var bad := -1
-		var hit := []
-		for i in range(pts.size() - 1):
-			for c in circles:
-				if bad == -1 and _seg_dist(c[0], pts[i], pts[i + 1]) < c[1] - 0.5 and c[0].distance_to(pts[i]) >= c[1] - 0.5 and c[0].distance_to(pts[i + 1]) >= c[1] - 0.5:
-					bad = i
-					hit = c
-		if bad == -1:
-			break
-		var mid: Vector2 = (pts[bad] + pts[bad + 1]) / 2.0
-		pts.insert(bad + 1, _out(mid, hit, pts[bad + 1] - pts[bad], (mid - hit[0]).cross(pts[bad + 1] - pts[bad]), true))
-	var cut := true
-	while cut:
-		cut = false
-		var i := 1
-		while i < pts.size() - 1:
-			if circles.all(func(c): return not _touches(c, pts[i - 1], pts[i], pts[i + 1])):
-				pts.remove_at(i)
-				cut = true
-			else:
-				i += 1
+	var i := 1
+	while i < pts.size() - 1:
+		if circles.all(func(c): return not _touches(c, pts[i - 1], pts[i], pts[i + 1])):
+			pts.remove_at(i)
+			i = maxi(1, i - 1)
+		else:
+			i += 1
+	# Угол в воздухе тянется к соседям, пока не упрётся в печенье: нитка ложится по краю, а не по пальцу.
+	for pass_ in 24:
+		for k in range(1, pts.size() - 1):
+			var f := 1.0
+			while f > 0.01:
+				var to: Vector2 = pts[k].lerp((pts[k - 1] + pts[k + 1]) / 2.0, f)
+				if circles.all(func(c): return not _touches(c, pts[k - 1], pts[k], to) and not _touches(c, pts[k + 1], pts[k], to)):
+					pts[k] = to
+					break
+				f /= 2.0
 	return pts
 
 
-## Точку внутри круга — поперёк направления dir на край круга (с запасом полточки), на сторону side.
-static func _out(p: Vector2, c: Array, dir: Vector2, side: float, always := false) -> Vector2:
+## Точку внутри круга — поперёк направления dir на край круга, на сторону side.
+static func _out(p: Vector2, c: Array, dir: Vector2, side: float) -> Vector2:
 	var v: Vector2 = p - c[0]
-	if v.length() >= c[1] and not always:
+	if v.length() >= c[1]:
 		return p
 	var d := dir.normalized()
 	var across := d.orthogonal()
-	var r: float = c[1] + 0.5
+	var r: float = c[1] + 0.5 # с запасом полточки
 	var along := clampf(v.dot(d), -r, r)
 	var sgn := signf(side) if side != 0.0 else (signf(v.dot(across)) if v.dot(across) != 0.0 else 1.0)
 	return c[0] + d * along + across * sgn * sqrt(r * r - along * along)
@@ -179,13 +180,11 @@ static func _out(p: Vector2, c: Array, dir: Vector2, side: float, always := fals
 static func _seg_dist(c: Vector2, a: Vector2, b: Vector2) -> float:
 	return c.distance_to(Geometry2D.get_closest_point_to_segment(c, a, b))
 
-
 ## Задевает ли треугольник a, b, c круг: центр внутри или край ближе радиуса.
 static func _touches(circle: Array, a: Vector2, b: Vector2, c: Vector2) -> bool:
 	var o: Vector2 = circle[0]
-	var r: float = circle[1]
 	var flat := absf((b - a).cross(c - a)) < 0.01
-	return (not flat and Geometry2D.point_is_inside_triangle(o, a, b, c)) or _seg_dist(o, a, b) < r or _seg_dist(o, b, c) < r or _seg_dist(o, a, c) < r
+	return (not flat and Geometry2D.point_is_inside_triangle(o, a, b, c)) or [[a, b], [b, c], [a, c]].any(func(e): return _seg_dist(o, e[0], e[1]) < circle[1])
 
 
 func _camp(b: Dictionary, dt: float) -> void:
@@ -355,11 +354,7 @@ func _next_target(gone: Dictionary) -> void:
 		bb.target = next
 		# Переезжает только конец нитки, обходы остаются; отряд идёт с ближайшей к нему точки нитки.
 		bb.route = [] if next.is_empty() else thread(bb, bb.route.slice(0, -1) + [next.pos]).route
-		for u in units:
-			if is_same(u.home, bb):
-				u.leg = 0
-				for i in bb.route.size():
-					u.leg = i if u.pos.distance_to(bb.route[i]) < u.pos.distance_to(bb.route[u.leg]) else u.leg
+		_rejoin(bb)
 		changed.emit("path", bb)
 
 

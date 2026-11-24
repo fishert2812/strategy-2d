@@ -13,7 +13,7 @@ func _warriors(sim: Sim, side: int) -> Array:
 	return sim.units.filter(func(u): return u.side == side and u.kind == "warrior")
 
 
-## Палец ведёт тропу в обход: от казармы влево через печенье, потом вверх к дому врага. Нитка цепляется за печенье.
+## Палец ведёт тропу в обход: от казармы влево, потом вверх к дому врага. Отряд идёт через изгиб.
 func test_bent_route_goes_through_the_bend() -> String:
 	var sim := Sim.new()
 	var b := sim.build(Sim.PLAYER, "barracks", Vector2(360, 760))
@@ -96,7 +96,7 @@ func test_squad_moves_on_to_next_target() -> String:
 	return ""
 
 
-## Пальцем на экране: ведёшь от казармы в обход и отпускаешь — ложится та же нитка, что была под пальцем.
+## Пальцем на экране: ведёшь от казармы в обход и отпускаешь — тропа ложится с изгибом.
 func test_finger_draws_bent_route() -> String:
 	var tree := Engine.get_main_loop() as SceneTree
 	var holder := Control.new()
