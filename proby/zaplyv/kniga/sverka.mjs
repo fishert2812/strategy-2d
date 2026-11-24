@@ -9,7 +9,7 @@ import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 // по методике kniga/teksty.md, и машина это держит. test_L018 — случаи самопроверки ниже.
 const ZAPRET = ['crispr', 'персистер', 'плазмид', 'фимбри', 'рецептор', 'рибосом', 'хемотакс', 'колицин', 'конъюг', 'фаг', 'штамм', 'мутаци', 'фенотип', 'экспресс'];
 const POLYA = { imya: 3, daet: 12, priroda: 60 };
-const POLYA_S = { imya: 3, ubil: 6, kto: 18, sovet: 12, priroda: 60 }, MOZHNO_BEZ = ['ubil', 'sovet'];
+const POLYA_S = { imya: 3, ubil: 6, kto: 18, sovet: 12, priroda: 60, korotko: 8, znachit: 8, boy: 8 }, OTN = ['opasen', 'eda', 'ne_tronet'], MOZHNO_BEZ = ['ubil', 'sovet', 'boy'];
 export function tekst(who, k, polya = POLYA) {
   const bad = [];
   for (const [f, max] of Object.entries(polya)) {
@@ -73,6 +73,7 @@ export function sverka({ records, cards, genes, slots, pages, files, spisok, rin
     if ((r.kod || []).some(k => k.startsWith('gene:')) && !r.kartochka) bad.push(r.id + ' ' + r.name + ': ген в игре без карточки для игрока');
     if (r.kartochka) bad.push(...tekst(r.id + ' ' + r.name, r.kartochka));
     for (const [k, c] of Object.entries(r.sushchestva || {})) bad.push(...tekst(r.id + ' карточка ' + k, c, POLYA_S));
+    for (const [k, c] of Object.entries(r.sushchestva || {})) if (k !== 'me' && !OTN.includes(c.otnoshenie)) bad.push(r.id + ' карточка ' + k + ': нет значка отношения для осмотра (opasen, eda или ne_tronet), Э38');
   }
   const kart = sobrat(records);
   for (const g of ring) if (!kart[g]) bad.push('на кольце генома ген ' + g + ', а карточки, прошедшей копирайтера, в книге нет');
@@ -164,6 +165,9 @@ if (process.argv.includes('--selftest')) {
     ['test_L018: текст не читал копирайтер', s => { delete kart(s).kopirayter; s.teksty.geny = null; return s; }, true],
     ['test_L018: в карточке строка «как выглядит»', s => { kart(s).vid = 'полоски'; return s; }, true],
     ['test_L018: в карточке существа термин', s => { s.records.find(r => r.sushchestva).sushchestva.phage = { imya: 'Фаг', kto: 'Вирус', priroda: 'Вирус', kopirayter: 'да' }; return s; }, true],
+    ['осмотр Э38: у существа нет короткой строки «кто это»', s => { delete s.records.find(r => r.sushchestva && r.sushchestva.amoeba).sushchestva.amoeba.korotko; return s; }, true],
+    ['осмотр Э38: строка «что он для тебя значит» длиннее восьми слов', s => { s.records.find(r => r.sushchestva && r.sushchestva.amoeba).sushchestva.amoeba.znachit = 'Глотает целиком, но она очень медленная, так что просто уплывай'; return s; }, true],
+    ['осмотр Э38: значок отношения не из трёх', s => { s.records.find(r => r.sushchestva && r.sushchestva.amoeba).sushchestva.amoeba.otnoshenie = 'drug'; return s; }, true],
     ['test_L018: существо без карточки от копирайтера', s => { delete s.records.find(r => r.sushchestva && r.sushchestva.amoeba).sushchestva.amoeba.kopirayter; return s; }, true],
     ['test_L018: блок «в природе» ужат до одной фразы', s => { kart(s).priroda = 'Одна фраза.'; return s; }, true],
     ['решения: новая механика не вынесена Роману на решение', s => { s.resheniya.resheniya[0].punkty.pop(); return s; }, true],
