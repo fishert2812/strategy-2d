@@ -91,7 +91,11 @@ export function sverka({ records, cards, genes, slots, pages, files, spisok, rin
     if (!resheniya.kopirayter) bad.push('решения: тексты не читал копирайтер');
     for (const r of resheniya.resheniya) {
       const slov = s => s.trim().split(/\s+/).length;
-      if (!r.znak || !r.zagolovok || slov(r.zagolovok) > 4 || !r.uvidish || slov(r.uvidish) > 35 || /[—–]| - /.test(r.zagolovok + r.uvidish + r.sovet)) bad.push('решение ' + r.id + ': нужен значок, заголовок до 4 слов и «что увидишь» до 35 слов, без тире');
+      const vse = [r.zagolovok, r.palec, r.proishodit, r.zachem, r.primer, r.sovet, ...(r.kadry || []).map(k => k[1])].join(' ');
+      if (!r.znak || !r.zagolovok || slov(r.zagolovok) > 4) bad.push('решение ' + r.id + ': нужен значок и заголовок до 4 слов');
+      for (const [k, n] of [['palec', 16], ['proishodit', 45], ['zachem', 25], ['primer', 45]]) if (!r[k] || slov(r[k]) > n) bad.push('решение ' + r.id + ': поле ' + k + ' пустое или длиннее ' + n + ' слов');
+      if (!Array.isArray(r.kadry) || r.kadry.length !== 3 || r.kadry.some(k => !k[0] || !k[1] || slov(k[1]) > 9)) bad.push('решение ' + r.id + ': нужна раскадровка из трёх кадров с подписью до 9 слов');
+      if (/[—–]| - /.test(vse) || /[a-z]/i.test(vse)) bad.push('решение ' + r.id + ': в тексте тире или латиница');
       if (!/^(Да|Нет|Потом)[.,]/.test(r.sovet || '')) bad.push('решение ' + r.id + ': совет начинается с «Да», «Нет» или «Потом»');
       for (const id of r.punkty) { if (!byId[id]) bad.push('решение ' + r.id + ': пункта ' + id + ' нет в книге'); seen[id] = (seen[id] || 0) + 1; }
     }
@@ -158,7 +162,8 @@ if (process.argv.includes('--selftest')) {
     ['test_L018: существо без карточки от копирайтера', s => { delete s.records.find(r => r.sushchestva && r.sushchestva.amoeba).sushchestva.amoeba.kopirayter; return s; }, true],
     ['test_L018: блок «в природе» ужат до одной фразы', s => { kart(s).priroda = 'Одна фраза.'; return s; }, true],
     ['решения: новая механика не вынесена Роману на решение', s => { s.resheniya.resheniya[0].punkty.pop(); return s; }, true],
-    ['решения: текст с тире', s => { s.resheniya.resheniya[0].uvidish += ' — вот'; return s; }, true],
+    ['решения: текст с тире', s => { s.resheniya.resheniya[0].primer += ' — вот'; return s; }, true],
+    ['решения: нет раскадровки', s => { s.resheniya.resheniya[0].kadry.pop(); return s; }, true],
     ['решения: тексты без копирайтера', s => { s.resheniya.kopirayter = ''; return s; }, true],
     ['кто с кем: связь ссылается на запись, которой нет', s => { s.kto.svyazi[0].gde = 'Щ1'; return s; }, true],
     ['кто с кем: карточка игры не стоит в сетке', s => { s.kto.kto.pop(); return s; }, true],
