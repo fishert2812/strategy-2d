@@ -802,7 +802,7 @@ function paint(time) {
   for (const f of world.food) { // еда трёх видов (Е2, Е4): жёлтые крошки, белые искры глюкозы, розовый белковый сок
     const [x, y] = scr(f.x, f.y); if (!on(x, y, 20)) continue;
     const F = cfg.food_kinds[f.kind || 'bits'], k = Math.sqrt(f.s || 1) * F.size, tw = F.twinkle ? 0.75 + 0.25 * Math.sin(time * 7 + f.x * 0.3 + f.y) : 1;
-    glow.put(x, y, 9 * z * k, ...F.halo, 0.14 * tw); glow.put(x, y, 3.2 * z * k + 0.6, ...F.core, 0.9 * tw); // крупный кусок крупнее и светит ярче, искры мерцают
+    glow.put(x, y, 9 * z * k * F.halo_r, ...F.halo, 0.14 * tw); glow.put(x, y, 3.2 * z * k + 0.6, ...F.core, 0.9 * tw); // ценность видна размером и ореолом: крошка меньше всех, сок крупнее (дизайнер); искры мерцают
   }
   for (const g of world.phages) { // фаг T4: головка позади, хвостом вперёд — садится хвостом
     const [x, y] = scr(g.x, g.y); if (!on(x, y)) continue;
