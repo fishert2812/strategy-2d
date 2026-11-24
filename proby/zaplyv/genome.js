@@ -7,22 +7,23 @@ const R0 = 110, R1 = 148, GAP = 1.5;
 // Все места по порядку: { slot, arc, color, a0, a1 (градусы) | x, y для чужих }. Без DOM — проверяется тестом.
 export function layout(G) {
   const out = [];
-  G.arcs.forEach((arc, k) => arc.slots.forEach((slot, i) => {
-    const a0 = -90 + (k * 4 + i) * 30; // сверху метка ori — с неё начинается копирование кольца, дальше по часовой
-    out.push({ slot, arc: k, color: arc.color, a0: a0 + GAP, a1: a0 + 30 - GAP, plasmid: false });
+  const N = G.arcs.reduce((n, a) => n + a.slots.length, 0), step = 360 / N; let j = 0; // мест столько, сколько генов: шаг 360/N
+  G.arcs.forEach((arc, k) => arc.slots.forEach((slot) => {
+    const a0 = -90 + j++ * step; // сверху метка ori — с неё начинается копирование кольца, дальше по часовой
+    out.push({ slot, arc: k, color: arc.color, a0: a0 + GAP, a1: a0 + step - GAP, plasmid: false });
   }));
   G.plasmids.forEach((slot, i) => out.push({ slot, arc: -1, color: slot.color, x: 205, y: 70 + i * 66, plasmid: true }));
   return out;
 }
 
-// Что написать на карточке гена. genes — гены клетки, from — откуда пришли, names — data.json genes.
-export function card(slot, genes, from, names, G, arcName) {
-  const live = slot.id && names[slot.id], have = !!(live && genes[slot.id]);
-  if (!live) return { title: slot.name, latin: slot.gene === '?' ? '' : slot.gene, have, sub: (arcName ? arcName + ' · ' : '') + 'спит',
-    lines: [['Даст', slot.soon], ['Откуда', slot.gene === '?' ? 'пусто' : G.from.none]] };
+// Что написать на карточке гена. Все слова — только из книги (kniga/teksty_genov.json, урок L018): book — её гены по латинскому имени.
+export function card(slot, genes, from, book, G, arcName) {
+  const b = book[slot.gene] || {}, live = !!(slot.id && b.klyuch === slot.id), have = !!(live && genes[slot.id]);
+  if (!live) return { title: b.imya || 'Пусто', latin: slot.gene === '?' ? '' : slot.gene, have, sub: (arcName ? arcName + ' · ' : '') + 'спит',
+    lines: (b.daet ? [['Даст', b.daet]] : []).concat([['Откуда', slot.gene === '?' ? 'пусто' : G.from.none]]) };
   const pipe = (G.pipe || []).includes(slot.id); // по трубочке ходят только плазмидные гены (data.json plasmid_genes)
-  return { title: names[slot.id][0], latin: slot.gene, have, sub: (arcName ? arcName + ' · ' : 'чужой · ') + (have ? G.from[from[slot.id]] || G.from.kid : 'спит'),
-    lines: [['В игре', names[slot.id][1]], ['На теле', slot.body], ['В науке', slot.science]].concat(have ? [] : [['Откуда', pipe ? G.from.canpipe : G.from.can]]) };
+  return { title: b.imya, latin: slot.gene === slot.id ? '' : slot.gene /* у умения без одного настоящего гена латыни нет (книга) */, have, sub: (arcName ? arcName + ' · ' : 'чужой · ') + (have ? G.from[from[slot.id]] || G.from.kid : 'спит'),
+    lines: [['Что даёт', b.daet], ['В природе', b.priroda]].concat(have ? [] : [['Откуда', pipe ? G.from.canpipe : G.from.can]]) };
 }
 
 const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent?.appendChild(e); return e; };
@@ -66,8 +67,8 @@ export function genomeScreen({ G, cfg, world, icon = () => '', onOpen, onClose, 
       el('circle', { cx: tx, cy: ty, r: 36, fill: 'transparent' }, s); // касание: не меньше 44 pt и в Safari, где кольцо мельче (урок L017); соседние места не налезают: между центрами 67
       s.onclick = e => { e.stopPropagation(); select(p.slot, p.arc); };
     }
-    G.arcs.forEach((arc, k) => { // подписи дуг снаружи
-      const m = (-90 + k * 120 + 60) * Math.PI / 180, r = R1 + 20;
+    G.arcs.forEach((arc, k) => { // подписи дуг снаружи, у середины своей дуги
+      const mine = all.filter(p => p.arc === k), m = (mine[0].a0 + mine[mine.length - 1].a1) / 2 * Math.PI / 180, r = R1 + 20;
       el('text', { x: r * Math.cos(m) + (k === 0 ? 8 : k === 2 ? -8 : 0), y: r * Math.sin(m) + 5, 'text-anchor': k === 0 ? 'start' : k === 2 ? 'end' : 'middle', fill: arc.color, 'font-size': 12, 'letter-spacing': 2 }, svg).textContent = arc.name.toUpperCase();
     });
     el('text', { x: 205, y: 28, 'text-anchor': 'middle', fill: '#7dffb0', 'font-size': 12, 'letter-spacing': 2 }, svg).textContent = 'ЧУЖИЕ';
@@ -80,7 +81,7 @@ export function genomeScreen({ G, cfg, world, icon = () => '', onOpen, onClose, 
   }
 
   function select(slot, arc) {
-    pick = slot; const w = world(), c = card(slot, w.genes, w.from || {}, cfg.genes, G, arc >= 0 ? G.arcs[arc].name : '');
+    pick = slot; const w = world(), c = card(slot, w.genes, w.from || {}, G.book || {}, G, arc >= 0 ? G.arcs[arc].name : '');
     S.blink = slot.id && cfg.genes[slot.id] ? slot.id : null; // на клетке мигает то, что меняет ген (спящий — показывает, каким станешь)
     box.innerHTML = '';
     if (slot.id && cfg.genes[slot.id] && icon(slot.id)) { const im = document.createElement('img'); im.className = 'gicon big'; im.alt = ''; im.src = icon(slot.id); im.style.borderColor = arc >= 0 ? G.arcs[arc].color : slot.color; box.appendChild(im); }
