@@ -45,7 +45,7 @@ case_ "test_L025: кнопки гибели ниже края экрана" 52_z
 # L018 (расширен) и L024 «антибред»: черновая строка умения мимо книги, описание в data.json, слово мира без имени из Альманаха, умение без теста-обещания — красное.
 case_ "test_L018: выбор дочки снова с черновой строкой" 52_zaplyv_tap.sh red "sed -i \"s/b.children\[2\].textContent = geneBook(g).daet || '';/b.children[2].textContent = 'отпустил палец у водоросли';/\" $Z/main.js"
 ONLY=L018 case_ "test_L018: описание умения снова в data.json" 50_zaplyv.sh red "sed -i 's/\"fim\": \"fimH\"/\"fim\": \"отпустил палец у водоросли\"/' $Z/data.json"
-ONLY=L024 case_ "test_L024: «водоросль» вместо имени из Альманаха" 50_zaplyv.sh red "sed -i 's/Слизь тебя больше не тормозит/Водоросль тебя больше не тормозит/' $Z/kniga/teksty_genov.json"
+ONLY=L024 case_ "test_L024: «водоросль» вместо имени из Альманаха" 50_zaplyv.sh red "sed -i 's/Отпусти палец у зелёной нити/Отпусти палец у водоросли/' $Z/kniga/teksty_genov.json"
 ONLY=L024 case_ "test_L024: умение дочке до встречи" 50_zaplyv.sh red "sed -i 's/return !this.genes\[g\] \&\& (this.posle/return !this.genes[g] || (this.posle/' $Z/sim.js"
 ONLY=L024 case_ "test_L024: умение без теста-обещания" 50_zaplyv.sh red "sed -i 's/сон-персистер \[spore\]/сон-персистер/' $Z/test.mjs"
 case_ "test_L029: камера тянется к отставшим вдали" 52_zaplyv_tap.sh red "sed -i 's/const flock = live.filter(a => Math.hypot(a.x - lead.x, a.y - lead.y) < C.group)/const flock = world.me/' $Z/main.js"
