@@ -1,9 +1,10 @@
 {
  "_": "Новые мутации «Заплыва» по каталогу биолога (design/zaplyv_mutacii_katalog.md). Поведение — mutacii.js, имена и тексты — только из книги (kniga/teksty_genov.json по ключу). pipe — чужие гены: приходят лишь по трубочке.",
- "genes": { "snap": "snap", "abort": "abort", "gas": "gas", "door": "door" },
+ "genes": { "snap": "snap", "abort": "abort", "gas": "gas", "door": "door", "decoy": "decoy" },
  "pipe": ["snap", "gas"],
  "snap": { "time": 0.12, "turn": 14, "acc": 400, "keep": 0.85, "cool": 0.35, "look": 1 },
  "abort": { "t": 0.8, "stop": 4 },
  "gas": { "up": 40, "ease": 1.5, "drag": 0.92, "n": 5 },
- "door": { "food": 0.85 }
+ "door": { "food": 0.85 },
+ "decoy": { "every": 0.4, "cost": 0.004, "life": 8, "r": 20, "max": 30 }
 }

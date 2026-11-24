@@ -570,6 +570,7 @@ export class World {
       g.x += g.vx * dt; g.y += g.vy * dt;
       if (g.cool > 0) { g.cool -= dt; continue; } // стряхнутый отплывает и не липнет сразу
       if (g.host === 'me') {
+        if (mut.decoy(this, g)) continue; // обманки: вирус сел на пузырёк оболочки
         const a = this.nearest(g, 120);
         if (!a) continue;
         const d = dist(a, g);

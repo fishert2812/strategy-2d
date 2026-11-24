@@ -59,6 +59,18 @@ check('[door] шарики не вредят: кокк рядом не заме�
   if (!(fa < fb)) return 'еда даёт столько же';
 });
 
+check('[decoy] отвлекает вирусы пузырьками: за клеткой пузырьки, вирус садится на пузырёк, клетка здорова', () => {
+  const go = genes => { const w = mw(15, genes), a = w.me[0]; run(w, 2, null); const r = 13 * Math.sqrt(a.m);
+    w.phages = [{ x: a.x - Math.cos(a.a) * (r + 1), y: a.y - Math.sin(a.a) * (r + 1), vx: 0, vy: 0, d: 0, host: 'me' }]; run(w, 0.5, null);
+    return { ves: (w.vesicles || []).length, gone: !w.phages.length, sick: a.sick >= 0 || w.phages.some(g => g.on), m: a.m }; };
+  const a = go(['decoy']), b = go([]);
+  console.log(`    паспорт: с умением пузырьков ${a.ves}, вирус погиб ${a.gone}, клетка заражена ${a.sick}, сила ${a.m.toFixed(3)} | без умения заражена ${b.sick}, сила ${b.m.toFixed(3)}`);
+  if (!a.ves) return 'пузырьков нет';
+  if (!a.gone || a.sick) return 'вирус сел на клетку, а не на пузырёк';
+  if (!b.sick) return 'без умения вирус не сел — сравнение не работает';
+  if (!(a.m < b.m)) return 'пузырьки ничего не стоят';
+});
+
 check('мутации только в режиме «Мутации»: в обычном заплыве их не дают и они не действуют', () => {
   const w = mw(11, [], 'swim'), keys = Object.keys(M.genes);
   w.me[0].m = 9; let offered = new Set();
@@ -79,32 +91,35 @@ check('режим «Мутации»: дочки приносят свои но�
   if (got.some(g => M.pipe.includes(g))) return 'чужая мутация пришла дочке, а не по трубочке';
 });
 
-// Бот режима «Мутации»: плывёт к еде, от опасных отворачивает, берёт первую дочку. Встречает ли он то, где мутация важна.
-const bot = w => {
+// Бот режима «Мутации»: делится, плывёт к еде, от опасных отворачивает, берёт первую дочку. Встречает ли он то, где мутация важна.
+const bot = (w, careless) => {
   if (w.choice.length) w.pick(w.choice[0]);
+  if (w.readyToSplit() && w.me.length < 6) w.divide(); // делится: сёстры — те, кого спасает тихая гибель
   const c = w.center(); let best = null, bd = 1e9;
   for (const f of [...w.food, ...w.donors]) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } }
   let tx = best ? best.x : c.x + 100, ty = best ? best.y : c.y;
-  for (const e of [...w.amoebas, ...w.bdellos, ...w.pseudos]) { const d = Math.hypot(e.x - c.x, e.y - c.y); if (d < 220) { tx = c.x + (c.x - e.x) * 2; ty = c.y + (c.y - e.y) * 2; } }
+  if (!careless) for (const e of [...w.amoebas, ...w.bdellos, ...w.pseudos]) { const d = Math.hypot(e.x - c.x, e.y - c.y); if (d < 220) { tx = c.x + (c.x - e.x) * 2; ty = c.y + (c.y - e.y) * 2; } }
   return { x: tx, y: ty };
 };
-check('бот в режиме «Мутации» встречает, где мутации важны: тихая гибель от вируса, щипок кокка мимо закрытой двери, всплытие', () => {
-  const seen = { abort: 0, door: 0, gas: 0, genes: new Set() };
-  for (const seed of [1, 2, 3, 4, 5, 6]) {
-    const w = new World(cfg, seed); w.mode = 'mut';
-    for (let t = 0; t < 150 && w.me.length; t += 1 / 30) {
-      w.step(1 / 30, (t % 6) < 1 ? null : bot(w)); // иногда отпускает палец
-      for (const e of w.events) if (e[0] === 'abort') seen.abort++;
+// Для каждой мутации — 6 заплывов бота, у которого с начала только она: встречает ли он то, где она важна.
+check('бот в режиме «Мутации» встречает каждую мутацию в деле: щелчок, тихая гибель, всплытие, кокк у закрытой двери, вирус на пузырьке', () => {
+  const meet = { snap: 0, abort: 0, gas: 0, door: 0, decoy: 0 };
+  for (const g of Object.keys(meet)) for (const seed of [1, 2, 3, 4, 5, 6]) {
+    const w = new World(cfg, seed); w.mode = 'mut'; w.genes[g] = true;
+    if (g === 'abort' || g === 'decoy') { const P = cfg.pond; w.me[0].y = (P.film * 0.6 - P.y0) * P.h; w.tidy = 0; } // вирусы живут в сладкой воде под плёнкой — туда и плывёт голодный
+    for (let t = 0; t < 120 && w.me.length; t += 1 / 30) {
+      const near = g === 'abort' || g === 'decoy'; // против вирусов — бот-новичок: не уворачивается и палец не отпускает
+      w.step(1 / 30, !near && (t % 6) < 1 ? null : bot(w, near)); // иногда отпускает палец
+      for (const e of w.events) if (e[0] === g) meet[g]++;
       w.events.length = 0;
-      if (w.genes.door) for (const a of w.me) for (const q of w.prey) if (Math.hypot(a.x - q.x, a.y - q.y) < 30) seen.door++;
-      if (w.genes.gas && w.me[0] && w.me[0].vy < -5) seen.gas++;
+      if (g === 'door') for (const a of w.me) for (const q of w.prey) if (Math.hypot(a.x - q.x, a.y - q.y) < 30) meet.door++;
+      if (g === 'gas' && w.me[0] && w.me[0].lift > M.gas.up / 2) meet.gas++;
     }
-    for (const g of Object.keys(M.genes)) if (w.genes[g]) seen.genes.add(g);
+    if (g === 'decoy') meet.decoy += w.stats.decoy || 0;
   }
-  console.log(`    паспорт: 6 заплывов по 150 с — тихих гибелей ${seen.abort}, кадров у кокка с закрытой дверью ${seen.door}, кадров всплытия ${seen.gas}; мутации у бота ${[...seen.genes].join(',')}`);
-  if (!seen.genes.has('abort') || !seen.genes.has('door')) return 'бот не получил свои мутации';
-  if (!seen.abort) return 'бот ни разу не встретил вирус в сестре с умением';
-  if (!seen.door) return 'бот ни разу не был у кокка с закрытой дверью';
+  console.log('    паспорт: за 6 заплывов по 120 с — щелчков', meet.snap, '| тихих гибелей', meet.abort, '| кадров всплытия', meet.gas, '| кадров у кокка с закрытой дверью', meet.door, '| вирусов на пузырьках', meet.decoy);
+  const miss = Object.keys(meet).filter(g => !meet[g]);
+  if (miss.length) return 'бот не встретил, где важно: ' + miss.join(', ');
 });
 
 // Вид на теле: те же кисти, что у клетки в игре (vid.skin). Своих точек не меньше 6, у разворота — один длинный хвост.

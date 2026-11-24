@@ -100,6 +100,10 @@
     {
      "id": "door",
      "gene": "door"
+    },
+    {
+     "id": "decoy",
+     "gene": "decoy"
     }
    ]
   }
