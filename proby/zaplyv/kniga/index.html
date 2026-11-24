@@ -13,8 +13,10 @@ body { margin: 0; color: var(--ink); font: 16px/1.45 -apple-system, system-ui, s
   background: radial-gradient(ellipse at 30% -10%, rgba(60, 200, 210, 0.22), transparent 60%), var(--bg); min-height: 100vh;
   padding: calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 32px); }
 main { max-width: 640px; margin: 0 auto; }
-nav { position: sticky; top: 0; z-index: 2; margin: 0 -16px 12px; padding: 8px 16px; display: flex; gap: 8px; overflow-x: auto;
-  background: rgba(4, 18, 26, 0.88); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); scrollbar-width: none; }
+nav { position: sticky; top: 0; z-index: 2; margin: 0 -16px 12px;
+  background: rgba(4, 18, 26, 0.88); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+nav div { padding: 6px 16px; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; } nav div.gr a { font-weight: 600; } nav div.tb a { min-height: 44px; font-size: 14px; border-style: dashed; }
+a.tile { display: block; text-decoration: none; color: var(--ink); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; margin: 8px 0; min-height: 44px; } a.tile b { display: block; font-size: 17px; } a.tile span { opacity: 0.75; font-size: 14px; }
 nav a { flex: 0 0 auto; min-height: 44px; display: flex; align-items: center; padding: 0 14px; border-radius: 22px; color: var(--ink);
   text-decoration: none; border: 1px solid var(--line); font-size: 15px; }
 nav a.on { border-color: var(--accent); background: rgba(60, 255, 200, 0.14); }
@@ -63,8 +65,14 @@ hr.pb { break-after: page; border: none; margin: 0; }
 <div id="toast"></div>
 <script>
 // Книга «Заплыва»: страницы — .md рядом, этот файл только показывает их под телефон. Таблицы становятся карточками.
-const PAGES = [['oblozhka', 'Книга'], ['resheniya', 'Решения'], ['igra', 'Игра'], ['dvizhenie', 'Плыть'], ['mir', 'Мир'], ['sushchestva', 'Существа'],
-  ['geroy', 'Герой'], ['eda', 'Еда'], ['sreda', 'Среда'], ['sosedi', 'Соседи'], ['kto', 'Кто с кем'], ['il', 'Ил'], ['karta', 'Карта'], ['doma', 'Домой'], ['evolyuciya', 'Эволюция'], ['geny', 'Гены'], ['navyki', 'Навыки'], ['puti', 'Пути генов'], ['ekrany', 'Экраны'], ['animacii', 'Анимации'], ['razrabotka', 'В разработке'], ['problemy', 'Проблемы'], ['teksty', 'Тексты'], ['plan', 'План'], ['nauka', 'Наука'], ['ochered', 'Очередь'], ['zhurnal', 'Журнал']];
+// Вкладки собраны в пять групп: на телефоне сверху ряд групп, под ним вкладки открытой группы. Главная показывает оглавление.
+const GRUPPY = [
+  ['Тебе решать', [['resheniya', 'Решения', 'Новые идеи с кнопками «Да», «Нет», «Потом»'], ['problemy', 'Проблемы', 'Всё, что ты нашёл, твоими словами, и что с этим сделано'], ['ochered', 'Очередь', 'Что строители берут дальше и что уже вышло']]],
+  ['Игра сейчас', [['igra', 'Игра', 'Что есть в игре сегодня'], ['dvizhenie', 'Плыть', 'Как клетка плывёт под пальцем'], ['mir', 'Мир', 'Капля и что в ней'], ['sushchestva', 'Существа', 'Кто живёт в капле'], ['kto', 'Кто с кем', 'Кто кого ест и кто кому помогает'], ['ekrany', 'Экраны', 'Меню, пауза, карта, Альманах, гибель'], ['animacii', 'Анимации', 'Что и как движется'], ['teksty', 'Тексты', 'Все надписи игры и правила, как их писать']]],
+  ['Умения и эволюция', [['razvitie', 'Развитие умений', 'Как умение растёт и меняется'], ['geny', 'Гены', 'Умения клетки и новые из каталога биолога'], ['navyki', 'Навыки', 'Умения, которые включаешь жестом'], ['puti', 'Пути генов', 'Откуда умение приходит'], ['evolyuciya', 'Эволюция', 'Режимы: ночь рода, свои породы, хищники'], ['geroy', 'Герой', 'За кого играешь и что растёт вместе с тобой']]],
+  ['Мир впереди', [['eda', 'Еда', 'Чем питается клетка'], ['sreda', 'Среда', 'Свет, кислород, слизь, течение'], ['sosedi', 'Соседи', 'Новые существа'], ['il', 'Ил', 'Жизнь на дне'], ['karta', 'Карта', 'Пруд целиком и встречи'], ['doma', 'Домой', 'Куда ведёт заплыв']]],
+  ['Как работаем', [['razrabotka', 'В разработке', 'Что ждёт твоего «да» и что уже утверждено'], ['plan', 'План', 'Порядок больших шагов'], ['nauka', 'Наука', 'Источники и замеры'], ['zhurnal', 'Журнал', 'Что менялось в книге по версиям']]]];
+const PAGES = [['oblozhka', 'Книга'], ...GRUPPY.flatMap(g => g[1].map(p => [p[0], p[1]]))];
 // Записи книги: один пункт — одна запись в zapisi/*.json. Их же читает сверка с игрой (sverka.mjs).
 const SHAG = { nauka: ['1', 'база науки'], adaptaciya: ['2', 'адаптация'], biolog: ['3', 'у биолога'], gotov: ['4', 'готов к стройке'], stroyka: ['5', 'строим'], v_igre: ['6', 'в игре'] };
 let Z = null, PR = [], KK = null, RS = null, AN = [];
@@ -154,9 +162,10 @@ function render(md) {
       const gr = {}; for (const r of zr) (gr[r.file] = gr[r.file] || []).push(r);
       out.push(`<div class="card"><div class="t">Ждут твоего «да»: ${zr.length}</div>${row('уже утверждено', String(da.length))}</div>` + Object.entries(gr).map(([f, rs]) => `<h2>${TAB[f] ? `<a href="#${f}">${TAB[f]}</a>` : f}: ${rs.length}</h2><ul>` + rs.map(r => `<li><span class="code">${r.id}</span>${inline(r.name)}${r.krugi && r.krugi.biolog ? '' : ' · у биолога'}</li>`).join('') + '</ul>').join('') +
         (da.length ? '<h2>Утверждено</h2><ul>' + da.map(r => `<li><span class="code">${r.id}</span>${inline(r.name)} · ${esc(r.roman)}</li>`).join('') + '</ul>' : '')); continue; }
+    if (l.trim() === '{{oglavlenie}}') { out.push(GRUPPY.map(g => `<h3>${g[0]}</h3>` + g[1].map(([k, n, d]) => `<a class="tile" href="#${k}"><b>${n}</b><span>${d}</span></a>`).join('')).join('')); continue; }
     if (l.trim() === '{{ochered}}') { out.push(ochered()); continue; }
-    if (l.trim() === '{{kartochki}}') { out.push(Z.filter(r => r.kartochka).map(r => `<div class="card"><div class="t"><span class="code">${r.id}</span>${esc(r.kartochka.imya)} <em>${esc(r.latin)}</em></div>` +
-      `<div class="step s${SHAG[r.shag][0]}">${r.shag === 'v_igre' ? 'в игре' : 'спит на кольце'}</div>` + row('Что даёт', r.kartochka.daet) + row('В природе', r.kartochka.priroda) + '</div>').join('')); continue; }
+    if (l.trim() === '{{kartochki}}') { out.push(Z.filter(r => r.kartochka).map(r => `<div class="card"><div class="t"><span class="code">${r.id}</span>${esc(r.kartochka.imya)} <em>${esc(r.latin || '')}</em></div>` +
+      `<div class="step s${SHAG[r.shag][0]}">${r.shag === 'v_igre' ? 'в игре' : r.file === 'mutacii' ? 'новое, идёт в стройку' : 'спит на кольце'}</div>` + row('Что даёт', r.kartochka.daet) + row('В природе', r.kartochka.priroda) + '</div>').join('')); continue; }
     if (l.trim() === '{{sushchestva}}') { out.push(Z.flatMap(r => Object.values(r.sushchestva || {}).map(c => `<div class="card"><div class="t"><span class="code">${r.id}</span>${esc(c.imya)}</div>` + row('Кто это', c.kto) + row('Совет', c.sovet) + row('В природе', c.priroda) + row('Если убил', c.ubil) + '</div>')).join('')); continue; }
     if (l.startsWith('|')) { // таблица → карточки: первая ячейка — заголовок, остальные — «шапка: значение»
       const head = cells(l); i += 2;
@@ -179,8 +188,10 @@ function render(md) {
 async function show() {
   const id = (location.hash.slice(1) || 'oblozhka');
   const page = PAGES.find(p => p[0] === id) ? id : 'oblozhka';
-  document.getElementById('nav').innerHTML = PAGES.map(([k, n]) => `<a href="#${k}" class="${k === page ? 'on' : ''}">${n}</a>`).join('');
-  document.querySelector('nav a.on').scrollIntoView({ inline: 'center', block: 'nearest' });
+  const gi = GRUPPY.findIndex(g => g[1].some(p => p[0] === page));
+  document.getElementById('nav').innerHTML = '<div class="gr">' + `<a href="#oblozhka" class="${gi < 0 ? 'on' : ''}">Главная</a>` + GRUPPY.map((g, i) => `<a href="#${g[1][0][0]}" class="${i === gi ? 'on' : ''}">${g[0]}</a>`).join('') + '</div>' +
+    (gi < 0 ? '' : '<div class="tb">' + GRUPPY[gi][1].map(([k, n]) => `<a href="#${k}" class="${k === page ? 'on' : ''}">${n}</a>`).join('') + '</div>');
+  document.querySelectorAll('nav a.on').forEach(a => a.scrollIntoView({ inline: 'center', block: 'nearest' }));
   await zapisi();
   if (location.search === '?vse') { // вся книга одной лентой — из неё собирается PDF (pdf.mjs)
     const all = await Promise.all(PAGES.map(async ([k]) => render(await (await fetch(k + '.md', { cache: 'no-cache' })).text())));

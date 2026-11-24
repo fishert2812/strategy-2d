@@ -606,10 +606,13 @@ function tick(dt) {
     }
     return;
   }
-  const c = world.center(), k = Math.min(1, 3 * dt);
+  const C = cfg.cam, ok = world.me.filter(a => !a.grab && !(a.held > 0) && !(a.sick >= 0)), live = ok.length ? ok : world.me; // камера держит здоровых: схваченная, проколотая, заражённая уже не в кадре (L029)
+  const lead = live.reduce((b, a) => Math.hypot(a.x - view.x, a.y - view.y) < Math.hypot(b.x - view.x, b.y - view.y) ? a : b); // своя группа — та, где камера сейчас
+  const flock = live.filter(a => Math.hypot(a.x - lead.x, a.y - lead.y) < C.group), k = Math.min(1, 3 * dt); // отставшие вдали не тянут кадр
+  const c = { x: flock.reduce((s, a) => s + a.x, 0) / flock.length, y: flock.reduce((s, a) => s + a.y, 0) / flock.length };
   view.x += (c.x - view.x) * k; view.y += (c.y - view.y) * k;
   let spread = 0;
-  for (const a of world.me) spread = Math.max(spread, Math.hypot(a.x - view.x, a.y - view.y));
+  for (const a of flock) spread = Math.max(spread, Math.hypot(a.x - view.x, a.y - view.y));
   // Камера как у оператора: в спокойствии подъезжает к клетке (видна фактура, ворсинки, кромка света),
   // при опасности рядом или на скорости отъезжает — видно, что вокруг.
   const near = (list, r) => list.some(e => Math.hypot(e.x - c.x, e.y - c.y) < r);
@@ -617,7 +620,7 @@ function tick(dt) {
   const fast = world.me.some(a => Math.hypot(a.vx, a.vy) > 120);
   view.calm = (view.calm || 0) + ((danger || fast ? 0 : 1) - (view.calm || 0)) * Math.min(1, dt * (danger ? 2.5 : 0.6));
   const want = Math.max(0.9, Math.min(2.3, 2.45 - 0.17 * Math.sqrt(world.biggest()), W * 0.36 / Math.max(spread, 1))) * (1 + cfg.close_up * view.calm);
-  view.z += (want - view.z) * Math.min(1, dt * 1.5);
+  view.z += (Math.max(want, C.min_px / radius(lead.m)) - view.z) * Math.min(1, dt * 1.5); // клетка на экране не мельче min_px в радиусе
   const t = TINT[world.biome(view.x, view.y)];
   for (let i = 0; i < 3; i++) view.tint[i] += (t[i] - view.tint[i]) * Math.min(1, dt * 0.8);
   $('count').textContent = 'клеток ' + world.me.length;
@@ -932,7 +935,7 @@ function frame(now) {
   goalArrow();
   render(now / 1000, () => { if (!ended) { js.push(performance.now() - t0); if (js.length > 300) js.shift(); } });
   if (probe.frames % 60 === 0) knowGenes();
-  probe.frames++; probe.cells = world.me.length;
+  probe.frames++; probe.cells = world.me.length; probe.z = view.z; // масштаб камеры: тап-обход проверяет, что она возвращается (L029)
   probe.js = js.reduce((s, v) => s + v, 0) / Math.max(js.length, 1); probe.jsWorst = Math.max(0, ...js.slice(5)); probe.path = Math.max(probe.path || 0, world.stats.path);
   probe.dots = world.food.length + world.prey.length + world.phages.length;
   probe.worst = Math.max(...acc.slice(5)); probe.avg = acc.reduce((s, v) => s + v, 0) / Math.max(acc.length, 1); probe.ended = ended;
