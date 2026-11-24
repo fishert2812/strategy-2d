@@ -217,17 +217,24 @@ function menuOpen() {
   const mo = $('menu'); mo.classList.add('on');
   const shoot = () => { for (const i of mo.querySelectorAll('img[data-k]')) if (!i.src) try { i.src = snap(i.dataset.k, KAB.items[i.dataset.k]); } catch (_) {} };
   requestAnimationFrame(() => requestAnimationFrame(shoot)); // снимки живых моделей — когда сцена уже рисуется
-  const nb = ROD.branches || 1, w10 = nb % 10, w100 = nb % 100; $('mstate').textContent = ROD.deaths ? 'род: ' + nb + ' ' + (w10 === 1 && w100 !== 11 ? 'ветка' : w10 >= 2 && w10 <= 4 && (w100 < 12 || w100 > 14) ? 'ветки' : 'веток') + ' · ' + (ROD.gens || 0) + ' поколений' : 'капля пруда, 10 мкм';
+  const nb = ROD.branches || 1, w10 = nb % 10, w100 = nb % 100; $('mstate').textContent = ROD.deaths ? 'род: ' + nb + ' ' + (w10 === 1 && w100 !== 11 ? 'ветка' : w10 >= 2 && w10 <= 4 && (w100 < 12 || w100 > 14) ? 'ветки' : 'веток') + (ROD.gens ? ' · ' + ROD.gens + ' поколений' : '') : 'капля пруда, 10 мкм'; // пустые счётчики не показываем
   const n = [...met].filter(k => KAB.items[k] && k !== 'me').length, g = [...met].filter(k => k.startsWith('gene:')).length;
-  $('mknow').textContent = n ? 'Ты знаешь ' + n + ' обитателей' + (g ? ' · ' + g + ' генов' : '') : 'Обитателей капли ты пока не встречал';
+  const pl = (k, a, b, c) => k % 10 === 1 && k % 100 !== 11 ? a : k % 10 >= 2 && k % 10 <= 4 && (k % 100 < 12 || k % 100 > 14) ? b : c;
+  $('mknow').textContent = n ? 'Ты знаешь ' + n + ' ' + pl(n, 'обитателя', 'обитателей', 'обитателей') + (g ? ' · ' + g + ' ' + pl(g, 'ген', 'гена', 'генов') : '') : '';
   $('mquiet').textContent = ROD.quiet ? 'Звук' : 'Тише';
   menuPick('swim', true); // обычный заплыв — одно касание
 }
 function menuPick(m, quiet) {
-  const M = MODES[m]; $('mline').textContent = M.lock || M.line;
-  for (const o of $('mscene').querySelectorAll('.mo')) o.classList.toggle('sel', !M.lock && o.dataset.m === m);
-  $('mscene').classList.toggle('picked', !M.lock && !quiet);
-  if (!M.lock) { mSel = m; $('mgo').textContent = M.go; }
+  const M = MODES[m];
+  if (M.lock) { // закрытое отвечает у самого объекта и гаснет через 3 с; выбор и кнопку не трогает
+    const o = $('mscene').querySelector(`.mo[data-m=${m}]`); for (const t of $('mscene').querySelectorAll('.mtip')) t.remove();
+    const t = document.createElement('div'); t.className = 'mtip'; t.textContent = M.lock; o.appendChild(t); o.classList.add('peek'); // тронутое видно резко, даже когда выбран другой
+    setTimeout(() => { t.style.opacity = 0; setTimeout(() => { t.remove(); if (!o.querySelector('.mtip')) o.classList.remove('peek'); }, 400); }, 3000); return;
+  }
+  $('mline').textContent = M.line;
+  for (const o of $('mscene').querySelectorAll('.mo')) o.classList.toggle('sel', o.dataset.m === m);
+  $('mscene').classList.toggle('picked', !quiet);
+  mSel = m; $('mgo').textContent = M.go;
 }
 function menuGo() { if (mSel === 'night') { $('menu').classList.remove('on'); openNight(); } else start(); }
 for (const o of document.querySelectorAll('#mscene .mo')) { o.onclick = () => menuPick(o.dataset.m); o.ondblclick = () => { menuPick(o.dataset.m); if (!MODES[o.dataset.m].lock) menuGo(); }; }

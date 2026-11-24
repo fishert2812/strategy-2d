@@ -95,7 +95,7 @@ await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 0; }); await p.w
 await p.reload(); await p.waitForFunction(() => window.zaplyvProbe && zaplyvProbe.frames > 5, null, { timeout: 30000 }); await p.waitForTimeout(800);
 say(await on('menu'), 'после гибели вход открывает меню-сценку');
 say((await p.textContent('#mgo')) === 'Плыть', 'по умолчанию выбран заплыв: одно касание до игры');
-if (await tap('#mscene [data-m=hunt]', 'закрытый режим «Охота»')) say((await p.textContent('#mline')).length > 10 && (await p.textContent('#mgo')) === 'Плыть', 'закрытый режим отвечает строкой, выбор не меняется');
+if (await tap('#mscene [data-m=hunt]', 'закрытый режим «Охота»')) say(await seen('#mscene [data-m=hunt] .mtip') && (await p.textContent('#mgo')) === 'Плыть', 'закрытый режим отвечает строкой у самого объекта, выбор не меняется');
 if (await tap('#mscene [data-m=night]', 'объект «Ночь рода»')) say((await p.textContent('#mgo')) === 'Начать ночь', 'касание объекта меняет подпись кнопки');
 if (await tap('#mgo', '«Начать ночь»')) say(await on('night') && !(await on('menu')), '«Начать ночь» открывает ночь рода');
 if (await tap('#nback', '«Назад» из ночи в меню')) say(await on('menu'), '«Назад» возвращает в меню');

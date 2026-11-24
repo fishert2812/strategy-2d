@@ -37,13 +37,17 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 .mo { position: absolute; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; min-width: 96px; min-height: 96px; padding: 4px; transition: transform 0.2s, opacity 0.2s, filter 0.2s; cursor: pointer; }
 .mo img { width: 96px; height: 96px; object-fit: cover; border-radius: 50%; -webkit-mask-image: radial-gradient(circle, #000 55%, transparent 71%); mask-image: radial-gradient(circle, #000 55%, transparent 71%); }
 .mo b { font-size: 17px; font-weight: 600; padding: 2px 8px; border-radius: 8px; background: linear-gradient(rgba(2, 8, 12, 0), rgba(2, 8, 12, 0.55)); } .mo small { font-size: 13px; opacity: 0.8; }
-.mo.lock .art, .mo.lock img { filter: grayscale(1) brightness(0.5); opacity: 0.6; } .mo.lock b { font-weight: 500; opacity: 0.85; }
+.mo.lock img { filter: grayscale(1) contrast(0.35) brightness(1.5); opacity: 0.55; border: 1.5px solid rgba(207, 227, 230, 0.5); box-sizing: border-box; } /* закрытое — силуэт светлее фона с контуром, не клякса */
+.mo.lock .art i, .mo.lock .art.crack { background: rgba(255, 255, 255, 0.08) !important; border: 1.5px solid rgba(207, 227, 230, 0.5); box-sizing: border-box; } .mo.lock b { font-weight: 500; color: #cfe3e6; }
+.lk { font-size: 14px; filter: grayscale(1) brightness(1.9); } /* замок одним цветом, в цвет подписи */
+.mtip { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); width: 220px; margin-top: 4px; padding: 8px 10px; border-radius: 12px; background: rgba(4, 16, 22, 0.94); border: 1px solid rgba(207, 227, 230, 0.35); font-size: 14px; line-height: 1.35; text-align: center; z-index: 2; transition: opacity 0.4s; pointer-events: none; }
+.mo[data-m=hunt] .mtip, .mo[data-m=dry] .mtip { left: auto; right: -8px; transform: none; } .mo[data-m=sel] .mtip, .mo[data-m=deep] .mtip { left: -8px; transform: none; }
 .art { width: 96px; height: 72px; position: relative; } .art i { position: absolute; display: block; border-radius: 4px; }
 .art.bars i { height: 8px; left: 14px; background: rgba(140, 230, 170, 0.75); } .art.bars i:nth-child(1) { top: 14px; width: 50px; } .art.bars i:nth-child(2) { top: 30px; width: 62px; } .art.bars i:nth-child(3) { top: 46px; left: 40px; width: 46px; background: rgba(245, 225, 122, 0.85); }
 .art.stack i { left: 18px; width: 60px; height: 16px; border-radius: 9px; background: #5a6a72; } .art.stack i:nth-child(1) { top: 10px; } .art.stack i:nth-child(2) { top: 28px; } .art.stack i:nth-child(3) { top: 46px; }
 .art.rock i { left: 8px; width: 80px; height: 12px; background: #6b5a3c; } .art.rock i:nth-child(1) { top: 12px; } .art.rock i:nth-child(2) { top: 26px; background: #7d6a48; } .art.rock i:nth-child(3) { top: 40px; } .art.rock i:nth-child(4) { top: 54px; background: #5c4c32; }
 .art.crack { border-radius: 50% 50% 40% 40%; background: radial-gradient(circle at 50% 60%, #5a4a30, #2e2618); }
-#mscene.picked .mo:not(.sel) { opacity: 0.55; filter: blur(4px); } .mo.sel { transform: translateX(-50%) scale(1.08); } .mo.sel img, .mo.sel .art { box-shadow: 0 0 24px rgba(120, 255, 210, 0.5); border-radius: 50%; }
+#mscene.picked .mo:not(.sel):not(.peek) { opacity: 0.55; filter: blur(4px); } .mo.sel { transform: translateX(-50%) scale(1.08); } .mo.sel img, .mo.sel .art { box-shadow: 0 0 24px rgba(120, 255, 210, 0.5); border-radius: 50%; }
 .mo[data-m=swim]::after { content: ""; position: absolute; left: 50%; top: 52px; width: 104px; height: 104px; margin: -52px 0 0 -52px; border-radius: 50%; border: 2px solid rgba(120, 255, 210, 0.6); opacity: 0; animation: mwave 3s infinite; pointer-events: none; }
 @keyframes mwave { 0% { opacity: 0.8; transform: scale(0.9); } 13% { opacity: 0; transform: scale(1.25); } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .mo[data-m=swim]::after { animation: none; } .mo { transition: none; } }
@@ -181,10 +185,10 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
     <div class="mband now"><div class="mo" data-m="night" style="left: 50%; top: 24px;"><div class="art bars"><i></i><i></i><i></i></div><b>Ночь рода</b><small>тысяча поколений</small></div>
       <div class="mfilm"></div>
       <div class="mo" data-m="swim" style="left: 50%; top: 200px;"><img data-k="me" alt=""><b>Заплыв</b></div>
-      <div class="mo lock" data-m="sel" style="left: 24%; top: 400px;"><div class="art stack"><i></i><i></i><i></i></div><b>🔒 Селекция</b><small>твои породы</small></div>
-      <div class="mo lock" data-m="hunt" style="left: 76%; top: 400px;"><img data-k="bdello" alt=""><b>🔒 Охота</b></div></div>
-    <div class="mband past"><div class="mo lock" data-m="deep" style="left: 30%; top: 90px;"><div class="art rock"><i></i><i></i><i></i><i></i></div><b>🔒 Глубокое время</b></div>
-      <div class="mo lock" data-m="dry" style="left: 70%; top: 260px;"><div class="art crack"></div><b>🔒 Засуха</b></div></div>
+      <div class="mo lock" data-m="sel" style="left: 24%; top: 400px;"><div class="art stack"><i></i><i></i><i></i></div><b><span class="lk">🔒</span> Селекция</b><small>твои породы</small></div>
+      <div class="mo lock" data-m="hunt" style="left: 76%; top: 400px;"><img data-k="bdello" alt=""><b><span class="lk">🔒</span> Охота</b></div></div>
+    <div class="mband past"><div class="mo lock" data-m="deep" style="left: 30%; top: 90px;"><div class="art rock"><i></i><i></i><i></i><i></i></div><b><span class="lk">🔒</span> Глубокое время</b></div>
+      <div class="mo lock" data-m="dry" style="left: 70%; top: 260px;"><div class="art crack"></div><b><span class="lk">🔒</span> Засуха</b></div></div>
   </div>
   <p id="mline"></p>
   <div id="mrow"><button id="mquiet" class="ghost">Тише</button><button id="malm" class="ghost">Альманах</button></div>
