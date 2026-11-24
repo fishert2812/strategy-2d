@@ -41,6 +41,7 @@ ONLY=L019 case_ "test_L019: существо без места в Альмана
 case_ "test_L017: невидимый слой поверх кнопок «Заплыва»" 52_zaplyv_tap.sh red "sed -i 's|<div id=\"note\"|<div style=\"position:fixed;inset:0;z-index:99\"></div>&|' proby/zaplyv/index.html"
 case_ "test_L017: флажок молчит после касания" 52_zaplyv_tap.sh red "sed -i 's|n.classList.add(.on.);|/* нет отклика */|' proby/zaplyv/main.js"
 ONLY=L021 case_ "test_L021: значки генов пропали" 52_zaplyv_tap.sh red "sed -i 's/^function icon(g) {/function icon(g) { return String();/' $Z/main.js"
+case_ "test_L031: лист гибели помнит прокрутку" 52_zaplyv_tap.sh red "sed -i 's/\$(.end.).scrollTop = 0; //' $Z/main.js"
 case_ "test_L025: кнопки гибели ниже края экрана" 52_zaplyv_tap.sh red "sed -i 's/flex-shrink: 0; position: sticky;/flex-shrink: 0;/' $Z/index.html"
 # L018 (расширен) и L024 «антибред»: черновая строка умения мимо книги, описание в data.json, слово мира без имени из Альманаха, умение без теста-обещания — красное.
 case_ "test_L018: выбор дочки снова с черновой строкой" 52_zaplyv_tap.sh red "sed -i \"s/b.children\[2\].textContent = geneBook(g).daet || '';/b.children[2].textContent = 'отпустил палец у водоросли';/\" $Z/main.js"
