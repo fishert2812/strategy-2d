@@ -14,7 +14,11 @@ for f in index.html manifest.json index.js index.pck.wasm index.wasm.part0.wasm 
   curl -s -o /dev/null -w "%{http_code} %{content_type} %{size_download} $f\n" "$URL/$f" | tee /dev/stderr | grep -q '^200 ' || exit 1
 done
 D=$(mktemp -d); cd "$D"
-npm i -s playwright@1.56.1 >/dev/null && npx playwright install --with-deps webkit >/dev/null
+# apt без вопросов: needrestart и debconf иначе ждут ответа и вешают установку.
+export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a
+timeout 300 npm i -s --no-audit --no-fund playwright@1.56.1 >/dev/null
+timeout 600 sudo -E npx playwright install-deps webkit >/dev/null
+timeout 300 npx playwright install webkit >/dev/null
 cat > t.js <<'JS'
 const { webkit, devices } = require('playwright');
 (async () => {
@@ -31,4 +35,4 @@ const { webkit, devices } = require('playwright');
   console.log('WebKit: ошибок', bad); await b.close(); process.exit(bad ? 1 : 0);
 })();
 JS
-timeout 240 node t.js "$URL/"
+timeout -k 10 240 node t.js "$URL/" || { echo "WebKit: игра не загрузилась или зависла"; exit 1; }
