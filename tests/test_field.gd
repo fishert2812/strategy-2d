@@ -20,8 +20,8 @@ func test_build_near_own_costs_gold() -> String:
 	if sim.gold[Sim.PLAYER] != start - sim.cfg.buildings.camp.cost:
 		return "золото %d, а ждали %d" % [sim.gold[Sim.PLAYER], start - sim.cfg.buildings.camp.cost]
 	var far := sim.can_build(Sim.PLAYER, "camp", Vector2(360, 300))
-	if far != "далеко от своих":
-		return "у врага строить можно: «%s»" % far
+	if far != "":
+		return "на половине врага строить нельзя: «%s»" % far
 	sim.gold[Sim.PLAYER] = 0
 	if sim.can_build(Sim.PLAYER, "camp", home.pos + Vector2(-120, 0)) != "мало крошек":
 		return "без золота строить можно"

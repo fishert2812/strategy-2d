@@ -3,8 +3,8 @@
   "field": [720, 1000],
   "start_gold": 100,
   "home_drip": {"gold": 1, "every": 1.5},
-  "build_radius": 170,
-  "build_gap": 70,
+  "_deposit_r": "Радиус печенья: поверх него строить нельзя.",
+  "deposit_r": 34,
   "snap": 110,
   "buildings": {
     "home": {"hp": 2000, "cost": 0, "size": 46},
@@ -29,5 +29,5 @@
   "trophy": 0.5,
   "whistle": {"every": 20, "squad": 4},
   "warrior": {"cost": 4, "speed": 75, "hp": 60, "damage": 10, "hit_every": 0.8, "reach": 26, "aggro": 90, "siege": 3},
-  "enemy": {"think": 2.0, "camps": 2, "extra_camp_every": 120, "barracks_after": 20, "extra_barracks_every": 45, "max_barracks": 4, "raid_after": 90, "guards": 1}
+  "enemy": {"spread": 150, "think": 2.0, "camps": 2, "extra_camp_every": 120, "barracks_after": 20, "extra_barracks_every": 45, "max_barracks": 4, "raid_after": 90, "guards": 1}
 }

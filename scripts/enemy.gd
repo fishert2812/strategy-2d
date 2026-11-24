@@ -72,7 +72,7 @@ func _build(kind: String, toward: Vector2) -> Dictionary:
 	var best := Vector2.INF
 	for b in sim.of_side(side):
 		for turn in [0.0, 0.6, -0.6, 1.2, -1.2]:
-			var p: Vector2 = b.pos + (toward - b.pos).limit_length(sim.cfg.build_radius - 20).rotated(turn)
+			var p: Vector2 = b.pos + (toward - b.pos).limit_length(sim.cfg.enemy.spread).rotated(turn)
 			if sim.can_build(side, kind, p) == "" and p.distance_to(toward) < best.distance_to(toward):
 				best = p
 	return {} if best == Vector2.INF else sim.build(side, kind, best)
