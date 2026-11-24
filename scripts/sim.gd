@@ -211,6 +211,28 @@ static func _out(p: Vector2, c: Array, dir: Vector2, side: float) -> Vector2:
 static func _seg_dist(c: Vector2, a: Vector2, b: Vector2) -> float:
 	return c.distance_to(Geometry2D.get_closest_point_to_segment(c, a, b))
 
+## Где отряд казармы на этом ходу встретит чужих: первая точка его тропы, где рядом (march_aggro) стоят чужие воины,
+## иначе цель на конце — с её защитниками (ждущие воины казарм не дальше defend.radius). Честно: по тому, что на столе сейчас.
+## {} — нет отряда, тропы или встречи. Иначе {pos, n: [мои, чужие]}.
+func meet(b: Dictionary) -> Dictionary:
+	var mine := units.filter(func(u): return is_same(u.home, b) and u.kind == "warrior")
+	if mine.is_empty() or b.route.is_empty():
+		return {}
+	var r: float = cfg.warrior.march_aggro
+	var foes := units.filter(func(u): return u.side != b.side and u.kind == "warrior")
+	var pts: Array = [b.pos] + b.route
+	for i in range(1, pts.size()):
+		for k in int(pts[i - 1].distance_to(pts[i]) / 20.0) + 1:
+			var p: Vector2 = pts[i - 1].move_toward(pts[i], k * 20.0)
+			if p.distance_to(b.pos) > r and foes.any(func(u): return u.pos.distance_to(p) <= r):
+				return {"pos": p, "n": [mine.size(), foes.filter(func(u): return u.pos.distance_to(p) <= r * 1.5).size()]}
+	var t: Dictionary = b.target
+	if t.is_empty() or t.hp <= 0:
+		return {}
+	var guards := foes.filter(func(u): return not u.go and u.home.pos.distance_to(t.pos) <= cfg.defend.radius)
+	return {"pos": t.pos, "n": [mine.size(), guards.size()]}
+
+
 func _camp(b: Dictionary, dt: float) -> void:
 	b.timer += dt
 	var mine := units.filter(func(u): return is_same(u.home, b))

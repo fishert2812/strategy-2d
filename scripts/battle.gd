@@ -26,6 +26,7 @@ var taps := {"touch": 0, "mouse": 0, "emulated": 0}
 var _last := ""
 var _units := {}
 var _lines := {}
+var _meets := {}  # казарма игрока → метка встречи «мои : чужие»
 ## Тропа, которая после отпускания подтягивается в чистую форму: казарма и линия под пальцем.
 var _settle := {}
 var _loaded := []
@@ -72,6 +73,7 @@ func restart() -> void:
 	_sprites.clear()
 	_units.clear()
 	_lines.clear()
+	_meets.clear()
 	_drag = {}
 	_pick({})
 	ghost.hide()
@@ -139,6 +141,7 @@ func _process(dt: float) -> void:
 	if $Hud/Box/Debug.visible:
 		$Hud/Box/Debug.text = debug_text()
 	_sync_paths()
+	_sync_meets()
 	_sync_units(dt)
 
 
@@ -153,6 +156,33 @@ func _sync_paths() -> void:
 			_lines[b.id] = _line(Color(look.path_colors[b.side]))
 		_points(_lines[b.id], pts)
 	_drop_missing(_lines, seen)
+
+
+## Метка встречи: где отряд моей казармы на этом ходу встретит чужих и сколько их — «мои : чужие».
+## Видна перед свистком (look.meet.before секунд) и пока игрок тянет тропу; у отряда на марше её нет.
+func _sync_meets() -> void:
+	var seen := {}
+	var show: bool = sim.whistle <= look.meet.before or not _drag.is_empty()
+	for b in sim.of_side(Sim.PLAYER, "barracks"):
+		var m: Dictionary = sim.meet(b) if show else {}
+		if m.is_empty() or sim.units.any(func(u): return is_same(u.home, b) and u.go):
+			continue
+		seen[b.id] = true
+		if not _meets.has(b.id):
+			var l := Label.new()
+			l.add_theme_font_size_override("font_size", look.meet.size)
+			l.add_theme_color_override("font_color", Color(look.meet.color))
+			l.add_theme_constant_override("outline_size", look.meet.outline)
+			l.add_theme_color_override("font_outline_color", Color(look.path_colors[Sim.PLAYER]).darkened(0.5))
+			l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			l.z_index = 10
+			$World/Paths.add_child(l)
+			_meets[b.id] = l
+		var l: Label = _meets[b.id]
+		l.text = "%d : %d" % m.n
+		l.size = l.get_minimum_size()
+		l.position = m.pos - l.size / 2 + Vector2(0, -look.meet.lift)
+	_drop_missing(_meets, seen)
 
 
 func _sync_units(dt: float) -> void:
