@@ -49,6 +49,22 @@ float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
 float fib(vec2 p, float sharp){ // волокна: гребни шума после искривления пространства
   vec2 q = p + vec2(vn(p * 0.7 + 3.1), vn(p * 0.7 - 1.7)) * 2.2;
   return pow(1.0 - abs(vn(q) * 2.0 - 1.0), sharp); }
+// Сородичи в толще (по референсам Романа 24.11): палочки на трёх глубинах, чем дальше — тем мельче, мутнее и размытее.
+// Пространство режется на клетки сетки; в части клеток лежит одна палочка со своим углом и длиной.
+float sdCap(vec2 p, vec2 a, vec2 b){ vec2 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); return length(pa - ba * h); }
+vec4 kin(vec2 s, float sc, float blur, float seed, float t){ // одна палочка на клетку сетки, целиком внутри неё: один расчёт на пиксель
+  vec2 g = s * sc, c = floor(g);
+  float h = h2(c + seed); if (h > 0.4) return vec4(0.0);
+  vec2 o = c + 0.5 + (vec2(h2(c + seed + 1.3), h2(c + seed + 2.7)) - 0.5) * 0.2 + 0.05 * vec2(sin(t * 0.2 + h * 30.0), cos(t * 0.17 + h * 20.0));
+  float an = h2(c + seed + 5.1) * 6.283 + sin(t * 0.1 + h * 9.0) * 0.3, L = 0.07 + 0.12 * h2(c + seed + 7.3), r = 0.1;
+  vec2 u = vec2(cos(an), sin(an)) * L;
+  float d = sdCap(g, o - u, o + u) - r;
+  float body = 1.0 - smoothstep(-blur, blur, d);
+  float inner = clamp(-d / r, 0.0, 1.0), lit = dot(normalize(g - o + vec2(0.001)), vec2(-0.6, 0.8)) * (1.0 - inner);
+  float grain = vn(g * 38.0 + seed);
+  vec3 c0 = vec3(0.05, 0.16, 0.2) * (0.6 + 0.6 * grain) + vec3(0.15, 0.3, 0.32) * max(lit, 0.0) + vec3(0.3, 0.55, 0.6) * pow(1.0 - inner, 3.0) * 0.8;
+  return vec4(c0, body);
+}
 void main(){
   vec2 uv = gl_FragCoord.xy / res, asp = vec2(1.0, res.y / res.x), s = uv * asp;
   float top = uv.y; // 1 — у поверхности
@@ -62,6 +78,13 @@ void main(){
   col += tint * 0.6 * far + vec3(0.008, 0.02, 0.035) * far;
   float mid = fib(s * 5.5 + drift * 5.5 * 0.7 + vec2(time * 0.015, 0.0) + 11.0, 9.0);
   col += vec3(0.14, 0.28, 0.42) * mid * 0.22;
+  // три глубины сородичей: дальние мельче, тонут в дымке цвета воды и сдвигаются медленнее
+  vec3 fog = tint * 2.0 + vec3(0.02, 0.05, 0.06);
+  for (int k = 0; k < 3; k++) {
+    float fk = float(k), sc = 4.2 - fk * 1.2, par = 0.2 + fk * 0.2, haze = 0.78 - fk * 0.2;
+    vec4 b = kin(s + drift * par + vec2(0.0, time * 0.004 * (fk + 1.0)), sc, 0.12 - fk * 0.03, fk * 17.0, time);
+    col = mix(col, mix(b.rgb + col * 0.6, fog, haze), b.a * (1.0 - haze * 0.55));
+  }
   float d = length((uv - 0.5) * asp);
   col *= 1.0 - 0.45 * smoothstep(0.35, 0.95, d);
   gl_FragColor = vec4(col, 1.0);
@@ -70,6 +93,34 @@ const waterShow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.Shader
   vertexShader: 'varying vec2 v; void main(){ v = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
   fragmentShader: 'uniform sampler2D t; varying vec2 v; void main(){ gl_FragColor = texture2D(t, v); }' }));
 waterShow.renderOrder = 0; waterShow.frustumCulled = false; waterShow.scale.y = -1; back.add(waterShow);
+
+// Передний план (по референсам Романа): одна-две огромные клетки в расфокусе проплывают у края кадра, ближе нас.
+// Считаются в четверть разрешения — они размыты; к середине экрана гаснут, чтобы не закрывать опасности.
+const rtFront = new THREE.WebGLRenderTarget(4, 4, { depthBuffer: false }), frontScene = new THREE.Scene(), frontShow = new THREE.Scene();
+const UF = { res: { value: new THREE.Vector2() }, time: U.time, drift: U.drift, tint: U.tint };
+const fg = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShaderMaterial({ uniforms: UF, depthTest: false, depthWrite: false, side: THREE.DoubleSide,
+  vertexShader: 'void main(){ gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: `uniform vec2 res; uniform float time; uniform vec2 drift; uniform vec3 tint;
+float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float sdCap(vec2 p, vec2 a, vec2 b){ vec2 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); return length(pa - ba * h); }
+void main(){
+  vec2 uv = gl_FragCoord.xy / res, asp = vec2(1.0, res.y / res.x), s = uv * asp;
+  vec2 g = (s + drift * 1.8) * 1.1 + vec2(time * 0.006, 0.0), c = floor(g); float a = 0.0, rim = 0.0;
+  float h = h2(c + 3.3);
+  if (h < 0.6) {
+    vec2 o = c + 0.5; float an = h2(c + 4.4) * 6.283 + sin(time * 0.05 + h * 9.0) * 0.2;
+    vec2 u = vec2(cos(an), sin(an)) * 0.16; float d = sdCap(g, o - u, o + u) - 0.13;
+    a = 1.0 - smoothstep(-0.09, 0.09, d); rim = a * smoothstep(-0.12, 0.0, d);
+  }
+  vec2 e = abs(uv - 0.5) * 2.0; float edge = smoothstep(0.5, 0.9, max(e.x, e.y));
+  vec3 col = tint * 3.0 + vec3(0.12, 0.28, 0.34) + vec3(0.25, 0.45, 0.5) * rim;
+  gl_FragColor = vec4(col, a * edge * 0.5);
+}` }));
+fg.frustumCulled = false; frontScene.add(fg);
+const fgShow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShaderMaterial({ uniforms: { t: { value: rtFront.texture } }, transparent: true, depthTest: false, depthWrite: false, side: THREE.DoubleSide,
+  vertexShader: 'varying vec2 v; void main(){ v = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: 'uniform sampler2D t; varying vec2 v; void main(){ gl_FragColor = texture2D(t, v); }' }));
+fgShow.frustumCulled = false; frontShow.add(fgShow);
 
 // Слой мягких точек на инстансах: одна отрисовка на слой, сколько бы точек ни было.
 class Dots {
@@ -129,9 +180,10 @@ function resize() {
   const px = gl.getDrawingBufferSize(new THREE.Vector2());
   rt.setSize(Math.max(4, Math.round(px.x / 3)), Math.max(4, Math.round(px.y / 3)));
   U.res.value.set(rt.width, rt.height);
+  rtFront.setSize(Math.max(4, Math.round(px.x / 4)), Math.max(4, Math.round(px.y / 4))); UF.res.value.set(rtFront.width, rtFront.height);
   cam.left = 0; cam.right = W; cam.top = 0; cam.bottom = H; cam.updateProjectionMatrix();
   bodies.resize(W, H);
-  for (const m of [bg, waterShow]) { m.scale.set(W, m === waterShow ? -H : H, 1); m.position.set(W / 2, H / 2, 0); }
+  for (const m of [bg, waterShow, fg, fgShow]) { m.scale.set(W, m === waterShow || m === fgShow ? -H : H, 1); m.position.set(W / 2, H / 2, 0); }
 }
 addEventListener('resize', resize);
 resize();
@@ -589,6 +641,8 @@ function frame(now) {
   gl.clearDepth();
   gl.render(bodies.scene, bodies.cam);
   gl.render(scene, cam);
+  gl.setRenderTarget(rtFront); gl.setClearColor(0, 0); gl.clear(); gl.render(frontScene, cam); gl.setRenderTarget(null);
+  gl.render(frontShow, cam);
   probe.frames++; probe.cells = world.me.length;
   probe.js = js.reduce((s, v) => s + v, 0) / Math.max(js.length, 1); probe.jsWorst = Math.max(0, ...js.slice(5)); probe.path = Math.max(probe.path || 0, world.stats.path);
   probe.dots = world.food.length + world.prey.length + world.phages.length;
