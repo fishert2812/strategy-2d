@@ -17,7 +17,7 @@ export function nearby(w, cards, r, c) {
 
 // Одна отметка — одна строка: версия, когда, где, что было вокруг.
 export function mark(w, cards, ver, screen, r, c) {
-  const t = Math.round(w.stats.time), genes = Object.keys(w.genes).map(g => w.cfg.genes[g][0]);
+  const t = Math.round(w.stats.time), genes = Object.keys(w.genes).map(g => w.cfg.genes[g]);
   return [`Заплыв ${ver}`, `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')} в заплыве`, screen,
     `клеток ${w.me.length}`, 'гены: ' + (genes.join(', ') || 'нет'), 'рядом: ' + (nearby(w, cards, r, c).join(', ') || 'никого'),
     w.me.length ? '' : 'убил: ' + (cards[w.stats.killer]?.name || w.stats.killer || '?')].filter(Boolean).join(' · ');

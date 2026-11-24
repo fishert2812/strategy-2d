@@ -41,7 +41,7 @@ export class World {
     this.choice = []; // три гена на выбор; пока не пусто — мир стоит
     this.rush = 0; this.lastEat = -9; // разгон роста от серии
     this.stats = { eaten: 0, most: 1, path: 0, time: 0, gen: 0, lost: {}, killer: null };
-    this.met = new Set(['me']); this.look = 0;
+    this.met = new Set(['me']); this.look = 0; this.posle = {}; this.known = new Set(); // posle и known (Альманах) ставит main.js из книги
     this.splits = 0; this.away = []; // уплывшие дочки: видны пару секунд, потом теряются вдали // делений за заплыв: каждое gene_every-е даёт выбор из двух дочек, пока есть гены
     this.chunks = new Set(); this.seen = new Set();
     this.events = []; // [вид, x, y] — для вспышек на экране, экран их забирает
@@ -150,8 +150,8 @@ export class World {
     this.stats.most = Math.max(this.stats.most, this.me.length);
     this.splits += born.length;
     const k = s => s < this.cfg.gene_first ? -1 : Math.floor((s - this.cfg.gene_first) / this.cfg.gene_every);
-    if (k(this.splits) > k(this.splits - born.length) && !this.choice.length && Object.keys(this.cfg.genes).some(g => !this.genes[g])) { // первое деление и потом каждое gene_every-е; потолка нет, пока есть гены
-      const left = Object.keys(this.cfg.genes).filter(g => !this.genes[g]);
+    if (k(this.splits) > k(this.splits - born.length) && !this.choice.length && Object.keys(this.cfg.genes).some(g => this.offer(g))) { // первое деление и потом каждое gene_every-е; потолка нет, пока есть гены
+      const left = Object.keys(this.cfg.genes).filter(g => this.offer(g));
       for (let i = left.length - 1; i > 0; i--) { const j = Math.floor(this.r() * (i + 1)); [left[i], left[j]] = [left[j], left[i]]; }
       this.choice = left.slice(0, 2); // две дочки — у каждой своя мутация
     }
@@ -159,6 +159,7 @@ export class World {
   }
 
   inherit(genes) { for (const g of genes) if (this.cfg.genes[g]) { this.genes[g] = true; this.from[g] = 'kid'; } } // «Ночь рода»: заплыв начинается веткой рода
+  offer(g) { return !this.genes[g] && (this.posle[g] || []).every(k => this.met.has(k) || this.known.has(k)); } // умение дочке — только после встречи с тем, от кого оно (книга, поле posle)
   pick(g) { this.genes[g] = true; this.from[g] = 'kid'; this.choice = []; }
 
   // Шаг мира. target — джойстик {dx, dy, p}, точка мира {x, y} или null, если палец отпущен.
@@ -253,7 +254,7 @@ export class World {
     if (this.look <= 0 && this.me.length) { // встречи: кого увидел впервые — в кабинет (событие 'meet' без паузы)
       this.look = 0.5;
       const R = this.cfg.meet;
-      for (const [k, list] of [['coccus', this.prey], ['plant', this.plants], ['crumb', this.crumbs], ['phage', this.phages], ['amoeba', this.amoebas], ['bdello', this.bdellos], ['slipper', this.slippers], ['bell', this.bells], ['roti', this.rotis], ['pseudo', this.pseudos.filter(q => !q.strain)], ['strain', this.pseudos.filter(q => q.strain)], ['donor', this.donors]])
+      for (const [k, list] of [['coccus', this.prey], ['plant', this.plants], ['slime', this.slime], ['crumb', this.crumbs], ['phage', this.phages], ['amoeba', this.amoebas], ['bdello', this.bdellos], ['slipper', this.slippers], ['bell', this.bells], ['roti', this.rotis], ['pseudo', this.pseudos.filter(q => !q.strain)], ['strain', this.pseudos.filter(q => q.strain)], ['donor', this.donors]])
         if (!this.met.has(k) && list.some(o => this.me.some(a => dist(a, o) < R))) { this.met.add(k); this.events.push(['meet', k]); }
     }
     this.tidy -= dt;
