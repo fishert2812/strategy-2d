@@ -102,5 +102,14 @@ check('test_vid_zap_instant: гарпун бьёт мгновенно — штр
   const first = strokes(); for (let i = 0; i < 9; i++) strokes(); // drawUnder сам продвигает гарпун на 1/60 с
   return first < 5 ? 'удара не видно' : strokes() ? 'штрих висит дольше ' + vid.V.zap.flash + ' с — это летящий снаряд, а не выстрел' : '';
 });
+check('test_vid_abort: сестра, умершая за своих, гаснет целой — без брызг и призрака, за 2–3 с', () => {
+  const C = { r: 1, g: 1, b: 1 }, fx = new Fx({}, [C, C, C]); fx.reset(); fx.on('abort', 0, 0, 0, 1);
+  if (!fx.dead.length) return 'гибели не видно';
+  if (fx.drops.length || fx.ghosts.length) return 'есть брызги или призрак — так лопается от вируса, а не гаснет за своих';
+  const dots = () => { let n = 0; const b = { put: () => n++ }; fx.drawUnder({ scr: (x, y) => [x, y], z: 1, time: 0, glow: b, ink: b }); return n; };
+  if (dots() < 20) return 'тело не нарисовано';
+  for (let i = 0; i < 60; i++) fx.step(1 / 30); if (!fx.dead.length) return 'погасла быстрее 2 с';
+  for (let i = 0; i < 30; i++) fx.step(1 / 30); return fx.dead.length ? 'не гаснет за 3 с' : '';
+});
 console.log(bad ? 'ВИД: провалов ' + bad : 'ВИД: все проверки прошли');
 process.exit(bad ? 1 : 0);
