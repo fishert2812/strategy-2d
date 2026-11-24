@@ -53,6 +53,9 @@ func test_broken_mug_is_mate_only_in_mate() -> String:
 		var want := Sim.PLAYER if mode == "mate" else -1
 		if sim.winner != want:
 			return "«%s»: кружка врага разбита, лагерь цел — победитель %d, ждали %d" % [mode, sim.winner, want]
+		sim.gold[Sim.ENEMY] = 1000
+		if mode == "rout" and not sim.build(Sim.ENEMY, "barracks", Vector2(400, 200)).is_empty():
+			return "«Разгром»: без кружки враг всё ещё строит"
 	return ""
 
 
