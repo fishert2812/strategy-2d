@@ -22,6 +22,7 @@ jobs:
       - run: bash tools/install_godot.sh
       - run: bash tools/web/build.sh out/site
       - run: bash tools/web/build.sh out/site/ruchi res://proby/streams.tscn  # проба «Ручьи» (Godot) подадресом /ruchi/
+      - run: cp -r proby/zaplyv out/site/zaplyv  # проба «Заплыв» (Three.js) подадресом /zaplyv/
       - name: Выложить в ветку Pages
         run: |
           cd out/site
@@ -48,3 +49,5 @@ jobs:
       - run: command -v python3 >/dev/null && command -v curl >/dev/null || { apt-get update -qq && apt-get install -y -qq python3 curl >/dev/null; }
       - run: bash tools/web/test_L002.sh out/site
       - run: bash tools/web/check_site.sh "$SITE" "$(cat out/site/version.txt)"
+      - run: bash tools/web/check_zaplyv.sh out/site
+      - run: bash tools/web/check_proby.sh out/site "$SITE"

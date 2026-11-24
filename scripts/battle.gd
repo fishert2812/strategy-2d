@@ -26,6 +26,8 @@ var taps := {"touch": 0, "mouse": 0, "emulated": 0}
 var _last := ""
 var _units := {}
 var _lines := {}
+var _meets := {}  # казарма игрока → метка встречи «мои : чужие»
+var _meet_until := {}  # казарма игрока → до какого времени держать метку после отпускания тропы
 var _whistled := -99.0  # когда был свисток: от него бежит волна по боевым тропам
 ## Тропа, которая после отпускания подтягивается в чистую форму: казарма и линия под пальцем.
 var _settle := {}
@@ -44,7 +46,7 @@ var _glow := Node2D.new()
 func _ready() -> void:
 	_preload(look)
 	_warm_up()
-	$Hud/Box/Top/Sha.text = Version.label()
+	$Hud/Box/Top/Sha.text = Version.short()
 	$Grass.texture = _tex(look.background)
 	$Grass.modulate = Color(look.background_tint)
 	for kind in buttons:
@@ -75,6 +77,8 @@ func restart() -> void:
 	_sprites.clear()
 	_units.clear()
 	_lines.clear()
+	_meets.clear()
+	_meet_until.clear()
 	_whistled = -99.0
 	_drag = {}
 	_pick({})
@@ -82,12 +86,26 @@ func restart() -> void:
 	sim = Sim.new()
 	sim.changed.connect(_on_sim)
 	sim.changed.connect($Feedback.on_sim)
-	enemy = Enemy.new(sim)
+	enemy = Enemy.new(sim, Enemy.upcoming())
+	Enemy.played += 1
 	box = BlackBox.new()
 	sim.changed.connect(box.on_sim)
 	flag_button.text = "не так"
 	for b in sim.buildings:
 		_on_sim("built", b)
+	# Кто против тебя: имя характера под кружкой врага.
+	var mug: Sprite2D = _sprites[sim.of_side(Sim.ENEMY, "home")[0].id]
+	var who := Label.new()
+	who.name = "Who"
+	who.text = Enemy.title(enemy.who)
+	who.add_theme_font_size_override("font_size", look.enemy_name.size)
+	who.add_theme_color_override("font_color", Color(look.path_colors[Sim.ENEMY]).lightened(0.5))
+	who.add_theme_constant_override("outline_size", look.enemy_name.outline)
+	who.add_theme_color_override("font_outline_color", Color.BLACK)
+	who.size = who.get_minimum_size()
+	who.scale = Vector2.ONE / mug.scale
+	who.position = Vector2(-who.size.x / 2, look.enemy_name.below) / mug.scale
+	mug.add_child(who)
 	for d in sim.deposits:
 		_add_sprite(d.id, look.deposit, _tex(look.deposit.states[0][1]), d.pos)
 	$End.hide()
@@ -143,6 +161,7 @@ func _process(dt: float) -> void:
 	if $Hud/Box/Debug.visible:
 		$Hud/Box/Debug.text = debug_text()
 	_sync_paths()
+	_sync_meets()
 	_sync_units(dt)
 
 
@@ -186,6 +205,36 @@ func _sync_paths() -> void:
 			arrow.width = line.width
 			arrow.points = PackedVector2Array([tip + back + back.orthogonal() * 0.7, tip, tip + back - back.orthogonal() * 0.7])
 	_drop_missing(_lines, seen)
+
+
+## Метка встречи: где отряд моей казармы на этом ходу встретит чужих и сколько их — «мои : чужие».
+## Видна перед свистком (look.meet.before секунд), пока игрок тянет тропу и look.meet.hold секунд после; у отряда на марше её нет.
+func _sync_meets() -> void:
+	var seen := {}
+	var show: bool = sim.whistle <= look.meet.before or not _drag.is_empty()
+	for b in sim.of_side(Sim.PLAYER, "barracks"):
+		var m: Dictionary = sim.meet(b) if show or sim.time < _meet_until.get(b.id, -1.0) else {}
+		if is_same(_drag.get("from"), b):
+			_meet_until[b.id] = sim.time + look.meet.hold
+			m = sim.meet(b, _drag.trail + [_drag.at]) if _drag.has("at") else {}
+		if m.is_empty() or sim.units.any(func(u): return is_same(u.home, b) and u.go):
+			continue
+		seen[b.id] = true
+		if not _meets.has(b.id):
+			var l := Label.new()
+			l.add_theme_font_size_override("font_size", look.meet.size)
+			l.add_theme_color_override("font_color", Color(look.meet.color))
+			l.add_theme_constant_override("outline_size", look.meet.outline)
+			l.add_theme_color_override("font_outline_color", Color(look.path_colors[Sim.PLAYER]).darkened(0.5))
+			l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			l.z_index = 10
+			$World/Paths.add_child(l)
+			_meets[b.id] = l
+		var l: Label = _meets[b.id]
+		l.text = "%d : %d" % m.n
+		l.size = l.get_minimum_size()
+		l.position = m.pos - l.size / 2 + Vector2(0, -look.meet.lift)
+	_drop_missing(_meets, seen)
 
 
 ## Пунктир: чёрточка и просвет в точках поля (высота картинки равна толщине линии, чтобы шаг не менялся).
@@ -364,6 +413,7 @@ func _move(pos: Vector2) -> void:
 	if _drag.has("from"):
 		# След пальца: точка каждые route.step единиц поля.
 		var at := world.to_local(pos)
+		_drag.at = at
 		if _drag.trail.is_empty() or _drag.trail[-1].distance_to(at) >= sim.cfg.route.step:
 			_drag.trail.append(at)
 		# Под пальцем — живая линия ровно по пальцу, без пересчёта: чистая форма считается при отпускании.
@@ -550,10 +600,10 @@ func _on_sim(what: String, data: Dictionary) -> void:
 				t.tween_property(tw, "position", home, 0.15)
 				t.parallel().tween_property(tw, "scale", tw.get_meta("size", tw.scale), 0.15)
 				# Кадр выстрела со стрелой на время отдачи, потом обычная башня.
-				var shot: String = look.tower.get("shot", ["", ""])[Sim.PLAYER]
+				var shot: String = look.tower.get("shot", ["", ""])[data.side]
 				if not shot.is_empty():
 					tw.texture = _tex(shot)
-					t.tween_callback(func(): tw.texture = _tex(look.tower.files[Sim.PLAYER])).set_delay(0.1)
+					t.tween_callback(func(): tw.texture = _tex(look.tower.files[data.side])).set_delay(0.1)
 		"killed":
 			motion.hop(_units.get(data.get("by")), 2)
 		"whistle":
