@@ -494,7 +494,19 @@ func _on_sim(what: String, data: Dictionary) -> void:
 			_sprites[data.id].queue_free()
 			_sprites.erase(data.id)
 		"check":
-			hint("ШАХ!" if data.side == Sim.ENEMY else "ШАХ твоей кружке!", false)
+			# Шах крупно над самой кружкой, цветом её хозяина: видно, чью кружку бьют.
+			var shout := Label.new()
+			shout.text = "ШАХ!"
+			shout.add_theme_font_size_override("font_size", look.check.size)
+			shout.add_theme_color_override("font_color", Color(look.path_colors[data.side]))
+			shout.add_theme_constant_override("outline_size", 12)
+			shout.add_theme_color_override("font_outline_color", Color.BLACK)
+			world.add_child(shout)
+			shout.position = data.pos - shout.get_minimum_size() / 2 + Vector2(0, look.check.lift * (1 if data.side == Sim.ENEMY else -1))
+			var t := shout.create_tween()
+			t.tween_property(shout, "modulate:a", 0.0, look.check.time).set_delay(look.check.time / 2)
+			t.tween_callback(shout.queue_free)
+			$Feedback.play("whistle")
 		"ended":
 			var mate: bool = sim.mode.win == "home" and sim.of_side(1 - data.winner, "home").is_empty()
 			$End/Center/Box/Title.text = ("Мат! " if mate else "") + ("Победа!" if data.winner == Sim.PLAYER else "Поражение")

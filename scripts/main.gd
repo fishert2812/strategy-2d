@@ -14,7 +14,7 @@ func _ready() -> void:
 	var info: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(Sim.MODES))
 	for m in modes:
 		modes[m].text = "%s\n%s" % [info[m].title, info[m].hint]
-		modes[m].custom_minimum_size = Vector2(ceilf(MIN_BUTTON * 7.0), ceilf(MIN_BUTTON * 2.2))
+		modes[m].custom_minimum_size = Vector2(ceilf(MIN_BUTTON * 7.8), ceilf(MIN_BUTTON * 2.2))
 		modes[m].pressed.connect(start.bind(m))
 	SafeArea.apply($Safe)
 
