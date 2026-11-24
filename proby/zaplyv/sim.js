@@ -264,11 +264,12 @@ export class World {
   // Коловратка: рот между двумя колёсами на переднем конце. Сила колёс: плывёт — вполсилы; присела на ногу —
   // за секунду раскручивает колёса до полной (видно заранее, можно успеть уйти).
   head(q) { const L = this.cfg.roti_len * 0.5; return [q.x + Math.cos(q.a) * L, q.y + Math.sin(q.a) * L]; }
-  // Зоны затягивания (L030): туфелька, открытый колокольчик, коловратка с крутящимися колёсами. Рот и радиус — те же, что в suck().
+  // Зоны затягивания (L030): туфелька, открытый колокольчик, коловратка с крутящимися колёсами, охотящаяся амёба (край её захвата). Рот и радиус — те же, что в suck().
   zones() { const c = this.cfg, out = [];
     for (const p of this.slippers) out.push([...this.mouth(p), c.funnel_r, 'slipper']);
     for (const v of this.bells) if (!(v.shut > 0)) out.push([...this.bell(v), c.vortex_r, 'bell']);
     for (const q of this.rotis) out.push([...this.head(q), c.roti_r, 'roti']);
+    for (const m of this.amoebas) if (m.hunt) out.push([m.x, m.y, radius(m.m) * c.zone.amoeba, 'amoeba']);
     return out; }
   // Признак заранее: ближайшая к колонии зона и тревога 0…1 — 1 у края и внутри, 0 дальше zone.lead секунд хода от края.
   warning() { let best = null, bd = 1e9;
@@ -547,6 +548,7 @@ export class World {
     for (const m of this.amoebas) { // амёба ползёт только по дну и нитям; в открытой воде почти стоит
       const a = this.nearest(m, 340);
       let wx = 0, wy = 0;
+      m.hunt = !!(a && a.m < m.m * 0.8 && !this.genes.capsule); // охотится: видна её зона захвата (L030)
       if (a && a.m < m.m * 0.8) {
         const d = dist(a, m) || 1;
         const ground = this.biome(m.x, m.y) === 2 || this.plants.some(p => dist(p, m) < 160) || this.crumbs.some(k => dist(k, m) < 120);

@@ -658,6 +658,11 @@ function paint(time) {
       for (const a of world.me) { if (Math.hypot(a.x - wx, a.y - wy) > R) continue; const [ax, ay] = scr(a.x, a.y); // тебя тянет: штрихи бегут от клетки к рту
         for (let k = 0; k < Zc.streak; k++) { const f = (time * 1.2 + k / Zc.streak) % 1;
           for (let i = 0; i < 6; i++) { const u = (f + i * 0.015) * 0.7; ink.put(ax + (x - ax) * u, ay + (y - ay) * u, 1.1 * z + 0.5, cr, cg, cb, Zc.warn * (1 - f) * (0.4 + i * 0.12)); } } } } }
+  { const wn = world.warning(); if (wn && wn.level > 0) { const [x, y] = scr(wn.zone[0], wn.zone[1]); // источник тревоги за кадром: стрелка у края экрана, острием к нему (L030)
+    if (!on(x, y, wn.zone[2] * z - 12)) { const [cx, cy] = scr(world.center().x, world.center().y), a = Math.atan2(y - cy, x - cx), ux = Math.cos(a), uy = Math.sin(a), m = 34;
+      const t = Math.min((ux > 0 ? W - m - cx : m - cx) / (ux || 1e-9), (uy > 0 ? H - m - cy : m - cy) / (uy || 1e-9)), px = cx + ux * t, py = cy + uy * t, [cr, cg, cb] = cfg.zone.color, al = 0.45 + 0.4 * wn.level;
+      probe.edge = (probe.edge || 0) + 1;
+      for (let i = 0; i < 12; i++) { const s = i * 1.6; ink.put(px + ux * s * 1.4, py + uy * s * 1.4, 4, cr, cg, cb, al); ink.put(px + ux * 18 - (ux + uy) * s * 0.75, py + uy * 18 - (uy - ux) * s * 0.75, 4, cr, cg, cb, al); ink.put(px + ux * 18 - (ux - uy) * s * 0.75, py + uy * 18 - (uy + ux) * s * 0.75, 4, cr, cg, cb, al); } } } }
   for (const p of world.slippers) { // туфелька: огромная клетка в ресничках, воронка-рот на боку, поток в рот виден
     const [x, y] = scr(p.x, p.y), L = cfg.slipper_len * z; if (!on(x, y, L)) continue;
     const ux = Math.cos(p.a), uy = Math.sin(p.a), w = L * 0.27;
@@ -784,13 +789,13 @@ function paint(time) {
   }
   fx.drawUnder({ scr, z, time, glow, ink });
   for (const b of world.bdellos) { // бделловибрион: запятая вдвое мельче тебя, один толстый жгутик; на рывке — след
-    const [x, y] = scr(b.x, b.y); if (!on(x, y)) continue;
+    const [x, y] = scr(b.x, b.y); if (!on(x, y) && !b.aim) continue; // целится из-за кадра — линия прицела всё равно видна
     const w = 4.2 * z, sp = Math.hypot(b.vx, b.vy), ang = b.a, ux = Math.cos(ang), uy = Math.sin(ang);
     bodies.rod(x, y, ang, w * 1.5, w, 0, cfg.danger.bdello, [0.75, 0.12, 0.08], b.id, w * 0.35); // слегка изогнутая запятая
     glow.put(x, y, w * 4, 1, 0.3, 0.1, 0.12 + (b.on ? 0.1 * Math.sin(time * 16) : 0));
     if (b.aim) { const [cr, cg, cb] = cfg.zone.color, [tx, ty] = scr(b.aim.x, b.aim.y), L = Math.hypot(tx - x, ty - y); probe.warn.bdello = (probe.warn.bdello || 0) + 1; // выбрала тебя: светится и тянет тонкую линию прицела к клетке (L030)
       glow.put(x, y, w * 6, cr, cg, cb, 0.35 + 0.2 * Math.sin(time * 12));
-      for (let k = 2; k < L / 4; k++) { if (k % 4 > 1) continue; const u = k * 4 / L; ink.put(x + (tx - x) * u, y + (ty - y) * u, 0.8 * z + 0.5, cr, cg, cb, 0.55 * (1 - u * 0.5)); } }
+      const run = (time * 40) % 16; for (let k = 2; k < L / 4; k++) { const d = k * 4 + run; if (d % 16 > 8 || d > L) continue; const u = d / L; ink.put(x + (tx - x) * u, y + (ty - y) * u, 0.8 * z + 0.5, cr, cg, cb, 0.55 * (1 - u * 0.5)); } } // штрихи бегут от запятой к тебе
     for (let k = 1; k <= 22; k++) { const s = k / 22, wv = Math.sin(s * 9 - time * 30) * w * 0.5 * s;
       glow.put(x - ux * (w * 1.5 + s * w * 6) - uy * wv, y - uy * (w * 1.5 + s * w * 6) + ux * wv, 1.1 * Math.max(z, 0.7), 1, 0.55, 0.3, 0.6 * (1 - s * 0.6)); }
     if (sp > 150) for (let k = 1; k <= 8; k++) ink.put(x - b.vx * 0.012 * k * z, y - b.vy * 0.012 * k * z, w * (1 - k / 10), 1, 0.4, 0.2, 0.18 * (1 - k / 9)); // рывок
