@@ -22,7 +22,9 @@ await p.waitForFunction(() => window.zaplyvProbe && zaplyvProbe.frames > 20, nul
 // Касание пальцем: элемент должен быть виден, не меньше 44 pt и сверху в точке касания.
 async function tap(sel, what) {
   const el = p.locator(sel).first(); await el.scrollIntoViewIfNeeded({ timeout: 2000 }).catch(() => {}); // длинный экран палец прокручивает
-  const box = await el.boundingBox().catch(() => null);
+  await el.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {}); // лист ещё открывается: ждём саму кнопку, а не паузу
+  let box = await el.boundingBox().catch(() => null);
+  for (let i = 0; i < 10 && box; i++) { await p.waitForTimeout(60); const b2 = await el.boundingBox().catch(() => null); if (b2 && Math.abs(b2.x - box.x) < 0.5 && Math.abs(b2.y - box.y) < 0.5) break; box = b2; } // лист выехал до конца
   if (!box || box.width < 1) return say(false, `${what}: кнопки ${sel} не видно`), false;
   const top = await p.evaluate(([s, x, y]) => { const e = document.querySelector(s), h = document.elementFromPoint(x, y); return !!h && (h === e || e.contains(h)) || (h ? (h.id || h.tagName) + " " + h.textContent.slice(0, 20) : "пусто"); }, [sel, box.x + box.width / 2, box.y + box.height / 2]);
   if (top !== true) return say(false, `${what}: в точке касания ${sel} лежит другой слой (${top})`), false;
