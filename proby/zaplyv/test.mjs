@@ -704,5 +704,18 @@ check('пруд с планом (К1): слои сверху вниз посто
   console.log('    паспорт: пруд ' + P.w + '×' + P.h + ', старт на глубине ' + w.depth(0).toFixed(2) + ', у левого края x=' + Math.round(c.x) + ', открыто клеток ' + w.seen.size + ' из ' + P.grid[0] * P.grid[1]);
 });
 
+check('test_L027 [toxin]: яд не берёт синегнойку, соседку и кокка — касание даёт видимый знак «не подействовал» и лёгкий отскок; соперница лопается', () => {
+  const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
+  const hit = (kind, tox) => { const w = bare(181), a = w.me[0]; w.genes.toxin = tox; a.vx = a.vy = 0;
+    const o = { x: a.x + 14, y: a.y, vx: 0, vy: 0, a: 0, t: 9, rest: 9, cool: 0, id: 5 };
+    if (kind === 'pseudo') w.pseudos = [o]; if (kind === 'strain') w.pseudos = [{ ...o, strain: true }]; if (kind === 'donor') w.donors = [{ ...o, link: 0 }]; if (kind === 'coccus') w.prey = [{ ...o, m: 0.6 }];
+    w.step(1 / 30, null); return [w.events.filter(e => e[0] === 'immune').length, w.events.filter(e => e[0] === 'pop').length, a.vx]; };
+  const r = Object.fromEntries(['pseudo', 'donor', 'coccus', 'strain'].map(k => [k, hit(k, true)])), none = hit('pseudo', false);
+  console.log('    паспорт: знак «не подействовал» / лопнула / отскок —', Object.entries(r).map(([k, v]) => `${k} ${v[0]}/${v[1]}/${v[2].toFixed(0)}`).join(', '), '| без яда', none[0]);
+  for (const k of ['pseudo', 'donor', 'coccus']) if (r[k][0] !== 1 || !(r[k][2] < -5)) return 'касание с ядом не показало, что ' + k + ' неуязвима';
+  if (r.strain[1] !== 1 || r.strain[0]) return 'соперница не лопнула или показала «не подействовал»';
+  if (none[0]) return 'знак яда без яда';
+});
+
 console.log(bad ? 'ЗАПЛЫВ: провалов ' + bad : 'ЗАПЛЫВ: все проверки прошли');
 process.exit(bad ? 1 : 0);

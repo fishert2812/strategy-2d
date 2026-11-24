@@ -337,6 +337,12 @@ export class World {
       if (this.genes.toxin) for (const q of this.pseudos) if (q.strain && !q.gone && !(q.held > 0) && dist(a, q) < r + c.pseudo_r) {
         q.gone = true; this.spill(q.x, q.y); this.events.push(['pop', q.x, q.y]);
       }
+      if (this.genes.toxin) for (const q of [...this.pseudos.filter(q => !q.strain), ...this.donors, ...this.prey]) { // яд не берёт: видно, что не подействовал (Роман: «мой яд никак не действует… так и должно быть?»)
+        q.imm = Math.max(0, (q.imm || 0) - dt); if (q.gone || q.imm > 0 || q.held > 0) continue;
+        const rq = q.m ? radius(q.m) * 0.8 : c.pseudo_r, d = dist(a, q); if (d > r + rq) continue;
+        q.imm = c.toxin_tell.cool; const ux = (a.x - q.x) / (d || 1), uy = (a.y - q.y) / (d || 1); a.vx += ux * c.toxin_tell.push; a.vy += uy * c.toxin_tell.push; // лёгкий отскок
+        this.events.push(['immune', (a.x + q.x) / 2, (a.y + q.y) / 2, q.strain === undefined && q.link !== undefined ? 'donor' : q.m ? 'coccus' : 'pseudo']);
+      }
       for (const q of this.prey) { // кокк: долго висишь вплотную — выпускает бактериоцин, щиплет (замедление, не смерть)
         if (dist(a, q) > r + radius(q.m) * 0.6 + 4) continue;
         q.touch = (q.touch || 0) + dt;

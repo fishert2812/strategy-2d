@@ -157,7 +157,7 @@ const near = new Dots(12, scene, 5, false, 0); // передний план: р�
 const dust = new Dots(120, scene, 3, true, 0.9);
 const bubbles = new Dots(60, scene, 4, 'ring', 0);
 const wake = new Dots(240, scene, 3, true, 0.9); // след в воде: частицы, которые клетка расталкивает
-let puffs = [], cur = [0, 0], kids = null;
+let puffs = [], tells = [], cur = [0, 0], kids = null;
 
 function resize() {
   const w = innerWidth, h = innerHeight;
@@ -579,6 +579,7 @@ function events() {
     if (k === 'shrug') beep(1100, 0.05, 0.03); // новая дверь сработала: вирус отброшен
     if (k === 'bump') { beep(880, 0.05, 0.03); } // капсула: хищник отскочил
     if (k === 'pop') { beep(260, 0.25, 0.06, 'triangle', 0.6); } // чужая клетка лопнула
+    if (k === 'immune') { tells.push({ x, y, t: 0 }); beep(900, 0.08, 0.03, 'sine', 0.7); } // яд не берёт эту клетку: вспышка гаснет на её оболочке
     if (k === 'pinch') { beep(1400, 0.05, 0.03, 'square', 0.6); tell('pinch', 'Кокк щиплет своим ядом — отплыви'); }
     if (k === 'sick') { beep(180, 0.3, 0.05, 'sawtooth', 0.7); }
     if (k === 'burst' || k === 'eaten') { shake = 0.35; beep(110, 0.45, 0.09, 'triangle', 0.5); }
@@ -754,10 +755,15 @@ function paint(time) {
       for (let k = 0; k <= 14; k++) { const u = k / 14 * f; ink.put(x + (tx - x) * u, y + (ty - y) * u, 1.2 * z + 0.4, 1, 0.95, 0.6, 0.8); }
       glow.put(x + (tx - x) * ((time * 2) % 1) * f, y + (ty - y) * ((time * 2) % 1) * f, 3 * z, 1, 0.9, 0.5, 0.6); }
   }
+  for (const f of tells) { f.t += 1 / 60; const [x, y] = scr(f.x, f.y), k = f.t / cfg.toxin_tell.flash; // яд не подействовал: фиолетовые искры сходятся и гаснут, серое кольцо оболочки
+    for (let i = 0; i < 10; i++) { const t = i * 0.628 + f.x, R = (14 - 10 * k) * z; glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 1.6 * z + 0.4, 0.78, 0.66, 0.92, 0.8 * (1 - k)); }
+    for (let i = 0; i < 20; i++) { const t = i * 0.314, R = 18 * z; glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 1.1 * z + 0.3, 0.75, 0.78, 0.82, 0.45 * (1 - k)); } }
+  tells = tells.filter(f => f.t < cfg.toxin_tell.flash);
   for (const q of world.pseudos) { // синегнойка: палочка как ты, зеленоватая, один жгутик сзади
     const [x, y] = scr(q.x, q.y); if (!on(x, y)) continue;
     const w = 7.5 * z, ux = Math.cos(q.a), uy = Math.sin(q.a);
     const col = q.strain ? [0.66, 0.7, 0.76] : [0.45, 0.95, 0.72], rim = q.strain ? [0.32, 0.36, 0.44] : [0.15, 0.55, 0.42];
+    if (q.strain && world.genes.toxin && world.me.some(a => Math.hypot(a.x - q.x, a.y - q.y) < cfg.toxin_tell.mark_r)) for (let i = 0; i < 16; i++) { const t = i * 0.3927 + time * 0.6; glow.put(x + Math.cos(t) * w * 2.2, y + Math.sin(t) * w * 2.2, 1.3 * z + 0.4, 0.78, 0.66, 0.92, 0.35 + 0.2 * Math.sin(time * 4)); } // у тебя есть яд — соперница помечена его цветом: её яд берёт
     if (q.held > 0) { bodies.sphere(x, y, w * 1.5, col, [1, 0.5, 0.3], q.id); glow.put(x, y, w * 3, 1, 0.3, 0.1, 0.15); continue; } // в ней хищник: шарик
     if (q.strain) { // чужой штамм кишечной палочки: серая, жгутики со всех сторон, как у тебя
       bodies.rod(x, y, q.a, w * 2.4, w * 1.05, 0, col, rim, q.id, Math.sin(time * 3 + q.id) * w * 0.15);
