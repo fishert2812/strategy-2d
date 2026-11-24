@@ -26,3 +26,4 @@
 4. Round F., Crawford R., Mann D. *The Diatoms: Biology and Morphology of the Genera*, 1990.
 5. Kirk D. *Volvox: Molecular-Genetic Origins of Multicellularity and Cellular Differentiation*, 1998.
 6. Gause G. *The Struggle for Existence*, 1934.
+7. Leander B. и др., обзоры эвгленид; Zakryś B. и др., 2017.

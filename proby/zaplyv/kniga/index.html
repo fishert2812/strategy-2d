@@ -65,7 +65,7 @@ const row = (b, v) => v ? `<div class="r"><b>${b}</b><span>${inline(v)}</span></
 function zapis(r) {
   return `<div class="card"><div class="t"><span class="code">${r.id}</span>${inline(r.name)}</div>` +
     `<div class="step s${SHAG[r.shag][0]}">шаг ${SHAG[r.shag][0]} из 6 · ${SHAG[r.shag][1]}${r.versiya ? ' с ' + r.versiya : ''}</div>` +
-    row('В игре', r.igra) + row('Наука', r.nauka) +
+    (r.zamechanie ? `<div class="r warn"><b>Замечание</b><span>${inline(r.zamechanie)}</span></div>` : '') + row('В игре', r.igra) + row('Наука', r.nauka) +
     (r.stroit ? `<details><summary>Для строителя</summary>${row('Как строить', r.stroit)}${row('Проверка', r.proverka)}</details>` : '') +
     `<div class="krugi">${krug(r, 'biolog', 'биолог')} ${krug(r, 'stroitel', 'строитель')} ${krug(r, 'igrok', 'игрок')}</div></div>`;
 }

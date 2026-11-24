@@ -26,7 +26,7 @@
 
 1. Madigan M. и др. *Brock Biology of Microorganisms*, 16-е изд., 2021.
 2. Stocker R. Marine microbes see a sea of gradients. *Science*, 2012.
-3. Graham M. и др. Pollen as a nutrient source for lakes: обзоры по «пыльцевому дождю» в лимнологии; сверить точную ссылку у биолога.
+3. Graham M. E. и др. *Freshwater Biology*, 2006 (пыльца сосен как еда для озера).
 4. Lauga E. и др. Swimming in circles: motion of bacteria near solid boundaries. *Biophysical Journal*, 2006.
 5. Purcell E. Life at low Reynolds number. *American Journal of Physics*, 1977.
 6. Berg H. *E. coli in Motion*, 2004.

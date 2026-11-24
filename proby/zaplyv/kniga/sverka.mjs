@@ -57,6 +57,7 @@ function load() {
 const S = load();
 if (process.argv.includes('--selftest')) {
   const copy = () => JSON.parse(JSON.stringify(S));
+  const proba = () => ({ id: 'Я1', name: 'проба', file: S.spisok.find(f => S.records.some(r => r.file === f && !r.gde)), nauka: 'н', igra: 'и', stroit: 'с', proverka: 'п', shag: 'biolog', krugi: { biolog: '' } });
   const cases = [
     ['исправная книга', s => s, false],
     ['в игре новая карточка без записи', s => { s.cards.proba = { name: 'Проба' }; return s; }, true],
@@ -64,8 +65,9 @@ if (process.argv.includes('--selftest')) {
     ['запись «в игре», а кода нет', s => { delete s.cards.slipper; return s; }, true],
     ['текст карточки в игре изменили мимо книги', s => { s.cards.phage.name = 'Другой'; return s; }, true],
     ['один номер у двух записей', s => { s.records.push({ ...s.records[0] }); return s; }, true],
-    ['готов к стройке без биолога', s => { const r = s.records.find(r => r.shag === 'biolog'); r.shag = 'gotov'; r.krugi.biolog = ''; return s; }, true],
-    ['запись без слоя науки ушла дальше', s => { const r = s.records.find(r => r.shag === 'biolog'); r.nauka = ''; return s; }, true],
+    ['проба: полная запись у биолога', s => { s.records.push(proba()); return s; }, false],
+    ['готов к стройке без биолога', s => { s.records.push({ ...proba(), shag: 'gotov' }); return s; }, true],
+    ['запись без слоя науки ушла дальше', s => { s.records.push({ ...proba(), nauka: '' }); return s; }, true],
     ['запись не показана в книге', s => { s.pages = {}; return s; }, true],
   ];
   let fail = 0;
