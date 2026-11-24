@@ -12,6 +12,8 @@ var cfg: Dictionary
 var time := 0.0
 var gold := [0, 0]
 var winner := -1
+## Секунд до общего свистка: на свисток отряды обеих сторон выходят по своим тропам.
+var whistle := 0.0
 var buildings: Array = []
 var deposits: Array = []
 var units: Array = []
@@ -23,6 +25,7 @@ func _init(overrides := {}) -> void:
 	cfg = JSON.parse_string(FileAccess.get_file_as_string(DATA))
 	cfg.merge(overrides, true)
 	gold = [cfg.start_gold, cfg.start_gold]
+	whistle = cfg.whistle.every
 	for side in [PLAYER, ENEMY]:
 		_add_building(side, "home", _v(cfg.homes[side]))
 	for d in cfg.deposits:
@@ -39,6 +42,13 @@ func step(dt: float) -> void:
 		for side in [PLAYER, ENEMY]:
 			if not of_side(side, "home").is_empty():
 				gold[side] += cfg.home_drip.gold
+	whistle -= dt
+	if whistle <= 0:
+		whistle += cfg.whistle.every
+		for u in units:
+			if u.kind == "warrior":
+				u.go = true
+		changed.emit("whistle", {})
 	for b in buildings.duplicate():
 		if b.kind == "camp":
 			_camp(b, dt)
@@ -80,14 +90,15 @@ func _camp(b: Dictionary, dt: float) -> void:
 func _barracks(b: Dictionary, dt: float) -> void:
 	b.timer += dt
 	var mine := units.filter(func(u): return is_same(u.home, b))
-	if mine.size() >= cfg.barracks.max or b.timer < cfg.barracks.every:
+	if mine.size() >= cfg.whistle.squad or b.timer < cfg.barracks.every:
 		return
 	b.timer = 0.0
 	var post := Vector2((b.id % 5 - 2) * 14, 44 + (b.id % 3) * 10)
-	units.append({"id": _id(), "side": b.side, "kind": "warrior", "pos": b.pos + post, "hp": cfg.warrior.hp, "home": b, "cd": 0.0, "post": post})
+	units.append({"id": _id(), "side": b.side, "kind": "warrior", "pos": b.pos + post, "hp": cfg.warrior.hp, "home": b, "cd": 0.0, "post": post, "go": false})
 
 
-## Воин: дерётся с ближним чужим, иначе идёт по тропе и ломает здание в её конце, без тропы стоит у казармы.
+## Воин: дерётся с ближним чужим. После свистка идёт по тропе и ломает здание в её конце;
+## без тропы или после победы ждёт у казармы следующего свистка.
 func _warrior(u: Dictionary, dt: float) -> void:
 	var w: Dictionary = cfg.warrior
 	u.cd = maxf(0.0, u.cd - dt)
@@ -100,10 +111,11 @@ func _warrior(u: Dictionary, dt: float) -> void:
 	if not foe.is_empty():
 		if _reach(u, foe.pos, w.reach, w.speed * dt):
 			_hit(u, foe)
-	elif not t.is_empty() and t.hp > 0:
+	elif u.go and not t.is_empty() and t.hp > 0:
 		if _reach(u, t.pos, w.reach + cfg.buildings[t.kind].size, w.speed * dt):
 			_hit(u, t)
 	else:
+		u.go = false
 		_walk(u, u.home.pos + u.post, w.speed * dt)
 
 
