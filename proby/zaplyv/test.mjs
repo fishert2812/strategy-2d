@@ -524,7 +524,7 @@ check('test_L013: новичок без касаний и уворотов не 
     const w = new World(cfg, s * 53); w.dir = s * 1.3; let t = null;
     for (let i = 0; i < 30 * 30 && w.me.length && t === null; i++) {
       w.step(1 / 30, novice(w)); if (w.choice.length) w.pick(w.choice[0]);
-      const e = w.events.find(e => ['grab', 'stick', 'sick', 'zap', 'eaten', 'burst', 'pinch'].includes(e[0])); w.events.length = 0;
+      const e = w.events.find(e => ['grab', 'stick', 'sick', 'bore', 'zap', 'eaten', 'burst', 'pinch'].includes(e[0])); w.events.length = 0;
       if (e || w.amoebas.some(m => w.me.some(a => Math.hypot(a.x - m.x, a.y - m.y) < 120))) t = w.stats.time;
     }
     out.push(t ?? 99);
