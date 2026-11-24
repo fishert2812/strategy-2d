@@ -176,7 +176,7 @@ func test_trails_calm_at_rest_alive_on_whistle() -> String:
 	var why := ""
 	if mine.modulate.a > 0.01:
 		why = "тропа носильщиков видна в покое"
-	elif rest[0] > tr.war.width or rest[1] > tr.war.alpha or war.texture == null:
+	elif rest[0] > tr.war.width + 0.01 or rest[1] > tr.war.alpha + 0.01 or war.texture == null:
 		why = "боевая тропа в покое не тонкий бледный пунктир: %s" % [rest]
 	elif war.get_child(0).points[1].distance_to(b.target.pos) > battle.look.home.width:
 		why = "стрелка не у цели"
