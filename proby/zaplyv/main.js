@@ -14,9 +14,11 @@ let H = W, field;
 const cam = new THREE.OrthographicCamera(0, W, 0, W, -1, 1);
 const scene = new THREE.Scene();
 const fieldScene = new THREE.Scene();
-const CELL = [new THREE.Color(0.3, 1.0, 0.8), new THREE.Color(1.0, 0.28, 0.42), new THREE.Color(1.0, 0.84, 0.36)];
+// Цвета как на раскрашенных снимках: у каждой стороны оболочка одного цвета, содержимое другого.
+const CELL = [new THREE.Color(0.35, 0.85, 1.0), new THREE.Color(1.0, 0.5, 0.2), new THREE.Color(0.6, 1.0, 0.35)]; // оболочка
+const CORE = [new THREE.Color(0.85, 0.22, 0.62), new THREE.Color(0.8, 0.1, 0.16), new THREE.Color(1.0, 0.82, 0.2)]; // содержимое
 const CH = [[1, 0, 0], [0, 0, 1], [0, 1, 0]]; // сторона -> канал поля: 0 моё, 1 опасное, 2 съедобное
-const TINT = [[0.03, 0.065, 0.11], [0.08, 0.035, 0.09], [0.06, 0.065, 0.025]];
+const TINT = [[0.02, 0.06, 0.12], [0.07, 0.03, 0.1], [0.02, 0.08, 0.05]]; // вода, сладкая, ил
 
 const quad = (frag, uniforms, order) => {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShaderMaterial({
@@ -43,9 +45,10 @@ void main(){
 }`, U, 0);
 
 const FU = { field: { value: null }, res: U.res, texel: { value: new THREE.Vector2() }, th: { value: 0.42 },
-  c0: { value: CELL[0] }, c1: { value: CELL[1] }, c2: { value: CELL[2] } };
+  c0: { value: CELL[0] }, c1: { value: CELL[1] }, c2: { value: CELL[2] },
+  i0: { value: CORE[0] }, i1: { value: CORE[1] }, i2: { value: CORE[2] } };
 // Клетки: порог поля, объём по наклону поля, блик, кромка-плёнка, полупрозрачное тело и свечение вокруг.
-const cells = quad(`uniform sampler2D field; uniform vec2 res; uniform vec2 texel; uniform float th; uniform vec3 c0, c1, c2;
+const cells = quad(`uniform sampler2D field; uniform vec2 res; uniform vec2 texel; uniform float th; uniform vec3 c0, c1, c2, i0, i1, i2;
 float F(vec2 uv){ vec3 f = texture2D(field, uv).rgb; return max(f.r, max(f.g, f.b)); }
 void main(){
   vec2 uv = gl_FragCoord.xy / res;
@@ -53,6 +56,7 @@ void main(){
   float m = max(f.r, max(f.g, f.b));
   if (m < 0.015) discard;
   vec3 c = f.r >= m ? c0 : (f.b >= m ? c1 : c2);
+  vec3 ci = f.r >= m ? i0 : (f.b >= m ? i1 : i2);
   float body = smoothstep(th - 0.02, th + 0.02, m);
   float gx = F(uv + vec2(texel.x, 0.0)) - F(uv - vec2(texel.x, 0.0));
   float gy = F(uv + vec2(0.0, texel.y)) - F(uv - vec2(0.0, texel.y));
@@ -63,10 +67,11 @@ void main(){
   float fres = pow(1.0 - n.z, 1.5);
   float depth = smoothstep(th, 0.95, m);
   float rim = 1.0 - smoothstep(th + 0.005, th + 0.09, m);
-  // тёмное поле: кромка светится, тело полупрозрачное, снаружи голубая кайма, у края изнутри тёплая
-  vec3 col = c * (0.12 + 0.38 * diff) + c * 0.24 * depth + (c * 0.75 + 0.42) * max(rim, fres) * 0.95 + spec * 0.75;
-  col += vec3(0.12, 0.06, -0.04) * rim;
-  float a = body * (0.58 + 0.42 * max(rim, fres));
+  // прозрачная оболочка светится по краю, сквозь неё видно содержимое другого цвета; блик сверху слева
+  float inner = smoothstep(th + 0.06, 0.85, m);
+  vec3 base = mix(c * (0.22 + 0.45 * diff), ci * (0.4 + 0.6 * diff), inner);
+  vec3 col = base + (c * 0.8 + 0.35) * max(rim, fres) * 0.9 + spec * 0.8;
+  float a = body * (0.62 + 0.38 * max(rim, fres));
   float halo = smoothstep(0.02, th, m);
   gl_FragColor = vec4(mix(mix(c, vec3(0.55, 0.75, 1.0), 0.35), col, body), max(a, halo * halo * 0.3));
 }`, FU, 2);
@@ -155,7 +160,7 @@ fetch('../version.txt').then(r => r.ok ? r.text() : 'dev').then(t => $('ver').te
 
 function start() {
   world = new World(cfg, (Math.random() * 2 ** 31) | 0);
-  view = { x: 0, y: 0, z: 1, tint: [...TINT[0]] };
+  view = { x: 0, y: 0, z: 2.2, tint: [...TINT[0]] };
   rings = []; ended = false;
   $('end').classList.remove('on');
 }
@@ -228,7 +233,7 @@ function tick(dt) {
   view.x += (c.x - view.x) * k; view.y += (c.y - view.y) * k;
   let spread = 0;
   for (const a of world.me) spread = Math.max(spread, Math.hypot(a.x - view.x, a.y - view.y));
-  const want = Math.max(0.5, Math.min(1.4, 1.45 - 0.07 * Math.sqrt(world.biggest()), W * 0.42 / Math.max(spread, 1)));
+  const want = Math.max(0.9, Math.min(2.3, 2.45 - 0.17 * Math.sqrt(world.biggest()), W * 0.36 / Math.max(spread, 1)));
   view.z += (want - view.z) * Math.min(1, dt);
   const t = TINT[world.biome(view.x, view.y)];
   for (let i = 0; i < 3; i++) view.tint[i] += (t[i] - view.tint[i]) * Math.min(1, dt * 0.8);
@@ -240,6 +245,7 @@ function tick(dt) {
 // облако нуклеоида и зёрна, у полюсов светлые шапочки; жгутики пучком на ходу и врозь на месте;
 // кокки — одиночки, пары, цепочки, грозди; амёба с ложноножками, током зёрен, ядром и вакуолью;
 // фаг T4 — вытянутая головка, хвост, пластинка и шесть ножек; вдали частицы в расфокусе кольцами.
+const SPIKES = [[1, 0.45, 0.75], [1, 0.6, 0.2], [0.45, 0.7, 1], [0.8, 0.5, 1]];
 function paint(time) {
   const z = view.z, big = world.biggest();
   const on = (x, y, pad = 80) => x > -pad && x < W + pad && y > -pad && y < H + pad;
@@ -256,7 +262,13 @@ function paint(time) {
     const [x, y] = scr(q.x, q.y); if (!on(x, y)) continue;
     const side = q.m > big * 1.25 ? 1 : 2, r = radius(q.m) * z, kind = q.id % 4, a = q.a + time * 0.2;
     const ux = Math.cos(a), uy = Math.sin(a);
-    if (kind === 0) blob(x, y, r * 0.9, side);
+    if (kind === 0) { // шар с шипами, у каждого свой цвет шипов
+      blob(x, y, r * 0.9, side);
+      const hue = SPIKES[q.id % SPIKES.length];
+      for (let k = 0; k < 14; k++) { const t = k * 0.4488 + a * 0.3, c = Math.cos(t), s = Math.sin(t);
+        ink.put(x + c * r * 1.02, y + s * r * 1.02, 1.1 * z + 0.4, hue[0], hue[1], hue[2], 0.8);
+        ink.put(x + c * r * 1.28, y + s * r * 1.28, 2.2 * z + 0.5, hue[0], hue[1], hue[2], 0.9); }
+    }
     else if (kind === 1) { blob(x + ux * r * 0.45, y + uy * r * 0.45, r * 0.62, side); blob(x - ux * r * 0.45, y - uy * r * 0.45, r * 0.62, side); }
     else if (kind === 2) for (let k = -1.5; k <= 1.5; k++) { // цепочка
       const w = Math.sin(time * 1.5 + k + q.id) * r * 0.15;
@@ -293,7 +305,14 @@ function paint(time) {
       for (const s of [-1, 1]) for (const f of [0, 1]) { const [px, py] = along(s * (gap / 2 + w * 0.85 + f * Math.max(0, half - gap / 2 - w * 1.7))); blob(px, py, w, 0); }
       for (let k = 0; k < 18; k++) { const t = k * 0.349, R = half * (1.35 + 0.08 * Math.sin(time * 5)); glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 2.2, 1, 1, 1, 0.4); }
     } else for (let k = 0; k < 4; k++) { const [px, py] = along((k / 3 * 2 - 1) * (half - w)); blob(px, py, w, 0); }
-    for (const s of [-0.28, 0.28]) { const [px, py] = along(s * half); glow.put(px, py, w * 0.75, 0.75, 1, 0.95, 0.1); } // нуклеоид
+    for (let k = 0; k < 16; k++) { // пили: короткие ворсинки по всей оболочке
+      const t = k / 16 * 6.283, c = Math.cos(t), s = Math.sin(t), l = 1 + 0.25 * Math.sin(time * 3 + k * 1.7 + a.id);
+      for (const e of [1.08, 1.32 * l]) { const [px, py] = along(c * (half - w * 0.2) * (c > 0 ? 1 : 1) + c * w * (e - 1), s * w * e); ink.put(px, py, 0.9 * z + 0.4, 0.55, 0.9, 1, 0.55); }
+    }
+    for (let k = 0; k < 7; k++) { // содержимое: розовые зёрна рибосом
+      const t = k * 2.4 + a.id, [px, py] = along(Math.sin(t + time * 0.2) * (half - w * 0.8), Math.cos(t * 1.7 + time * 0.25) * w * 0.45);
+      glow.put(px, py, 1.6 * z + 0.6, 1, 0.35, 0.75, 0.35);
+    }
     for (const s of [-1, 1]) { const [px, py] = along(s * (half - w * 0.45)); glow.put(px, py, w * 0.35, 0.9, 1, 1, 0.22); } // полюса
     for (let k = 0; k < 4; k++) { // зёрна плывут внутри
       const t = time * (0.5 + k * 0.17) + a.id * 1.3 + k * 2.1, [px, py] = along(Math.sin(t) * (half - w * 0.6), Math.cos(t * 1.3) * w * 0.4);
@@ -304,10 +323,10 @@ function paint(time) {
       let bx, by, dx, dy;
       if (run) { [bx, by] = along(-half + w * 0.3, (f - 1.5) * w * 0.3); dx = -ax; dy = -ay; }
       else { const t = f * 1.571 + 0.6 + a.id, c = Math.cos(t), s = Math.sin(t); [bx, by] = along(c * (half - w * 0.5), s * w * 0.9); const l = Math.hypot(c * 1.2, s * 1.8); dx = (ax * c * 1.2 - ay * s * 1.8) / l; dy = (ay * c * 1.2 + ax * s * 1.8) / l; }
-      for (let k = 1; k <= 16; k++) {
-        const s = k / 16, back = s * w * (run ? 5.5 : 4), amp = w * 0.42 * Math.min(1, s * 3);
+      for (let k = 1; k <= 40; k++) {
+        const s = k / 40, back = s * w * (run ? 7 : 5.5), amp = w * 0.42 * Math.min(1, s * 3);
         const wv = Math.sin(s * 10 - time * (run ? 16 : 4) + f * 0.5) * amp, conv = run ? (f - 1.5) * w * 0.3 * (s * 0.9) : 0;
-        glow.put(bx + dx * back + dy * (wv - conv), by + dy * back - dx * (wv - conv), 1.1 * Math.max(z, 0.7) + 0.3, cr, cg, cb, 0.45 * (1 - s * 0.5));
+        glow.put(bx + dx * back + dy * (wv - conv), by + dy * back - dx * (wv - conv), 0.8 * Math.max(z, 0.7) + 0.3, cr, cg, cb, 0.5 * (1 - s * 0.5));
       }
     }
     if (a.sick >= 0) glow.put(x, y, half, 1, 0.2, 0.3, 0.25 + 0.2 * Math.sin(time * 20));
@@ -320,8 +339,9 @@ function paint(time) {
     const [x, y] = scr(g.x, g.y); if (!on(x, y)) continue;
     const s = 6 * z + 1, d = Math.atan2(g.vy, g.vx), ux = Math.cos(d), uy = Math.sin(d);
     const P = (a, b) => [x + ux * a - uy * b, y + uy * a + ux * b];
-    const pink = (p, r, al = 0.95) => ink.put(p[0], p[1], r, 1, 0.35, 0.5, al);
+    const pink = (p, r, al = 0.95) => ink.put(p[0], p[1], r, 0.82, 0.8, 0.92, al); // серебристый, как на снимках
     for (const a of [-2.7, -2.1, -1.5]) pink(P(a * s, 0), s * 0.72);
+    glow.put(...P(-2.3 * s, -0.25 * s), s * 0.3, 1, 1, 1, 0.5); glow.put(...P(-2.1 * s, 0), s * 1.6, 1, 0.3, 0.4, 0.12); // грань-блик и красное свечение: опасно
     for (let a = -0.9; a <= 0.6; a += 0.3) pink(P(a * s, 0), s * 0.26);
     pink(P(0.85 * s, -0.35 * s), s * 0.22); pink(P(0.85 * s, 0.35 * s), s * 0.22);
     for (let k = 0; k < 6; k++) {
@@ -341,7 +361,8 @@ function paint(time) {
   const wrap = (v, n) => ((v % n) + n) % n;
   for (let i = 0; i < 50; i++) { // вдали: частицы в расфокусе — кольца, плывут медленнее
     const h = Math.abs(Math.sin(i * 91.7) * 43758.5) % 1, h2 = Math.abs(Math.sin(i * 12.9) * 9631.2) % 1;
-    far.put(wrap(h * 1400 - view.x * 0.35, 1400) - 340, wrap(h2 * 2400 - view.y * 0.35, 2400) - 500, 14 + h * 46, 0.6, 0.8, 1, 0.025 + h2 * 0.035);
+    const warm = i % 3 === 0; // тёплые огоньки вдали, как на снимках
+    far.put(wrap(h * 1400 - view.x * 0.35, 1400) - 340, wrap(h2 * 2400 - view.y * 0.35, 2400) - 500, (warm ? 6 : 14) + h * (warm ? 14 : 46), warm ? 1 : 0.6, warm ? 0.55 : 0.8, warm ? 0.2 : 1, warm ? 0.25 : 0.025 + h2 * 0.035);
   }
   for (let i = 0; i < 70; i++) { // рядом: пылинки дрожат (броуновское) — видно, какие мы маленькие
     const h = Math.abs(Math.sin(i * 33.1) * 1758.5) % 1, h2 = Math.abs(Math.sin(i * 71.3) * 5631.7) % 1;
