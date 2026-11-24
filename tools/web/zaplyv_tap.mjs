@@ -160,6 +160,11 @@ if (await tap('#nback', '«Назад» из ночи в меню')) say(await o
 if (await tap('#mquiet', '«Тише»')) say((await p.textContent('#mquiet')) === 'Звук', '«Тише» выключает звук');
 await tap('#mquiet', '«Звук»');
 if (await tap('#mscene [data-m=swim]', 'объект «Заплыв»') && await tap('#mgo', '«Плыть» из меню')) say(!(await on('menu')) && await p.evaluate(() => zaplyvWorld().me.length > 0), '«Плыть» начинает заплыв');
+// Режим «Мутации» (новые мутации, mutacii.js): объект в меню, кнопка запускает заплыв в этом режиме.
+await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 0; }); await p.waitForTimeout(1200);
+await p.reload(); await p.waitForFunction(() => window.zaplyvProbe && zaplyvProbe.frames > 5, null, { timeout: 30000 }); await p.waitForTimeout(800);
+if (await tap('#mscene [data-m=mut]', 'объект «Мутации»')) say((await p.textContent('#mgo')) === 'Плыть с мутациями', 'касание «Мутаций» меняет подпись кнопки');
+if (await tap('#mgo', '«Плыть с мутациями»')) say(!(await on('menu')) && await p.evaluate(() => zaplyvWorld().mode === 'mut' && zaplyvWorld().me.length > 0), '«Плыть с мутациями» начинает заплыв в режиме мутаций');
 say(!errs.length, 'ошибок страницы нет' + (errs.length ? ': ' + errs.join('; ') : ''));
 await b.close();
 console.log(bad ? `КАСАНИЯ: провалов ${bad}` : 'КАСАНИЯ: все кнопки отвечают пальцу');

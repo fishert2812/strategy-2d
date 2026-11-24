@@ -1,5 +1,5 @@
 // Сверка книги с игрой: node proby/zaplyv/kniga/sverka.mjs (шаг tools/checks/55_kniga.sh).
-// Книга — записи в zapisi/*.json. Игра — cards.json, data.json (genes), genome.json.
+// Книга — записи в zapisi/*.json. Игра — cards.json, data.json (genes), mutacii.json (genes), genome.json.
 // Красное: в игре есть то, чего нет в книге; запись «в игре» без кода; текст игры разошёлся с записью;
 // номер занят дважды; запись прошла шаг без нужного слоя; запись не видна ни на одной странице.
 // --selftest: каждой проверке подаём нарочно сломанный пример и ждём красного.
@@ -132,7 +132,7 @@ function load() {
   const g = j('../genome.json');
   const slots = [...g.arcs.flatMap(a => a.slots), ...g.plasmids].map(s => s.id).filter(Boolean);
   const ring = [...g.arcs.flatMap(a => a.slots), ...g.plasmids].map(s => s.gene).filter(x => x && x !== '?');
-  return { records, fayly: readdirSync(new URL('../', here)), cards: j('../cards.json'), genes: j('../data.json').genes, slots, pages, files, spisok: j('zapisi/spisok.json'), ring, teksty: { ...j('teksty_genov.json'), sushchestva: j('teksty_sushchestv.json').sushchestva }, problemy: j('problemy.json'), kto: j('kto_s_kem.json'), resheniya: j('resheniya.json'), animacii: j('animacii.json') };
+  return { records, fayly: readdirSync(new URL('../', here)), cards: j('../cards.json'), genes: { ...j('../data.json').genes, ...j('../mutacii.json').genes } /* новые мутации режима «Мутации» — mutacii.json */, slots, pages, files, spisok: j('zapisi/spisok.json'), ring, teksty: { ...j('teksty_genov.json'), sushchestva: j('teksty_sushchestv.json').sushchestva }, problemy: j('problemy.json'), kto: j('kto_s_kem.json'), resheniya: j('resheniya.json'), animacii: j('animacii.json') };
 }
 
 const S = load();
