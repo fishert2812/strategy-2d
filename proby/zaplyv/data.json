@@ -44,7 +44,7 @@
 	"prey_per_chunk": [3, 4, 2],
 	"amoeba_chance": [0.12, 0.18, 0.55],
 	"phage_chance": 0.4,
-	"rare": { "time": 0.5, "far": 0.3 }, "danger_growth": 0.08,
+	"rare": 0.5, "danger_growth": 0.08,
 	"look": { "flagella": [5, 8], "beat": [16, 24], "stripes": [2, 3], "ribosomes": [7, 16], "toxin": 10, "receptors": 5, "studs": 14, "pili": 22 },
 	"gene_steps": [1, 2, 4, 6, 9, 12, 16, 20, 25], "split_step": 0.2, "grace": 45,
 	"genes": {

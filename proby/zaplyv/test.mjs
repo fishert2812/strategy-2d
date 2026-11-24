@@ -744,6 +744,8 @@ check('test_L030: охотящаяся амёба видна зоной захв
   console.log('    паспорт: зона амёбы видна до захвата, с —', leads.map(x => x.toFixed(1)).join(' '));
   if (!leads.length) return 'амёба так и не схватила за 60 с';
   if (leads.some(x => x < cfg.zone.lead * 0.9)) return 'захват без признака за zone.lead: ' + leads.map(x => x.toFixed(1)).join(', ');
+});
+
 // Урок L018 (расширен 24.11) и L024 «антибред»: игрок видит про умения только слова книги, слово мира в тексте — имя из Альманаха
 // или рядом с именем хозяина, хозяина бот встречает в заплыве, у каждого умения есть тест «сделал → случилось».
 const BOOKG = JSON.parse(readFileSync(new URL('./kniga/teksty_genov.json', import.meta.url))).geny, BOOKS = JSON.parse(readFileSync(new URL('./kniga/teksty_sushchestv.json', import.meta.url))).sushchestva;

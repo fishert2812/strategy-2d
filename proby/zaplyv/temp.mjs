@@ -17,6 +17,7 @@ export function play(cfg, seed, sec) {
   for (let i = 0; i < 30 * sec && w.me.length; i++) {
     const e0 = w.stats.eaten; w.step(1 / 30, novice(w)); const t = w.stats.time;
     const wn = w.warning && w.warning(); if (wn && wn.level > 0) seen[wn.zone[3]] = t; // когда игрок последний раз видел признак каждого убийцы
+    if (w.zones) { const lead = cfg.speed * cfg.zone.lead; for (const zn of w.zones()) if (w.me.some(a => Math.hypot(a.x - zn[0], a.y - zn[1]) - zn[2] < lead)) seen[zn[3]] = t; } // кольцо рядом видно, даже если тревожит другое
     if (w.stats.eaten > e0) { if (o.food1 === null) o.food1 = t; o.eat.push(t); }
     let reward = false;
     if (w.splits > o.div.length) { while (o.div.length < w.splits) o.div.push(t); reward = true; }

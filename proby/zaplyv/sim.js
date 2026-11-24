@@ -108,7 +108,7 @@ export class World {
       for (let i = 0; i < c.patch_food; i++) { const t = r() * 6.283, d = R * Math.sqrt(r()); this.food.push({ x: at.x + Math.cos(t) * d, y: at.y + Math.sin(t) * d, vx: 0, vy: 0, s: c.grain[0] + (c.grain[1] - c.grain[0]) * (1 - d / R) * r() }); } // в середине пятна куски крупнее
     }
     if (far > c.bdello_from && this.stats.gen > 0 && r() < c.bdello_chance[b] * (1 + (this.stats.time < c.grace ? 0 : far * c.danger_growth)) * Math.min(2, this.me.length / 2)) /* хищник идёт на густую добычу: пока ты один, его нет */ this.bdellos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: r(), id: ++this.ids });
-    const rare = k => !this.met.has(k) ? 1 + c.rare.time * this.stats.time / 60 + c.rare.far * far : 1; // ещё не встреченные мирные соседи (донор, соперница, детрит) заводятся тем чаще, чем дольше жив и дальше ушёл: поздняя награда — встреча
+    const rare = k => !this.met.has(k) && this.stats.time > c.grace ? 1 + c.rare * (this.stats.time - c.grace) / 60 : 1; // ещё не встреченные мирные соседи (донор, соперница, детрит) заводятся тем чаще, чем дольше жив: поздняя награда — встреча
     if (far > c.slipper_from && r() < c.slipper_chance[b]) this.slippers.push({ ...pt(), a: r() * 6.283, back: 0, id: ++this.ids });
     if (far > c.donor_from && r() < c.donor_chance[b] * rare('donor')) this.donors.push({ ...pt(), a: r() * 6.283, link: 0, gave: false, id: ++this.ids });
     if (!safe && far > c.pseudo_from && r() < c.pseudo_chance[b] * rare('pseudo')) this.pseudos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: 0, cool: 0, id: ++this.ids });
