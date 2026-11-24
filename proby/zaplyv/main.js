@@ -341,6 +341,10 @@ $('mcv').addEventListener('click', e => { // касание отметки — �
   go.onclick = ev => { ev.stopPropagation(); KARTA.goal = { x: m.x, y: m.y }; saveKarta(); go.textContent = 'Запомнено · стрелка покажет путь'; go.disabled = true; };
   if (KARTA.goal && c.list.some(q => q.x === KARTA.goal.x && q.y === KARTA.goal.y)) { go.textContent = 'Это место — твоя цель'; go.disabled = true; }
   card.appendChild(go);
+  if (world.me.length) { const w0 = world.center(), dx = m.x - w0.x, dy = m.y - w0.y, sec = Math.hypot(dx, dy) / cfg.speed; // куда плыть, а не только в каком слое
+    const wy = Math.abs(dy) > 400 ? (dy > 0 ? 'вниз' : 'вверх') : '', wx = Math.abs(dx) > 400 ? (dx > 0 ? 'вправо' : 'влево') : '';
+    const p4 = document.createElement('p'); p4.className = 'mway'; p4.textContent = !wy && !wx ? 'Ты рядом с этим местом' : 'Плыть ' + [wy, wx].filter(Boolean).join(' и ') + ', ' + (sec < 20 ? 'несколько секунд' : sec < 45 ? 'примерно полминуты' : sec < 90 ? 'около минуты' : 'около ' + Math.round(sec / 60) + ' минут');
+    card.insertBefore(p4, go); }
   const p3 = document.createElement('p'); p3.style.opacity = 0.7; p3.textContent = 'Слой: ' + { film: 'плёнка', light: 'светлая толща', oxy: 'граница кислорода', silt: 'ил' }[world.layer(m.y)]; card.appendChild(p3);
   card.hidden = false;
 });

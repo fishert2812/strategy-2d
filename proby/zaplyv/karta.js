@@ -34,6 +34,7 @@ export function count(P, seen) {
   return `Ты видел ${WORDS[got.size]} ${got.size === 1 ? 'слой' : got.size > 1 && got.size < 5 ? 'слоя' : 'слоёв'} пруда из четырёх`;
 }
 
+let FOG = null; // кэш маски тумана
 const COL = { film: [150, 205, 215], light: [40, 110, 120], oxy: [60, 92, 100], silt: [112, 92, 40] };
 
 // Рисование. o: P, seen (Set «i,j»), marks [{kind:'death'|'gene', x, y, who}], me {x, y}, icons {who → Image}, meImg, t (с), hot (индекс отметки, что подсвечена).
@@ -61,26 +62,34 @@ export function draw(ctx, w, h, o) {
   // туман: меньше цвета (×0,35) и темнее (−18 %), зерно, мягкий край пятном (размытие), а не клетками
   const dpr = ctx.getTransform().a || 1, cw2 = Math.round(w * dpr), ch2 = Math.round(h * dpr);
   const mk = () => { const c = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(cw2, ch2) : Object.assign(document.createElement('canvas'), { width: cw2, height: ch2 }); const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); return [c, x]; };
-  const [rc, rx] = mk(); rx.fillStyle = '#fff';
-  for (let i = 0; i < n; i++) for (let j = 0; j < m; j++) if (!o.seen.has(i + ',' + j)) rx.fillRect(F.x + i * cw, F.y + j * ch, cw, ch);
-  const [mc, mx] = mk(); mx.setTransform(1, 0, 0, 1, 0, 0); mx.filter = `blur(${6 * dpr}px)`; mx.drawImage(rc, 0, 0); // одно размытие на весь туман — край пятном, без швов
-  const [fc, fx] = mk(); fx.setTransform(1, 0, 0, 1, 0, 0); fx.filter = 'saturate(0.3) brightness(0.66)'; fx.drawImage(ctx.canvas, 0, 0); fx.filter = 'none';
+  const key = [cw2, ch2, [...o.seen].sort().join(';')].join('|');
+  if (!FOG || FOG.key !== key) { // маска тумана зависит только от открытого и размера — считаем раз и храним
+    const [rc, rx] = mk(); rx.fillStyle = '#fff';
+    for (let i = 0; i < n; i++) for (let j = 0; j < m; j++) if (!o.seen.has(i + ',' + j)) {
+      const x0 = F.x + i * cw, y0 = F.y + j * ch; rx.fillRect(x0, y0, cw, ch);
+      for (let q = 0; q < 6; q++) { const r = Math.sin((i * 31 + j * 17 + q * 7) * 12.9898) * 43758.5, u = r - Math.floor(r), v = r * 3.7 - Math.floor(r * 3.7); // край неровный: пузыри по кромке клетки
+        const side = q % 4, px = side < 2 ? x0 + u * cw : x0 + (side === 2 ? 0 : cw), py = side < 2 ? y0 + (side ? ch : 0) : y0 + u * ch;
+        rx.beginPath(); rx.arc(px, py, Math.min(cw, ch) * (0.18 + 0.3 * v), 0, 6.283); rx.fill(); }
+    }
+    const [mc, mx] = mk(); mx.setTransform(1, 0, 0, 1, 0, 0); mx.filter = `blur(${10 * dpr}px)`; mx.drawImage(rc, 0, 0); // одно размытие на весь туман — край пятном, без швов и ступенек
+    const id = mx.getImageData(0, 0, cw2, ch2), d = id.data, [ec, ex] = mk(), ed = ex.createImageData(cw2, ch2), e = ed.data;
+    for (let k = 3; k < d.length; k += 4) if (d[k] > 112 && d[k] < 143) { e[k - 3] = e[k - 2] = e[k - 1] = 230; e[k] = 64; } // светлая кромка ~1 пт, альфа 0,25
+    ex.putImageData(ed, 0, 0); FOG = { key, mc, ec };
+  }
+  const { mc, ec } = FOG;
+  const [fc, fx] = mk(); fx.setTransform(1, 0, 0, 1, 0, 0); fx.filter = 'saturate(0.3) brightness(0.58)'; fx.drawImage(ctx.canvas, 0, 0); fx.filter = 'none';
   fx.setTransform(dpr, 0, 0, dpr, 0, 0);
   for (let k = 0; k < 900; k++) { const r = Math.sin(k * 91.7) * 43758.5, u = r - Math.floor(r), v = r * 7.1 - Math.floor(r * 7.1); fx.fillStyle = `rgba(255,255,255,${0.06 + 0.02 * (k % 3)})`; fx.fillRect(F.x + u * F.w, F.y + v * F.h, 1.2, 1.2); }
-  fx.fillStyle = 'rgba(4,10,16,0.38)'; fx.fillRect(0, 0, w, h);
+  fx.fillStyle = 'rgba(4,10,16,0.45)'; fx.fillRect(0, 0, w, h);
   fx.setTransform(1, 0, 0, 1, 0, 0); fx.globalCompositeOperation = 'destination-in'; fx.drawImage(mc, 0, 0);
-  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(fc, 0, 0); ctx.restore();
-  // подписи слоёв: светлые на тёмной плашке
-  ctx.font = '600 13px -apple-system, system-ui, sans-serif'; ctx.textBaseline = 'middle';
-  const label = (txt, y) => { const tw = ctx.measureText(txt).width; const g = ctx.createLinearGradient(F.x, 0, F.x + tw + 24, 0);
-    g.addColorStop(0, 'rgba(2,8,12,0.55)'); g.addColorStop(1, 'rgba(2,8,12,0)'); ctx.fillStyle = g; ctx.fillRect(F.x, y - 10, tw + 24, 20);
-    ctx.fillStyle = 'rgba(207,227,230,0.92)'; ctx.fillText(txt, F.x + 8, y); };
-  label('ПЛЁНКА', F.y + Math.max(12, P.film * F.h * 0.5 + 6)); label('СВЕТЛАЯ ТОЛЩА', F.y + (P.film + 0.04) * F.h + 12);
-  label('ГРАНИЦА КИСЛОРОДА', oy + 14); label('ИЛ', F.y + (P.silt + 0.03) * F.h + 10);
-  ctx.font = '600 15px -apple-system, system-ui, sans-serif'; const bt = 'Тёплый берег', bw = ctx.measureText(bt).width;
-  ctx.fillStyle = 'rgba(30,20,8,0.6)'; ctx.fillRect(F.x + F.w - bw - 18, sy + 18, bw + 12, 22); ctx.fillStyle = '#FFD79A'; ctx.fillText(bt, F.x + F.w - bw - 12, sy + 29);
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(fc, 0, 0); ctx.drawImage(ec, 0, 0); ctx.restore();
   // отметки: смысл формой и цветом; под отметкой тёмное гало, внутри — обесцвеченный силуэт того, кто там был
-  const C = clusters(o.marks, P, F);
+  const C = clusters(o.marks, P, F), LY = [F.y + Math.max(12, P.film * F.h * 0.5 + 6), F.y + (P.film + 0.04) * F.h + 12, oy + 14, F.y + (P.silt + 0.03) * F.h + 10];
+  const ME = o.me ? toMap(P, F, o.me.x, o.me.y) : null;
+  for (const c of C) {
+    if (ME) { const dx = c.x - ME[0], dy = c.y - ME[1], dd = Math.hypot(dx, dy); if (dd < 30) { const a = dd > 0.1 ? Math.atan2(dy, dx) : -1.2; c.x = ME[0] + Math.cos(a) * 30; c.y = ME[1] + Math.sin(a) * 30; } } // твоя клетка отталкивает отметки
+    for (const ly of LY) if (c.x - 16 < F.x + 190 && Math.abs(c.y - ly) < 26) c.y = ly + (c.y >= ly ? 26 : -26); // отметка не ложится на подпись слоя
+  }
   C.forEach((c, idx) => {
     const R = 16, hot = idx === o.hot ? 1 + 0.25 * Math.max(0, Math.sin(o.t * 6)) : 1, x = c.x, y = c.y;
     ctx.save(); ctx.translate(x, y); ctx.scale(hot, hot);
@@ -94,11 +103,20 @@ export function draw(ctx, w, h, o) {
       ctx.fillStyle = '#fff'; ctx.font = '700 13px system-ui'; ctx.textAlign = 'center'; ctx.fillText(String(c.list.length), R * 0.85, -R * 0.85 + 1); ctx.textAlign = 'start'; }
     ctx.restore();
   });
-  // ты здесь: своя клетка и тихое кольцо-пульс
-  if (o.goal) { const [x, y] = toMap(P, F, o.goal.x, o.goal.y), r = 22 + 2 * Math.sin(o.t * 3); // метка-цель (Э20): пунктирное кольцо поверх отметки
+  // подписи слоёв: светлые на тёмной плашке
+  ctx.font = '600 13px -apple-system, system-ui, sans-serif'; ctx.textBaseline = 'middle';
+  const label = (txt, y) => { const tw = ctx.measureText(txt).width; const g = ctx.createLinearGradient(F.x, 0, F.x + tw + 24, 0);
+    g.addColorStop(0, 'rgba(2,8,12,0.55)'); g.addColorStop(1, 'rgba(2,8,12,0)'); ctx.fillStyle = g; ctx.fillRect(F.x, y - 10, tw + 24, 20);
+    ctx.fillStyle = 'rgba(207,227,230,0.92)'; ctx.fillText(txt, F.x + 8, y); };
+  label('ПЛЁНКА', F.y + Math.max(12, P.film * F.h * 0.5 + 6)); label('СВЕТЛАЯ ТОЛЩА', F.y + (P.film + 0.04) * F.h + 12);
+  label('ГРАНИЦА КИСЛОРОДА', oy + 14); label('ИЛ', F.y + (P.silt + 0.03) * F.h + 10);
+  ctx.font = '600 15px -apple-system, system-ui, sans-serif'; const bt = 'Тёплый берег', bw = ctx.measureText(bt).width;
+  ctx.fillStyle = 'rgba(30,20,8,0.6)'; ctx.fillRect(F.x + F.w - bw - 18, sy + 18, bw + 12, 22); ctx.fillStyle = '#FFD79A'; ctx.fillText(bt, F.x + F.w - bw - 12, sy + 29);
+  // ты здесь: своя клетка и тихое кольцо-пульс (поверх отметок)
+  if (o.goal) { const gc = C.find(c => c.list.some(q => q.x === o.goal.x && q.y === o.goal.y)), [x, y] = gc ? [gc.x, gc.y] : toMap(P, F, o.goal.x, o.goal.y), r = 22 + 2 * Math.sin(o.t * 3); // метка-цель (Э20): пунктирное кольцо поверх отметки
     ctx.save(); ctx.setLineDash([5, 4]); ctx.lineDashOffset = -o.t * 12; ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.beginPath(); ctx.arc(x, y, r + 1, 0, 6.283); ctx.stroke();
     ctx.lineWidth = 2; ctx.strokeStyle = '#7cdcff'; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283); ctx.stroke(); ctx.restore(); }
-  if (o.me) { const [x, y] = toMap(P, F, o.me.x, o.me.y), pr = 12 + 4 * Math.sin(o.t * 2.4);
+  if (o.me) { const [x, y] = ME, pr = 12 + 4 * Math.sin(o.t * 2.4);
     ctx.strokeStyle = 'rgba(160,235,255,0.45)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, pr, 0, 6.283); ctx.stroke();
     if (o.meImg && o.meImg.complete && o.meImg.naturalWidth) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, 9, 0, 6.283); ctx.clip(); ctx.drawImage(o.meImg, x - 9, y - 9, 18, 18); ctx.restore(); }
     else { ctx.fillStyle = '#7cdcff'; ctx.beginPath(); ctx.arc(x, y, 4, 0, 6.283); ctx.fill(); } }
