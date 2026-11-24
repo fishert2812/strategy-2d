@@ -1,0 +1,31 @@
+# Постоянный адрес игры: каждый коммит в main собирается в веб и выкладывается в ветку Pages,
+# затем адрес проверяется снаружи (tools/web/check_site.sh).
+name: web
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+concurrency:
+  group: web
+  cancel-in-progress: true
+permissions:
+  contents: write
+jobs:
+  web:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      PAGES_BRANCH: claude/project-thread-8epzcj-web
+      SITE: https://fishert2812.github.io/strategy-2d
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash tools/install_godot.sh
+      - run: bash tools/web/build.sh out/site
+      - name: Выложить в ветку Pages
+        run: |
+          cd out/site
+          git init -q -b "$PAGES_BRANCH"
+          git add -A
+          git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com commit -q -m "Веб-сборка $(cat version.txt) из main"
+          git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" "$PAGES_BRANCH"
+      - run: bash tools/web/check_site.sh "$SITE" "$(git rev-parse --short HEAD)"
