@@ -65,7 +65,8 @@ export class Bodies {
     this.cam.position.z = 1000;
     const cap = new THREE.CapsuleGeometry(1, 2, 8, 16); // ось Y, полувысота 2
     const pinch = 'float pf = 1.0 - prm.x * exp(-p.y * p.y / 0.3); p.xz *= pf;'
-      + 'p += nn * 0.04 * sin(time * 3.0 + p.y * 5.0 + prm.y);'; // перетяжка и лёгкое дыхание оболочки
+      + 'p += nn * 0.04 * sin(time * 3.0 + p.y * 5.0 + prm.y);' // перетяжка и лёгкое дыхание оболочки
+      + 'p.x += prm.z * (p.y * p.y - 1.3); nn.x -= prm.z * 2.0 * p.y; nn = normalize(nn);'; // изгиб дугой в повороте
     this.core = kind(cap.clone(), 200, pinch, { bump: 0.55, order: 1, rimK: 0.5 });
     this.skin = kind(cap.clone(), 200, pinch, { bump: 0.25, alpha0: 0.22, order: 3, rimK: 1.6 });
     const ball = new THREE.IcosahedronGeometry(1, 3);
@@ -96,10 +97,11 @@ export class Bodies {
     A.cA.array.set(ca, i * 4); A.cB.array.set(cb, i * 3); A.prm.array.set(prm, i * 4);
   }
   // Палочка: оболочка и содержимое. half — полудлина, w — полуширина, pinch 0..1 — перетяжка.
-  rod(x, y, ang, half, w, pinch, skin, core, seed) {
+  // bend — на сколько концы отходят вбок (экранные единицы, + к оси (-sin, cos)).
+  rod(x, y, ang, half, w, pinch, skin, core, seed, bend = 0) {
     const sy = half / 2, glow = c => [c[0] * 0.5 + 0.5, c[1] * 0.5 + 0.5, c[2] * 0.5 + 0.5];
-    this.put(this.core, x, y, ang, w * 0.7, sy * 0.86, w * 0.7, [core[0], core[1], core[2], 1], glow(core), [pinch * 0.95, seed, 0, 0]);
-    this.put(this.skin, x, y, ang, w, sy, w, [skin[0], skin[1], skin[2], 1], glow(skin), [pinch, seed, 0, 0]);
+    this.put(this.core, x, y, ang, w * 0.7, sy * 0.86, w * 0.7, [core[0], core[1], core[2], 1], glow(core), [pinch * 0.95, seed, bend / (2.7 * 0.7 * w), 0]);
+    this.put(this.skin, x, y, ang, w, sy, w, [skin[0], skin[1], skin[2], 1], glow(skin), [pinch, seed, bend / (2.7 * w), 0]);
   }
   sphere(x, y, r, col, rim, seed, zs = 1) { this.put(this.ball, x, y, -Math.PI / 2, r, r, r * zs, [col[0], col[1], col[2], 1], rim, [0, seed, 0, 0]); }
   spike(x, y, r, col) { this.put(this.knob, x, y, -Math.PI / 2, r, r, r, [col[0], col[1], col[2], 1], [1, 1, 1], [0, 0, 0, 0]); }

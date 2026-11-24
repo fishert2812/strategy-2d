@@ -175,6 +175,10 @@ function events() {
   for (const [k, x, y] of world.events) {
     if (k === 'eat') { ring(x, y, 2, 40); const n = performance.now(); if (n - lastEat > 60) { beep(300 + Math.random() * 200, 0.09, 0.04); lastEat = n; } }
     if (k === 'split') ring(x, y, 0, 70);
+    if (k === 'stick') { ring(x, y, 1, 22); beep(520, 0.06, 0.04, 'square'); } // прилип фаг: резко развернись — стряхнёшь
+    if (k === 'shake') { ring(x, y, 0, 30); beep(700, 0.07, 0.03); }
+    if (k === 'cut') ring(x, y, 2, 26);
+    if (k === 'pop') ring(x, y, 2, 90); // чужая клетка лопнула облаком фагов
     if (k === 'sick') { ring(x, y, 1, 50); beep(180, 0.3, 0.05, 'sawtooth', 0.7); }
     if (k === 'burst' || k === 'eaten') { ring(x, y, 1, 150); shake = 1; beep(110, 0.45, 0.09, 'triangle', 0.5); }
   }
@@ -262,35 +266,45 @@ function paint(time) {
     bubbles.put(x - hx * r * 0.45 - hy * r * 0.2, y - hy * r * 0.45 + hx * r * 0.2, r * 0.18 * Math.sqrt(v) + 1, 0.85, 0.95, 1, 0.3 * (1 - v * v * v));
   }
   const [cr, cg, cb] = [CELL[0].r, CELL[0].g, CELL[0].b];
-  for (const a of world.me) { // палочка: ширина почти постоянна, растёт в длину; лёгкое покачивание
+  for (const a of world.me) { // палочка: ширина почти постоянна, растёт в длину; виляет на бегу, гнётся в повороте
     const [x, y] = scr(a.x, a.y), w = 8.5 * Math.pow(a.m, 0.3) * z, sp = Math.hypot(a.vx, a.vy);
-    const ang = a.a + Math.sin(time * 2.2 + a.id) * 0.06, ax = Math.cos(ang), ay = Math.sin(ang);
+    const run = sp > 25 && !a.tumble, wob = run ? 0.05 : 0.02; // встречное вращение тела к пучку: 3 раза в секунду
+    const ang = a.a + Math.sin(time * 18.8 + a.id) * wob, ax = Math.cos(ang), ay = Math.sin(ang);
     const half = w * (1.6 + 1.0 * Math.min(a.m, cfg.split) / cfg.split);
     const along = (s, o = 0) => [x + ax * s - ay * o, y + ay * s + ax * o];
+    // дуга пути: концы и хвост уходят к центру поворота на s²·κ/2, κ = ω / скорость
+    const kap = Math.max(-0.03, Math.min(0.03, (a.w || 0) / Math.max(sp, 40) / z));
+    const arc = s => Math.max(-w * 0.9, Math.min(w * 0.9, s * s * kap * 0.5 * z));
     const pinch = a.m >= cfg.split ? 0.62 + 0.12 * Math.sin(time * 6) : 0; // перетяжка: вот-вот две
-    bodies.rod(x, y, ang, half, w, pinch, [CELL[0].r, CELL[0].g, CELL[0].b], [CORE[0].r, CORE[0].g, CORE[0].b], a.id);
+    bodies.rod(x, y, ang, half, w, pinch, [CELL[0].r, CELL[0].g, CELL[0].b], [CORE[0].r, CORE[0].g, CORE[0].b], a.id, arc(half / z * 1));
     if (pinch) for (let k = 0; k < 18; k++) { const t = k * 0.349, R = half * (1.35 + 0.08 * Math.sin(time * 5)); glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 2.2, 1, 1, 1, 0.4); }
     for (let k = 0; k < 16; k++) { // пили: короткие ворсинки по всей оболочке
       const t = k / 16 * 6.283, c = Math.cos(t), s = Math.sin(t), l = 1 + 0.25 * Math.sin(time * 3 + k * 1.7 + a.id);
-      for (const e of [1.08, 1.32 * l]) { const [px, py] = along(c * (half - w * 0.2) * (c > 0 ? 1 : 1) + c * w * (e - 1), s * w * e); ink.put(px, py, 0.9 * z + 0.4, 0.55, 0.9, 1, 0.55); }
+      for (const e of [1.08, 1.32 * l]) { const u = c * (half - w * 0.2) + c * w * (e - 1), [px, py] = along(u, s * w * e + arc(u / z)); ink.put(px, py, 0.9 * z + 0.4, 0.55, 0.9, 1, 0.55); }
     }
     for (let k = 0; k < 7; k++) { // содержимое: розовые зёрна рибосом
-      const t = k * 2.4 + a.id, [px, py] = along(Math.sin(t + time * 0.2) * (half - w * 0.8), Math.cos(t * 1.7 + time * 0.25) * w * 0.45);
+      const t = k * 2.4 + a.id, u = Math.sin(t + time * 0.2) * (half - w * 0.8), [px, py] = along(u, Math.cos(t * 1.7 + time * 0.25) * w * 0.45 + arc(u / z));
       glow.put(px, py, 1.6 * z + 0.6, 1, 0.35, 0.75, 0.35);
     }
     for (let k = 0; k < 4; k++) { // зёрна плывут внутри
-      const t = time * (0.5 + k * 0.17) + a.id * 1.3 + k * 2.1, [px, py] = along(Math.sin(t) * (half - w * 0.6), Math.cos(t * 1.3) * w * 0.4);
+      const t = time * (0.5 + k * 0.17) + a.id * 1.3 + k * 2.1, u = Math.sin(t) * (half - w * 0.6), [px, py] = along(u, Math.cos(t * 1.3) * w * 0.4 + arc(u / z));
       ink.put(px, py, 0.9 * z + 0.7, 0.85, 1, 0.95, 0.5);
     }
-    const run = finger && sp > 25;
-    for (let f = 0; f < 4; f++) { // жгутики: на ходу пучком за кормой, на месте врозь и медленно
+    // жгутики: на бегу — пучок за кормой, ложится по дуге пути; в кувырке — веером, два кудрявые; на месте — врозь и медленно
+    const fan = a.tumble ? a.tumble / cfg.swim.tumble_time : 0;
+    for (let f = 0; f < 5; f++) {
       let bx, by, dx, dy;
-      if (run) { [bx, by] = along(-half + w * 0.3, (f - 1.5) * w * 0.3); dx = -ax; dy = -ay; }
-      else { const t = f * 1.571 + 0.6 + a.id, c = Math.cos(t), s = Math.sin(t); [bx, by] = along(c * (half - w * 0.5), s * w * 0.9); const l = Math.hypot(c * 1.2, s * 1.8); dx = (ax * c * 1.2 - ay * s * 1.8) / l; dy = (ay * c * 1.2 + ax * s * 1.8) / l; }
+      if (run || a.tumble) {
+        const spread = fan * (f - 2) * 0.55;
+        [bx, by] = along(-half + w * 0.3, (f - 2) * w * 0.22 + arc(half / z));
+        dx = -Math.cos(ang + spread); dy = -Math.sin(ang + spread);
+      } else { const t = f * 1.257 + 0.6 + a.id, c = Math.cos(t), s = Math.sin(t); [bx, by] = along(c * (half - w * 0.5), s * w * 0.9); const l = Math.hypot(c * 1.2, s * 1.8); dx = (ax * c * 1.2 - ay * s * 1.8) / l; dy = (ay * c * 1.2 + ax * s * 1.8) / l; }
+      const curly = fan > 0 && f % 2 === 1; // вышедший из пучка жгутик перекручивается
       for (let k = 1; k <= 40; k++) {
-        const s = k / 40, back = s * w * (run ? 7 : 5.5), amp = w * 0.42 * Math.min(1, s * 3);
-        const wv = Math.sin(s * 10 - time * (run ? 16 : 4) + f * 0.5) * amp, conv = run ? (f - 1.5) * w * 0.3 * (s * 0.9) : 0;
-        glow.put(bx + dx * back + dy * (wv - conv), by + dy * back - dx * (wv - conv), 0.8 * Math.max(z, 0.7) + 0.3, cr, cg, cb, 0.5 * (1 - s * 0.5));
+        const s = k / 40, back = s * w * (run ? 7 : 5.5), amp = w * (curly ? 0.8 : 0.42) * Math.min(1, s * 3);
+        const wv = Math.sin(s * (curly ? 22 : 10) - time * (run ? 16 : 4) + f * 0.5) * amp, conv = run ? (f - 2) * w * 0.22 * (s * 0.9) : 0;
+        const bow = run ? arc((half + back) / z) - arc(half / z) : 0; // хвост повторяет дугу пути
+        glow.put(bx + dx * back + dy * (wv - conv) - ay * bow, by + dy * back - dx * (wv - conv) + ax * bow, 0.8 * Math.max(z, 0.7) + 0.3, cr, cg, cb, 0.5 * (1 - s * 0.5));
       }
     }
     if (a.sick >= 0) glow.put(x, y, half, 1, 0.2, 0.3, 0.25 + 0.2 * Math.sin(time * 20));
@@ -301,11 +315,11 @@ function paint(time) {
   }
   for (const g of world.phages) { // фаг T4: головка позади, хвостом вперёд — садится хвостом
     const [x, y] = scr(g.x, g.y); if (!on(x, y)) continue;
-    const s = 6 * z + 1, d = Math.atan2(g.vy, g.vx), ux = Math.cos(d), uy = Math.sin(d);
+    const s = 6 * z + 1, d = g.d, ux = Math.cos(d), uy = Math.sin(d); // сам не плывёт: смотрит куда попало, прилипший — ножками в клетку
     const P = (a, b) => [x + ux * a - uy * b, y + uy * a + ux * b];
     const pink = (p, r, al = 0.95) => ink.put(p[0], p[1], r, 0.82, 0.8, 0.92, al); // серебристый, как на снимках
     bodies.phage(x, y, d, s);
-    glow.put(...P(-2.1 * s, 0), s * 1.8, 1, 0.3, 0.4, 0.1); // красное свечение: опасно
+    if (g.host === 'me') glow.put(...P(-2.1 * s, 0), s * 1.8, 1, 0.3, 0.4, g.on ? 0.25 + 0.15 * Math.sin(time * 14) : 0.1); // красное свечение: опасен тебе
     pink(P(0.85 * s, -0.35 * s), s * 0.22); pink(P(0.85 * s, 0.35 * s), s * 0.22);
     for (let k = 0; k < 6; k++) {
       const sd = k < 3 ? -1 : 1, i = k % 3, wig = Math.sin(time * 9 + k + g.x) * s * 0.15;
