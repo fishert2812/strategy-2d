@@ -37,7 +37,7 @@ export class World {
     this.food = []; this.prey = []; this.amoebas = []; this.phages = []; this.plants = [];
     this.genes = {};
     this.choice = []; // три гена на выбор; пока не пусто — мир стоит
-    this.stats = { eaten: 0, most: 1, path: 0, time: 0 };
+    this.stats = { eaten: 0, most: 1, path: 0, time: 0, gen: 0, lost: {}, killer: null };
     this.steps = [...cfg.gene_steps];
     this.chunks = new Set();
     this.events = []; // [вид, x, y] — для вспышек на экране, экран их забирает
@@ -99,9 +99,9 @@ export class World {
     const born = [];
     for (const c of this.me) {
       if (c.m < this.cfg.split || c.sick >= 0) continue;
-      c.m /= 2;
+      c.m /= 2; c.gen = (c.gen || 0) + 1; this.stats.gen = Math.max(this.stats.gen, c.gen);
       const ax = Math.cos(c.a), ay = Math.sin(c.a), r = radius(c.m);
-      born.push({ x: c.x - ax * r * 1.2, y: c.y - ay * r * 1.2, vx: c.vx - ax * 60, vy: c.vy - ay * 60, m: c.m, a: c.a, sick: -1, id: ++this.ids });
+      born.push({ x: c.x - ax * r * 1.2, y: c.y - ay * r * 1.2, vx: c.vx - ax * 60, vy: c.vy - ay * 60, m: c.m, a: c.a, sick: -1, gen: c.gen, id: ++this.ids });
       c.x += ax * r * 0.6; c.y += ay * r * 0.6;
       this.events.push(['split', c.x, c.y]);
     }
@@ -172,7 +172,7 @@ export class World {
     this.eat(dt);
     this.hunters(dt);
     for (const a of this.me.filter(a => a.sick >= 0 && a.sick < dt)) {
-      this.me.splice(this.me.indexOf(a), 1);
+      this.lose(a, a.x, a.y, 'phage');
       this.events.push(['burst', a.x, a.y]);
       for (let i = 0; i < c.burst; i++) this.cloud(a.x, a.y, 'me', 40);
     }
@@ -219,9 +219,12 @@ export class World {
     return best;
   }
 
-  lose(a, x, y) {
+  // Клетку убили: who — кто (ключ карточки в cards.json). Последний убийца — на экран гибели.
+  lose(a, x, y, who) {
     const i = this.me.indexOf(a);
-    if (i >= 0) { this.me.splice(i, 1); this.events.push(['eaten', x, y]); }
+    if (i < 0) return;
+    this.me.splice(i, 1); if (who !== 'phage') this.events.push(['eaten', x, y]);
+    this.stats.lost[who] = (this.stats.lost[who] || 0) + 1; this.stats.killer = who;
   }
 
   hunters(dt) {
@@ -234,7 +237,7 @@ export class World {
         if (q.m < a.m * 0.8) { wx = ux * 75; wy = uy * 75; }
         else if (q.m > a.m * 1.25) {
           wx = -ux * 70; wy = -uy * 70;
-          if (d < radius(q.m) + radius(a.m) * 0.4) { this.lose(a, q.x, q.y); q.m = Math.min(q.m + a.m * 0.5, 12); }
+          if (d < radius(q.m) + radius(a.m) * 0.4) { this.lose(a, q.x, q.y, 'coccus'); q.m = Math.min(q.m + a.m * 0.5, 12); }
         }
       } else if (r() < dt) { const t = r() * 6.283; wx = Math.cos(t) * 30; wy = Math.sin(t) * 30; }
       const k = Math.min(1, 2 * dt);
@@ -246,7 +249,7 @@ export class World {
       if (a && a.m < m.m * 0.8) {
         const d = dist(a, m) || 1;
         wx = (a.x - m.x) / d * c.amoeba; wy = (a.y - m.y) / d * c.amoeba;
-        if (d < radius(m.m) + radius(a.m) * 0.3 && !this.genes.capsule) { this.lose(a, m.x, m.y); m.m += a.m * 0.5; }
+        if (d < radius(m.m) + radius(a.m) * 0.3 && !this.genes.capsule) { this.lose(a, m.x, m.y, 'amoeba'); m.m += a.m * 0.5; }
       }
       const k = Math.min(1, dt);
       m.vx += (wx - m.vx) * k; m.vy += (wy - m.vy) * k; m.x += m.vx * dt; m.y += m.vy * dt;

@@ -7,6 +7,7 @@ import { World, radius } from './sim.js';
 import { Bodies } from './body3d.js';
 
 const cfg = await (await fetch('data.json')).json();
+const cards = await (await fetch('cards.json')).json();
 const W = 720; // ширина экрана в единицах игры
 const canvas = document.getElementById('c');
 const gl = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' });
@@ -169,6 +170,17 @@ function ask() {
   beep(440, 0.5, 0.05, 'sine', 2);
 }
 
+// Твой путь за заход: время, поколения и сколько это заняло бы в природе, мутации, кто сколько отнял.
+function pathText(w) {
+  const s = w.stats, t = Math.round(s.time), mm = (s.gen * 20) | 0; // одно деление ≈ 20 минут при хорошей еде
+  const nature = mm < 60 ? mm + ' мин' : Math.floor(mm / 60) + ' ч' + (mm % 60 ? ' ' + (mm % 60) + ' мин' : '');
+  const genes = Object.keys(w.genes).map(g => w.cfg.genes[g][0]).join(', ') || 'пока нет';
+  const lost = Object.entries(s.lost).map(([k, n]) => (cards[k] ? cards[k].name : k) + ' — ' + n).join(', ');
+  return `Плыл ${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}, проплыл ${Math.round(s.path / 26)} мкм<br>`
+    + `Поколений: ${s.gen} — в природе это ≈ ${nature}<br>Клеток было до ${s.most}, съедено ${s.eaten}<br>`
+    + `Мутации: ${genes}` + (lost ? `<br>Отняли клеток: ${lost}` : '');
+}
+
 function ring(x, y, side, r) { rings.push({ x, y, side, r, t: 0 }); }
 
 function events() {
@@ -196,8 +208,11 @@ function tick(dt) {
   events();
   if (!world.me.length) {
     if (!ended) {
-      ended = true; const s = world.stats, t = Math.round(s.time);
-      $('stats').innerHTML = `клеток было до ${s.most} · съедено ${s.eaten}<br>проплыл ${Math.round(s.path / 26)} мкм за ${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+      ended = true;
+      const k = cards[world.stats.killer] || cards.me;
+      $('who').textContent = k.who; $('cname').textContent = k.name; $('ctext').textContent = k.text;
+      $('cfact').textContent = k.fact; $('ctip').textContent = k.tip || '';
+      $('stats').innerHTML = pathText(world);
       setTimeout(() => $('end').classList.add('on'), 700);
     }
     return;
