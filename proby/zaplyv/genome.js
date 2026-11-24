@@ -28,7 +28,7 @@ export function card(slot, genes, from, names, G, arcName) {
 const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent?.appendChild(e); return e; };
 const pt = (r, deg) => { const t = deg * Math.PI / 180; return `${(r * Math.cos(t)).toFixed(1)} ${(r * Math.sin(t)).toFixed(1)}`; };
 
-export function genomeScreen({ G, cfg, world, onOpen, onClose, onCabinet, onSend = () => {}, onDraw = () => {} }) {
+export function genomeScreen({ G, cfg, world, icon = () => '', onOpen, onClose, onCabinet, onSend = () => {}, onDraw = () => {} }) {
   const $ = id => document.getElementById(id);
   const svg = $('ring'), box = $('gcard');
   const S = { open: false, blink: null }; G.pipe = cfg.plasmid_genes;
@@ -53,7 +53,14 @@ export function genomeScreen({ G, cfg, world, onOpen, onClose, onCabinet, onSend
         if (have) el('circle', { cx: tx, cy: ty, r: 34, fill: p.color, opacity: 0.15 }, s); // колечко светится
         el('circle', { cx: tx, cy: ty, r: 25, fill: 'rgba(2,4,10,0.6)', stroke: on ? '#fff' : p.color, 'stroke-width': have ? 7 : 4, 'stroke-dasharray': have ? 'none' : '3 4', opacity: have || on ? 1 : 0.6 }, s);
       }
-      const t = el('text', { x: tx, y: ty + 5, 'text-anchor': 'middle', 'font-size': 14, 'font-style': 'italic', 'font-weight': have ? 700 : 400,
+      const src = live ? icon(id) : '';
+      if (src) { // значок гена: снимок клетки, подсвечена часть, которую он даёт; включённый — ярко, спящий — тускло
+        const r = p.plasmid ? 21 : 17, cid = 'gc' + id;
+        el('circle', { cx: tx, cy: ty, r, id: cid }, el('clipPath', { id: 'k' + cid }, s));
+        el('image', { href: src, x: tx - r, y: ty - r, width: 2 * r, height: 2 * r, 'clip-path': `url(#k${cid})`, opacity: have ? 1 : 0.4 }, s);
+        el('circle', { cx: tx, cy: ty, r, fill: 'none', stroke: p.color, 'stroke-width': have ? 2 : 1, opacity: have ? 1 : 0.6 }, s);
+      }
+      const t = el('text', { x: tx, y: src ? ty + (p.plasmid ? 38 : 0) : ty + 5, 'text-anchor': 'middle', 'font-size': 14, 'font-style': 'italic', 'font-weight': have ? 700 : 400,
         fill: have && !p.plasmid ? '#02040a' : p.color, opacity: have ? 1 : 0.75, 'font-family': 'ui-monospace, Menlo, monospace' }, s);
       t.textContent = p.slot.gene;
       el('circle', { cx: tx, cy: ty, r: 32, fill: 'transparent' }, s); // касание: не меньше 44 pt и в Safari, где кольцо мельче (урок L017); соседние места не налезают: между центрами 67

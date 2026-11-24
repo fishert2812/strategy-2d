@@ -229,6 +229,34 @@ function snap(k, it) {
   } finally { [world, view, kids, down, moved, rings, puffs, zaps, paint.t] = keep; }
   return out.toDataURL('image/jpeg', 0.86);
 }
+// Значок гена (макет дизайнера: круг, тело приглушено, часть, которую даёт ген, подсвечена). Снимаем клетку без гена и с геном
+// той же студией, что Альманах, и оставляем ярким только то, что изменилось: сам ген на теле. Кеш — снимаем один раз.
+const icons = new Map();
+function icon(g) {
+  if (icons.has(g)) return icons.get(g);
+  const N = 128, grab = genes => {
+    const keep = [world, view, kids, down, moved, rings, puffs, zaps, paint.t], c = document.createElement('canvas'); c.width = c.height = N;
+    try {
+      world = studio('me', { a: -0.5 }); world.genes = genes; kids = null; down = null; moved = true; rings = []; puffs = []; zaps = [];
+      const side = Math.min(W, H) * 0.9; view = { x: 0, y: 0, z: side * 0.62 / cfg.icon_span, tint: [...TINT[0]] };
+      for (let i = 0; i < 4; i++) { paint.t = 30; render(30); } // время стоит: оба снимка в одной позе, разница — только ген
+      const sx = canvas.width / W, cw = side * sx * 0.62;
+      c.getContext('2d').drawImage(canvas, (canvas.width - cw) / 2, (canvas.height - cw) / 2, cw, cw, 0, 0, N, N);
+    } finally { [world, view, kids, down, moved, rings, puffs, zaps, paint.t] = keep; }
+    return c.getContext('2d').getImageData(0, 0, N, N);
+  };
+  let url = '';
+  try {
+    const A = grab({}), B = grab({ [g]: true }), a = A.data, b = B.data;
+    for (let i = 0; i < a.length; i += 4) {
+      const d = Math.min(1, (Math.abs(b[i] - a[i]) + Math.abs(b[i + 1] - a[i + 1]) + Math.abs(b[i + 2] - a[i + 2])) / 90);
+      for (let j = 0; j < 3; j++) b[i + j] = a[i + j] * cfg.icon_dim * (1 - d) + Math.min(255, b[i + j] * 1.25) * d;
+    }
+    const c = document.createElement('canvas'); c.width = c.height = N; c.getContext('2d').putImageData(B, 0, 0); url = c.toDataURL('image/jpeg', 0.85);
+  } catch (e) { url = ''; }
+  icons.set(g, url); return url;
+}
+setTimeout(function warm(i = 0) { const g = Object.keys(cfg.genes)[i]; if (!g) return; icon(g); setTimeout(() => warm(i + 1), 250); }, 1500); // значки заранее, по одному: без рывка при первом гене
 const kab = almanahScreen({ K: KAB, cards, T: TEKSTY, G: GENY, met, snap, onSwim: () => { if (ended) start(); else if (paused) genome.close(); } });
 const cabLabel = () => { $('cab').textContent = $('gcab').textContent = kab.label(); };
 cabLabel();
@@ -237,7 +265,7 @@ $('cab').onclick = () => { knowGenes(); kab.open(); };
 let toastT = 0;
 // Пауза с геномом: мир замирает, твоя клетка крупно в середине кольца ДНК.
 let paused = false;
-const genome = genomeScreen({ G: genomeData, cfg, world: () => world,
+const genome = genomeScreen({ G: genomeData, cfg, world: () => world, icon: g => icon(g),
   onOpen: () => { paused = true; document.body.classList.add('paused'); pad.end(0); down = null; finger = null; },
   onClose: () => { paused = false; document.body.classList.remove('paused'); },
   onCabinet: () => $('cab').onclick(), onSend: () => send(), onDraw: () => showMarks() });
@@ -282,7 +310,7 @@ function meet(k) { // первая встреча: на секунду имя у
   say('Новая запись в Альманахе · ' + (TEKSTY[k]?.imya || cards[k].name), 1600);
   beep(990, 0.12, 0.03, 'sine', 1.3);
 }
-function say(text, ms) { $('toast').textContent = text; $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => $('toast').classList.remove('on'), ms); }
+function say(text, ms, gene) { $('toast').textContent = text; if (gene) { const im = new Image(); im.src = icon(gene); im.className = 'ticon'; im.alt = ''; $('toast').prepend(im); } $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => $('toast').classList.remove('on'), ms); }
 const told = new Set(); // подсказка — один раз и только в момент, когда она нужна
 function tell(k, text) { if (told.has(k)) return; told.add(k); say(text, 2600); }
 start();
@@ -318,7 +346,7 @@ function ask() {
   world.choice.forEach((g, i) => {
     const go = () => { world.pick(g); kids = null; $('genes').classList.remove('on'); ring(world.center().x, world.center().y, 0, 300); beep(660, 0.4, 0.06, 'sine', 1.5); };
     const b = document.createElement('button');
-    b.innerHTML = cfg.genes[g][0] + '<small>' + cfg.genes[g][1] + '</small>'; b.onclick = go; box.appendChild(b);
+    b.innerHTML = '<img class="gicon" alt="">' + cfg.genes[g][0] + '<small>' + cfg.genes[g][1] + '</small>'; b.firstChild.src = icon(g); b.onclick = go; box.appendChild(b);
     const k = document.createElement('button'); k.className = 'kid'; k.style.left = i ? '52%' : '2%'; k.onclick = go; k.setAttribute('aria-label', cfg.genes[g][0]); $('genes').appendChild(k);
   });
   $('genes').classList.add('on');
@@ -349,7 +377,7 @@ function events() {
   for (const [k, x, y, size = 1, y2] of world.events) {
     if (k === 'spore') { ring(x, y, 0, 160); beep(200, 0.6, 0.06, 'sine', 0.5); say('Уснула! Спящую не берут — переждёшь беду', 2600); }
     if (k === 'sprout') { ring(x, y, 2, 120); beep(520, 0.3, 0.05, 'sine', 2); }
-    if (k === 'gene') { ring(x, y, 0, 120); beep(780, 0.3, 0.05, 'sine', 1.6); say('Ген от сородича: ' + cfg.genes[size][0] + ' — ' + cfg.genes[size][1], 2600); } // конъюгация
+    if (k === 'gene') { ring(x, y, 0, 120); beep(780, 0.3, 0.05, 'sine', 1.6); say('Ген от сородича: ' + cfg.genes[size][0] + ' — ' + cfg.genes[size][1], 2600, size); } // конъюгация
     if (k === 'zap') { zaps.push({ x, y, x2: size, y2, t: 0 }); beep(1500, 0.05, 0.05, 'square', 0.4); } // выстрел гарпуна синегнойки
     if (k === 'grab') { ring(x, y, 1, 40); beep(240, 0.2, 0.05, 'sawtooth', 1.6); tell('grab', 'Схватили! Резко развернись — вырвешься'); }
     if (k === 'sick' && world.me.some(a => a.held > 0)) tell('bdello', 'Прилип хищник! Резко развернись — стряхнёшь');
