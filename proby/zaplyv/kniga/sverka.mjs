@@ -5,11 +5,11 @@
 // --selftest: каждой проверке подаём нарочно сломанный пример и ждём красного.
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 
-// Урок L017 (Роман 24.11: описания генов «непонятный нелогичный непонятно для кого»): карточка гена пишется
-// по методике kniga/teksty.md, и машина это держит. test_L017 — случаи самопроверки ниже.
+// Урок L018 (Роман 24.11: описания генов «непонятный нелогичный непонятно для кого»): карточка гена пишется
+// по методике kniga/teksty.md, и машина это держит. test_L018 — случаи самопроверки ниже.
 const ZAPRET = ['crispr', 'персистер', 'плазмид', 'фимбри', 'рецептор', 'рибосом', 'хемотакс', 'колицин', 'конъюг', 'фаг', 'штамм', 'мутаци', 'фенотип', 'экспресс'];
-const POLYA = { imya: 3, daet: 12, priroda: 25 };
-const POLYA_S = { imya: 3, ubil: 6, kto: 18, sovet: 12, priroda: 25 }, MOZHNO_BEZ = ['ubil', 'sovet'];
+const POLYA = { imya: 3, daet: 12, priroda: 60 };
+const POLYA_S = { imya: 3, ubil: 6, kto: 18, sovet: 12, priroda: 60 }, MOZHNO_BEZ = ['ubil', 'sovet'];
 export function tekst(who, k, polya = POLYA) {
   const bad = [];
   for (const [f, max] of Object.entries(polya)) {
@@ -18,6 +18,7 @@ export function tekst(who, k, polya = POLYA) {
     if (!v) { bad.push(who + ': в карточке нет строки «' + f + '»'); continue; }
     const n = v.split(/\s+/).filter(w => /[а-яё0-9]/i.test(w)).length;
     if (n > max) bad.push(who + ': строка «' + f + '» длиной ' + n + ' слов, можно ' + max);
+    if (f === 'priroda') { const fr = v.split(/[.!?]+(?:\s|$)/).filter(x => x.trim()).length; if (fr < 2 || fr > 4) bad.push(who + ': блок «в природе» из ' + fr + ' предложений, нужно от 2 до 4 (Роман 24.11: образовательный контент оставь)'); }
     if (/ [—–-] /.test(v)) bad.push(who + ': в строке «' + f + '» тире, пиши запятой или двумя фразами');
     if (/[a-z]/i.test(v)) bad.push(who + ': в строке «' + f + '» латиница: «' + v + '»');
     const t = ZAPRET.find(z => v.toLowerCase().includes(z));
@@ -34,7 +35,7 @@ export const sobrat = records => Object.fromEntries(records.filter(r => r.kartoc
 export const SHAGI = ['nauka', 'adaptaciya', 'biolog', 'gotov', 'stroyka', 'v_igre'];
 const at = s => SHAGI.indexOf(s);
 
-export function sverka({ records, cards, genes, slots, pages, files, spisok, ring, teksty }) {
+export function sverka({ records, cards, genes, slots, pages, files, spisok, ring, teksty, problemy }) {
   const bad = [], seen = new Map();
   const have = k => { const [t, key] = k.split(':'); return t === 'cards' ? cards[key] : t === 'gene' ? genes[key] && { name: genes[key][0], chto: genes[key][1] } : null; };
   if ([...files].sort().join() !== [...spisok].sort().join()) bad.push('zapisi/spisok.json не совпадает с файлами записей: ' + files.join(' ') + ' / ' + spisok.join(' '));
@@ -78,6 +79,11 @@ export function sverka({ records, cards, genes, slots, pages, files, spisok, rin
   for (const k of Object.keys(cards)) if (k !== '_' && !kartS[k]) bad.push('у существа «' + k + '» нет карточки, прошедшей копирайтера');
   if (teksty.sushchestva && JSON.stringify(kartS) !== JSON.stringify(teksty.sushchestva)) bad.push('teksty_sushchestv.json отстал от записей: запусти node proby/zaplyv/kniga/sverka.mjs --teksty');
   for (const [k, v] of Object.entries(teksty.otkuda)) if (/[a-z]/i.test(v) || ZAPRET.some(z => v.toLowerCase().includes(z))) bad.push('teksty_genov.json otkuda.' + k + ': термин или латиница');
+  for (const p of problemy || []) {
+    if (!['novaya', 'chinim', 'gotovo', 'vyshlo', 'pravilo'].includes(p.status)) bad.push('проблема ' + p.id + ': неизвестный статус ' + p.status);
+    if (p.status === 'vyshlo' && !p.versiya) bad.push('проблема ' + p.id + ': «вышло» без номера версии');
+    if (!p.slova || !p.chto) bad.push('проблема ' + p.id + ': нет слов Романа или строки «что с этим»');
+  }
   for (const k of slots) if (!genes[k]) bad.push('на кольце генома место «' + k + '», а такого гена в data.json нет');
   return bad;
 }
@@ -90,7 +96,7 @@ function load() {
   const g = j('../genome.json');
   const slots = [...g.arcs.flatMap(a => a.slots), ...g.plasmids].map(s => s.id).filter(Boolean);
   const ring = [...g.arcs.flatMap(a => a.slots), ...g.plasmids].map(s => s.gene).filter(x => x && x !== '?');
-  return { records, cards: j('../cards.json'), genes: j('../data.json').genes, slots, pages, files, spisok: j('zapisi/spisok.json'), ring, teksty: { ...j('teksty_genov.json'), sushchestva: j('teksty_sushchestv.json').sushchestva } };
+  return { records, cards: j('../cards.json'), genes: j('../data.json').genes, slots, pages, files, spisok: j('zapisi/spisok.json'), ring, teksty: { ...j('teksty_genov.json'), sushchestva: j('teksty_sushchestv.json').sushchestva }, problemy: j('problemy.json') };
 }
 
 const S = load();
@@ -114,16 +120,18 @@ if (process.argv.includes('--selftest')) {
     ['готов к стройке без биолога', s => { s.records.push({ ...proba(), shag: 'gotov' }); return s; }, true],
     ['запись без слоя науки ушла дальше', s => { s.records.push({ ...proba(), nauka: '' }); return s; }, true],
     ['запись не показана в книге', s => { s.pages = {}; return s; }, true],
-    ['test_L017: в имени гена латиница', s => { kart(s).imya = 'CRISPR'; return s; }, true],
-    ['test_L017: в строке «что даёт» термин', s => { kart(s).daet = 'Фаги тебя не берут'; return s; }, true],
-    ['test_L017: «что даёт» длиннее 12 слов', s => { kart(s).daet = 'один два три четыре пять шесть семь восемь девять десять одиннадцать двенадцать тринадцать'; return s; }, true],
-    ['test_L017: в карточке нет строки «в природе»', s => { delete kart(s).priroda; return s; }, true],
-    ['test_L017: текст не читал копирайтер', s => { delete kart(s).kopirayter; s.teksty.geny = null; return s; }, true],
-    ['test_L017: в карточке строка «как выглядит»', s => { kart(s).vid = 'полоски'; return s; }, true],
-    ['test_L017: в карточке существа термин', s => { s.records.find(r => r.sushchestva).sushchestva.phage = { imya: 'Фаг', kto: 'Вирус', priroda: 'Вирус', kopirayter: 'да' }; return s; }, true],
-    ['test_L017: существо без карточки от копирайтера', s => { delete s.records.find(r => r.sushchestva && r.sushchestva.amoeba).sushchestva.amoeba.kopirayter; return s; }, true],
-    ['test_L017: ген в игре без карточки', s => { delete s.records.find(r => r.kartochka && r.kod).kartochka; return s; }, true],
-    ['test_L017: файл текстов для игры отстал от книги', s => { s.teksty.geny = { net: 1 }; return s; }, true],
+    ['test_L018: в имени гена латиница', s => { kart(s).imya = 'CRISPR'; return s; }, true],
+    ['test_L018: в строке «что даёт» термин', s => { kart(s).daet = 'Фаги тебя не берут'; return s; }, true],
+    ['test_L018: «что даёт» длиннее 12 слов', s => { kart(s).daet = 'один два три четыре пять шесть семь восемь девять десять одиннадцать двенадцать тринадцать'; return s; }, true],
+    ['test_L018: в карточке нет строки «в природе»', s => { delete kart(s).priroda; return s; }, true],
+    ['test_L018: текст не читал копирайтер', s => { delete kart(s).kopirayter; s.teksty.geny = null; return s; }, true],
+    ['test_L018: в карточке строка «как выглядит»', s => { kart(s).vid = 'полоски'; return s; }, true],
+    ['test_L018: в карточке существа термин', s => { s.records.find(r => r.sushchestva).sushchestva.phage = { imya: 'Фаг', kto: 'Вирус', priroda: 'Вирус', kopirayter: 'да' }; return s; }, true],
+    ['test_L018: существо без карточки от копирайтера', s => { delete s.records.find(r => r.sushchestva && r.sushchestva.amoeba).sushchestva.amoeba.kopirayter; return s; }, true],
+    ['test_L018: блок «в природе» ужат до одной фразы', s => { kart(s).priroda = 'Одна фраза.'; return s; }, true],
+    ['проблема «вышло» без версии', s => { s.problemy[0].versiya = ''; s.problemy[0].status = 'vyshlo'; return s; }, true],
+    ['test_L018: ген в игре без карточки', s => { delete s.records.find(r => r.kartochka && r.kod).kartochka; return s; }, true],
+    ['test_L018: файл текстов для игры отстал от книги', s => { s.teksty.geny = { net: 1 }; return s; }, true],
   ];
   let fail = 0;
   for (const [name, brk, red] of cases) {

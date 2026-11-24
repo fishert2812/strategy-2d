@@ -50,14 +50,15 @@ hr.pb { break-after: page; border: none; margin: 0; }
 <script>
 // Книга «Заплыва»: страницы — .md рядом, этот файл только показывает их под телефон. Таблицы становятся карточками.
 const PAGES = [['oblozhka', 'Книга'], ['igra', 'Игра'], ['dvizhenie', 'Плыть'], ['mir', 'Мир'], ['sushchestva', 'Существа'],
-  ['geroy', 'Герой'], ['eda', 'Еда'], ['sreda', 'Среда'], ['sosedi', 'Соседи'], ['il', 'Ил'], ['karta', 'Карта'], ['evolyuciya', 'Эволюция'], ['geny', 'Гены'], ['puti', 'Пути генов'], ['ekrany', 'Экраны'], ['teksty', 'Тексты'], ['plan', 'План'], ['nauka', 'Наука'], ['ochered', 'Очередь'], ['zhurnal', 'Журнал']];
+  ['geroy', 'Герой'], ['eda', 'Еда'], ['sreda', 'Среда'], ['sosedi', 'Соседи'], ['il', 'Ил'], ['karta', 'Карта'], ['evolyuciya', 'Эволюция'], ['geny', 'Гены'], ['puti', 'Пути генов'], ['ekrany', 'Экраны'], ['problemy', 'Проблемы'], ['teksty', 'Тексты'], ['plan', 'План'], ['nauka', 'Наука'], ['ochered', 'Очередь'], ['zhurnal', 'Журнал']];
 // Записи книги: один пункт — одна запись в zapisi/*.json. Их же читает сверка с игрой (sverka.mjs).
 const SHAG = { nauka: ['1', 'база науки'], adaptaciya: ['2', 'адаптация'], biolog: ['3', 'у биолога'], gotov: ['4', 'готов к стройке'], stroyka: ['5', 'строим'], v_igre: ['6', 'в игре'] };
-let Z = null;
+let Z = null, PR = [];
 async function zapisi() {
   if (Z) return Z;
   const files = await (await fetch('zapisi/spisok.json', { cache: 'no-cache' })).json();
   Z = (await Promise.all(files.map(async f => (await (await fetch('zapisi/' + f + '.json', { cache: 'no-cache' })).json()).map(r => ({ ...r, file: f }))))).flat();
+  PR = await (await fetch('problemy.json', { cache: 'no-cache' })).json();
   return Z;
 }
 const krug = (r, k, n) => `<span class="${r.krugi && r.krugi[k] ? 'ok' : 'no'}">${r.krugi && r.krugi[k] ? '●' : '○'} ${n}${r.krugi && r.krugi[k] ? ' (' + esc(r.krugi[k]) + ')' : ''}</span>`;
@@ -102,6 +103,9 @@ function render(md) {
     if ((m = l.match(/^(#{1,3}) (.*)/))) { out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`); continue; }
     if (/^---+$/.test(l.trim())) { out.push('<hr>'); continue; }
     if ((m = l.match(/^\{\{zapisi:([a-z_]+)(?::(.+))?\}\}$/))) { out.push(Z.filter(r => r.file === m[1] && (!m[2] || r.gruppa === m[2])).map(zapis).join('')); continue; }
+    if (l.trim() === '{{problemy}}') { const ST = { novaya: ['новая', 3], chinim: ['чиним', 4], gotovo: ['готово к стройке', 4], vyshlo: ['вышло', 6], pravilo: ['стало правилом', 6] };
+      out.push(`<div class="card">` + Object.entries(ST).map(([k, [n]]) => `<div class="r"><b>${n}</b><span>${PR.filter(p => p.status === k).length}</span></div>`).join('') + '</div>' +
+        [...PR].reverse().map(p => `<div class="card"><div class="t"><span class="code">${p.id}</span>«${esc(p.slova)}»</div><div class="step s${ST[p.status][1]}">${ST[p.status][0]}${p.versiya ? ' в ' + p.versiya : ''} · ${p.kogda}</div>${row('Что с этим', p.chto)}</div>`).join('')); continue; }
     if (l.trim() === '{{ochered}}') { out.push(ochered()); continue; }
     if (l.trim() === '{{kartochki}}') { out.push(Z.filter(r => r.kartochka).map(r => `<div class="card"><div class="t"><span class="code">${r.id}</span>${esc(r.kartochka.imya)} <em>${esc(r.latin)}</em></div>` +
       `<div class="step s${SHAG[r.shag][0]}">${r.shag === 'v_igre' ? 'в игре' : 'спит на кольце'}</div>` + row('Что даёт', r.kartochka.daet) + row('В природе', r.kartochka.priroda) + '</div>').join('')); continue; }
