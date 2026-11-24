@@ -378,7 +378,7 @@ export class World {
       Object.assign(a, { spore: this.cfg.spore, free: this.cfg.spore + 1, grab: null, held: 0, sick: -1, m: Math.max(0.8, a.m * 0.6) });
       this.events.push(['spore', a.x, a.y]); return;
     }
-    this.me.splice(i, 1); if (who !== 'phage') this.events.push(['eaten', x, y]);
+    this.me.splice(i, 1); if (who !== 'phage') this.events.push(['eaten', x, y, who]); // кто съел — у каждой гибели своя анимация (fx.js)
     this.stats.lost[who] = (this.stats.lost[who] || 0) + 1; this.stats.killer = who;
   }
 
@@ -460,7 +460,7 @@ export class World {
       for (const a of this.me) if (dist(a, b) < radius(a.m) + 4 && !(a.free > 0)) {
         if (this.genes.capsule) { b.a += Math.PI; b.x += Math.cos(b.a) * 6; b.y += Math.sin(b.a) * 6; this.events.push(['bump', b.x, b.y]); break; }
         if (a.held > 0) break;
-        b.on = a; b.a = Math.atan2(b.y - a.y, b.x - a.x) + Math.PI; a.held = c.bdello_kill; this.events.push(['sick', a.x, a.y]); break;
+        b.on = a; b.a = Math.atan2(b.y - a.y, b.x - a.x) + Math.PI; a.held = c.bdello_kill; this.events.push(['bore', a.x, a.y]); break; // запятая вбуравливается — своё событие, не как впрыск вируса
       }
       if (!b.on) for (const v of [...this.pseudos, ...this.donors]) if (!(v.held > 0) && Math.hypot(v.x - b.x, v.y - b.y) < 12) { // и синегнойка, и сородич — его обычная добыча
         b.on = v; b.a = Math.atan2(b.y - v.y, b.x - v.x) + Math.PI; v.held = c.bdello_kill; break; }
