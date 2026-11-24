@@ -60,9 +60,13 @@ vec4 kin(vec2 s, float sc, float blur, float seed, float t){ // одна пал�
   vec2 u = vec2(cos(an), sin(an)) * L;
   float d = sdCap(g, o - u, o + u) - r;
   float body = 1.0 - smoothstep(-blur, blur, d);
-  float inner = clamp(-d / r, 0.0, 1.0), lit = dot(normalize(g - o + vec2(0.001)), vec2(-0.6, 0.8)) * (1.0 - inner);
+  // объём как у шара: нормаль из глубины внутрь тела, свет сверху-слева, блик и мягкая кромка
+  float inner = clamp(-d / r, 0.0, 1.0), e = 1.0 - inner;
+  vec2 dir = normalize(g - (o + u * clamp(dot(g - o, u) / dot(u, u), -1.0, 1.0)) + vec2(0.0001));
+  vec3 n = vec3(dir * e, sqrt(max(0.0, 1.0 - e * e)));
+  float lam = max(0.0, dot(n, normalize(vec3(-0.5, 0.6, 0.65)))), spec = pow(max(0.0, dot(n, normalize(vec3(-0.35, 0.45, 1.0)))), 18.0);
   float grain = vn(g * 38.0 + seed);
-  vec3 c0 = vec3(0.05, 0.16, 0.2) * (0.6 + 0.6 * grain) + vec3(0.15, 0.3, 0.32) * max(lit, 0.0) + vec3(0.3, 0.55, 0.6) * pow(1.0 - inner, 3.0) * 0.8;
+  vec3 c0 = vec3(0.16, 0.38, 0.44) * (0.3 + 1.0 * lam) * (0.8 + 0.35 * grain) + vec3(0.6, 0.8, 0.85) * spec * 0.5 + vec3(0.25, 0.5, 0.55) * pow(e, 4.0) * 0.6;
   return vec4(c0, body);
 }
 void main(){
@@ -81,7 +85,7 @@ void main(){
   // три глубины сородичей: дальние мельче, тонут в дымке цвета воды и сдвигаются медленнее
   vec3 fog = tint * 2.0 + vec3(0.02, 0.05, 0.06);
   for (int k = 0; k < 3; k++) {
-    float fk = float(k), sc = 4.2 - fk * 1.2, par = 0.2 + fk * 0.2, haze = 0.78 - fk * 0.2;
+    float fk = float(k), sc = 4.2 - fk * 1.2, par = 0.2 + fk * 0.2, haze = 0.8 - fk * 0.25;
     vec4 b = kin(s + drift * par + vec2(0.0, time * 0.004 * (fk + 1.0)), sc, 0.12 - fk * 0.03, fk * 17.0, time);
     col = mix(col, mix(b.rgb + col * 0.6, fog, haze), b.a * (1.0 - haze * 0.55));
   }
@@ -110,11 +114,11 @@ void main(){
   if (h < 0.6) {
     vec2 o = c + 0.5; float an = h2(c + 4.4) * 6.283 + sin(time * 0.05 + h * 9.0) * 0.2;
     vec2 u = vec2(cos(an), sin(an)) * 0.16; float d = sdCap(g, o - u, o + u) - 0.13;
-    a = 1.0 - smoothstep(-0.09, 0.09, d); rim = a * smoothstep(-0.12, 0.0, d);
+    a = 1.0 - smoothstep(-0.1, 0.1, d); rim = a * (0.35 + 0.65 * smoothstep(-0.13, 0.0, d)) * (0.6 + 0.4 * dot(normalize(g - o + vec2(0.001)), vec2(-0.6, 0.8)));
   }
-  vec2 e = abs(uv - 0.5) * 2.0; float edge = smoothstep(0.5, 0.9, max(e.x, e.y));
+  vec2 e = abs(uv - 0.5) * 2.0; float edge = smoothstep(0.45, 0.85, max(e.x, e.y));
   vec3 col = tint * 3.0 + vec3(0.12, 0.28, 0.34) + vec3(0.25, 0.45, 0.5) * rim;
-  gl_FragColor = vec4(col, a * edge * 0.5);
+  gl_FragColor = vec4(col, a * edge * 0.7);
 }` }));
 fg.frustumCulled = false; frontScene.add(fg);
 const fgShow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShaderMaterial({ uniforms: { t: { value: rtFront.texture } }, transparent: true, depthTest: false, depthWrite: false, side: THREE.DoubleSide,
@@ -164,7 +168,6 @@ class Dots {
   }
 }
 const far = new Dots(80, back, 1, 'ring', 0);
-const farBodies = new Dots(40, back, 2, true, 0); // дальние клетки — размытые тела
 const glow = new Dots(3000, scene, 3, true, 0.6);
 const ink = new Dots(3000, scene, 4, false, 0.8);
 const near = new Dots(12, scene, 5, 'ring', 0);
@@ -335,8 +338,14 @@ function tick(dt) {
   view.x += (c.x - view.x) * k; view.y += (c.y - view.y) * k;
   let spread = 0;
   for (const a of world.me) spread = Math.max(spread, Math.hypot(a.x - view.x, a.y - view.y));
-  const want = Math.max(0.9, Math.min(2.3, 2.45 - 0.17 * Math.sqrt(world.biggest()), W * 0.36 / Math.max(spread, 1)));
-  view.z += (want - view.z) * Math.min(1, dt);
+  // Камера как у оператора: в спокойствии подъезжает к клетке (видна фактура, ворсинки, кромка света),
+  // при опасности рядом или на скорости отъезжает — видно, что вокруг.
+  const near = (list, r) => list.some(e => Math.hypot(e.x - c.x, e.y - c.y) < r);
+  const danger = near(world.amoebas, 420) || near(world.bdellos, 420) || near(world.slippers, 380) || near(world.bells, 300) || near(world.rotis, 420) || near(world.phages.filter(g => g.host === 'me'), 300);
+  const fast = world.me.some(a => Math.hypot(a.vx, a.vy) > 120);
+  view.calm = (view.calm || 0) + ((danger || fast ? 0 : 1) - (view.calm || 0)) * Math.min(1, dt * (danger ? 2.5 : 0.6));
+  const want = Math.max(0.9, Math.min(2.3, 2.45 - 0.17 * Math.sqrt(world.biggest()), W * 0.36 / Math.max(spread, 1))) * (1 + cfg.close_up * view.calm);
+  view.z += (want - view.z) * Math.min(1, dt * 1.5);
   const t = TINT[world.biome(view.x, view.y)];
   for (let i = 0; i < 3; i++) view.tint[i] += (t[i] - view.tint[i]) * Math.min(1, dt * 0.8);
   $('count').textContent = 'клеток ' + world.me.length;
@@ -597,7 +606,7 @@ function paint(time) {
     glow.put(x, y - STICK * k, 26, 1, 1, 1, 0.35 * (1 - k * 0.5));
   }
   const wrap = (v, n) => ((v % n) + n) % n;
-  for (let i = 0; i < 50; i++) { // вдали: частицы в расфокусе — кольца, плывут медленнее
+  for (let i = 0; i < 32; i++) { // вдали: частицы в расфокусе — кольца, плывут медленнее
     const h = Math.abs(Math.sin(i * 91.7) * 43758.5) % 1, h2 = Math.abs(Math.sin(i * 12.9) * 9631.2) % 1;
     const warm = i % 3 === 0; // тёплые огоньки вдали, как на снимках
     far.put(wrap(h * 1400 - view.x * 0.35, 1400) - 340, wrap(h2 * 2400 - view.y * 0.35, 2400) - 500, (warm ? 6 : 14) + h * (warm ? 14 : 46), warm ? 1 : 0.6, warm ? 0.55 : 0.8, warm ? 0.2 : 1, warm ? 0.25 : 0.025 + h2 * 0.035);
@@ -611,16 +620,11 @@ function paint(time) {
     const h = Math.abs(Math.sin(i * 47.3) * 3758.5) % 1;
     near.put(wrap(h * 2400 - view.x * 1.7, 2400) - 840, wrap(h * 7.1 % 1 * 3000 - view.y * 1.7, 3000) - 800, 140 + h * 120, 0.7, 0.85, 1, 0.03);
   }
-  for (let i = 0; i < 9; i++) { // дальние клетки: размытые цветные тела глубоко под нами
-    const h = Math.abs(Math.sin(i * 17.3) * 2758.5) % 1, h2 = Math.abs(Math.sin(i * 5.7) * 7631.3) % 1, c = [CELL[0], CORE[0], CELL[1], CELL[2]][i % 4];
-    const x = wrap(h * 1600 - view.x * 0.5, 1600) - 440, y = wrap(h2 * 2600 - view.y * 0.5, 2600) - 600, a = h * 6.3 + time * 0.05, L = 30 + h2 * 40;
-    for (const s of [-1, 0, 1]) farBodies.put(x + Math.cos(a) * s * L * 0.6, y + Math.sin(a) * s * L * 0.6, L * 0.9, c.r, c.g, c.b, 0.05);
-  }
   bodies.end(time);
   $('scale').style.width = (260 * z * innerWidth / W) + 'px';
   U.tint.value.set(...view.tint);
   U.drift.value.set(view.x * view.z / W, -view.y * view.z / W); // в ширинах экрана: слои сзади сдвигаются медленнее
-  for (const d of [far, farBodies, glow, ink, near, dust, bubbles, wake]) d.done();
+  for (const d of [far, glow, ink, near, dust, bubbles, wake]) d.done();
 }
 
 // Замер для проверки: кадры, худший и средний кадр за последние 5 с, число клеток и точек.
