@@ -86,7 +86,8 @@ func _process(dt: float) -> void:
 		var bar: ProgressBar = _sprites[b.id].get_node("Hp")
 		bar.value = b.hp / b.max_hp * 100.0
 		bar.visible = b.hp < b.max_hp
-	$Hud/Box/Debug.text = debug_text()
+	if $Hud/Box/Debug.visible:
+		$Hud/Box/Debug.text = debug_text()
 	_sync_paths()
 	_sync_units()
 
@@ -202,6 +203,10 @@ func _move(pos: Vector2) -> void:
 
 
 func _press(pos: Vector2) -> void:
+	# Отладочное меню: касание подписи версии показывает и прячет строку отладки.
+	if $Hud/Box/Top/Sha.get_global_rect().has_point(pos):
+		$Hud/Box/Debug.visible = not $Hud/Box/Debug.visible
+		return
 	if sim.winner != -1:
 		return
 	for kind in buttons:

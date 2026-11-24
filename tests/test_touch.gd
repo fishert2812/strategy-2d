@@ -129,3 +129,19 @@ func test_one_press_from_touch_and_its_mouse() -> String:
 	if not ("касаний 2" in text and "эмул 2" in text and "поле" in text):
 		return "строка отладки не посчитала нажатия: " + text
 	return ""
+
+
+## Строка отладки не мешает игре: спрятана, касание подписи версии показывает и прячет её.
+func test_debug_line_behind_version_tap() -> String:
+	var battle: Control = await _battle(SIZES[0])
+	var debug: Label = battle.get_node("Hud/Box/Debug")
+	var sha: Vector2 = battle.get_node("Hud/Box/Top/Sha").get_global_rect().get_center()
+	var seen := [debug.visible]
+	_tap(battle, sha)
+	seen.append(debug.visible)
+	_tap(battle, sha)
+	seen.append(debug.visible)
+	battle.get_parent().free()
+	if seen != [false, true, false]:
+		return "строка отладки видна так: %s, ждали спрятана → видна → спрятана" % [seen]
+	return ""
