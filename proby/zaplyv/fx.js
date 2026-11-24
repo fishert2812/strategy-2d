@@ -1,6 +1,7 @@
 // Анимации взаимодействий: что видно, когда мир сообщает событие (съела, поделилась, схватили, лопнула, прилип фаг…).
 // Файл слоя «вид и анимации» (свой строитель). main.js зовёт fx.on() на каждое событие мира, fx.draw() в кадре, fx.step(dt).
 // Звук и подписи остаются в main.js. Список событий — sim.js, world.events: [вид, x, y, size, y2].
+import { poke, stepVid } from './vid.js';
 export class Fx {
   constructor(cfg, CELL) { this.cfg = cfg; this.CELL = CELL; this.reset(); }
   reset() { this.rings = []; this.zaps = []; }
@@ -21,7 +22,7 @@ export class Fx {
     if (k === 'learn') R(2, 80);
     if (k === 'sit') R(0, 46); // коловратка присела на ногу
     if (k === 'snap') R(0, 60); // сувойка сжалась пружиной
-    if (k === 'bump') R(0, 24); // капсула: хищник отскочил
+    if (k === 'bump') { R(0, 24); poke(x, y); } // капсула: хищник отскочил, плёнка прогнулась
     if (k === 'pop') R(2, 90); // чужая клетка лопнула
     if (k === 'pinch') R(1, 50);
     if (k === 'sick') R(1, 50);
@@ -44,5 +45,5 @@ export class Fx {
       for (let i = 0; i < 28; i++) { const t = i * 0.2244; glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 4 * (1 - k) + 1.2, c.r, c.g, c.b, 0.6 * (1 - k)); }
     }
   }
-  step(dt) { for (const r of this.rings) r.t += dt; this.rings = this.rings.filter(r => r.t < 0.6); }
+  step(dt) { stepVid(dt); for (const r of this.rings) r.t += dt; this.rings = this.rings.filter(r => r.t < 0.6); }
 }
