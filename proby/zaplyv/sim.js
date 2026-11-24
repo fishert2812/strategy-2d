@@ -56,7 +56,7 @@ export class World {
   }
 
   biggest() { return this.me.reduce((b, c) => Math.max(b, c.m), 0); }
-  readyToSplit() { return this.me.some(c => c.m >= this.cfg.split); }
+  readyToSplit() { return this.me.some(c => c.m >= this.split()); }
 
   // Сглаженный шум по квадратам: 0 чистая вода, 1 сладкая (еды много, фаги), 2 ил (водоросли, амёбы).
   biome(x, y) {
@@ -117,7 +117,7 @@ export class World {
   divide() {
     const born = [];
     for (const c of this.me) {
-      if (c.m < this.cfg.split || c.sick >= 0 || c.held > 0 || c.grab || c.spore > 0) continue;
+      if (c.m < this.split() || c.sick >= 0 || c.held > 0 || c.grab || c.spore > 0) continue;
       c.m /= 2; c.gen = (c.gen || 0) + 1; this.stats.gen = Math.max(this.stats.gen, c.gen);
       const ax = Math.cos(c.a), ay = Math.sin(c.a), r = radius(c.m);
       born.push({ x: c.x - ax * r * 1.2, y: c.y - ay * r * 1.2, vx: c.vx - ax * 60, vy: c.vy - ay * 60, m: c.m, a: c.a, sick: -1, gen: c.gen, id: ++this.ids });
@@ -143,7 +143,7 @@ export class World {
     const c = this.cfg, r = this.r;
     this.stats.time += dt;
     const c0 = this.center();
-    const speed = c.speed * (this.genes.flagellum ? 1.3 : 1);
+    const speed = c.speed;
     const sw = c.swim, wrap = d => Math.atan2(Math.sin(d), Math.cos(d));
     for (const a of this.me) {
       // Как настоящая палочка: тянет вдоль своей оси, поворачивает по дуге, боком почти не скользит
@@ -154,6 +154,11 @@ export class World {
       else if (target) {
         const tx = target.x - a.x, ty = target.y - a.y, l = len(tx, ty) || 1;
         want = Math.atan2(ty, tx); s = speed / Math.pow(a.m, 0.2) * Math.min(1, l / 60);
+      }
+      if (want !== null && this.genes.sense) { // хемотаксис: клетка сама подруливает к ближайшей еде впереди, еда не движется
+        let best = null, bd = c.sense_r;
+        for (const f of this.food) { const d = Math.hypot(f.x - a.x, f.y - a.y); if (d < bd) { bd = d; best = f; } }
+        if (best) { const d = wrap(Math.atan2(best.y - a.y, best.x - a.x) - want); if (Math.abs(d) < 1.2) want += d * c.sense_pull; }
       }
       const a0 = a.a;
       a.tumble = Math.max(0, (a.tumble || 0) - dt);
@@ -171,7 +176,7 @@ export class World {
         const turn = a.tumble ? sw.tumble_turn : sw.turn, wantW = Math.max(-turn, Math.min(turn, d * sw.ease));
         a.om = (a.om || 0) + Math.max(-sw.spin_acc * dt, Math.min(sw.spin_acc * dt, wantW - (a.om || 0)));
         a.a += Math.abs(a.om * dt) > Math.abs(d) ? d : a.om * dt;
-        thrust = (this.inSlime(a.x, a.y) ? c.slime_slow : 1) * (a.tumble ? s * 0.12 : s * Math.max(0.25, Math.cos(wrap(want - a.a)))) * (a.held > 0 ? 0.3 : 1) * (a.stun > 0 || a.spore > 0 ? 0 : 1); // в шарике почти не плывёт; после гарпуна миг оглушена
+        thrust = (this.inSlime(a.x, a.y) && !this.genes.flagellum ? c.slime_slow : 1) /* много жгутиков пробивают слизь */ * (a.tumble ? s * 0.12 : s * Math.max(0.25, Math.cos(wrap(want - a.a)))) * (a.held > 0 ? 0.3 : 1) * (a.stun > 0 || a.spore > 0 ? 0 : 1); // в шарике почти не плывёт; после гарпуна миг оглушена
       } else { // палец отпущен: в воде клетка встаёт сразу (вязкость); её медленно сносит и поворачивает (~90° за 10 с)
         a.drift = (a.drift ?? r() * 6.283) + (r() - 0.5) * dt * 1.5;
         a.om = (a.om || 0) * Math.max(0, 1 - 6 * dt);
@@ -193,6 +198,7 @@ export class World {
       a.w = wrap(a.a - a0) / dt; // скорость поворота — по ней тело и пучок жгутиков гнутся дугой
       if (a.sick >= 0) a.sick -= dt;
       if (a.stun > 0) a.stun -= dt;
+      if (this.genes.fast) a.m = Math.max(0.6, a.m - c.fast_burn * dt); // …но и голодаешь быстрее: рибосомы едят силы
       if (a.spore > 0) { a.spore -= dt; if (a.spore <= 0) this.events.push(['sprout', a.x, a.y]); } // спора проросла
     }
     const c1 = this.center();
@@ -203,7 +209,7 @@ export class World {
     this.hold(dt);
     this.rush = Math.max(0, this.rush - (this.stats.time - this.lastEat > c.rush_gap ? c.rush_fall * dt : 0));
     // Выросшая клетка делится сама через cfg.auto_split с (так делятся бактерии); касание — поделиться раньше, когда нужно.
-    if (this.me.length < c.auto_max && this.me.some(a => a.m >= c.split)) { this.ripe = (this.ripe || 0) + dt; if (this.ripe > c.auto_split) { this.ripe = 0; this.divide(); } } else this.ripe = 0;
+    if (this.me.length < c.auto_max && this.me.some(a => a.m >= this.split())) { this.ripe = (this.ripe || 0) + dt; if (this.ripe > c.auto_split) { this.ripe = 0; this.divide(); } } else this.ripe = 0;
     for (const a of this.me.filter(a => a.sick >= 0 && a.sick < dt)) {
       this.lose(a, a.x, a.y, 'phage');
       this.events.push(['burst', a.x, a.y]); this.spill(a.x, a.y);
@@ -266,7 +272,8 @@ export class World {
   // Медленное течение воды: у каждого места своё направление, меняется во времени.
   flow(x, y) { const t = hash(Math.floor(x / 500), Math.floor(y / 500), 77) * 6.283 + this.stats.time * 0.05; return [Math.cos(t) * this.cfg.flow, Math.sin(t) * this.cfg.flow]; }
 
-  grow(a, v) { a.m = Math.min(this.cfg.max_m, a.m + v * (this.genes.fast ? 2 : 1) * (1 + this.rush)); }
+  grow(a, v) { a.m = Math.min(this.cfg.max_m, a.m + v * (this.genes.lock ? this.cfg.lock_food : 1) * (1 + this.rush)); } // сменил замок: та же пора впускает и еду — медленнее
+  split() { return this.genes.fast ? this.cfg.split * this.cfg.fast_split : this.cfg.split; } // быстрый рост: больше рибосом — делишься раньше
   // Съел — серия: куски подряд (не дольше cfg.rush_gap между ними) разгоняют рост, как в экспоненциальной фазе.
   fed(x, y, size) { const c = this.cfg; this.rush = Math.min(c.rush_max, this.rush + (this.stats.time - this.lastEat < c.rush_gap ? c.rush_step * size : 0)); this.lastEat = this.stats.time; this.stats.eaten++; this.events.push(['eat', x, y, size]); }
 
@@ -292,11 +299,12 @@ export class World {
       const r = radius(a.m);
       for (const f of this.food) {
         const dx = a.x - f.x, dy = a.y - f.y, d = len(dx, dy);
-        if (sense && d < r + 150) { f.x += dx / d * 90 * dt; f.y += dy / d * 90 * dt; }
         if (d < r + 6 && !f.gone) { f.gone = true; const z = f.s || 1; this.grow(a, this.cfg.food * z); this.fed(f.x, f.y, z); } // кусок кормит по размеру
       }
-      for (const q of this.prey) if (!q.gone && q.m < a.m * 0.8 && dist(a, q) < r + radius(q.m) * 0.4) {
-        q.gone = true; this.grow(a, q.m * 0.5); this.fed(q.x, q.y, 2);
+      // Бактерии клетки не глотают. С геном токсина касание убивает соседа-соперника: кокк лопается облаком еды.
+      // Сородичи с плазмидой сами носят этот токсин и к нему устойчивы.
+      if (this.genes.toxin) for (const q of this.prey) if (!q.gone && dist(a, q) < r + radius(q.m) * 0.6 + 4) {
+        q.gone = true; this.spill(q.x, q.y); this.events.push(['pop', q.x, q.y]);
       }
       for (const k of this.crumbs) if (dist(a, k) < r + radius(k.m) * 0.8) { // детрит растворяется медленно
         const bite = Math.min(k.m, 0.4 * dt); k.m -= bite; this.grow(a, bite);
@@ -304,15 +312,11 @@ export class World {
       for (const p of this.plants) if (dist(a, p) < r + radius(p.m)) {
         const bite = Math.min(p.m, 0.5 * dt); p.m -= bite; this.grow(a, bite);
       }
-      for (const m of this.amoebas) if (!m.gone && m.m < a.m * 0.8 && dist(a, m) < r + radius(m.m) * 0.4) {
-        m.gone = true; a.m = Math.min(this.cfg.max_m, a.m + m.m * 0.5); this.fed(m.x, m.y, 2);
-      }
     }
     this.food = this.food.filter(f => !f.gone);
     this.prey = this.prey.filter(q => !q.gone);
     this.plants = this.plants.filter(p => p.m > 0.3);
     this.crumbs = this.crumbs.filter(k => k.m > 0.2);
-    this.amoebas = this.amoebas.filter(m => !m.gone);
   }
 
   // Пасть: клетку не съедают мгновенно — её держат, пока смыкается пищеварительный пузырёк (cfg.grab с).
@@ -331,9 +335,14 @@ export class World {
   }
   escape(a) { // кувырок в пасти: вырвался
     const g = a.grab, [mx, my] = this.mouthOf(g), d = Math.hypot(a.x - mx, a.y - my) || 1, ux = d > 1 ? (a.x - mx) / d : -Math.cos(a.a), uy = d > 1 ? (a.y - my) / d : -Math.sin(a.a);
-    a.grab = null; a.free = this.cfg.free; a.m = Math.max(0.6, a.m * this.cfg.torn); // вырвалась, но оставила в пасти кусок a.x = mx + ux * 40; a.y = my + uy * 40; a.vx = ux * 220; a.vy = uy * 220; this.events.push(['shake', a.x, a.y]);
+    a.grab = null; a.free = this.cfg.free; a.m = Math.max(0.6, a.m * this.cfg.torn); /* вырвалась, но потратила силы на рывок */ a.x = mx + ux * 40; a.y = my + uy * 40; a.vx = ux * 220; a.vy = uy * 220; this.events.push(['shake', a.x, a.y]);
   }
 
+  rodNear(p, reach) { // ближайшая палочка любого рода: ты, синегнойка, сородич (кокки — не его добыча)
+    let best = null, bd = reach;
+    for (const a of [...this.me, ...this.pseudos, ...this.donors]) { if (a.held > 0) continue; const d = Math.hypot(a.x - p.x, a.y - p.y); if (d < bd) { bd = d; best = a; } }
+    return best;
+  }
   nearest(p, reach) {
     let best = null, bd = reach;
     for (const a of this.me) { const d = dist(a, p); if (d < bd) { bd = d; best = a; } }
@@ -359,13 +368,9 @@ export class World {
 
   hunters(dt) {
     const c = this.cfg, r = this.r;
-    for (const q of this.prey) { // кокки бродят; мелкие удирают от тебя; крупные не по зубам, но и не нападают — бактерии друг друга не глотают
-      const a = this.nearest(q, 220);
-      let wx = q.vx, wy = q.vy;
-      if (a) {
-        const d = dist(a, q) || 1, ux = (q.x - a.x) / d, uy = (q.y - a.y) / d;
-        if (q.m < a.m * 0.8) { wx = ux * 75; wy = uy * 75; }
-      } else if (r() < dt) { const t = r() * 6.283; wx = Math.cos(t) * 30; wy = Math.sin(t) * 30; }
+    for (const q of this.prey) { // кокки — соседи-соперники: не плавают и не нападают
+      let wx = q.vx, wy = q.vy; // жгутиков у кокков нет: их носит течением и чуть трясёт
+      if (r() < dt) { const t = r() * 6.283; wx = Math.cos(t) * 8; wy = Math.sin(t) * 8; }
       const k = Math.min(1, 2 * dt);
       q.vx += (wx - q.vx) * k; q.vy += (wy - q.vy) * k; q.x += q.vx * dt; q.y += q.vy * dt;
     }
@@ -375,7 +380,9 @@ export class World {
     // Синегнойная палочка — соперник твоего размера: бегает рывками к еде (быстрее тебя) и ест её.
     // Сама не нападает. Кто врежется в неё первым — получает выстрел гарпуна (секреция VI типа): «око за око».
     // Бделловибрион, врезавшись в неё, гибнет — рядом с ней от запятых безопасно.
+    this.pseudos = this.pseudos.filter(q => !q.gone); this.donors = this.donors.filter(q => !q.gone);
     for (const q of this.pseudos) {
+      if (q.held > 0) continue; // в ней хищник: округлилась в шарик
       q.t -= dt; q.cool = Math.max(0, q.cool - dt);
       if (q.t <= 0) {
         let best = null, bd = c.pseudo_sense;
@@ -395,37 +402,39 @@ export class World {
           if (a.m < c.pseudo_min) this.lose(a, a.x, a.y, 'pseudo');
         }
       }
-      for (const b of this.bdellos) if (!b.on && !b.gone && Math.hypot(b.x - q.x, b.y - q.y) < c.pseudo_r + 4) { b.gone = true; this.events.push(['zap', q.x, q.y, b.x, b.y]); }
     }
     // Сородич с плазмидой: мирно дрейфует. Побудь с ним рядом впритык cfg.conj с — он протянет пилю-мостик
     // и передаст копию плазмиды с геном (конъюгация): мутация без деления. Каждый делится один раз.
     for (const d of this.donors) {
       d.a += Math.sin(this.stats.time * 0.5 + d.id) * 0.4 * dt; d.x += Math.cos(d.a) * c.donor_speed * dt; d.y += Math.sin(d.a) * c.donor_speed * dt;
-      const a = d.gave ? null : this.me.find(a => Math.hypot(a.x - d.x, a.y - d.y) < radius(a.m) + c.donor_r);
+      if (d.held > 0) continue;
+      d.rest = Math.max(0, (d.rest || 0) - dt);
+      const a = d.rest > 0 ? null : this.me.find(a => Math.hypot(a.x - d.x, a.y - d.y) < radius(a.m) + c.donor_r);
       d.link = a ? d.link + dt : Math.max(0, d.link - dt * 2); d.to = a || null;
       if (a && d.link >= c.conj) {
-        d.gave = true; d.link = 0;
-        const left = Object.keys(c.genes).filter(g => !this.genes[g]);
-        if (left.length) { const g = left[Math.floor(this.r() * left.length)]; this.genes[g] = true; this.events.push(['gene', d.x, d.y, g]); }
+        d.rest = c.donor_rest[0] + this.r() * (c.donor_rest[1] - c.donor_rest[0]); d.link = 0; // копия плазмиды остаётся у него, пауза
+        const left = c.plasmid_genes.filter(g => !this.genes[g]); // по плазмидам ходят токсины, капсула, CRISPR — не жгутик и не хемотаксис
+        if (left.length) { const g = left[Math.floor(this.r() * left.length)]; this.genes[g] = true; this.plasmid = true; this.events.push(['gene', d.x, d.y, g]); }
       }
     }
     this.bdellos = this.bdellos.filter(b => !b.gone);
     this.food = this.food.filter(f => !f.gone);
     for (const b of this.bdellos) {
       if (b.on) {
-        const h = b.on;
-        if (this.me.indexOf(h) < 0) { b.on = null; continue; }
-        b.x = h.x + Math.cos(b.a + Math.PI) * radius(h.m) * 0.7; b.y = h.y + Math.sin(b.a + Math.PI) * radius(h.m) * 0.7;
+        const h = b.on, mine = this.me.includes(h);
+        if (!mine && (h.gone || !(this.pseudos.includes(h) || this.donors.includes(h)))) { b.on = null; continue; } // жертва пропала
+        b.x = h.x + Math.cos(b.a + Math.PI) * radius(h.m || 1) * 0.7; b.y = h.y + Math.sin(b.a + Math.PI) * radius(h.m || 1) * 0.7;
         h.held -= dt;
-        if (h.held <= 0) {
-          this.lose(h, h.x, h.y, 'bdello'); b.on = null; b.t = 0;
-          for (let i = 0; i < 2; i++) this.bdellos.push({ x: h.x, y: h.y, vx: 0, vy: 0, a: r() * 6.283, t: 0.5, id: ++this.ids });
+        if (h.held <= 0) { // жертва-шарик съедена изнутри: выходят новые хищники
+          if (mine) this.lose(h, h.x, h.y, 'bdello'); else h.gone = true;
+          b.on = null; b.t = 0;
+          for (let i = 0; i < c.bdello_brood; i++) this.bdellos.push({ x: h.x, y: h.y, vx: 0, vy: 0, a: r() * 6.283, t: 0.5, id: ++this.ids });
         }
         continue;
       }
       b.t -= dt;
       if (b.t <= 0) { // рывок окончен: пауза и новый курс — почти наугад, чуть к добыче, если она рядом
-        const prey = this.nearest(b, c.bdello_sense);
+        const prey = this.rodNear(b, c.bdello_sense);
         b.a = prey && r() < 0.4 ? Math.atan2(prey.y - b.y, prey.x - b.x) + (r() - 0.5) * 0.6 : r() * 6.283;
         b.rest = 0.3 + r() * 0.5; b.t = b.rest + 0.6 + r() * 0.8;
       }
@@ -437,6 +446,8 @@ export class World {
         if (a.held > 0) break;
         b.on = a; b.a = Math.atan2(b.y - a.y, b.x - a.x) + Math.PI; a.held = c.bdello_kill; this.events.push(['sick', a.x, a.y]); break;
       }
+      if (!b.on) for (const v of [...this.pseudos, ...this.donors]) if (!(v.held > 0) && Math.hypot(v.x - b.x, v.y - b.y) < 12) { // и синегнойка, и сородич — его обычная добыча
+        b.on = v; b.a = Math.atan2(b.y - v.y, b.x - v.x) + Math.PI; v.held = c.bdello_kill; break; }
     }
     // Туфелька плывёт штопором почти прямо и ни за кем не гонится. Врезалась — задний ход и поворот (реакция избегания).
     // Всё мелкое, что поток воронки донёс до рта, — внутри.
@@ -520,8 +531,7 @@ export class World {
         const a = this.nearest(g, 120);
         if (!a) continue;
         const d = dist(a, g);
-        if (this.genes.toxin && d < radius(a.m) + 50) { g.gone = true; this.events.push(['eat', g.x, g.y]); continue; }
-        if (d < radius(a.m) + 2 && !(a.spore > 0)) { g.on = a; g.t = c.inject; g.off = Math.atan2(g.y - a.y, g.x - a.x) - a.a; this.events.push(['stick', g.x, g.y]); }
+        if (d < radius(a.m) + 2 && !(a.spore > 0) && !this.genes.lock) { g.on = a; /* сменил замок — фагу T4 не за что зацепиться */ g.t = c.inject; g.off = Math.atan2(g.y - a.y, g.x - a.x) - a.a; this.events.push(['stick', g.x, g.y]); }
       } else for (const q of this.prey) if (dist(q, g) < radius(q.m) * 0.5 + 2) { g.on = q; g.t = c.inject; g.off = Math.atan2(g.y - q.y, g.x - q.x) - q.a; break; }
     }
     for (const q of this.prey) if (q.sick >= 0 && (q.sick -= dt) < 0) { // заражённый кокк лопается своим облаком

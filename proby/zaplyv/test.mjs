@@ -368,18 +368,18 @@ check('крупный кусок кормит больше мелкого; ку�
   if (!(gains[5] > gains[0] * 1.3)) return 'серия не разгоняет рост';
 });
 
-check('синегнойка сама не нападает; врежешься в неё первым — гарпун (урон, не смерть); запятая, врезавшись в неё, гибнет', () => {
+check('синегнойка сама не нападает; врежешься в неё первым — гарпун (урон, не смерть); запятая берёт и её — синегнойка округляется и гибнет, выходят новые запятые', () => {
   const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos']) w[k] = []; w.tidy = 1e9; return w; };
   const ram = bare(101), a = ram.me[0]; a.a = 0; a.m = 1.5; const q = { x: 90, y: 0, vx: 0, vy: 0, a: Math.PI / 2, t: 9, rest: 9, cool: 0, id: 5 }; ram.pseudos = [q];
   let zap = 0; for (let i = 0; i < 45; i++) { ram.step(1 / 30, { dx: 1, dy: 0, p: 1 }); zap += ram.events.filter(e => e[0] === 'zap').length; ram.events.length = 0; }
   const hit = bare(102), b = hit.me[0]; b.a = Math.PI / 2; b.m = 1.5; const p = { x: -120, y: 0, vx: 0, vy: 0, a: 0, t: 9, rest: 0, cool: 0, id: 6 }; hit.pseudos = [p];
   let zap2 = 0; for (let i = 0; i < 45; i++) { hit.step(1 / 30, null); zap2 += hit.events.filter(e => e[0] === 'zap').length; hit.events.length = 0; }
   const bd = bare(103); bd.me[0].x = -3000; bd.pseudos = [{ x: 0, y: 0, vx: 0, vy: 0, a: 0, t: 9, rest: 9, cool: 0, id: 7 }]; bd.bdellos = [{ x: -60, y: 0, vx: 0, vy: 0, a: 0, t: 5, rest: 0, id: 8 }];
-  run(bd, 1, null);
-  console.log('    паспорт: врезалась сама — выстрелов', zap, ', клетка', ram.me.length ? 'цела, масса ' + ram.me[0].m.toFixed(2) : 'погибла', '| синегнойка налетела на тебя — выстрелов', zap2, ', масса', hit.me[0].m.toFixed(2), '| запятая врезалась в неё — запятых', bd.bdellos.length);
+  run(bd, 1, null); const rounded = bd.pseudos[0]?.held > 0; run(bd, cfg.bdello_kill + 0.5, null);
+  console.log('    паспорт: врезалась сама — выстрелов', zap, ', клетка', ram.me.length ? 'цела, масса ' + ram.me[0].m.toFixed(2) : 'погибла', '| синегнойка налетела на тебя — выстрелов', zap2, ', масса', hit.me[0].m.toFixed(2), '| запятая врезалась в неё — шарик', rounded, ', синегноек', bd.pseudos.length, ', запятых', bd.bdellos.length);
   if (zap < 1 || !ram.me.length || !(ram.me[0].m < 1.5)) return 'за первый удар нет ответного выстрела или он смертелен';
   if (zap2 !== 0 || hit.me[0].m < 1.5) return 'синегнойка выстрелила, хотя первой налетела сама';
-  if (bd.bdellos.length) return 'запятая не погибла о синегнойку';
+  if (!rounded || bd.pseudos.length || bd.bdellos.length < 2) return 'запятая не взяла синегнойку';
 });
 
 check('при мутации — две дочки с разными мутациями, выбранная мутация остаётся у клона', () => {
@@ -414,6 +414,24 @@ check('спора: последняя клетка с геном «Спора» 
   if (!sporeNow || !safe) return 'с геном последняя клетка не стала спорой';
   if (!sprouted) return 'спора не проросла';
   if (yes.me.length) return 'спора спасла дважды';
+});
+
+check('по сверке биолога: кокков не глотаешь (токсин убивает касанием, кокк лопается едой); новый замок — T4 не садится; хемотаксис ведёт клетку, а не еду; быстрый рост — деление раньше; по плазмиде только токсин, капсула, CRISPR', () => {
+  const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
+  const touch = tox => { const w = bare(131), a = w.me[0]; w.genes.toxin = tox; w.prey = [{ x: a.x + 8, y: a.y, vx: 0, vy: 0, m: 0.5, a: 0, id: 4 }]; w.step(1 / 30, null); return [w.prey.length, w.food.length]; };
+  const plain = touch(false), tox = touch(true);
+  const ph = lock => { const w = bare(132), a = w.me[0]; w.genes.lock = lock; w.phages = [{ x: a.x + 6, y: a.y, vx: 0, vy: 0, host: 'me', d: 0 }]; run(w, 0.5, null); return w.phages.some(g => g.on); };
+  const sn = sense => { const w = bare(133), a = w.me[0]; a.a = 0; w.genes.sense = sense; w.food = [{ x: 140, y: 90, vx: 0, vy: 0, s: 1 }]; const f0 = { ...w.food[0] }; run(w, 0.5, { dx: 1, dy: 0, p: 1 }); return [a.y, w.food[0] ? Math.hypot(w.food[0].x - f0.x, w.food[0].y - f0.y) : 0]; };
+  const [y0] = sn(false), [y1, moved] = sn(true);
+  const gs = new Set(); for (let s = 0; s < 12; s++) { const w = bare(140 + s), a = w.me[0]; w.donors = [{ x: a.x + 15, y: a.y, a: 0, link: 0, id: 3 }]; for (let t = 0; t < 2; t += 1 / 30) { w.donors[0].x = a.x + 15; w.donors[0].y = a.y; w.step(1 / 30, null); } Object.keys(w.genes).forEach(g => gs.add(g)); }
+  const fastW = new World(cfg, 150); fastW.genes.fast = true;
+  console.log('    паспорт: без токсина — кокков', plain[0], '| с токсином — кокков', tox[0], ', еды', tox[1], '| T4 сел: обычный', ph(false), ', новый замок', ph(true), '| к еде сбоку подрулила на', Math.round(y1 - y0), ', еда сдвинулась на', Math.round(moved), '| деление: обычное', cfg.split, ', быстрый рост', fastW.split().toFixed(2), '| по плазмиде пришли', [...gs].join());
+  if (plain[0] !== 1) return 'кокк проглочен без токсина';
+  if (tox[0] !== 0 || tox[1] < cfg.spill) return 'токсин не убил кокка или он не лопнул едой';
+  if (!ph(false) || ph(true)) return 'новый замок не спасает от T4';
+  if (!(y1 - y0 > 3) || moved > 0.5) return 'хемотаксис не ведёт клетку или двигает еду';
+  if (!(fastW.split() < cfg.split)) return 'быстрый рост не ускоряет деление';
+  if ([...gs].some(g => !cfg.plasmid_genes.includes(g)) || !gs.size) return 'по плазмиде пришёл не тот ген';
 });
 
 check('мир без краёв: уплыл далеко — вокруг снова еда, позади забыто', () => {
