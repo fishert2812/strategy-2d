@@ -21,6 +21,17 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 .layer.on { display: flex; }
 .layer h1 { margin: 0 0 8px; font-size: 32px; font-weight: 600; }
 .layer p { margin: 0 0 12px; font-size: 18px; opacity: 0.8; text-align: center; line-height: 1.5; }
+#end { justify-content: flex-start; overflow-y: auto; padding: calc(env(safe-area-inset-top) + 28px) 20px calc(env(safe-area-inset-bottom) + 24px); gap: 10px; }
+#end button { position: sticky; bottom: 0; flex-shrink: 0; background: rgba(10, 60, 50, 0.92); }
+#card, #path { width: min(380px, 100%); box-sizing: border-box; border-radius: 20px; padding: 12px 16px; }
+#card { background: rgba(255, 90, 60, 0.1); border: 1px solid rgba(255, 140, 100, 0.35); }
+#path { background: rgba(80, 200, 255, 0.07); border: 1px solid rgba(120, 220, 255, 0.25); }
+#who { font-size: 15px; opacity: 0.75; }
+#card h2 { margin: 2px 0 6px; font-size: 23px; font-weight: 600; }
+#path h3 { margin: 0 0 6px; font-size: 17px; font-weight: 600; opacity: 0.8; }
+#card p, #path p { margin: 0 0 6px; font-size: 15px; line-height: 1.35; text-align: left; opacity: 0.85; }
+#cfact::before { content: "Удивительно: "; font-weight: 600; }
+#ctip { color: #9ff5d8; }
 button { width: min(340px, 86vw); min-height: 64px; border-radius: 22px; border: 1px solid rgba(120, 255, 210, 0.45);
   background: rgba(60, 255, 200, 0.12); color: #fff; font: inherit; font-size: 21px; padding: 10px 16px; }
 button small { display: block; font-size: 15px; opacity: 0.7; margin-top: 3px; }
@@ -33,7 +44,11 @@ button:active { background: rgba(60, 255, 200, 0.3); }
 <div id="ver"></div>
 <div id="scalebox"><div id="scale"></div>10 мкм</div>
 <div class="layer" id="genes"><h1>Мутация!</h1><p>Выбери одну</p><div id="cards" style="display:flex;flex-direction:column;gap:14px"></div></div>
-<div class="layer" id="end"><h1>Заплыв окончен</h1><p id="stats"></p><button id="again">Плыть снова</button></div>
+<div class="layer" id="end">
+  <div id="card"><div id="who"></div><h2 id="cname"></h2><p id="ctext"></p><p id="cfact"></p><p id="ctip"></p></div>
+  <div id="path"><h3>Твой путь</h3><p id="stats"></p></div>
+  <button id="again">Плыть снова</button>
+</div>
 <script type="module" src="main.js"></script>
 </body>
 </html>

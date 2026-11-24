@@ -128,6 +128,24 @@ check('плывёт как настоящая палочка: поворот д�
   if (back < 0 || back > 1) return 'после кувырка не поплыла за секунду';
 });
 
+check('экран гибели называет, кто убил, и у каждого убийцы есть карточка с фактом', () => {
+  const cards = JSON.parse(readFileSync(new URL('./cards.json', import.meta.url)));
+  const got = {};
+  const empty = s => { const w = new World(cfg, s); w.food = []; w.prey = []; w.amoebas = []; w.phages = []; w.plants = []; w.tidy = 1e9; return w; };
+  let w = empty(3); w.amoebas = [{ x: 150, y: 0, vx: 0, vy: 0, m: 6, id: 99 }]; run(w, 10, null); got.amoeba = w.stats.killer;
+  w = empty(5); w.cloud(radius(1) + 1, 0, 'me', 0); run(w, cfg.inject + cfg.sick + 1, null); got.phage = w.stats.killer;
+  w = empty(4); w.prey = [{ x: 40, y: 0, vx: 0, vy: 0, m: 4, a: 0, id: 98 }]; run(w, 5, null); got.coccus = w.stats.killer;
+  console.log('    паспорт: убийцы', JSON.stringify(got));
+  for (const [k, v] of Object.entries(got)) {
+    if (v !== k) return 'смерть от ' + k + ' записана как ' + v;
+    const c = cards[k];
+    if (!c || !c.who || !c.name || !c.text || !c.fact) return 'нет полной карточки для ' + k;
+  }
+  if (!cards.me || !cards.me.fact) return 'нет карточки самой палочки';
+  const g = new World(cfg, 7); run(g, 40, player);
+  if (g.stats.gen < 1) return 'поколения не считаются';
+});
+
 check('мир без краёв: уплыл далеко — вокруг снова еда, позади забыто', () => {
   const w = new World(cfg, 11);
   w.genes.capsule = w.genes.crispr = true;
