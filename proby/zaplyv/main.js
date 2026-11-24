@@ -304,6 +304,17 @@ for (const b of $('ptabs').children) b.onclick = () => tab(b.dataset.t);
   $('genome').addEventListener('touchend', e => { if (!sx) return; const t = e.changedTouches[0], dx = t.clientX - sx[0], dy = t.clientY - sx[1];
     if (Math.abs(dx) > 70 && Math.abs(dy) < 50) tab(order[(order.indexOf(curTab) + (dx < 0 ? 1 : 2)) % 3]);
     else if (sx[2] && dy > 90 && Math.abs(dx) < 60) genome.close(); sx = null; }, { passive: true }); }
+// Метка-цель в заплыве: тонкая стрелка у края экрана в её сторону и расстояние; доплыл — гаснет сама.
+window.zaplyvKarta = { data: () => KARTA, hits: () => mapHit }; // для обхода касаниями (tools/web/zaplyv_tap.mjs)
+function goalArrow() {
+  const el = $('goal'), G = KARTA.goal;
+  if (!G || paused || ended || !world.me.length) { el.hidden = true; return; }
+  const c = world.center(), d = Math.hypot(G.x - c.x, G.y - c.y);
+  if (d < 260) { fx.ring(G.x, G.y, 0, 160); delete KARTA.goal; saveKarta(); el.hidden = true; return; }
+  const a = Math.atan2(G.y - c.y, G.x - c.x), R = Math.min(innerWidth, innerHeight) * 0.42;
+  el.hidden = false; el.style.transform = `translate(${innerWidth / 2 + Math.cos(a) * R}px, ${innerHeight / 2 + Math.sin(a) * R}px)`;
+  el.firstChild.style.transform = `rotate(${a}rad)`; el.lastChild.textContent = '≈' + (d / 26 / 1000).toFixed(1).replace('.', ',') + ' мм';
+}
 function drawMap() {
   const cv = $('mcv'), box = $('mbox').getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
   if (cv.width !== Math.round(box.width * dpr) || cv.height !== Math.round(box.height * dpr)) { cv.width = Math.round(box.width * dpr); cv.height = Math.round(box.height * dpr); }
@@ -326,6 +337,10 @@ $('mcv').addEventListener('click', e => { // касание отметки — �
   const h = document.createElement('h3'); h.textContent = gene ? (g ? g.imya : m.who) : (t.imya || m.who); card.appendChild(h);
   const p1 = document.createElement('p'); p1.textContent = gene ? 'Здесь ты нашёл чужой ген' + (c.list.length > 1 ? ' · ' + c.list.length + ' раза' : '') : 'Здесь ты погиб' + (c.list.length > 1 ? ' · ' + c.list.length + ' раза' : ''); card.appendChild(p1);
   const p2 = document.createElement('p'); p2.textContent = gene ? (g ? g.daet : '') : (t.sovet || ''); card.appendChild(p2);
+  const go = document.createElement('button'); go.id = 'mgoal'; go.className = 'ghost'; go.textContent = 'Запомнить это место'; // метка-цель (Э20): стрелка у края экрана в заплыве
+  go.onclick = ev => { ev.stopPropagation(); KARTA.goal = { x: m.x, y: m.y }; saveKarta(); go.textContent = 'Запомнено · стрелка покажет путь'; go.disabled = true; };
+  if (KARTA.goal && KARTA.goal.x === m.x && KARTA.goal.y === m.y) { go.textContent = 'Это место — твоя цель'; go.disabled = true; }
+  card.appendChild(go);
   const p3 = document.createElement('p'); p3.style.opacity = 0.7; p3.textContent = 'Слой: ' + { film: 'плёнка', light: 'светлая толща', oxy: 'граница кислорода', silt: 'ил' }[world.layer(m.y)]; card.appendChild(p3);
   card.hidden = false;
 });
@@ -790,6 +805,7 @@ function frame(now) {
   const covered = $('end').classList.contains('on') || $('cabinet').classList.contains('on');
   probe.covered = covered;
   if (covered) { probe.frames++; requestAnimationFrame(frame); return; }
+  goalArrow();
   render(now / 1000, () => { if (!ended) { js.push(performance.now() - t0); if (js.length > 300) js.shift(); } });
   if (probe.frames % 60 === 0) knowGenes();
   probe.frames++; probe.cells = world.me.length;
