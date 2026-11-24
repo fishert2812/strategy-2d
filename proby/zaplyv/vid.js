@@ -70,7 +70,7 @@ export function skin(c) {
   if (ill > 0) {
     for (let k = 0; k < I.cloud; k++) { const t = k * 2.39996, r = Math.sqrt((k + 0.5) / I.cloud) * ill, [px, py] = at(Math.cos(t) * r * (half - w * 0.5), Math.sin(t) * r * w * 0.6); ink.put(px, py, w * 0.32, I.color[0], I.color[1], I.color[2], I.alpha * ill); }
     const sw = Math.max(0, (ill - 0.75) / 0.25), st = (4 * L + 2 * Math.PI * w) / 40; // вспухание: стенка отходит наружу и светлеет
-    if (sw > 0) for (let k = 0; k < 40; k++) { const [u, o] = rim(k / 40, L, w * (1 + I.swell * sw * sw)), [px, py] = at(u, o); glow.put(px, py, st * 1.4, 0.75, 0.9, 1, 0.1 + 0.15 * sw); }
+    if (sw > 0) for (let k = 0; k < 40; k++) { const [u, o] = rim(k / 40, L + w * I.swell * sw * 0.5, w * (1 + I.swell * sw)), [px, py] = at(u, o); glow.put(px, py, st * (1.1 + 0.5 * sw), 0.75, 0.9, 1, 0.06 + 0.1 * sw); } // одна натянутая стенка, толще и светлее к прорыву
   }
   if (!lk.pili) for (let k = 0; k < 16; k++) { // пили: короткие ворсинки по всей оболочке (без гена фимбрий)
     const t = k / 16 * 6.283, c = Math.cos(t), s = Math.sin(t), l = 1 + 0.25 * Math.sin(time * 3 + k * 1.7 + a.id);

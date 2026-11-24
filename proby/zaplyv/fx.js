@@ -37,7 +37,7 @@ export class Fx {
     const P = V.lysis, ang = g ? g.ang : Math.random() * 6.283, L = g ? g.L : 8, w = g ? g.w : 6, p0 = Math.random();
     const [u, o, nu, no] = rim(p0, L, w), ca = Math.cos(ang), sa = Math.sin(ang);
     const rx = x + ca * u - sa * o, ry = y + sa * u + ca * o, nx = ca * nu - sa * no, ny = sa * nu + ca * no;
-    for (let i = 0; i < P.drops; i++) { const sp = P.speed * (0.4 + Math.random()), t = Math.atan2(ny, nx) + (Math.random() - 0.5) * (i % 4 ? 1.6 : 5);
+    for (let i = 0; i < P.drops; i++) { const sp = P.speed * (0.4 + Math.random()), t = Math.atan2(ny, nx) + (Math.random() - 0.5) * (i % 2 ? 2.2 : 6.283);
       this.drops.push({ x: rx, y: ry, vx: Math.cos(t) * sp, vy: Math.sin(t) * sp, t: 0, r: 0.6 + Math.random() * 0.8 }); }
     this.ghosts.push({ x, y, ang, L, w, p0, t: 0, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, seed: Math.random() * 9 });
     this.ring(rx, ry, 1, 18); // вспышка прорыва — маленькая, в точке разрыва
@@ -56,7 +56,8 @@ export class Fx {
       const f = g.t / P.ghost, ca = Math.cos(g.ang), sa = Math.sin(g.ang), n = 40, st = (4 * g.L + 2 * Math.PI * g.w) * z / n;
       for (let k = 0; k < n; k++) { const p = k / n, gap = Math.abs(((p - g.p0 + 1.5) % 1) - 0.5); if (gap < 0.05) continue;
         const crumple = 1 - P.sag * Math.min(1, g.t / 3) * (0.5 + 0.5 * Math.sin(p * 19 + g.seed + g.t * 0.3)), [u, o] = rim(p, g.L, g.w * crumple);
-        const [sx, sy] = scr(g.x + ca * u - sa * o, g.y + sa * u + ca * o); glow.put(sx, sy, st * 1.3, 0.7, 0.85, 0.95, P.ghost_a * (1 - f) * Math.min(1, g.t * 4)); }
+        const [sx, sy] = scr(g.x + ca * u - sa * o, g.y + sa * u + ca * o); glow.put(sx, sy, st * 1.6, 0.72, 0.86, 0.95, P.ghost_a * (1 - f) * Math.min(1, g.t * 4)); }
+      const [cx, cy] = scr(g.x, g.y); glow.put(cx, cy, (g.L + g.w) * z, 0.6, 0.7, 0.8, 0.05 * (1 - f)); // внутри пусто: лишь бледная муть
     }
   }
   drawOver(d) {
