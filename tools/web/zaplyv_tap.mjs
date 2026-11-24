@@ -93,7 +93,7 @@ if (await tap('#nflag', '«Не так» в ночи рода')) say(await seen(
 if (await tap('#nback', '«Назад» из ночи')) say(!(await on('night')) && await on('end'), '«Назад» возвращает на экран гибели');
 if (await tap('#nightgo', '«Ночь рода» снова') && await tap('#ndanger [data-d=phage]', 'опасность «Фаги»')) {
   await p.waitForTimeout(600); say(await p.evaluate(() => zaplyvNight() && zaplyvNight().gen > 0), 'после выбора опасности поколения идут');
-  await p.evaluate(() => zaplyvNight().run()); await p.waitForTimeout(500);
+  await p.evaluate(() => zaplyvNight().run()); await p.waitForFunction(() => document.querySelector('#npicks button'), null, { timeout: 8000 }).catch(() => {}); await p.waitForTimeout(200); // ждём сами кнопки веток, а не время (WebKit рисует позже)
   if (await tap('#npicks button', 'ветка «выше всех»')) {
     const g = await p.evaluate(() => zaplyvNight().res.picks[0].genes);
     if (await tap('#ngo', '«Плыть этой веткой»')) { await p.waitForTimeout(300); say(await p.evaluate(g => !document.getElementById('night').classList.contains('on') && g.every(k => zaplyvWorld().genes[k]), g), '«Плыть этой веткой» начинает заплыв с генами ветки: ' + g); }
