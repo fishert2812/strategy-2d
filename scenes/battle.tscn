@@ -105,7 +105,7 @@ vertical_alignment = 1
 layout_mode = 2
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 6
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 22
 text = "dev"
 
 [node name="Debug" type="Label" parent="Hud/Box"]
