@@ -53,20 +53,25 @@ check('амёба глотает клетку без капсулы и не мо
   if (res[1] !== 1) return 'с капсулой клетку всё равно съели';
 });
 
-check('фаг прилипает и впрыскивает, клетка лопается облаком новых фагов; с CRISPR цела', () => {
+check('фаг прилипает и впрыскивает, клетка лопается облаком новых фагов; CRISPR помнит только пережитых: первый фаг стоит сил и даёт полоску, второй режется даром', () => {
   const res = [];
   for (const crispr of [false, true]) {
     const w = new World(cfg, 5);
-    w.food = []; w.prey = []; w.amoebas = []; w.slippers = []; w.bells = []; w.plants = [];
+    w.food = []; w.prey = []; w.amoebas = []; w.slippers = []; w.bells = []; w.plants = []; w.bdellos = []; w.pseudos = []; w.rotis = [];
     w.phages = []; w.cloud(radius(1) + 1, 0, 'me', 0);
     if (crispr) w.genes.crispr = true;
-    w.tidy = 1e9;
+    w.tidy = 1e9; const m0 = w.me[0].m;
     run(w, cfg.inject + cfg.sick + 1, null);
-    res.push([w.me.length, w.phages.length]);
+    const first = [w.me.length, w.phages.length, w.me[0] ? +(w.me[0].m / m0).toFixed(2) : 0, w.spacers.size, look(w.genes, cfg.look, w.spacers.size).stripes];
+    if (crispr) { const a = w.me[0], m1 = a.m; w.phages = []; w.cloud(a.x + radius(a.m) + 1, a.y, 'me', 0); run(w, cfg.inject + cfg.sick + 1, null); first.push(w.me.length, +(a.m / m1).toFixed(2)); }
+    res.push(first);
   }
-  console.log('    паспорт: без защиты клеток/фагов', res[0].join('/'), ', с CRISPR', res[1].join('/'));
+  console.log('    паспорт: без защиты клеток/фагов', res[0].slice(0, 2).join('/'), '| CRISPR, первый фаг: клеток', res[1][0], 'масса ×', res[1][2], 'полосок', res[1][4], '| второй фаг: клеток', res[1][5], 'масса ×', res[1][6]);
   if (res[0][0] !== 0 || res[0][1] < cfg.burst) return 'без защиты клетка не лопнула облаком фагов';
-  if (res[1][0] !== 1) return 'с CRISPR клетка погибла';
+  if (res[1][0] !== 1) return 'с CRISPR клетка погибла от первого фага';
+  if (res[1][2] > 0.8 || res[1][3] !== 1) return 'первый фаг прошёл даром или не оставил полоску';
+  if (res[1][4] <= look({ crispr: true }, cfg.look, 0).stripes) return 'новая полоска не видна на теле';
+  if (res[1][5] !== 1 || res[1][6] < 0.95) return 'знакомый фаг не режется даром';
 });
 
 check('фаг не гонится за клеткой: его носит вода, опасно только влететь в облако (замечание Романа 24.11)', () => {
