@@ -35,7 +35,7 @@ export const sobrat = records => Object.fromEntries(records.filter(r => r.kartoc
 export const SHAGI = ['nauka', 'adaptaciya', 'biolog', 'gotov', 'stroyka', 'v_igre'];
 const at = s => SHAGI.indexOf(s);
 
-export function sverka({ records, cards, genes, slots, pages, files, spisok, ring, teksty, problemy, kto, resheniya }) {
+export function sverka({ records, cards, genes, slots, pages, files, spisok, ring, teksty, problemy, kto, resheniya, animacii }) {
   const bad = [], seen = new Map();
   const have = k => { const [t, key] = k.split(':'); return t === 'cards' ? cards[key] : t === 'gene' ? genes[key] && { name: genes[key][0], chto: genes[key][1] } : null; };
   if ([...files].sort().join() !== [...spisok].sort().join()) bad.push('zapisi/spisok.json не совпадает с файлами записей: ' + files.join(' ') + ' / ' + spisok.join(' '));
@@ -102,6 +102,11 @@ export function sverka({ records, cards, genes, slots, pages, files, spisok, rin
     for (const r of records) if (r.novaya && !r.roman && seen[r.id] !== 1) bad.push(r.id + ': новая механика ждёт Романа, но стоит в ' + (seen[r.id] || 0) + ' решениях на вкладке «Решения» (нужно ровно в одном)');
     for (const id of Object.keys(seen)) if (byId[id] && !(byId[id].novaya && !byId[id].roman)) bad.push('решения: пункт ' + id + ' уже не ждёт Романа, убери его со вкладки «Решения»');
   }
+  for (const a of animacii || []) { // список анимаций: оценка из четырёх, «хорошо» только с номером версии
+    if (!['est', 'srednyaya', 'slabaya', 'net'].includes(a.ocenka) || !a.chto || !a.seychas) bad.push('анимация ' + a.id + ': нет оценки, названия или строки «сейчас»');
+    if (a.ocenka === 'est' && !a.versiya) bad.push('анимация ' + a.id + ': «хорошо» без номера версии');
+  }
+  if (animacii && new Set(animacii.map(a => a.id)).size !== animacii.length) bad.push('анимации: номер повторяется');
   if (kto) { // сетка «Кто с кем»: существа из игры, связь «в игре» только между ними, «задумано» ссылается на запись
     const keys = kto.kto.map(k => k[0]), ids = new Set(records.map(r => r.id));
     for (const k of keys) if (!cards[k]) bad.push('кто с кем: существа «' + k + '» нет в cards.json');
@@ -126,7 +131,7 @@ function load() {
   const g = j('../genome.json');
   const slots = [...g.arcs.flatMap(a => a.slots), ...g.plasmids].map(s => s.id).filter(Boolean);
   const ring = [...g.arcs.flatMap(a => a.slots), ...g.plasmids].map(s => s.gene).filter(x => x && x !== '?');
-  return { records, cards: j('../cards.json'), genes: j('../data.json').genes, slots, pages, files, spisok: j('zapisi/spisok.json'), ring, teksty: { ...j('teksty_genov.json'), sushchestva: j('teksty_sushchestv.json').sushchestva }, problemy: j('problemy.json'), kto: j('kto_s_kem.json'), resheniya: j('resheniya.json') };
+  return { records, cards: j('../cards.json'), genes: j('../data.json').genes, slots, pages, files, spisok: j('zapisi/spisok.json'), ring, teksty: { ...j('teksty_genov.json'), sushchestva: j('teksty_sushchestv.json').sushchestva }, problemy: j('problemy.json'), kto: j('kto_s_kem.json'), resheniya: j('resheniya.json'), animacii: j('animacii.json') };
 }
 
 const S = load();
@@ -163,6 +168,7 @@ if (process.argv.includes('--selftest')) {
     ['test_L018: блок «в природе» ужат до одной фразы', s => { kart(s).priroda = 'Одна фраза.'; return s; }, true],
     ['решения: новая механика не вынесена Роману на решение', s => { s.resheniya.resheniya[0].punkty.pop(); return s; }, true],
     ['решения: текст с тире', s => { s.resheniya.resheniya[0].primer += ' — вот'; return s; }, true],
+    ['анимация «хорошо» без версии', s => { s.animacii[1].ocenka = 'est'; s.animacii[1].versiya = ''; return s; }, true],
     ['решения: нет раскадровки', s => { s.resheniya.resheniya[0].kadry.pop(); return s; }, true],
     ['решения: тексты без копирайтера', s => { s.resheniya.kopirayter = ''; return s; }, true],
     ['кто с кем: связь ссылается на запись, которой нет', s => { s.kto.svyazi[0].gde = 'Щ1'; return s; }, true],
