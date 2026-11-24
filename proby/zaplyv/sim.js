@@ -154,12 +154,16 @@ export class World {
           a.tumble = sw.tumble_time; // кувырок стряхивает фага, который ещё не впрыснул
           for (const g of this.phages) if (g.on === a) { g.on = null; g.cool = 1.5; g.vx = -Math.cos(g.d) * 60; g.vy = -Math.sin(g.d) * 60; this.events.push(['shake', g.x, g.y]); }
         }
-        const turn = a.tumble ? sw.tumble_turn : sw.turn;
-        a.a += Math.sign(d) * Math.min(Math.abs(d), turn * dt);
+        // поворот с разгоном и доводкой: скорость поворота меняется плавно (не больше spin_acc рад/с²)
+        // и гаснет к цели — без скачков позы ни на дуге, ни в кувырке
+        const turn = a.tumble ? sw.tumble_turn : sw.turn, wantW = Math.max(-turn, Math.min(turn, d * sw.ease));
+        a.om = (a.om || 0) + Math.max(-sw.spin_acc * dt, Math.min(sw.spin_acc * dt, wantW - (a.om || 0)));
+        a.a += Math.abs(a.om * dt) > Math.abs(d) ? d : a.om * dt;
         thrust = (a.tumble ? s * 0.12 : s * Math.max(0.25, Math.cos(wrap(want - a.a)))) * (a.held > 0 ? 0.3 : 1); // в шарике почти не плывёт
       } else { // палец отпущен: в воде клетка встаёт сразу (вязкость); её медленно сносит и поворачивает (~90° за 10 с)
         a.drift = (a.drift ?? r() * 6.283) + (r() - 0.5) * dt * 1.5;
-        a.a += (a.id % 2 ? 0.16 : -0.16) * dt;
+        a.om = (a.om || 0) * Math.max(0, 1 - 6 * dt);
+        a.a += (a.id % 2 ? 0.16 : -0.16) * dt + a.om * dt;
       }
       const ux = Math.cos(a.a), uy = Math.sin(a.a);
       let fwd = a.vx * ux + a.vy * uy, side = -a.vx * uy + a.vy * ux;

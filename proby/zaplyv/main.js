@@ -336,7 +336,7 @@ function paint(time) {
   const foodNear = world.food.some(f => Math.hypot(f.x - view.x, f.y - view.y) < 120);
   for (const a of world.me) { // палочка: мягкое тело — перёд ведёт, корма и пучок жгутиков идут по его следу
     const w = 8.5 * Math.pow(a.m, 0.3) * z, sp = Math.hypot(a.vx, a.vy);
-    const run = sp > 25 && !a.tumble, wob = run ? 0.05 : 0.02; // встречное вращение тела к пучку: 3 раза в секунду
+    const run = sp > 25 && !a.tumble, wob = run ? 0.035 : 0.015; // встречное вращение тела к пучку: 3 раза в секунду
     const half = a.held > 0 ? w * (1.05 + 0.6 * a.held / cfg.bdello_kill) : w * (1.6 + 1.0 * Math.min(a.m, cfg.split) / cfg.split), tailW = w * 7.5 / z; // хищник внутри — клетка округляется в шарик
     const body = follow(a, half / z, tailW);
     const [x0, y0] = scr(body.cx, body.cy), sag = body.sag * z;
