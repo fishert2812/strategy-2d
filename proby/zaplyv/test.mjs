@@ -272,7 +272,7 @@ check('кабинет: встреченное существо попадает 
   run(w, 1, null);
   const seen = w.events.filter(e => e[0] === 'meet').map(e => e[1]);
   const missing = Object.keys(cards).filter(k => k !== '_').filter(k => !['name', 'text', 'fact'].every(f => cards[k][f]));
-  const kinds = ['coccus', 'plant', 'crumb', 'phage', 'amoeba', 'bdello', 'slipper', 'bell', 'roti', 'pseudo'].filter(k => !cards[k]);
+  const kinds = ['coccus', 'plant', 'crumb', 'phage', 'amoeba', 'bdello', 'slipper', 'bell', 'roti', 'pseudo', 'donor'].filter(k => !cards[k]);
   console.log('    паспорт: в начале', before.join(), '| увидел водоросль →', seen.join() || 'ничего', '| далёкий детрит в кабинете?', w.met.has('crumb'), '| карточек', Object.keys(cards).length - 1);
   if (!w.met.has('plant') || !seen.includes('plant')) return 'встреча с водорослью не записана';
   if (w.met.has('crumb')) return 'записан детрит, которого не видел';
@@ -389,6 +389,17 @@ check('при мутации — две дочки с разными мутац�
   if (w.choice.length) return 'выбор не закрылся';
   if (!a || !b || a === b) return 'нет двух разных дочек';
   if (!w.genes[b] || w.genes[a]) return 'у клона не та мутация';
+});
+
+check('обмен генами касанием: побыл рядом с сородичем полторы секунды — получил его ген; коснулся мимоходом — нет', () => {
+  const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
+  const stay = sec => { const w = bare(111), a = w.me[0]; w.donors = [{ x: a.x + 18, y: a.y, a: 0, link: 0, gave: false, id: 3 }];
+    for (let t = 0; t < sec; t += 1 / 30) { w.donors[0].x = a.x + 18; w.donors[0].y = a.y; w.step(1 / 30, null); }
+    w.donors[0].x += 500; run(w, 1, null); return Object.keys(w.genes); };
+  const brief = stay(0.5), long = stay(2);
+  console.log('    паспорт: мимоходом 0.5 с — генов', brief.length, '| рядом 2 с — гены', long.join() || 'нет');
+  if (brief.length) return 'ген передан за мимолётное касание';
+  if (long.length !== 1) return 'за 2 с рядом ген не передан';
 });
 
 check('мир без краёв: уплыл далеко — вокруг снова еда, позади забыто', () => {
