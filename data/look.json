@@ -25,6 +25,12 @@
     "width": 56,
     "anchor": [0.5, 0.8477]
   },
+  "tower": {
+    "files": ["tower_archer_blue", ""],
+    "width": 120
+  },
+  "_tower_look": "Башня: ring — круг обстрела (цвет, толщина), glow — куски чужих ниток в круге призрака, pale — прозрачность до свистка, recoil — рывок назад при выстреле в точках поля (башня ещё и сплющивается), note — цвет надписи «сбил N».",
+  "tower_look": {"ring": ["#FFF3D688", 4], "glow": ["#FFE066", 18], "pale": 0.45, "recoil": 14, "note": "#FFD84A"},
   "deposit": {
     "width": 133,
     "states": [
@@ -38,9 +44,12 @@
   "background_tint": "#C9C0B8",
   "icons": {
     "camp": "icon_camp",
-    "barracks": "icon_barracks"
+    "barracks": "icon_barracks",
+    "tower": "icon_tower"
   },
   "path_colors": ["#6DA8F4", "#E97062"],
+  "_route_settle": "За сколько секунд нарисованная тропа после отпускания подтягивается в чистую форму.",
+  "route_settle": 0.25,
   "path_width": 10,
   "path_edge": {
     "color": "#3B2414",

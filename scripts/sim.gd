@@ -49,12 +49,19 @@ func step(dt: float) -> void:
 			if u.kind == "warrior" and not u.go:
 				u.go = true
 				u.leg = 0
+		for b in buildings:
+			if b.kind == "tower":
+				b.awake = gold[b.side] >= cfg.tower.upkeep
+				gold[b.side] -= cfg.tower.upkeep if b.awake else 0
+				b.slept = not b.awake
 		changed.emit("whistle", {})
 	for b in buildings.duplicate():
 		if b.kind == "camp":
 			_camp(b, dt)
 		elif b.kind == "barracks":
 			_barracks(b, dt)
+		elif b.kind == "tower" and b.awake:
+			_tower(b, dt)
 	for u in units.duplicate():
 		if u.hp <= 0:
 			continue
@@ -113,7 +120,7 @@ func thread(b: Dictionary, trail: Array) -> Dictionary:
 			target = c
 	if not target.is_empty():
 		pts[-1] = target.pos
-	var route := pull(pts, solids(), cfg.route.step)
+	var route := pull(pts, solids(), cfg.route)
 	route.pop_front()
 	return {"route": route, "target": target}
 
@@ -127,14 +134,17 @@ func solids() -> Array:
 	return out
 
 
-## Натянуть нитку: след из твёрдого — на край с той стороны, где шёл палец; лишние точки и углы в воздухе убрать.
-static func pull(trail: Array, circles: Array, step: float) -> Array:
+## Чистая форма следа (считается один раз, при отпускании): дрожь пальца убрать (повороты меньше
+## route.jitter), след из твёрдого — на край с той стороны, где шёл палец, повороты скруглить.
+static func pull(trail: Array, circles: Array, r: Dictionary) -> Array:
 	var pts: Array = [trail[0]]
-	for i in range(1, trail.size()):
-		var n := maxi(1, ceili(trail[i - 1].distance_to(trail[i]) / step))
-		for k in range(1, n):
-			pts.append(trail[i - 1].lerp(trail[i], float(k) / n))
-		pts.append(trail[i])
+	var keep := {0: true}  # повороты, которые палец сделал нарочно
+	for p in _simplify(trail, r.jitter).slice(1):  # уплотнить до шага step, чтобы обходить твёрдое по краю
+		var n := maxi(1, ceili(pts[-1].distance_to(p) / r.step))
+		var from: Vector2 = pts[-1]
+		for k in range(1, n + 1):
+			pts.append(from.lerp(p, float(k) / n))
+		keep[pts.size() - 1] = true
 	for c in circles + circles:
 		var side := 0.0  # с какой стороны круга шёл палец: по точкам следа внутри
 		for i in range(1, pts.size()):
@@ -142,28 +152,42 @@ static func pull(trail: Array, circles: Array, step: float) -> Array:
 				side += (pts[i] - c[0]).cross(pts[-1] - pts[0])
 		for i in range(1, pts.size()):
 			pts[i] = _out(pts[i], c, pts[-1] - pts[0], side)
-	var j := 0  # отрезок между вытолкнутыми точками режет печенье — середину на край
-	while j < pts.size() - 1 and pts.size() < 400:
-		var hit: Array = circles.filter(func(c): return _seg_dist(c[0], pts[j], pts[j + 1]) < c[1] - 0.5)
+	var out: Array = [pts[0]]  # лишние точки выкинуть: прямой отрезок, пока он не задевает твёрдое
+	for i in range(1, pts.size()):
+		if i == pts.size() - 1 or keep.has(i) or circles.any(func(c): return _seg_dist(c[0], out[-1], pts[i + 1]) < c[1] - 4.0):
+			out.append(pts[i])
+	pts = out
+	for k in r.round:  # срезать углы не дальше round_r от поворота: поворот становится дугой
+		var cut: Array = [pts[0]]
+		for i in range(1, pts.size() - 1):
+			for n in [pts[i - 1], pts[i + 1]]:
+				cut.append(pts[i].move_toward(n, minf(r.round_r / pow(2, k + 1), pts[i].distance_to(n) * 0.25)))
+		pts = cut + [pts[-1]]
+	for c in circles:
+		for i in range(1, pts.size() - 1):
+			pts[i] = _out(pts[i], c, pts[-1] - pts[0], 0.0)
+	var j := 0  # отрезок между точками режет печенье — ближайшую к центру точку отрезка на край
+	while j < pts.size() - 1 and pts.size() < 600:
+		var hit: Array = circles.filter(func(c): return _seg_dist(c[0], pts[j], pts[j + 1]) < c[1] - 1.0)
 		if hit.is_empty(): j += 1
 		else: pts.insert(j + 1, _out(Geometry2D.get_closest_point_to_segment(hit[0][0], pts[j], pts[j + 1]), hit[0], pts[j + 1] - pts[j], 0.0))
-	var i := 1
-	while i < pts.size() - 1:
-		if circles.all(func(c): return not _touches(c, pts[i - 1], pts[i], pts[i + 1])):
-			pts.remove_at(i)
-			i = maxi(1, i - 1)
-		else: i += 1
-	# Угол в воздухе тянется к соседям, пока не упрётся в печенье: нитка ложится по краю, а не по пальцу.
-	for pass_ in 24:
-		for k in range(1, pts.size() - 1):
-			for aim in [(pts[k - 1] + pts[k + 1]) / 2.0, pts[k - 1], pts[k + 1]]:  # к соседям и вдоль отрезков
-				var f := 1.0
-				while f > 0.01:
-					var to: Vector2 = pts[k].lerp(aim, f)
-					if circles.all(func(c): return not _touches(c, pts[k - 1], pts[k], to) and not _touches(c, pts[k + 1], pts[k], to)):
-						pts[k] = to; break
-					f /= 2.0
 	return pts
+
+
+## Упростить ломаную: убрать точки, отклоняющиеся от хорды меньше eps (Рамер — Дуглас — Пекер).
+static func _simplify(pts: Array, eps: float) -> Array:
+	if pts.size() < 3:
+		return pts.duplicate()
+	var far := 0
+	var dist := 0.0
+	for i in range(1, pts.size() - 1):
+		var d := _seg_dist(pts[i], pts[0], pts[-1])
+		if d > dist:
+			far = i
+			dist = d
+	if dist <= eps:
+		return [pts[0], pts[-1]]
+	return _simplify(pts.slice(0, far + 1), eps).slice(0, -1) + _simplify(pts.slice(far), eps)
 
 
 ## Точку внутри круга — поперёк направления dir на край круга, на сторону side.
@@ -181,13 +205,6 @@ static func _out(p: Vector2, c: Array, dir: Vector2, side: float) -> Vector2:
 
 static func _seg_dist(c: Vector2, a: Vector2, b: Vector2) -> float:
 	return c.distance_to(Geometry2D.get_closest_point_to_segment(c, a, b))
-
-## Задевает ли треугольник a, b, c круг: центр внутри или край ближе радиуса.
-static func _touches(circle: Array, a: Vector2, b: Vector2, c: Vector2) -> bool:
-	var o: Vector2 = circle[0]
-	var flat := absf((b - a).cross(c - a)) < 0.01
-	return (not flat and Geometry2D.point_is_inside_triangle(o, a, b, c)) or [[a, b], [b, c], [a, c]].any(func(e): return _seg_dist(o, e[0], e[1]) < circle[1])
-
 
 func _camp(b: Dictionary, dt: float) -> void:
 	b.timer += dt
@@ -214,6 +231,21 @@ func _barracks(b: Dictionary, dt: float) -> void:
 	b.timer = 0.0
 	var post := Vector2((b.id % 5 - 2) * 14, 44 + (b.id % 3) * 10)
 	units.append({"id": _id(), "side": b.side, "kind": "warrior", "pos": b.pos + post, "hp": cfg.warrior.hp, "home": b, "cd": 0.0, "post": post, "go": false, "leg": 0})
+
+
+## Башня: по ближайшему чужому человеку в круге, по одному; постройки не трогает.
+func _tower(b: Dictionary, dt: float) -> void:
+	b.timer = maxf(0.0, b.timer - dt)
+	var foe := {}
+	for o in units:
+		if o.side != b.side and o.hp > 0 and o.pos.distance_to(b.pos) <= cfg.tower.range:
+			if foe.is_empty() or o.pos.distance_to(b.pos) < foe.pos.distance_to(b.pos):
+				foe = o
+	if foe.is_empty() or b.timer > 0:
+		return
+	b.timer = cfg.tower.hit_every
+	changed.emit("hit", {"side": b.side, "pos": foe.pos, "id": foe.id, "by": b.id, "max_hp": 0})
+	_wound(foe, cfg.tower.damage, b)
 
 
 ## Воин: дерётся с ближним чужим. После свистка идёт по тропе казармы: ломает постройку в её конце
@@ -267,10 +299,15 @@ func _hit(u: Dictionary, x: Dictionary) -> void:
 	if x.has("max_hp"):
 		damage(x, cfg.warrior.siege)
 		return
-	x.hp -= cfg.warrior.damage
+	_wound(x, cfg.warrior.damage, u)
+
+
+func _wound(x: Dictionary, amount: float, by: Dictionary) -> void:
+	x.hp -= amount
 	if x.hp <= 0:
 		units = units.filter(func(o): return not is_same(o, x))
-		x.by = u.id
+		x.by = by.id
+		by.kills = by.get("kills", 0) + 1
 		changed.emit("killed", x)
 
 
@@ -373,7 +410,7 @@ func building_at(pos: Vector2, side: int) -> Dictionary:
 
 func _add_building(side: int, kind: String, pos: Vector2) -> Dictionary:
 	var hp: float = cfg.buildings[kind].hp
-	var b := {"id": _id(), "side": side, "kind": kind, "pos": pos, "hp": hp, "max_hp": hp, "target": {}, "route": [], "timer": 0.0, "hungry": false}
+	var b := {"id": _id(), "side": side, "kind": kind, "pos": pos, "hp": hp, "max_hp": hp, "target": {}, "route": [], "timer": 0.0, "hungry": false, "awake": false, "slept": false}
 	buildings.append(b)
 	changed.emit("built", b)
 	return b

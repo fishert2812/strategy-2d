@@ -26,12 +26,17 @@ var taps := {"touch": 0, "mouse": 0, "emulated": 0}
 var _last := ""
 var _units := {}
 var _lines := {}
+## Тропа, которая после отпускания подтягивается в чистую форму: казарма и линия под пальцем.
+var _settle := {}
 
 @onready var world: Node2D = $World
 @onready var things: Node2D = $World/Things
 @onready var ghost: Sprite2D = $World/Ghost
-@onready var buttons := {"camp": $Hud/Box/Bar/camp, "barracks": $Hud/Box/Bar/barracks}
+@onready var buttons := {"camp": $Hud/Box/Bar/camp, "barracks": $Hud/Box/Bar/barracks, "tower": $Hud/Box/Bar/tower}
 @onready var flag_button: Button = $Hud/Box/Bar/Flag
+## Круг обстрела у призрака башни и подсвеченные куски чужих ниток в нём.
+var _ghost_ring: Line2D
+var _glow := Node2D.new()
 
 
 func _ready() -> void:
@@ -51,6 +56,11 @@ func _ready() -> void:
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("window._t=0;addEventListener('touchstart',function(){window._t++},{capture:true,passive:true})")
 	restart()
+	_ghost_ring = _ring()
+	_ghost_ring.hide()
+	world.add_child(_ghost_ring)
+	world.add_child(_glow)
+	world.move_child(_glow, $World/Paths.get_index() + 1)
 
 
 func restart() -> void:
@@ -111,6 +121,11 @@ func _process(dt: float) -> void:
 		var bar: ProgressBar = _sprites[b.id].get_node("Hp")
 		bar.value = b.hp / b.max_hp * 100.0
 		bar.visible = b.hp < b.max_hp
+		if b.kind == "tower":
+			# До свистка бледная, без крошек спит: круг гаснет, над ней Zzz; иначе счёт сбитых.
+			_sprites[b.id].self_modulate.a = 1.0 if b.awake else look.tower_look.pale
+			_sprites[b.id].get_node("Ring").visible = b.awake
+			_sprites[b.id].get_node("Note").text = "Zzz" if b.slept else ("сбил %d" % b.get("kills", 0) if b.get("kills", 0) > 0 else "")
 	if $Hud/Box/Debug.visible:
 		$Hud/Box/Debug.text = debug_text()
 	_sync_paths()
@@ -121,7 +136,7 @@ func _sync_paths() -> void:
 	var seen := {}
 	for b in sim.buildings:
 		var pts: Array = [b.pos] + b.route if b.kind == "barracks" else [b.pos, b.target.get("pos")]
-		if pts.size() < 2 or pts[-1] == null or b.target.get("gold", 1) <= 0 or b.target.get("hp", 1) <= 0 or is_same(_drag.get("from"), b):
+		if pts.size() < 2 or pts[-1] == null or b.target.get("gold", 1) <= 0 or b.target.get("hp", 1) <= 0 or is_same(_drag.get("from"), b) or is_same(_settle.get("from"), b):
 			continue
 		seen[b.id] = true
 		if not _lines.has(b.id):
@@ -182,7 +197,68 @@ func _stroke(color: Color, width: float) -> Line2D:
 	line.default_color = color
 	line.begin_cap_mode = Line2D.LINE_CAP_ROUND
 	line.end_cap_mode = Line2D.LINE_CAP_ROUND
+	line.joint_mode = Line2D.LINE_JOINT_ROUND
+	line.antialiased = true
 	return line
+
+
+## Отпустил — нарисованная линия за look.route_settle с плавно подтягивается в чистую форму тропы.
+func _settle_line(d: Dictionary, ok: bool) -> void:
+	if not _settle.is_empty():
+		_settle.line.queue_free()
+	_settle = d if ok else {}
+	if not ok:
+		d.line.queue_free()
+		return
+	var from := _resample(Array(d.line.points), 64)
+	var to := _resample([d.from.pos] + d.from.route, 64)
+	var t := create_tween()
+	t.tween_method(func(k): _points(d.line, range(64).map(func(i): return from[i].lerp(to[i], k))), 0.0, 1.0, look.route_settle).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	t.tween_callback(func():
+		if is_same(_settle, d):
+			_settle = {}
+		d.line.queue_free())
+
+
+## n точек на ломаной через равные доли длины.
+static func _resample(pts: Array, n: int) -> Array:
+	var c := Curve2D.new()
+	for p in pts:
+		c.add_point(p)
+	return range(n).map(func(i): return c.sample_baked(c.get_baked_length() * i / (n - 1.0)))
+
+
+## Круг обстрела башни: тонкая светлая линия радиусом tower.range.
+func _ring() -> Line2D:
+	var ring := _stroke(Color(look.tower_look.ring[0]), look.tower_look.ring[1])
+	for i in 49:
+		ring.add_point(Vector2.from_angle(TAU * i / 48.0) * sim.cfg.tower.range)
+	return ring
+
+
+## Куски красных ниток внутри круга призрака горят: видно, какую тропу башня перекроет.
+func _glow_threads(at: Vector2) -> void:
+	for c in _glow.get_children():
+		c.free()
+	for b in sim.of_side(Sim.ENEMY, "barracks"):
+		var pts: Array = [b.pos] + b.route
+		var piece := PackedVector2Array()
+		for i in range(1, pts.size()):
+			for k in 9:
+				var p: Vector2 = pts[i - 1].lerp(pts[i], k / 8.0)
+				if p.distance_to(at) <= sim.cfg.tower.range:
+					piece.append(p)
+				else:
+					_glow_piece(piece)
+					piece = PackedVector2Array()
+		_glow_piece(piece)
+
+
+func _glow_piece(piece: PackedVector2Array) -> void:
+	if piece.size() > 1:
+		var line := _stroke(Color(look.tower_look.glow[0]), look.tower_look.glow[1])
+		line.points = piece
+		_glow.add_child(line)
 
 
 func _points(line: Line2D, pts: Array) -> void:
@@ -237,9 +313,8 @@ func _move(pos: Vector2) -> void:
 		var at := world.to_local(pos)
 		if _drag.trail.is_empty() or _drag.trail[-1].distance_to(at) >= sim.cfg.route.step:
 			_drag.trail.append(at)
-		# Тропа казармы — натянутая нитка уже под пальцем: что видно сейчас, то и ляжет при отпускании.
-		var shown: Array = sim.thread(_drag.from, _drag.trail + [at]).route if _drag.from.kind == "barracks" else [at]
-		_points(_drag.line, [_drag.from.pos] + shown)
+		# Под пальцем — живая линия ровно по пальцу, без пересчёта: чистая форма считается при отпускании.
+		_points(_drag.line, [_drag.from.pos] + (_drag.trail + [at] if _drag.from.kind == "barracks" else [at]))
 	elif _drag.has("flag"):
 		ghost.position = world.to_local(pos)
 		ghost.show()
@@ -279,6 +354,9 @@ func _press(pos: Vector2) -> void:
 func _release(pos: Vector2) -> void:
 	var lifted := ghost.position
 	ghost.hide()
+	_ghost_ring.hide()
+	for c in _glow.get_children():
+		c.free()
 	$Why.hide()
 	var at := world.to_local(pos)
 	var dragged: bool = _drag.has("what")
@@ -286,7 +364,7 @@ func _release(pos: Vector2) -> void:
 	var tap: bool = pos.distance_to(_drag.start) < TAP and not _drag.has("moved")
 	var d := _drag
 	_drag = {}
-	if d.has("line"):
+	if d.has("line") and not (d.has("trail") and d.from.kind == "barracks"):
 		d.line.queue_free()
 	if d.has("flag"):
 		put_flag(null if tap or pos.y > _bar_top() else at)
@@ -299,6 +377,8 @@ func _release(pos: Vector2) -> void:
 		return
 	if d.has("from"):
 		var ok := sim.set_route(d.from, d.trail + [at]) if d.has("trail") and d.from.kind == "barracks" else sim.set_path(d.from, at)
+		if d.has("trail") and d.from.kind == "barracks":
+			_settle_line(d, ok)
 		if not ok and (tap or d.from.pos.distance_to(at) > 60):
 			hint("тяни тропу к залежи" if d.from.kind == "camp" else "тяни тропу дальше от казармы")
 		return
@@ -338,6 +418,10 @@ func _show_ghost(pos: Vector2) -> void:
 	ghost.visible = not _over_button(pos)
 	var text := sim.can_build(Sim.PLAYER, _drag.what, ghost.position) if ghost.visible else ""
 	ghost.modulate = Color(1, 1, 1, 0.75) if text == "" else Color(1, 0.3, 0.3, 0.75)
+	_ghost_ring.visible = ghost.visible and _drag.what == "tower"
+	_ghost_ring.position = ghost.position
+	if _ghost_ring.visible:
+		_glow_threads(ghost.position)
 	why.visible = text != ""
 	why.text = text
 	why.reset_size()
@@ -401,6 +485,17 @@ func _on_sim(what: String, data: Dictionary) -> void:
 					$Feedback.play("clash")
 				else:
 					motion.strike(by, _units.get(data.id), dir)
+			elif _sprites.has(data.by):
+				# Выстрел башни: короткий рывок назад от цели.
+				var tw: Sprite2D = _sprites[data.by]
+				var home: Vector2 = tw.get_meta("home", tw.position)
+				tw.set_meta("home", home)
+				tw.set_meta("size", tw.get_meta("size", tw.scale))
+				var t := tw.create_tween()
+				t.tween_property(tw, "position", home - (data.pos - home).normalized() * look.tower_look.recoil, 0.05)
+				t.parallel().tween_property(tw, "scale", tw.get_meta("size", tw.scale) * Vector2(1.15, 0.85), 0.05)
+				t.tween_property(tw, "position", home, 0.15)
+				t.parallel().tween_property(tw, "scale", tw.get_meta("size", tw.scale), 0.15)
 		"killed":
 			motion.hop(_units.get(data.get("by")), 2)
 		"whistle":
@@ -418,6 +513,21 @@ func _on_sim(what: String, data: Dictionary) -> void:
 			bar.position = Vector2(-22, -l.width * 0.4) / s.scale
 			bar.hide()
 			s.add_child(bar)
+			if data.kind == "tower":
+				var ring := _ring()
+				ring.name = "Ring"
+				ring.scale = Vector2.ONE / s.scale
+				ring.show_behind_parent = true
+				s.add_child(ring)
+				var note := Label.new()
+				note.name = "Note"
+				note.add_theme_font_size_override("font_size", 28)
+				note.add_theme_color_override("font_color", Color(look.tower_look.note))
+				note.add_theme_constant_override("outline_size", 6)
+				note.add_theme_color_override("font_outline_color", Color.BLACK)
+				note.scale = Vector2.ONE / s.scale
+				note.position = Vector2(-20, -l.width * 0.75) / s.scale
+				s.add_child(note)
 		"destroyed":
 			_sprites[data.id].queue_free()
 			_sprites.erase(data.id)
