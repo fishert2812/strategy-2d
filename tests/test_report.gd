@@ -1,5 +1,5 @@
 extends RefCounted
-## Репорт из игры (issue #34): кнопка под палец, окно ставит партию на паузу, текст и адрес issue.
+## Окно фразы к разбору (issue #34): ставит партию на паузу, текст и адрес issue.
 
 const SIZE := Vector2(720, 1280)
 
@@ -32,29 +32,12 @@ func _tap(scene: Control, pos: Vector2) -> void:
 		scene.get_viewport().push_input(e, true)
 
 
-func test_button_in_menu_and_battle() -> String:
-	for path in ["res://scenes/main.tscn", "res://scenes/battle.tscn"]:
-		var scene := await _scene(path)
-		var r: Rect2 = scene.get_node("Report/Safe/Open").get_global_rect()
-		var err := ""
-		if r.size.y < 44.0 * 720.0 / 390.0 or not Rect2(Vector2.ZERO, SIZE).encloses(r):
-			err = "%s: кнопка репорта %s, меньше пальца или за краем" % [path, r]
-		if scene.get("buttons"):
-			for k in scene.buttons:
-				if scene.buttons[k].get_global_rect().intersects(r):
-					err = "кнопка репорта налезает на кнопку %s" % k
-		_done(scene)
-		if err != "":
-			return err
-	return ""
-
-
 func test_tap_pauses_battle_and_close_resumes() -> String:
 	var battle := await _scene("res://scenes/battle.tscn")
 	var report: Control = battle.get_node("Report")
 	var tree := Engine.get_main_loop() as SceneTree
 	var built: int = battle.sim.buildings.size()
-	_tap(battle, report.open_button.get_global_rect().get_center())
+	battle.get_node("End/Center/Box/Phrase").pressed.emit()
 	await tree.process_frame
 	var err := ""
 	if not tree.paused or not report.panel.visible:
@@ -81,7 +64,7 @@ func test_text_and_issue_address() -> String:
 	var long: Dictionary = report.compose("очень длинный надиктованный разбор ".repeat(400), about)
 	var cfg: Dictionary = report.cfg
 	_done(battle)
-	for need in [Version.sha(), "Battle", "крошки", "наши: дом 1"]:
+	for need in [Version.sha(), "Battle", "крошки", "наши: дом 1", "Флажков: 0", "Что заметила игра"]:
 		if not need in about:
 			return "в приписке нет «%s»: %s" % [need, about]
 	if not short.url.begins_with(cfg.issue_url + "?labels=feedback&title="):

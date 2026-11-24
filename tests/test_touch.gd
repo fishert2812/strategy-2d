@@ -145,3 +145,12 @@ func test_debug_line_behind_version_tap() -> String:
 	if seen != [false, true, false]:
 		return "строка отладки видна так: %s, ждали спрятана → видна → спрятана" % [seen]
 	return ""
+
+
+## Картинки стола грузятся при входе в партию, а не посреди неё: первая казарма и первый воин
+## не дают заминку кадра в браузере (было 110–160 мс).
+func test_pictures_loaded_before_play() -> String:
+	var battle: Control = await _battle(Vector2i(720, 1281))
+	var missing := ["warrior_blue", "warrior_red", "barracks_blue", "tower_archer_blue", "porter_red"].filter(func(f): return not ResourceLoader.has_cached(battle.look.dir + f + ".png"))
+	battle.get_parent().free()
+	return "" if missing.is_empty() else "не загружены заранее: %s" % [missing]
