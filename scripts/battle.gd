@@ -73,6 +73,9 @@ func _process(dt: float) -> void:
 	shake = move_toward(shake, 0.0, dt * 40.0)
 	$Hud/Box/Top/Gold.text = "Крошки %d" % sim.gold[Sim.PLAYER]
 	$Hud/Box/Top/Time.text = "%d:%02d" % [int(sim.time) / 60, int(sim.time) % 60]
+	# Кольцо свистка: печенье-крошка «съедается» к свистку, внутри секунды.
+	$Hud/Box/Top/Whistle.value = sim.whistle / sim.cfg.whistle.every
+	$Hud/Box/Top/Whistle/Left.text = str(ceili(sim.whistle))
 	for kind in buttons:
 		buttons[kind].modulate.a = 1.0 if sim.gold[Sim.PLAYER] >= sim.cfg.buildings[kind].cost else 0.45
 	for d in sim.deposits:
