@@ -81,7 +81,7 @@ func test_text_and_issue_address() -> String:
 	var long: Dictionary = report.compose("очень длинный надиктованный разбор ".repeat(400), about)
 	var cfg: Dictionary = report.cfg
 	_done(battle)
-	for need in [Version.sha(), "Battle", "крошки", "наши: home 1"]:
+	for need in [Version.sha(), "Battle", "крошки", "наши: дом 1"]:
 		if not need in about:
 			return "в приписке нет «%s»: %s" % [need, about]
 	if not short.url.begins_with(cfg.issue_url + "?labels=feedback&title="):

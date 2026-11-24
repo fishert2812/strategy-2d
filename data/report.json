@@ -3,5 +3,10 @@
   "issue_url": "https://github.com/fishert2812/strategy-2d/issues/new",
   "label": "feedback",
   "max_url": 7500,
-  "title_chars": 60
+  "title_chars": 60,
+  "names": {
+    "home": "дом",
+    "camp": "лагерь",
+    "barracks": "казарма"
+  }
 }
