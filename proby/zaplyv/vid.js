@@ -46,7 +46,7 @@ export function sleeper(c) {
   for (let i = 0; i < 4; i++) { const t = (time * live + i * 2.1) * (0.5 + i * 0.17) + a.id, [px, py] = along(Math.sin(t) * (half - w * 0.6), Math.cos(t * 1.3) * w * 0.4); ink.put(px, py, 0.9 * z + 0.7, 0.75, 0.85, 0.9, 0.35 + 0.15 * live); }
   for (let j = 0; j < 4; j++) for (let i = 1; i <= 10; i++) { // жгутики: на бодрой торчат вбок, у спящей сложены вдоль тела к корме
     const s = j % 2 ? 1 : -1, b = (j < 2 ? -0.5 : 0.5) * w * 2, f = i / 10, wv = live * Math.sin(f * 7 - time * 6 + j) * w * 0.25 * f;
-    const out = [b - f * w * 1.5, s * (w + f * w * 2.5) + wv], fold = [b - f * w * 3.2, s * (w * 1.05 + f * w * 0.25)];
+    const out = [b - f * w * 1.5, s * (w + f * w * 2.5) + wv], fold = [b - f * w * 2.4, s * w * 1.08];
     const [px, py] = along(out[0] + (fold[0] - out[0]) * e, out[1] + (fold[1] - out[1]) * e);
     ink.put(px, py, 0.7 * z + 0.3, 0.5, 0.55, 0.65, 0.35);
   }
@@ -66,12 +66,13 @@ export function skin(c) {
   }
   if (lk.halo) { // капсула: стеклянная плёнка — ровный светлый ободок и пустое кольцо до тела; не колышется. Ткнулся хищник — прогнулась и спружинила
     const C = V.capsule, dn = dents.map(d => { const [dx, dy] = scr(d.x, d.y), f = d.t / C.dent_t; return [dx, dy, C.dent * w * Math.exp(-f * 4) * Math.cos(f * 14)]; });
+    const step = (4 * L + 2 * Math.PI * w * C.r) / C.dots; // шаг точек на контуре: точка шире шага — линия сплошная
     for (let k = 0; k < C.dots; k++) {
-      const [u, o, nu, no] = rim(k / C.dots, L, w * C.r);
+      const [u, o, nu, no] = rim(k / C.dots, L, w * C.r), sx = ax * nu - ay * no, sy = ay * nu + ax * no, hi = Math.max(0, -0.6 * sx - 0.8 * sy); // блик сверху-слева
       let [px, py] = at(u, o), push = 0;
       for (const [dx, dy, amp] of dn) { const q = Math.hypot(px - dx, py - dy); if (q < w * 2.5) push += amp * (1 - q / (w * 2.5)); }
       const [qx, qy] = at(u - nu * push, o - no * push);
-      glow.put(qx, qy, 1.1 * z + 0.4, 0.8, 0.95, 1, C.edge);
+      glow.put(qx, qy, step * 1.7, 0.75, 0.93, 1, C.edge * (0.6 + 0.9 * hi * hi));
       if (k % 2 === 0) { const [fx, fy] = at(u * 0.97 - nu * (push + w * (C.r - 1) * 0.5), o * 0.82 - no * push); glow.put(fx, fy, w * (C.r - 1) * 0.7, 0.75, 0.92, 1, C.fill); }
     }
   }
@@ -81,36 +82,37 @@ export function skin(c) {
     const lit = phageNear && spacers ? 0.5 + 0.25 * Math.sin(time * 4) : 0;
     for (let k = 0; k < n; k++) {
       const last = k === n - 1 && spacers ? m.grow : 1, u = -L + w * 0.1 + k * w * C.step, o = Math.sin(k * 1.1 + a.id) * w * 0.12 - w * 0.25, [px, py] = at(u, o);
-      glow.put(px, py, (k < C.base ? 1.3 : 1.8) * z * last + 0.4, 0.7, 1, 0.8, (C.alpha + lit) * last + (1 - last) * 0.8); ink.put(px, py, 0.6 * z * last, 0.1, 0.3, 0.2, 0.5 * last);
+      glow.put(px, py, (k < C.base ? 1.6 : 2.2) * z * last + 0.5, 0.7, 1, 0.8, (C.alpha + lit) * last + (1 - last) * 0.8); ink.put(px, py, 0.6 * z * last, 0.1, 0.3, 0.2, 0.5 * last);
     }
   }
   for (let k = 0; k < (lk.toxin ? V.toxin.n : 0); k++) { // ядовитое касание: длинные жёсткие нити CdiA с узелком на конце, медленно водят
     const T = V.toxin, [u, o, nu, no] = rim(k / T.n + a.id * 0.13, L, w), sw = Math.sin(time * 1.3 + k * 2.1) * 0.25, cu = nu - no * sw, co = no + nu * sw;
-    for (let j = 1; j <= 5; j++) { const r = w * T.len * j / 5, [px, py] = at(u + cu * r, o + co * r); ink.put(px, py, 0.5 * z + 0.25, 0.8, 0.72, 0.95, 0.45); }
+    for (let j = 1; j <= T.seg; j++) { const r = w * T.len * j / T.seg, [px, py] = at(u + cu * r, o + co * r); ink.put(px, py, w * T.len / T.seg * 0.75, 0.78, 0.66, 0.92, 0.6); }
     const r = w * (T.len + 0.08), [px, py] = at(u + cu * r, o + co * r); ink.put(px, py, 1.1 * z + 0.4, 0.35, 0.12, 0.4, 0.85);
   }
   for (let k = 0; k < (lk.pili ? V.fim.n : 0); k++) { // липучки: густая короткая щетина по всему телу, прямая, как булавки; прилип — вытянулась и дрожит в потоке
     const P = V.fim, n = P.n, len = w * P.len * (0.6 + 0.4 * ((k * 0.618) % 1)) * (a.stuck ? P.stuck : 1), [u, o, nu, no] = rim(k / n + 0.01, L, w * 0.96);
     const sh = a.stuck ? Math.sin(time * 25 + k * 3) * w * 0.03 : 0;
-    for (const f of [0.1, 0.55, 1]) { const [px, py] = at(u + nu * len * f - no * sh, o + no * len * f + nu * sh); ink.put(px, py, 0.45 * z + 0.2, 0.82, 0.92, 0.88, a.stuck ? 0.75 : 0.5); }
+    for (let j = 0; j < P.seg; j++) { const f = j / (P.seg - 1), [px, py] = at(u + nu * len * f - no * sh * f, o + no * len * f + nu * sh * f); ink.put(px, py, Math.max(0.35 * z, len / P.seg * 0.6), 0.6, 0.86, 1, (a.stuck ? 0.7 : 0.5) * (1 - f * 0.4)); } // штрих: точки внахлёст
   }
-  for (let k = 0; k < (lk.studs ? V.lock.n : 0); k++) { // сменил замок: на боку светлые «зрачки» — новые поры; фагу T4 не за что зацепиться
-    const D = V.lock, u = (k - (D.n - 1) / 2) * L * D.gap, o = (k % 2 ? -1 : 1) * w * 0.8, [cx, cy] = at(u, o);
-    for (let i = 0; i < 6; i++) { const t = i * 1.047, [px, py] = [cx + Math.cos(t) * w * 0.26, cy + Math.sin(t) * w * 0.26]; glow.put(px, py, 1.0 * z + 0.4, 0.8, 0.92, 1, 0.8); }
-    ink.put(cx, cy, w * 0.17, 0.08, 0.1, 0.22, 0.75);
+  for (let k = 0; k < (lk.studs ? V.lock.n : 0); k++) { // сменил замок: на одном боку бледно-голубые «зрачки» — новые поры; фагу T4 не за что зацепиться
+    const D = V.lock, u = (k - (D.n - 1) / 2) * L * D.gap, o = w * 0.8, [cx, cy] = at(u, o);
+    for (let i = 0; i < 6; i++) { const t = i * 1.047, [px, py] = [cx + Math.cos(t) * w * 0.26, cy + Math.sin(t) * w * 0.26]; ink.put(px, py, w * 0.08, 0.1, 0.22, 0.4, 0.65); }
+    glow.put(cx, cy, w * 0.16, 0.7, 0.9, 1, 0.45);
   }
   if (plasmid && !a.g) for (let k = 0; k < 12; k++) { const t = k / 12 * 6.283 + time * 0.8, [px, py] = along(Math.cos(t) * w * 0.35 + w * 0.3, Math.sin(t) * w * 0.35); glow.put(px, py, 0.9 * z + 0.4, 1, 0.95, 0.6, 0.7); } // плазмида: колечко ДНК, теперь и ты донор
-  if (lk.dormant) for (let k = 0; k < 6; k++) { const [px, py] = at(-L - w * 0.4 + (k % 3) * w * 0.18 + (k > 2 ? w * 0.09 : 0), ((k % 3) - 1) * w * 0.2 + (k > 2 ? w * 0.12 : -w * 0.05)); ink.put(px, py, 1.3 * z + 0.4, 0.18, 0.22, 0.45, 0.7); } // ген сна: у кормы тёмные плотные зёрна, без свечения
+  if (lk.dormant) for (let k = 0; k < 6; k++) { const [px, py] = at(-L - w * 0.4 + (k % 3) * w * 0.18 + (k > 2 ? w * 0.09 : 0), ((k % 3) - 1) * w * 0.2 + (k > 2 ? w * 0.12 : -w * 0.05)); ink.put(px, py, w * 0.15, 0.09, 0.06, 0.2, 0.9); } // ген сна: у кормы тёмные плотные зёрна, без свечения
   m.smell += ((foodNear ? 1 : 0) - m.smell) * Math.min(1, pdt / V.sense.ease); // нюх разгорается и гаснет плавно, без мигания
   for (let k = 0; k < (lk.receptors ? V.sense.n : 0); k++) { // чутьё: на носу шапка рецепторов правильной сеткой; у еды мягко светится
     const r = (k % 3) - 1, q = Math.floor(k / 3) - 1, [px, py] = at(L + w * (0.72 - 0.12 * Math.abs(q)) + (r ? 0 : w * 0.06), q * w * 0.2 + r * w * 0.07);
-    glow.put(px, py, 1.0 * z + 0.3, 1, 0.9, 0.5, 0.14 + 0.36 * m.smell * (0.85 + 0.15 * Math.sin(time * 3 + k)));
+    ink.put(px, py, w * 0.07, 0.95, 0.72, 0.4, 0.55 + 0.3 * m.smell);
   }
+  if (lk.receptors && m.smell > 0.02) { const [px, py] = at(L + w * 0.7, 0); glow.put(px, py, w * 0.55, 1, 0.7, 0.35, 0.22 * m.smell * (0.9 + 0.1 * Math.sin(time * 3))); } // у еды — тёплый тусклый огонёк
   const R = V.grain, fast = lk.ribosomes > cfg.look.ribosomes[0], jit = (fast ? R.jit_fast : R.jit) * w; // крупинки внутри всегда мелко дрожат; у сытой — живее
   const J = (k, s) => Math.sin(time * 31 + k * 7.1 + s) * jit + Math.sin(time * 17 + k * 3.3) * jit * 0.6;
   for (let k = 0; k < (fast ? R.fast_n : lk.ribosomes); k++) { // рибосомы: розовые зёрна; быстрый рост — содержимое гуще и зернистее, темнее
     const t = k * 2.4 + a.id, u = Math.sin(t + time * 0.2) * (half - w * 0.8), [px, py] = at(u + J(k, 0), Math.cos(t * 1.7 + time * 0.25) * w * 0.45 + J(k, 2));
-    if (fast) ink.put(px, py, 1.1 * z + 0.4, 0.55, 0.1, 0.38, 0.45); else glow.put(px, py, 1.6 * z + 0.6, 1, 0.35, 0.75, 0.35);
+    if (fast) ink.put(px, py, 1.3 * z + 0.4, 0.42, 0.06, 0.3, 0.6); else glow.put(px, py, 1.6 * z + 0.6, 1, 0.35, 0.75, 0.35);
   }
   for (let k = 0; k < 4; k++) { // зёрна плывут внутри
     const t = time * (0.5 + k * 0.17) + a.id * 1.3 + k * 2.1, u = Math.sin(t) * (half - w * 0.6), [px, py] = at(u + J(k, 5), Math.cos(t * 1.3) * w * 0.4 + J(k, 7));
