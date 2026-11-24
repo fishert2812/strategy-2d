@@ -53,7 +53,7 @@ func close() -> void:
 func facts() -> String:
 	var scene := get_parent()
 	var w := DisplayServer.window_get_size()
-	var lines := ["версия %s" % Version.sha(), "экран %s, окно %dx%d" % [scene.name if scene else "?", w.x, w.y]]
+	var lines := ["версия %s" % Version.label(), "экран %s, окно %dx%d" % [scene.name if scene else "?", w.x, w.y]]
 	var sim = scene.get("sim") if scene else null
 	if sim is Sim:
 		lines.append("партия %d:%02d, крошки %d (враг %d)%s" % [int(sim.time) / 60, int(sim.time) % 60,
