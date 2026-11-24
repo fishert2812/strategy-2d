@@ -25,6 +25,10 @@ var enemy: Enemy
 var _sprites := {}
 var _drag := {}
 var _picked := {}
+var _down := false
+## Счётчики нажатий для строки отладки: касания, мышь, мышь из касания.
+var taps := {"touch": 0, "mouse": 0, "emulated": 0}
+var _last := ""
 var _units := {}
 var _lines := {}
 
@@ -38,6 +42,8 @@ func _ready() -> void:
 	$Hud/Box/Top/Sha.text = Version.sha()
 	$End/Center/Box/Again.pressed.connect(restart)
 	SafeArea.apply($Hud)
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("window._t=0;addEventListener('touchstart',function(){window._t++},{capture:true,passive:true})")
 	restart()
 
 
@@ -85,6 +91,7 @@ func _process(dt: float) -> void:
 		var bar: ProgressBar = _sprites[b.id].get_node("Hp")
 		bar.value = b.hp / b.max_hp * 100.0
 		bar.visible = b.hp < b.max_hp
+	$Hud/Box/Debug.text = debug_text()
 	_sync_paths()
 	_sync_units()
 
@@ -133,18 +140,45 @@ func _line(color: Color) -> Line2D:
 	return line
 
 
-## Палец на телефоне: касание и перетягивание. Мышь — для компьютера; мышь, которую
-## браузер сам делает из касания, пропускаем, чтобы одно касание не сработало дважды.
-func _unhandled_input(e: InputEvent) -> void:
-	if e is InputEventMouse and e.device == InputEvent.DEVICE_ID_EMULATION:
-		return
-	if (e is InputEventScreenTouch and e.index == 0) or (e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT):
-		if e.pressed:
+## Палец на телефоне: касание и перетягивание. Берём первое пришедшее событие нажатия —
+## касание, мышь или мышь, которую браузер делает из касания, — повторы того же нажатия пропускаем.
+## Читаем в _input, раньше интерфейса, чтобы ничто сверху не съело касание.
+func _input(e: InputEvent) -> void:
+	var press: bool = (e is InputEventScreenTouch and e.index == 0) or (e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT)
+	if press:
+		_count(e)
+		if e.pressed and not _down:
+			_down = true
 			_press(e.position)
-		elif not _drag.is_empty():
-			_release(e.position)
+		elif not e.pressed and _down:
+			_down = false
+			if not _drag.is_empty():
+				_release(e.position)
 	elif ((e is InputEventScreenDrag and e.index == 0) or e is InputEventMouseMotion) and not _drag.is_empty():
 		_move(e.position)
+
+
+func _count(e: InputEvent) -> void:
+	if not e.is_pressed():
+		return
+	var kind: String = "touch" if e is InputEventScreenTouch else ("emulated" if e.device == InputEvent.DEVICE_ID_EMULATION else "mouse")
+	taps[kind] += 1
+	var under := "поле"
+	for k in buttons:
+		if buttons[k].get_global_rect().has_point(e.position):
+			under = "кнопка " + k
+	_last = "%s %d,%d %s" % [kind, e.position.x, e.position.y, under]
+
+
+## Строка отладки: окно, плотность, увеличение страницы, касания браузера и Godot, последнее нажатие.
+func debug_text() -> String:
+	var zoom := "-"
+	var web := "-"
+	if OS.has_feature("web"):
+		zoom = str(JavaScriptBridge.eval("window.visualViewport?visualViewport.scale.toFixed(2):'?'"))
+		web = str(JavaScriptBridge.eval("window._t"))
+	var w := DisplayServer.window_get_size()
+	return "окно %dx%d dpr %.1f зум %s | браузер %s касаний %d мышь %d эмул %d | %s" % [w.x, w.y, DisplayServer.screen_get_scale(), zoom, web, taps.touch, taps.mouse, taps.emulated, _last]
 
 
 func _move(pos: Vector2) -> void:
