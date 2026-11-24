@@ -11,6 +11,7 @@ export function look(genes, L) {
     toxin: genes.toxin ? L.toxin : 0,
     receptors: genes.sense ? L.receptors : 0,
     studs: genes.lock ? L.studs : 0, // сменил замок: другие белки-поры на оболочке — синие бугорки по краю
+    pili: genes.fim ? L.pili : 0, // фимбрии: короткие волоски по всему телу
     dormant: !!genes.spore, // сон-персистер (hipA): у кормы тусклое голубое пятно медленно дышит
   };
 }

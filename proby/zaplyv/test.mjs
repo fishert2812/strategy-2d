@@ -477,6 +477,18 @@ check('«Не так»: отметка сама называет версию, �
   if (!msg.includes('отметок 2') || !msg.includes('2) 24.11 21:41')) return 'сообщение не собрало отметки';
 });
 
+check('фимбрии: отпустил палец у водоросли — прилип, поток воронки не тянет; повёл пальцем — плывёшь; без гена поток сносит', () => {
+  const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
+  const pull = (fim, finger) => { const w = bare(161), a = w.me[0]; w.genes.fim = fim; w.plants = [{ x: a.x, y: a.y + radius(a.m) + 18, m: 4, id: 2, t: 0 }];
+    w.suck = () => [60, 0]; // поток воронки/вихря рядом: 60 ед/с вбок
+    const x0 = a.x, y0 = a.y; run(w, 1, finger); return [Math.round(Math.hypot(a.x - x0, a.y - y0)), a.stuck]; };
+  const free = pull(false, null), held = pull(true, null), swim = pull(true, { dx: 0, dy: -1, p: 1 });
+  console.log('    паспорт: поток 60 ед/с — без гена снесло на', free[0], '| с фимбриями', held[0], 'прилип', held[1], '| повёл пальцем — проплыл', swim[0]);
+  if (free[0] < 10) return 'воронка не тянет — проверка ничего не доказывает';
+  if (held[0] > 2 || !held[1]) return 'с фимбриями всё равно снесло';
+  if (swim[0] < 50) return 'прилипшая клетка не уплывает пальцем';
+});
+
 check('мир без краёв: уплыл далеко — вокруг снова еда, позади забыто', () => {
   const w = new World(cfg, 11);
   w.genes.capsule = w.genes.crispr = true;

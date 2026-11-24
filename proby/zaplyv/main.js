@@ -585,6 +585,8 @@ function paint(time) {
       const t = k / lk.toxin * 6.283 + a.id, u = Math.cos(t) * (half - w * 0.45), [px, py] = along(u, Math.sin(t) * w * 0.78 + arc(u / z));
       ink.put(px, py, 1.3 * z + 0.4, 0.12, 0.02, 0.1, 0.75);
     }
+    for (let k = 0; k < lk.pili; k++) { const t = k / lk.pili * 6.283 + 0.1, ct = Math.cos(t), st = Math.sin(t); // фимбрии: короткие прямые волоски; прилип — натянуты
+      for (let j = 0; j < 3; j++) { const e = 1.04 + j * (a.stuck ? 0.13 : 0.09), u = ct * (half - w * 0.1) * (1 + (e - 1) * 0.5), [px, py] = along(u, st * w * e + arc(u / z)); ink.put(px, py, 0.8 * z + 0.3, 0.85, 0.9, 0.8, a.stuck ? 0.75 : 0.45); } }
     for (let k = 0; k < lk.studs; k++) { const t = k / lk.studs * 6.283 + 0.2, u = Math.cos(t) * (half - w * 0.15), [px, py] = along(u, Math.sin(t) * w * 1.02 + arc(u / z)); ink.put(px, py, 1.5 * z + 0.4, 0.25, 0.45, 1, 0.85); }
     if (world.plasmid && !a.g) for (let k = 0; k < 12; k++) { const t = k / 12 * 6.283 + time * 0.8, [px, py] = along(Math.cos(t) * w * 0.35 + w * 0.3, Math.sin(t) * w * 0.35); glow.put(px, py, 0.9 * z + 0.4, 1, 0.95, 0.6, 0.7); } // плазмида: колечко ДНК, теперь и ты донор
     if (lk.dormant) { const [px, py] = along(-half + w * 0.9, arc(-half / z + w * 0.9 / z)); glow.put(px, py, w * 0.6, 0.45, 0.55, 1, 0.3 + 0.15 * Math.sin(time * 1.2 + a.id)); } // ген сна: у кормы тусклое голубое пятно медленно дышит
