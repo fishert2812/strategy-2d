@@ -4,6 +4,7 @@
 // Сверху — точки: еда, жгутики, крупинки внутри клеток, фаги, взвесь вдали и размытые соринки вблизи.
 import * as THREE from './three.module.min.js';
 import { World, radius } from './sim.js';
+import * as mut from './mutacii.js';
 import { Stick } from './controls.js';
 import { follow } from './soft.js';
 import { look } from './look.js';
@@ -191,15 +192,15 @@ const ver = (await (await fetch('version.json')).json()).number; // свой н�
 $('ver').textContent = 'Заплыв ' + ver;
 fetch('../version.txt').then(r => r.ok ? r.text() : '').then(t => { if (t.trim()) $('ver').textContent = 'Заплыв ' + ver + ' · ' + t.trim().slice(0, 7); }).catch(() => {});
 
-function start(genes) {
-  world = new World(cfg, (Math.random() * 2 ** 31) | 0);
+function start(genes, mode) {
+  world = new World(cfg, (Math.random() * 2 ** 31) | 0); world.mode = mode || 'swim'; // режим «Мутации» включает новые мутации (mutacii.js)
   if (Array.isArray(genes)) world.inherit(genes); // заплыв веткой рода после «Ночи рода»
   $('night').classList.remove('on'); $('menu').classList.remove('on');
   view = { x: 0, y: 0, z: 2.2, tint: [...TINT[0]] };
   fx.reset(); fx.world = world; ended = false; // fx читает мир: сидящие вирусы, запятые, амёбы
   $('end').classList.remove('on');
 }
-$('again').onclick = () => start();
+$('again').onclick = () => start(null, world.mode); // снова в том же режиме
 // Род между заплывами: гибели, последний род (для ночи), ветки и поколения ночей, «Тише». Память — в этом браузере.
 let ROD = {}; try { ROD = JSON.parse(localStorage.getItem('zaplyv.rod') || '{}') || {}; } catch (_) {}
 const saveRod = () => { try { localStorage.setItem('zaplyv.rod', JSON.stringify(ROD)); } catch (_) {} };
@@ -209,6 +210,7 @@ const MODES = {
   swim: { go: 'Плыть', line: 'Твоя клетка в капле пруда. Ешь, делись, не попадись' },
   night: { go: 'Начать ночь', line: 'Тысяча поколений за полминуты. Ставишь одну опасность' },
   sel: { lock: 'Пройди ночь рода — и сможешь растить свои породы' },
+  mut: { go: 'Плыть с мутациями', line: 'Та же капля, но дочки и соседки приносят новые мутации' },
   hunt: { lock: 'Погибни от красной запятой трижды — и сыграешь за неё' },
   deep: { lock: 'Доплыви до ила — и увидишь, что было в капле миллиард лет назад' },
   dry: { lock: 'Скоро: выжить, когда воды почти не осталось' },
@@ -237,7 +239,7 @@ function menuPick(m, quiet) {
   $('mscene').classList.toggle('picked', !quiet);
   mSel = m; $('mgo').textContent = M.go;
 }
-function menuGo() { if (mSel === 'night') { $('menu').classList.remove('on'); openNight(); } else start(); }
+function menuGo() { if (mSel === 'night') { $('menu').classList.remove('on'); openNight(); } else start(null, mSel); }
 for (const o of document.querySelectorAll('#mscene .mo')) { o.onclick = () => menuPick(o.dataset.m); o.ondblclick = () => { menuPick(o.dataset.m); if (!MODES[o.dataset.m].lock) menuGo(); }; }
 $('mgo').onclick = menuGo;
 $('mquiet').onclick = () => { ROD.quiet = !ROD.quiet; saveRod(); $('mquiet').textContent = ROD.quiet ? 'Звук' : 'Тише'; };
@@ -255,7 +257,7 @@ function nightIcons() { // значки опасностей — снимки с
 $('nback').onclick = () => { $('night').classList.remove('on'); NT = null; if (!ended) menuOpen(); }; // из меню ночь возвращает в меню
 $('nflag').onclick = e => flag('ночь рода', e.currentTarget);
 for (const b of $('ndanger').children) b.onclick = () => {
-  NT = night({ genes: ROD.genes, n: ROD.most }, b.dataset.d, ROD.seed, NJ, Object.keys(cfg.genes)); NT.danger = b.dataset.d; // род — последний заплыв (из памяти: ночь зовут и из меню)
+  NT = night({ genes: ROD.genes, n: ROD.most }, b.dataset.d, ROD.seed, NJ, mut.base(cfg)); NT.danger = b.dataset.d; // род — последний заплыв (из памяти: ночь зовут и из меню)
   ntT = 0; $('ndanger').hidden = $('nask').hidden = true;
 };
 $('ngo').onclick = () => { if (ntPick) start(ntPick.genes); };

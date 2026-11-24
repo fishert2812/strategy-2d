@@ -10,6 +10,7 @@ import { entries, shelf, page } from './almanah.js';
 import * as karta from './karta.js';
 import { readFileSync } from 'node:fs';
 import { night } from './night.js';
+import { M } from './mutacii.js';
 const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
 let bad = 0;
 // ONLY=L014 — запустить только проверки с этим номером урока (так selftest ломает игру и ждёт красного у нужной проверки).
@@ -627,7 +628,7 @@ check('test_L020: жгутики в цвете оболочки — светло
 });
 
 // «Ночь рода» (design/zaplyv_noch_roda_spec.md, книга В18–В22): гибель не стирает всё — за ночь род прорывается через полосы опасности.
-const NJ = JSON.parse(readFileSync(new URL('./night.json', import.meta.url))), ALL = Object.keys(cfg.genes);
+const NJ = JSON.parse(readFileSync(new URL('./night.json', import.meta.url))), ALL = Object.keys(cfg.genes).filter(g => !(g in M.genes)); // мутации режима «Мутации» ночь не знает
 check('test_night_breakthrough: род без генов против фагов — выше всех доходит ветка с замком или CRISPR', () => {
   const o = night({ genes: [], n: 1 }, 'phage', 1, NJ, ALL).run(), res = o.result(), b = res.picks.find(p => p.id === res.best);
   console.log(`    паспорт: поколений ${o.gen}, веток ${o.branches.length}, лучшая дошла до ряда ${b.top} из ${o.rows} (полоса ${b.band + 1} из ${NJ.bands.length}), гены: ${b.genes.join(', ') || 'нет'}, отличий ${b.diff}`);
