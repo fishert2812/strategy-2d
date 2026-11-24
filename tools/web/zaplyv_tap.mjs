@@ -1,0 +1,64 @@
+// Обход интерфейса «Заплыва» пальцем (урок L017): телефон iPhone 13 с касаниями, каждую кнопку касаемся
+// так, как палец на iPhone (touchscreen.tap по середине), и требуем видимый результат.
+// Кнопка, которую перекрыл другой слой, или касание без видимого отклика — провал.
+// node tools/web/zaplyv_tap.mjs <адрес /zaplyv/> [chromium|webkit]
+const pwPath = process.env.PW || 'playwright';
+const pw = await import(pwPath).then(m => m.default || m);
+const url = process.argv[2], kind = process.argv[3] || 'chromium';
+const opts = process.env.CHROME ? { executablePath: process.env.CHROME, args: ['--no-sandbox'] } : {};
+const b = await pw[kind].launch(opts);
+const p = await (await b.newContext({ ...pw.devices['iPhone 13'] })).newPage();
+const errs = []; p.on('pageerror', e => errs.push(e.message));
+let bad = 0; const say = (ok, t) => { console.log((ok ? '  ок   ' : '  ПРОВАЛ ') + t); if (!ok) bad++; };
+await p.goto(url, { timeout: 60000 });
+await p.waitForFunction(() => window.zaplyvProbe && zaplyvProbe.frames > 20, null, { timeout: 30000 });
+// Касание пальцем: элемент должен быть виден, не меньше 44 pt и сверху в точке касания.
+async function tap(sel, what) {
+  const el = p.locator(sel).first(); await el.scrollIntoViewIfNeeded({ timeout: 2000 }).catch(() => {}); // длинный экран палец прокручивает
+  const box = await el.boundingBox().catch(() => null);
+  if (!box || box.width < 1) return say(false, `${what}: кнопки ${sel} не видно`), false;
+  const top = await p.evaluate(([s, x, y]) => { const e = document.querySelector(s), h = document.elementFromPoint(x, y); return !!h && (h === e || e.contains(h)) || (h ? (h.id || h.tagName) + " " + h.textContent.slice(0, 20) : "пусто"); }, [sel, box.x + box.width / 2, box.y + box.height / 2]);
+  if (top !== true) return say(false, `${what}: в точке касания ${sel} лежит другой слой (${top})`), false;
+  if (Math.min(box.width, box.height) < 43.5) return say(false, `${what}: зона касания ${Math.round(box.width)}×${Math.round(box.height)} меньше 44`), false;
+  await p.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2); await p.waitForTimeout(250);
+  return true;
+}
+const seen = sel => p.evaluate(s => { const e = document.querySelector(s); if (!e) return false; const r = e.getBoundingClientRect(), st = getComputedStyle(e);
+  return r.width > 0 && r.bottom > 0 && r.top < innerHeight && +st.opacity > 0.5 && st.visibility !== 'hidden' && st.display !== 'none'; }, sel);
+const marks = () => p.evaluate(() => JSON.parse(localStorage.getItem('zaplyv.marks') || '[]').length);
+const on = id => p.evaluate(i => document.getElementById(i).classList.contains('on'), id);
+
+let m = await marks();
+if (await tap('#flag', 'флажок в игре')) say(await seen('#note') && await marks() === m + 1, 'флажок в игре: отметка записана и надпись видна');
+if (await tap('#pause', 'пауза')) say(await on('genome'), 'пауза открывает геном');
+if (await tap('#ring .slot', 'ген на кольце')) say(await p.evaluate(() => !!document.querySelector('#gcard h2')), 'касание гена открывает карточку');
+m = await marks();
+if (await tap('#gflag', 'флажок в геноме')) say(await seen('#note') && await marks() === m + 1, 'флажок в геноме: отметка и надпись видна');
+m = await marks();
+if (await tap('#gno', '«Не так» в геноме')) say(await seen('#note') && await marks() === m + 1, '«Не так» в геноме: отметка и надпись видна');
+if (await tap('#gcab', 'кабинет из генома')) say(await on('cabinet'), 'кабинет открылся');
+if (await tap('#back', 'назад из кабинета')) say(!(await on('cabinet')) && await on('genome'), 'кабинет закрылся, геном на месте');
+// «Отправить» в геноме: меню «Поделиться» телефона подменяем, отметки должны уйти одним сообщением.
+await p.evaluate(() => { navigator.share = async d => { window.shared = d.text; }; });
+m = await marks();
+if (await tap('#gsend', '«Отправить» в геноме')) say(await p.evaluate(n => (window.shared || '').includes('отметок ' + n), m) && await marks() === 0, '«Отправить» отдаёт отметки и очищает их');
+const t0 = await p.evaluate(() => zaplyvWorld().stats.time);
+if (await tap('#gon', '«Плыть дальше»')) { await p.waitForTimeout(500); say(!(await on('genome')) && await p.evaluate(() => zaplyvWorld().stats.time) > t0, '«Плыть дальше» закрывает геном, мир идёт'); }
+// Выбор дочки при делении: касание самой дочки берёт её ген.
+await p.evaluate(() => { const w = zaplyvWorld(), all = Object.keys(w.cfg.genes).filter(g => !w.genes[g]); w.choice = all.slice(0, 2); });
+await p.waitForTimeout(600);
+const g1 = await p.evaluate(() => zaplyvWorld().choice[1]);
+if (await tap('#genes .kid ~ .kid', 'дочка справа')) say(await p.evaluate(g => zaplyvWorld().genes[g] && !document.getElementById('genes').classList.contains('on'), g1), 'касание дочки даёт её ген и закрывает выбор');
+await p.evaluate(() => { const w = zaplyvWorld(), all = Object.keys(w.cfg.genes).filter(g => !w.genes[g]); w.choice = all.slice(0, 2); });
+await p.waitForTimeout(600);
+const g0 = await p.evaluate(() => zaplyvWorld().choice[0]);
+if (await tap('#cards button', 'карточка гена дочки')) say(await p.evaluate(g => zaplyvWorld().genes[g], g0), 'карточка дочки даёт её ген');
+await p.evaluate(() => { const w = zaplyvWorld(); w.genes.spore = false; w.stats.killer = 'amoeba'; w.me.length = 0; });
+await p.waitForTimeout(1200);
+m = await marks();
+if (await tap('#eno', '«Не так» на экране гибели')) say(await seen('#note') && await marks() === m + 1, '«Не так» на экране гибели: отметка и надпись видна');
+if (await tap('#again', '«Плыть снова»')) say(!(await on('end')), '«Плыть снова» начинает заплыв');
+say(!errs.length, 'ошибок страницы нет' + (errs.length ? ': ' + errs.join('; ') : ''));
+await b.close();
+console.log(bad ? `КАСАНИЯ: провалов ${bad}` : 'КАСАНИЯ: все кнопки отвечают пальцу');
+process.exit(bad ? 1 : 0);
