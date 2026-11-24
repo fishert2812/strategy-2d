@@ -1,0 +1,12 @@
+{
+  "_": "Репорт Романа из игры. «Отправить» копирует текст и открывает страницу новой issue с меткой label. Адрес длиннее max_url GitHub не примет: тогда в issue идёт только приписка, а текст Роман вставляет из буфера.",
+  "issue_url": "https://github.com/fishert2812/strategy-2d/issues/new",
+  "label": "feedback",
+  "max_url": 7500,
+  "title_chars": 60,
+  "names": {
+    "home": "дом",
+    "camp": "лагерь",
+    "barracks": "казарма"
+  }
+}

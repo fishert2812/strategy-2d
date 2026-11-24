@@ -1,7 +1,9 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/feedback.gd" id="5"]
+
+[ext_resource type="PackedScene" path="res://scenes/report.tscn" id="9"]
 
 [node name="Battle" type="Control"]
 layout_mode = 3
@@ -167,3 +169,6 @@ text = "Ещё раз"
 
 [node name="Feedback" type="Node" parent="."]
 script = ExtResource("5")
+
+[node name="Report" parent="." instance=ExtResource("9")]
+layout_mode = 1
