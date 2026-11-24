@@ -8,5 +8,5 @@
 		"maw": { "capsule": 0.85, "fim": 0.5 },
 		"hunger": { "sense": 0.6, "spore": 0.5, "fast": -0.4 }
 	},
-	"palette": ["#9fe6ff", "#ffd79a", "#8fe3a6", "#ff9e7a", "#c7a6ff", "#f5e17a", "#7ad6c8", "#ffb3d1", "#b8d98a", "#e0c3a0"]
+	"palette": ["#9fe6ff", "#7ad6c8", "#c7a6ff", "#f5e17a", "#8fe3a6", "#a0b8ff", "#e8f09a", "#6fc3e0", "#d9c7ff", "#b8d98a"]
 }

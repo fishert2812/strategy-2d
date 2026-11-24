@@ -41,7 +41,7 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 #npicks button { width: 100%; display: flex; align-items: center; gap: 10px; min-height: 52px; text-align: left; font-size: 15px; padding: 8px 12px; border: 2px solid transparent; }
 #npicks button.on { border-color: #9fe6ff; } #npicks i { flex-shrink: 0; width: 16px; height: 16px; border-radius: 50%; } #npicks small { display: block; opacity: 0.7; font-size: 13px; }
 #ngo { width: 100%; flex-shrink: 0; min-height: 52px; } #ngo:disabled { opacity: 0.45; }
-#ebtns { position: sticky; bottom: 0; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; } /* кнопки одним столбиком: каждая на своём месте, не друг на друге (урок L017) */
+#ebtns { display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; } /* кнопки одним столбиком: каждая на своём месте, не друг на друге (урок L017) */
 #end button { flex-shrink: 0; background: rgba(10, 60, 50, 0.92); }
 #card, #path { width: min(380px, 100%); box-sizing: border-box; border-radius: 20px; padding: 12px 16px; }
 #card { background: rgba(255, 90, 60, 0.1); border: 1px solid rgba(255, 140, 100, 0.35); }
