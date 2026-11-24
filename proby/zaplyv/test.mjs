@@ -48,20 +48,52 @@ check('амёба глотает клетку без капсулы и не мо
   if (res[1] !== 1) return 'с капсулой клетку всё равно съели';
 });
 
-check('фаг заражает клетку, она лопается новыми фагами; с CRISPR цела', () => {
+check('фаг прилипает и впрыскивает, клетка лопается облаком новых фагов; с CRISPR цела', () => {
   const res = [];
   for (const crispr of [false, true]) {
     const w = new World(cfg, 5);
     w.food = []; w.prey = []; w.amoebas = []; w.plants = [];
-    w.phages = [{ x: 60, y: 0, vx: 0, vy: 0 }];
+    w.phages = []; w.cloud(radius(1) + 1, 0, 'me', 0);
     if (crispr) w.genes.crispr = true;
     w.tidy = 1e9;
-    run(w, 4, null);
+    run(w, cfg.inject + cfg.sick + 1, null);
     res.push([w.me.length, w.phages.length]);
   }
   console.log('    паспорт: без защиты клеток/фагов', res[0].join('/'), ', с CRISPR', res[1].join('/'));
-  if (res[0][0] !== 0 || res[0][1] < 3) return 'без защиты клетка не лопнула фагами';
+  if (res[0][0] !== 0 || res[0][1] < cfg.burst) return 'без защиты клетка не лопнула облаком фагов';
   if (res[1][0] !== 1) return 'с CRISPR клетка погибла';
+});
+
+check('фаг не гонится за клеткой: его носит вода, опасно только влететь в облако (замечание Романа 24.11)', () => {
+  const w = new World(cfg, 6);
+  w.food = []; w.prey = []; w.amoebas = []; w.plants = []; w.tidy = 1e9;
+  w.phages = []; for (let i = 0; i < 8; i++) w.cloud(90 + i * 6, -20 + i * 5, 'me', 0);
+  let fast = 0;
+  const d0 = Math.min(...w.phages.map(g => Math.hypot(g.x, g.y)));
+  for (let i = 0; i < 150; i++) { w.step(1 / 30, null); for (const g of w.phages) fast = Math.max(fast, Math.hypot(g.vx, g.vy)); }
+  const d1 = Math.min(...w.phages.map(g => Math.hypot(g.x - w.me[0].x, g.y - w.me[0].y)));
+  // уплыть от облака: фаги остаются позади
+  const u = new World(cfg, 6); u.food = []; u.prey = []; u.amoebas = []; u.plants = []; u.tidy = 1e9;
+  u.phages = []; for (let i = 0; i < 8; i++) u.cloud(-60 - i * 8, 0, 'me', 0);
+  run(u, 4, { dx: 1, dy: 0, p: 1 });
+  const stuck = u.phages.filter(g => g.on).length;
+  console.log('    паспорт: быстрейший фаг', Math.round(fast), 'ед/с (клетка ' + cfg.speed + '), ближе стал на', Math.round(d0 - d1), ', уплыла от облака, прилипло', stuck);
+  if (fast > cfg.speed * 0.2) return 'фаг разогнался до ' + Math.round(fast);
+  if (d0 - d1 > 40) return 'облако подтянулось к клетке на ' + Math.round(d0 - d1);
+  if (stuck) return 'фаги догнали уплывающую клетку';
+});
+
+check('прилипшего фага стряхивает кувырок, пока он не впрыснул', () => {
+  const w = new World(cfg, 8); w.food = []; w.prey = []; w.amoebas = []; w.plants = []; w.tidy = 1e9;
+  run(w, 1, { dx: 1, dy: 0, p: 1 });
+  const a = w.me[0]; w.phages = []; w.cloud(a.x + radius(a.m) + 8, a.y, 'me', 0);
+  run(w, 0.3, { dx: 1, dy: 0, p: 1 });
+  const on = w.phages.filter(g => g.on).length;
+  run(w, 0.5, { dx: -1, dy: 0, p: 1 });
+  run(w, cfg.inject + 1, { dx: -1, dy: 0, p: 1 });
+  console.log('    паспорт: прилип', on, ', после разворота болеет', a.sick >= 0);
+  if (on !== 1) return 'фаг не прилип при касании';
+  if (a.sick >= 0) return 'кувырок не стряхнул фага';
 });
 
 check('джойстик: сдвиг пальца вправо ведёт клетку вправо, слабый сдвиг — медленнее', () => {
@@ -70,6 +102,30 @@ check('джойстик: сдвиг пальца вправо ведёт кле�
   console.log('    паспорт: за 3 с полный ход', Math.round(full), ', слабый', Math.round(half));
   if (full < 300) return 'полный ход увёл только на ' + Math.round(full);
   if (half > full * 0.6) return 'слабый ход почти как полный';
+});
+
+check('плывёт как настоящая палочка: поворот дугой, не боком; на развороте кувырок', () => {
+  const w = new World(cfg, 9); w.amoebas = []; w.phages = []; w.prey = []; w.food = []; w.tidy = 1e9;
+  run(w, 1.5, { dx: 1, dy: 0, p: 1 });
+  const a = w.me[0]; let slip = 0, bend = 0, t45 = -1, arcTumble = false, tumbled = false, slow = 1e9, back = -1;
+  for (let i = 0; i < 30; i++) { // поворот на 45° — дугой
+    w.step(1 / 30, { dx: 1, dy: 1, p: 1 });
+    const sp = Math.hypot(a.vx, a.vy), side = Math.abs(-a.vx * Math.sin(a.a) + a.vy * Math.cos(a.a));
+    slip = Math.max(slip, side / (sp || 1)); bend = Math.max(bend, Math.abs(a.w)); arcTumble ||= a.tumble > 0;
+    if (t45 < 0 && Math.abs(a.a - Math.PI / 4) < 0.05) t45 = (i + 1) / 30;
+  }
+  for (let i = 0; i < 45; i++) { // разворот назад — кувырок
+    w.step(1 / 30, { dx: -1, dy: -1, p: 1 });
+    if (a.tumble > 0) { tumbled = true; slow = Math.min(slow, Math.hypot(a.vx, a.vy)); }
+    if (back < 0 && a.vx < -80 && a.vy < -80) back = (i + 1) / 30;
+  }
+  console.log('    паспорт: поворот на 45° за', t45.toFixed(2), 'с, скольжение вбок', slip.toFixed(2), ', изгиб', bend.toFixed(1), ', кувырок', tumbled, 'скорость в нём', Math.round(slow), ', снова плывёт через', back.toFixed(2), 'с');
+  if (arcTumble) return 'на мягком повороте кувырок';
+  if (t45 < 0.15 || t45 > 0.5) return 'поворот на 45° за ' + t45.toFixed(2) + ' с (дугой ~160°/с)';
+  if (slip > 0.35) return 'клетку несёт боком: ' + slip.toFixed(2);
+  if (bend < 1) return 'в повороте тело не гнётся';
+  if (!tumbled || slow > 60) return 'разворот без кувырка';
+  if (back < 0 || back > 1) return 'после кувырка не поплыла за секунду';
 });
 
 check('мир без краёв: уплыл далеко — вокруг снова еда, позади забыто', () => {

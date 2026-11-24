@@ -89,8 +89,8 @@ export class World {
       this.amoebas.push({ ...pt(), vx: 0, vy: 0, m: 3 + r() * (3 + far), id: ++this.ids });
     if (!safe && b === 1 && r() < c.phage_chance) {
       const at = pt();
-      for (let i = 0, n = 3 + Math.floor(r() * 4); i < n; i++)
-        this.phages.push({ x: at.x + (r() - 0.5) * 120, y: at.y + (r() - 0.5) * 120, vx: 0, vy: 0 });
+      const host = r() < 0.5 ? 'me' : 'prey'; // у каждого фага свой хозяин: на чужую клетку он не садится
+      for (let i = 0, n = 3 + Math.floor(r() * 4); i < n; i++) this.cloud(at.x + (r() - 0.5) * 120, at.y + (r() - 0.5) * 120, host, 0);
     }
   }
 
@@ -125,33 +125,46 @@ export class World {
     this.stats.time += dt;
     const c0 = this.center();
     const speed = c.speed * (this.genes.flagellum ? 1.3 : 1);
-    const k = Math.min(1, (target ? 4 : 10) * dt);
+    const sw = c.swim, wrap = d => Math.atan2(Math.sin(d), Math.cos(d));
     for (const a of this.me) {
-      let wx, wy;
-      if (target && target.dx !== undefined) { // джойстик: все плывут в одну сторону, сила — ход пальца
-        const s = speed / Math.pow(a.m, 0.2) * target.p;
-        wx = target.dx * s; wy = target.dy * s;
-      } else if (target) { // точка мира: плыть к ней
+      // Как настоящая палочка: тянет вдоль своей оси, поворачивает по дуге, боком почти не скользит
+      // (вязкая вода: вбок тянуть втрое труднее). На резком развороте — кувырок: жгутики расплетаются,
+      // клетка почти встаёт, переворачивается и снова плывёт.
+      let want = null, s = 0;
+      if (target && target.dx !== undefined) { want = Math.atan2(target.dy, target.dx); s = speed / Math.pow(a.m, 0.2) * target.p; }
+      else if (target) {
         const tx = target.x - a.x, ty = target.y - a.y, l = len(tx, ty) || 1;
-        const s = speed / Math.pow(a.m, 0.2) * Math.min(1, l / 60);
-        wx = tx / l * s; wy = ty / l * s;
+        want = Math.atan2(ty, tx); s = speed / Math.pow(a.m, 0.2) * Math.min(1, l / 60);
+      }
+      const a0 = a.a;
+      a.tumble = Math.max(0, (a.tumble || 0) - dt);
+      let thrust = 0;
+      if (want !== null && s > 1) {
+        const d = wrap(want - a.a);
+        if (!a.tumble && Math.abs(d) > sw.tumble_angle && len(a.vx, a.vy) > s * 0.4) {
+          a.tumble = sw.tumble_time; // кувырок стряхивает фага, который ещё не впрыснул
+          for (const g of this.phages) if (g.on === a) { g.on = null; g.cool = 1.5; g.vx = -Math.cos(g.d) * 60; g.vy = -Math.sin(g.d) * 60; this.events.push(['shake', g.x, g.y]); }
+        }
+        const turn = a.tumble ? sw.tumble_turn : sw.turn;
+        a.a += Math.sign(d) * Math.min(Math.abs(d), turn * dt);
+        thrust = a.tumble ? s * 0.12 : s * Math.max(0.25, Math.cos(wrap(want - a.a)));
       } else { // палец отпущен: в воде клетка встаёт сразу (вязкость); её медленно сносит и поворачивает (~90° за 10 с)
         a.drift = (a.drift ?? r() * 6.283) + (r() - 0.5) * dt * 1.5;
-        wx = Math.cos(a.drift) * 7; wy = Math.sin(a.drift) * 7;
         a.a += (a.id % 2 ? 0.16 : -0.16) * dt;
       }
+      const ux = Math.cos(a.a), uy = Math.sin(a.a);
+      let fwd = a.vx * ux + a.vy * uy, side = -a.vx * uy + a.vy * ux;
+      fwd += (thrust - fwd) * Math.min(1, (thrust ? sw.drag_along : 10) * dt);
+      side -= side * Math.min(1, sw.drag_side * dt);
+      a.vx = ux * fwd - uy * side; a.vy = uy * fwd + ux * side;
+      if (!thrust && a.drift !== undefined) { a.vx += Math.cos(a.drift) * 7 * Math.min(1, 10 * dt); a.vy += Math.sin(a.drift) * 7 * Math.min(1, 10 * dt); }
       for (const o of this.me) { // дочерние не налезают друг на друга
         if (o === a) continue;
         const dx = a.x - o.x, dy = a.y - o.y, d = len(dx, dy) || 0.01, rr = radius(a.m) + radius(o.m);
-        if (d < rr) { wx += dx / d * (rr - d) * 6; wy += dy / d * (rr - d) * 6; }
+        if (d < rr) { a.vx += dx / d * (rr - d) * 6 * Math.min(1, 4 * dt); a.vy += dy / d * (rr - d) * 6 * Math.min(1, 4 * dt); }
       }
-      a.vx += (wx - a.vx) * k; a.vy += (wy - a.vy) * k;
       a.x += a.vx * dt; a.y += a.vy * dt;
-      if (len(a.vx, a.vy) > 8) {
-        let d = Math.atan2(a.vy, a.vx) - a.a;
-        d = Math.atan2(Math.sin(d), Math.cos(d));
-        a.a += d * Math.min(1, 6 * dt);
-      }
+      a.w = wrap(a.a - a0) / dt; // скорость поворота — по ней тело и пучок жгутиков гнутся дугой
       if (a.sick >= 0) a.sick -= dt;
     }
     const c1 = this.center();
@@ -161,11 +174,17 @@ export class World {
     for (const a of this.me.filter(a => a.sick >= 0 && a.sick < dt)) {
       this.me.splice(this.me.indexOf(a), 1);
       this.events.push(['burst', a.x, a.y]);
-      for (let i = 0; i < 3; i++) { const t = r() * 6.283; this.phages.push({ x: a.x, y: a.y, vx: Math.cos(t) * 120, vy: Math.sin(t) * 120 }); }
+      for (let i = 0; i < c.burst; i++) this.cloud(a.x, a.y, 'me', 40);
     }
     this.tidy -= dt;
     if (this.tidy <= 0 && this.me.length) { this.tidy = 1; this.fill(c1.x, c1.y); this.forget(c1.x, c1.y); }
   }
+
+  // Фаг: точка облака; v — с какой силой разлетаются новые фаги из лопнувшей клетки.
+  cloud(x, y, host, v) { const t = this.r() * 6.283; this.phages.push({ x, y, vx: Math.cos(t) * v, vy: Math.sin(t) * v, host, d: t }); }
+
+  // Медленное течение воды: у каждого места своё направление, меняется во времени.
+  flow(x, y) { const t = hash(Math.floor(x / 500), Math.floor(y / 500), 77) * 6.283 + this.stats.time * 0.05; return [Math.cos(t) * this.cfg.flow, Math.sin(t) * this.cfg.flow]; }
 
   grow(a, v) { a.m = Math.min(this.cfg.max_m, a.m + v * (this.genes.fast ? 2 : 1)); }
 
@@ -232,22 +251,41 @@ export class World {
       const k = Math.min(1, dt);
       m.vx += (wx - m.vx) * k; m.vy += (wy - m.vy) * k; m.x += m.vx * dt; m.y += m.vy * dt;
     }
-    for (const g of this.phages) { // фаги носятся рывками, к клетке рядом летят прямо
-      const a = this.nearest(g, 200);
-      let wx = g.vx, wy = g.vy;
-      if (r() < dt * 2) { const t = r() * 6.283; wx = Math.cos(t) * 60; wy = Math.sin(t) * 60; }
-      if (a) {
-        const d = dist(a, g) || 1;
-        wx = (a.x - g.x) / d * c.phage; wy = (a.y - g.y) / d * c.phage;
-        if (this.genes.toxin && d < radius(a.m) + 50) { g.gone = true; this.events.push(['eat', g.x, g.y]); continue; }
-        if (d < radius(a.m) && !this.genes.crispr) {
-          if (a.sick < 0) { a.sick = c.sick; this.events.push(['sick', a.x, a.y]); }
-          g.gone = true; continue;
+    // Фаг сам не плывёт: его носит течение и дрожь. Коснулся своего хозяина — прилип ножками
+    // и впрыскивает (cfg.inject с); за это время кувырок его стряхивает. Впрыснул — клетка болеет и лопается облаком.
+    for (const g of this.phages) {
+      if (g.on) {
+        const h = g.on;
+        if (h.gone || (this.me.indexOf(h) < 0 && this.prey.indexOf(h) < 0)) { g.on = null; continue; }
+        const rr = radius(h.m) * (g.host === 'me' ? 1 : 0.5) + 3, t = (h.a || 0) + g.off;
+        g.x = h.x + Math.cos(t) * rr; g.y = h.y + Math.sin(t) * rr; g.vx = h.vx; g.vy = h.vy; g.d = t + Math.PI;
+        g.t -= dt;
+        if (g.t <= 0) {
+          g.gone = true;
+          if (g.host === 'me' && this.genes.crispr) { this.events.push(['cut', g.x, g.y]); continue; }
+          if (h.sick === undefined || h.sick < 0) { h.sick = c.sick; if (g.host === 'me') this.events.push(['sick', h.x, h.y]); }
         }
+        continue;
       }
-      const k = Math.min(1, 3 * dt);
-      g.vx += (wx - g.vx) * k; g.vy += (wy - g.vy) * k; g.x += g.vx * dt; g.y += g.vy * dt;
+      const [fx, fy] = this.flow(g.x, g.y);
+      g.vx += (r() - 0.5) * c.phage_jitter * 6 * dt + (fx - g.vx) * Math.min(1, 1.5 * dt);
+      g.vy += (r() - 0.5) * c.phage_jitter * 6 * dt + (fy - g.vy) * Math.min(1, 1.5 * dt);
+      g.d += (r() - 0.5) * 3 * dt;
+      g.x += g.vx * dt; g.y += g.vy * dt;
+      if (g.cool > 0) { g.cool -= dt; continue; } // стряхнутый отплывает и не липнет сразу
+      if (g.host === 'me') {
+        const a = this.nearest(g, 120);
+        if (!a) continue;
+        const d = dist(a, g);
+        if (this.genes.toxin && d < radius(a.m) + 50) { g.gone = true; this.events.push(['eat', g.x, g.y]); continue; }
+        if (d < radius(a.m) + 2) { g.on = a; g.t = c.inject; g.off = Math.atan2(g.y - a.y, g.x - a.x) - a.a; this.events.push(['stick', g.x, g.y]); }
+      } else for (const q of this.prey) if (dist(q, g) < radius(q.m) * 0.5 + 2) { g.on = q; g.t = c.inject; g.off = Math.atan2(g.y - q.y, g.x - q.x) - q.a; break; }
     }
+    for (const q of this.prey) if (q.sick >= 0 && (q.sick -= dt) < 0) { // заражённый кокк лопается своим облаком
+      q.gone = true; this.events.push(['pop', q.x, q.y]);
+      for (let i = 0; i < c.burst; i++) this.cloud(q.x, q.y, 'prey', 40);
+    }
+    this.prey = this.prey.filter(q => !q.gone);
     this.phages = this.phages.filter(g => !g.gone);
   }
 
