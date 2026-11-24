@@ -377,7 +377,7 @@ export class World {
 
   // Пасть: клетку не съедают мгновенно — её держат, пока смыкается пищеварительный пузырёк (cfg.grab с).
   // Резкий разворот (кувырок) вырывает, и ещё секунду клетку не поймать. Не успел — съеден.
-  grab(a, who, by) { if (a.grab || a.free > 0 || mut.raftHolds(this, a, who)) return; /* сцепка: плот не по зубам мелкой пасти */ a.grab = { who, by, t: this.cfg.grab }; this.events.push(['grab', a.x, a.y]); }
+  grab(a, who, by) { if (a.grab || a.free > 0 || by.syt > 0 || mut.raftHolds(this, a, who)) return; /* сытая пасть отдыхает (zhizn.js, С25) */ /* сцепка: плот не по зубам мелкой пасти */ a.grab = { who, by, t: this.cfg.grab }; this.events.push(['grab', a.x, a.y]); }
   mouthOf(g) { const b = g.by; return g.who === 'slipper' ? this.mouth(b) : g.who === 'bell' ? this.bell(b) : this.head(b); }
   hold(dt) {
     for (const a of [...this.me]) {
@@ -554,9 +554,9 @@ export class World {
     for (const m of this.amoebas) { // амёба ползёт только по дну и нитям; в открытой воде почти стоит
       const a = this.nearest(m, 340);
       let wx = 0, wy = 0;
-      m.hunt = !!(a && a.m < m.m * 0.8 && !this.genes.capsule && !(a.spore > 0)); // охотится: видна её зона захвата (L030); спящую не ловит
+      m.hunt = !!(a && a.m < m.m * 0.8 && !(m.syt > 0) && !this.genes.capsule && !(a.spore > 0)); // охотится: видна её зона захвата (L030); спящую не ловит
       if (a && a.spore > 0) { const d = dist(a, m) || 1; wx = (m.x - a.x) / d * c.amoeba * c.spore_shy; wy = (m.y - a.y) / d * c.amoeba * c.spore_shy; } // спящую не берут: обнюхала и уползает (L032)
-      else if (a && a.m < m.m * 0.8) {
+      else if (a && a.m < m.m * 0.8 && !(m.syt > 0)) { // сытая амёба не гонится (zhizn.js, С25)
         const d = dist(a, m) || 1;
         const ground = this.biome(m.x, m.y) === 2 || this.plants.some(p => dist(p, m) < 160) || this.crumbs.some(k => dist(k, m) < 120);
         const v = c.amoeba * (ground ? 1 : c.amoeba_open);
