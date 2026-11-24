@@ -120,7 +120,7 @@ func _hit(u: Dictionary, x: Dictionary) -> void:
 	u.cd = cfg.warrior.hit_every
 	changed.emit("hit", {"side": u.side, "pos": x.pos})
 	if x.has("max_hp"):
-		damage(x, cfg.warrior.damage)
+		damage(x, cfg.warrior.siege)
 		return
 	x.hp -= cfg.warrior.damage
 	if x.hp <= 0:
