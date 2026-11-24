@@ -706,11 +706,12 @@ check('пруд с планом (К1): слои сверху вниз посто
   console.log('    паспорт: пруд ' + P.w + '×' + P.h + ', старт на глубине ' + w.depth(0).toFixed(2) + ', у левого края x=' + Math.round(c.x) + ', открыто клеток ' + w.seen.size + ' из ' + P.grid[0] * P.grid[1]);
 });
 
+const LEAD = 1.5; // правило дизайнера (L030): признак убийцы виден за полторы секунды, а не за сколько записано в data.json
 check('test_L030: у каждой воронки видимая зона и признак за zone.lead секунд хода до края; тревога только у ближайшей', () => {
   const bare = () => { const w = new World(cfg, 5); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
   const out = [];
   for (const [kind, list, mk] of [['slipper', 'slippers', a => ({ x: a.x, y: a.y, a: 0, back: 0, id: 3 })], ['bell', 'bells', a => ({ x: a.x, y: a.y, dir: 0, shut: 0, id: 3 })], ['roti', 'rotis', a => ({ x: a.x, y: a.y, a: 0, sit: true, t: 9, id: 3 })]]) {
-    const w = bare(), a = w.me[0]; w[list] = [mk({ x: 0, y: 0 })]; const zn = w.zones()[0], R = zn[2], lead = cfg.speed * cfg.zone.lead;
+    const w = bare(), a = w.me[0]; w[list] = [mk({ x: 0, y: 0 })]; const zn = w.zones()[0], R = zn[2], lead = cfg.speed * LEAD;
     const at = d => { a.x = zn[0] - R - d; a.y = zn[1]; const v = w.warning(); return v ? v.level : 0; };
     const near = at(lead * 0.5), edge = at(0), far = at(lead * 1.2);
     let pull = 0; { a.x = zn[0] - R * 0.6; a.y = zn[1]; const [fx] = w.suck(a.x, a.y); pull = fx; }
@@ -731,7 +732,7 @@ check('test_L030: запятая сначала целится zone.lead сек�
   const w = bare(7), a = w.me[0]; w.bdellos = [{ x: a.x + 14, y: a.y, vx: 0, vy: 0, a: Math.PI, t: 2, id: 9 }]; w.step(1 / 30, null); const bounced = !(a.held > 0);
   console.log('    паспорт: признак до укуса, с —', leads.map(x => x.toFixed(1)).join(' '), '| без прицела отскочила', bounced);
   if (!leads.length) return 'запятая так и не напала за 30 с';
-  if (leads.some(x => x < cfg.zone.lead * 0.9)) return 'укус без признака за zone.lead: ' + leads.map(x => x.toFixed(1)).join(', ');
+  if (leads.some(x => x < LEAD * 0.9)) return 'укус без признака за zone.lead: ' + leads.map(x => x.toFixed(1)).join(', ');
   if (!bounced) return 'запятая без прицела вцепилась';
 });
 
@@ -743,7 +744,7 @@ check('test_L030: охотящаяся амёба видна зоной захв
     if (!w.me.includes(a)) leads.push(first === null ? 0 : w.stats.time - first); }
   console.log('    паспорт: зона амёбы видна до захвата, с —', leads.map(x => x.toFixed(1)).join(' '));
   if (!leads.length) return 'амёба так и не схватила за 60 с';
-  if (leads.some(x => x < cfg.zone.lead * 0.9)) return 'захват без признака за zone.lead: ' + leads.map(x => x.toFixed(1)).join(', ');
+  if (leads.some(x => x < LEAD * 0.9)) return 'захват без признака за zone.lead: ' + leads.map(x => x.toFixed(1)).join(', ');
 });
 
 // Урок L018 (расширен 24.11) и L024 «антибред»: игрок видит про умения только слова книги, слово мира в тексте — имя из Альманаха
