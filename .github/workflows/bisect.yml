@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ref: [503548d, 7a0cd1f]
+        ref: [bd3775f, 7a0cd1f]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -23,4 +23,4 @@ jobs:
           bash tools/web/build.sh out/site
           (cd out/site && python3 -m http.server 8000 >/dev/null 2>&1 &)
           sleep 2
-          bash tools/web/test_L002.sh out/site && echo "test_L002 ОК" || echo "test_L002 ПАДЕНИЕ"; for i in 1 2 3 4 5; do bash tools/web/check_site.sh http://localhost:8000 "$(git rev-parse --short HEAD)" && echo "ПРОГОН $i ОК" || echo "ПРОГОН $i ПАДЕНИЕ"; done
+          bash tools/web/test_L002.sh out/site && echo "test_L002 ОК" || echo "test_L002 ПАДЕНИЕ"; for i in 1 2 3; do bash tools/web/check_site.sh http://localhost:8000 "$(git rev-parse --short HEAD)" && echo "ПРОГОН $i ОК" || echo "ПРОГОН $i ПАДЕНИЕ"; done
