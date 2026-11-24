@@ -169,9 +169,16 @@ func _sync_hints() -> void:
 			_hints[b.id].texture_mode = Line2D.LINE_TEXTURE_TILE
 			_hints[b.id].texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 			$World/Paths.add_child(_hints[b.id])
+			var ghost := Sprite2D.new()  # призрак носильщика бежит по пунктиру к печенью: «сюда»
+			_fit(ghost, look.carrier, _tex(look.carrier.files[Sim.PLAYER]))
+			ghost.z_index = 5  # поверх лагеря и печенья
+			_hints[b.id].add_child(ghost)
 		var k: float = fmod(sim.time, h.period) / h.period
-		_hints[b.id].points = PackedVector2Array([b.pos, b.pos.lerp(to, ease(minf(1.0, k * 1.4), 0.4))])
+		var end: Vector2 = b.pos.lerp(to, ease(minf(1.0, k * 1.4), 0.4))
+		_hints[b.id].points = PackedVector2Array([b.pos, end])
 		_hints[b.id].modulate.a = h.alpha * (1.0 - smoothstep(0.75, 1.0, k))
+		_hints[b.id].get_child(0).position = end
+		_hints[b.id].get_child(0).self_modulate.a = h.ghost
 	_drop_missing(_hints, seen)
 
 

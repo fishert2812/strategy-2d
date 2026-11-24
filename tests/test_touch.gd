@@ -156,7 +156,7 @@ func test_pictures_loaded_before_play() -> String:
 	return "" if missing.is_empty() else "не загружены заранее: %s" % [missing]
 
 
-## Стол подсказывает новичку без слов: от лагеря без тропы тянется пунктир к ближайшему печенью,
+## Стол подсказывает новичку без слов: от лагеря без тропы к ближайшему печенью бежит призрак носильщика по пунктиру,
 ## тропа легла — пунктир гаснет; голодная казарма показывает крошку над собой и мотает «нет».
 func test_table_hints_camp_path_and_hungry_barracks() -> String:
 	var battle: Control = await _battle(Vector2i(720, 1281))
@@ -169,6 +169,8 @@ func test_table_hints_camp_path_and_hungry_barracks() -> String:
 	var why := ""
 	if line == null or line.points.size() != 2 or line.points[1].distance_to(Vector2(170, 760)) > line.points[0].distance_to(Vector2(170, 760)):
 		why = "у лагеря без тропы нет пунктира к печенью"
+	elif line.get_child(0).position != line.points[1]:
+		why = "призрак носильщика не бежит по пунктиру"
 	sim.set_path(camp, Vector2(170, 760))
 	await tree.process_frame
 	if why == "" and battle._hints.has(camp.id):
