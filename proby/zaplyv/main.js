@@ -431,9 +431,9 @@ function paint(time) {
     }
     for (let i = 0; i < 10; i++) { const t = i * 0.628 + k.id, d = r * (0.55 + 0.2 * Math.sin(i * 1.7 + time * 0.3)); ink.put(x + Math.cos(t) * d, y + Math.sin(t) * d, 1.1 * z + 0.4, 0.95, 0.85, 0.6, 0.55); }
   }
-  for (const q of world.prey) { // кокки: мелкие зелёные — еда, крупные сиреневые — не по зубам (но и не нападают)
+  for (const q of world.prey) { // кокки — соседи-соперники, сиреневые; с токсином зеленеют: касание их убьёт
     const [x, y] = scr(q.x, q.y); if (!on(x, y)) continue;
-    const side = q.m > big * 1.25 ? 1 : 2, r = radius(q.m) * z, kind = q.id % 4, a = q.a + time * 0.2;
+    const side = world.genes.toxin ? 2 : 1, r = radius(q.m) * z, kind = q.id % 4, a = q.a + time * 0.2;
     const ux = Math.cos(a), uy = Math.sin(a);
     if (kind === 0) { // шар с шипами, у каждого свой цвет шипов
       ball(x, y, r * 0.9, side, q.id);
@@ -451,8 +451,9 @@ function paint(time) {
   for (const d of world.donors) { // сородич с плазмидой: золотистая палочка, внутри светится колечко ДНК
     const [x, y] = scr(d.x, d.y); if (!on(x, y)) continue;
     const w = 7 * z;
+    if (d.held > 0) { bodies.sphere(x, y, w * 1.4, [1, 0.88, 0.55], [1, 0.5, 0.3], d.id); glow.put(x, y, w * 3, 1, 0.3, 0.1, 0.15); continue; }
     bodies.rod(x, y, d.a, w * 2.1, w, 0, [1, 0.88, 0.55], [0.85, 0.6, 0.25], d.id, Math.sin(time * 1.5 + d.id) * w * 0.15);
-    if (!d.gave) for (let k = 0; k < 14; k++) { const t = k / 14 * 6.283 + time * 0.8; glow.put(x + Math.cos(t) * w * 0.45, y + Math.sin(t) * w * 0.45, 1.1 * z + 0.4, 1, 0.95, 0.6, 0.7); } // плазмида
+    if (!(d.held > 0)) for (let k = 0; k < 14; k++) { const t = k / 14 * 6.283 + time * 0.8; glow.put(x + Math.cos(t) * w * 0.45, y + Math.sin(t) * w * 0.45, 1.1 * z + 0.4, 1, 0.95, 0.6, 0.7); } // плазмида
     if (d.to) { const [tx, ty] = scr(d.to.x, d.to.y), f = Math.min(1, d.link / cfg.conj); // пиля-мостик тянется, по нему бежит ДНК
       for (let k = 0; k <= 14; k++) { const u = k / 14 * f; ink.put(x + (tx - x) * u, y + (ty - y) * u, 1.2 * z + 0.4, 1, 0.95, 0.6, 0.8); }
       glow.put(x + (tx - x) * ((time * 2) % 1) * f, y + (ty - y) * ((time * 2) % 1) * f, 3 * z, 1, 0.9, 0.5, 0.6); }
@@ -460,6 +461,7 @@ function paint(time) {
   for (const q of world.pseudos) { // синегнойка: палочка как ты, зеленоватая, один жгутик сзади
     const [x, y] = scr(q.x, q.y); if (!on(x, y)) continue;
     const w = 7.5 * z, ux = Math.cos(q.a), uy = Math.sin(q.a);
+    if (q.held > 0) { bodies.sphere(x, y, w * 1.5, [0.45, 0.95, 0.72], [1, 0.5, 0.3], q.id); glow.put(x, y, w * 3, 1, 0.3, 0.1, 0.15); continue; } // в ней хищник: шарик
     bodies.rod(x, y, q.a, w * 2.3, w, 0, [0.45, 0.95, 0.72], [0.15, 0.55, 0.42], q.id, Math.sin(time * 4 + q.id) * w * 0.2);
     for (let k = 1; k <= 28; k++) { const f = k / 28, wv = Math.sin(f * 10 - time * 26) * w * 0.6 * f;
       glow.put(x - ux * (w * 2.3 + f * w * 7) - uy * wv, y - uy * (w * 2.3 + f * w * 7) + ux * wv, 1.1 * Math.max(z, 0.7), 0.6, 1, 0.8, 0.55 * (1 - f * 0.5)); }
@@ -535,6 +537,8 @@ function paint(time) {
       const t = k / lk.toxin * 6.283 + a.id, u = Math.cos(t) * (half - w * 0.45), [px, py] = along(u, Math.sin(t) * w * 0.78 + arc(u / z));
       ink.put(px, py, 1.3 * z + 0.4, 0.12, 0.02, 0.1, 0.75);
     }
+    for (let k = 0; k < lk.studs; k++) { const t = k / lk.studs * 6.283 + 0.2, u = Math.cos(t) * (half - w * 0.15), [px, py] = along(u, Math.sin(t) * w * 1.02 + arc(u / z)); ink.put(px, py, 1.5 * z + 0.4, 0.25, 0.45, 1, 0.85); }
+    if (world.plasmid && !a.g) for (let k = 0; k < 12; k++) { const t = k / 12 * 6.283 + time * 0.8, [px, py] = along(Math.cos(t) * w * 0.35 + w * 0.3, Math.sin(t) * w * 0.35); glow.put(px, py, 0.9 * z + 0.4, 1, 0.95, 0.6, 0.7); } // плазмида: колечко ДНК, теперь и ты донор
     if (lk.forespore) { const [px, py] = along(-half + w * 0.9, arc(-half / z + w * 0.9 / z)); glow.put(px, py, w * 0.5, 1, 0.97, 0.85, 0.55); ink.put(px, py, w * 0.22, 1, 1, 0.95, 0.8); }
     for (let k = 0; k < lk.receptors; k++) { // хемотаксис: рецепторы на переднем конце мигают, когда чуют еду
       const t = (k - 2) * 0.35, [px, py] = along(half - w * 0.15 + Math.cos(t) * w * 0.1, Math.sin(t) * w * 0.85 + arc(half / z));
