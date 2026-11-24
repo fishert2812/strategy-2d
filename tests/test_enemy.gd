@@ -99,9 +99,11 @@ func test_enemy_characters_play_differently() -> String:
 				_rush(sim)
 			towers[who] = maxi(towers.get(who, 0), enemy.towers_built)
 		ends[who] = sim.time
+		if who == "tihonya" and sim.winner != Sim.PLAYER:
+			return "простой игрок не победил Тихоню (%d с)" % sim.time
 	print("    простой игрок: против Тихони %d с, против Охотника %d с; башен у Тихони %d, у Ползуна %d" % [ends.tihonya, ends.ohotnik, towers.tihonya, towers.polzun])
-	if ends.tihonya < ends.ohotnik * 2.0:
-		return "Тихоня и Охотник играют похоже: партии %d с и %d с" % [ends.tihonya, ends.ohotnik]
+	if ends.tihonya >= 600 or ends.tihonya < ends.ohotnik + 60:
+		return "против Тихони простой игрок не победил до 10:00 или партия не на минуту длиннее, чем с Охотником: %d с и %d с" % [ends.tihonya, ends.ohotnik]
 	if towers.tihonya == 0 or towers.polzun == 0:
 		return "башни не ставит: Тихоня %d, Ползун %d" % [towers.tihonya, towers.polzun]
 	if Enemy.new(Sim.new()).who != "zadira" or JSON.parse_string(FileAccess.get_file_as_string(Enemy.CHARS)).order[0] != "tihonya":
