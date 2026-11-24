@@ -29,6 +29,7 @@ const seen = sel => p.evaluate(s => { const e = document.querySelector(s); if (!
 const marks = () => p.evaluate(() => JSON.parse(localStorage.getItem('zaplyv.marks') || '[]').length);
 const on = id => p.evaluate(i => document.getElementById(i).classList.contains('on'), id);
 
+say(!(await on('menu')), 'первый запуск — без меню, сразу капля (Э21)');
 let m = await marks();
 if (await tap('#flag', 'флажок в игре')) say(await seen('#note') && await marks() === m + 1, 'флажок в игре: отметка записана и надпись видна');
 if (await tap('#pause', 'пауза')) say(await on('genome'), 'пауза открывает геном');
@@ -92,7 +93,7 @@ if (await tap('#nflag', '«Не так» в ночи рода')) say(await seen(
 if (await tap('#nback', '«Назад» из ночи')) say(!(await on('night')) && await on('end'), '«Назад» возвращает на экран гибели');
 if (await tap('#nightgo', '«Ночь рода» снова') && await tap('#ndanger [data-d=phage]', 'опасность «Фаги»')) {
   await p.waitForTimeout(600); say(await p.evaluate(() => zaplyvNight() && zaplyvNight().gen > 0), 'после выбора опасности поколения идут');
-  await p.evaluate(() => zaplyvNight().run()); await p.waitForTimeout(500);
+  await p.evaluate(() => zaplyvNight().run()); await p.waitForFunction(() => document.querySelector('#npicks button'), null, { timeout: 8000 }).catch(() => {}); await p.waitForTimeout(200); // ждём сами кнопки веток, а не время (WebKit рисует позже)
   if (await tap('#npicks button', 'ветка «выше всех»')) {
     const g = await p.evaluate(() => zaplyvNight().res.picks[0].genes);
     if (await tap('#ngo', '«Плыть этой веткой»')) { await p.waitForTimeout(300); say(await p.evaluate(g => !document.getElementById('night').classList.contains('on') && g.every(k => zaplyvWorld().genes[k]), g), '«Плыть этой веткой» начинает заплыв с генами ветки: ' + g); }
@@ -100,6 +101,18 @@ if (await tap('#nightgo', '«Ночь рода» снова') && await tap('#nda
   await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 0; }); await p.waitForTimeout(1200);
 }
 if (await tap('#again', '«Плыть снова»')) say(!(await on('end')), '«Плыть снова» начинает заплыв');
+// Меню-сценка (Э21): после гибели меню встречает при входе; объект выбирает режим, нижняя кнопка запускает.
+await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 0; }); await p.waitForTimeout(1200);
+await p.reload(); await p.waitForFunction(() => window.zaplyvProbe && zaplyvProbe.frames > 5, null, { timeout: 30000 }); await p.waitForTimeout(800);
+say(await on('menu'), 'после гибели вход открывает меню-сценку');
+say((await p.textContent('#mgo')) === 'Плыть', 'по умолчанию выбран заплыв: одно касание до игры');
+if (await tap('#mscene [data-m=hunt]', 'закрытый режим «Охота»')) say(await seen('#mscene [data-m=hunt] .mtip') && (await p.textContent('#mgo')) === 'Плыть', 'закрытый режим отвечает строкой у самого объекта, выбор не меняется');
+if (await tap('#mscene [data-m=night]', 'объект «Ночь рода»')) say((await p.textContent('#mgo')) === 'Начать ночь', 'касание объекта меняет подпись кнопки');
+if (await tap('#mgo', '«Начать ночь»')) say(await on('night') && !(await on('menu')), '«Начать ночь» открывает ночь рода');
+if (await tap('#nback', '«Назад» из ночи в меню')) say(await on('menu'), '«Назад» возвращает в меню');
+if (await tap('#mquiet', '«Тише»')) say((await p.textContent('#mquiet')) === 'Звук', '«Тише» выключает звук');
+await tap('#mquiet', '«Звук»');
+if (await tap('#mscene [data-m=swim]', 'объект «Заплыв»') && await tap('#mgo', '«Плыть» из меню')) say(!(await on('menu')) && await p.evaluate(() => zaplyvWorld().me.length > 0), '«Плыть» начинает заплыв');
 say(!errs.length, 'ошибок страницы нет' + (errs.length ? ': ' + errs.join('; ') : ''));
 await b.close();
 console.log(bad ? `КАСАНИЯ: провалов ${bad}` : 'КАСАНИЯ: все кнопки отвечают пальцу');

@@ -176,7 +176,7 @@ resize();
 // Звук без файлов: короткие тоны WebAudio. Safari включает звук только после касания.
 let audio = null;
 const beep = (f, dur, vol = 0.05, type = 'sine', slide = 0.6) => {
-  if (!audio) return;
+  if (!audio || ROD.quiet) return;
   const o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime;
   o.type = type; o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * slide, t + dur);
   g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
@@ -194,25 +194,68 @@ fetch('../version.txt').then(r => r.ok ? r.text() : '').then(t => { if (t.trim()
 function start(genes) {
   world = new World(cfg, (Math.random() * 2 ** 31) | 0);
   if (Array.isArray(genes)) world.inherit(genes); // заплыв веткой рода после «Ночи рода»
-  $('night').classList.remove('on');
+  $('night').classList.remove('on'); $('menu').classList.remove('on');
   view = { x: 0, y: 0, z: 2.2, tint: [...TINT[0]] };
   fx.reset(); fx.world = world; ended = false; // fx читает мир: сидящие вирусы, запятые, амёбы
   $('end').classList.remove('on');
 }
 $('again').onclick = () => start();
+// Род между заплывами: гибели, последний род (для ночи), ветки и поколения ночей, «Тише». Память — в этом браузере.
+let ROD = {}; try { ROD = JSON.parse(localStorage.getItem('zaplyv.rod') || '{}') || {}; } catch (_) {}
+const saveRod = () => { try { localStorage.setItem('zaplyv.rod', JSON.stringify(ROD)); } catch (_) {} };
+
+// Меню-сценка (книга Э21): водяной столб, объекты сцены — режимы. Первый запуск без меню; после первой гибели меню встречает при входе.
+const MODES = {
+  swim: { go: 'Плыть', line: 'Твоя клетка в капле пруда. Ешь, делись, не попадись' },
+  night: { go: 'Начать ночь', line: 'Тысяча поколений за полминуты. Ставишь одну опасность' },
+  sel: { lock: 'Пройди ночь рода — и сможешь растить свои породы' },
+  hunt: { lock: 'Погибни от красной запятой трижды — и сыграешь за неё' },
+  deep: { lock: 'Доплыви до ила — и увидишь, что было в капле миллиард лет назад' },
+  dry: { lock: 'Скоро: выжить, когда воды почти не осталось' },
+};
+let mSel = 'swim';
+function menuOpen() {
+  const mo = $('menu'); mo.classList.add('on');
+  const shoot = () => { for (const i of mo.querySelectorAll('img[data-k]')) if (!i.src) try { i.src = snap(i.dataset.k, KAB.items[i.dataset.k]); } catch (_) {} };
+  requestAnimationFrame(() => requestAnimationFrame(shoot)); // снимки живых моделей — когда сцена уже рисуется
+  const nb = ROD.branches || 1, w10 = nb % 10, w100 = nb % 100; $('mstate').textContent = ROD.deaths ? 'род: ' + nb + ' ' + (w10 === 1 && w100 !== 11 ? 'ветка' : w10 >= 2 && w10 <= 4 && (w100 < 12 || w100 > 14) ? 'ветки' : 'веток') + (ROD.gens ? ' · ' + ROD.gens + ' поколений' : '') : 'капля пруда, 10 мкм'; // пустые счётчики не показываем
+  const n = [...met].filter(k => KAB.items[k] && k !== 'me').length, g = [...met].filter(k => k.startsWith('gene:')).length;
+  const pl = (k, a, b, c) => k % 10 === 1 && k % 100 !== 11 ? a : k % 10 >= 2 && k % 10 <= 4 && (k % 100 < 12 || k % 100 > 14) ? b : c;
+  $('mknow').textContent = n ? 'Ты знаешь ' + n + ' ' + pl(n, 'обитателя', 'обитателей', 'обитателей') + (g ? ' · ' + g + ' ' + pl(g, 'ген', 'гена', 'генов') : '') : '';
+  $('mquiet').textContent = ROD.quiet ? 'Звук' : 'Тише';
+  menuPick('swim', true); // обычный заплыв — одно касание
+}
+function menuPick(m, quiet) {
+  const M = MODES[m];
+  if (M.lock) { // закрытое отвечает у самого объекта и гаснет через 3 с; выбор и кнопку не трогает
+    const o = $('mscene').querySelector(`.mo[data-m=${m}]`); for (const t of $('mscene').querySelectorAll('.mtip')) t.remove();
+    const t = document.createElement('div'); t.className = 'mtip'; t.textContent = M.lock; o.appendChild(t); o.classList.add('peek'); // тронутое видно резко, даже когда выбран другой
+    setTimeout(() => { t.style.opacity = 0; setTimeout(() => { t.remove(); if (!o.querySelector('.mtip')) o.classList.remove('peek'); }, 400); }, 3000); return;
+  }
+  $('mline').textContent = M.line;
+  for (const o of $('mscene').querySelectorAll('.mo')) o.classList.toggle('sel', o.dataset.m === m);
+  $('mscene').classList.toggle('picked', !quiet);
+  mSel = m; $('mgo').textContent = M.go;
+}
+function menuGo() { if (mSel === 'night') { $('menu').classList.remove('on'); openNight(); } else start(); }
+for (const o of document.querySelectorAll('#mscene .mo')) { o.onclick = () => menuPick(o.dataset.m); o.ondblclick = () => { menuPick(o.dataset.m); if (!MODES[o.dataset.m].lock) menuGo(); }; }
+$('mgo').onclick = menuGo;
+$('mquiet').onclick = () => { ROD.quiet = !ROD.quiet; saveRod(); $('mquiet').textContent = ROD.quiet ? 'Звук' : 'Тише'; };
+$('malm').onclick = () => kab.open();
 
 // «Ночь рода» (night.js; design/zaplyv_noch_roda_spec.md): после гибели род живёт 1000 поколений, игрок выбирает опасность, потом ветку.
 let NT = null, ntT = 0, ntPick = null;
 const geneName = g => (Object.values(GENY.geny || {}).find(q => q.klyuch === g) || {}).imya || g;
-$('nightgo').onclick = () => { nightIcons(); NT = null; ntPick = null; $('night').classList.add('on'); $('ndanger').hidden = $('nask').hidden = false; $('npicks').innerHTML = ''; $('ngo').disabled = true; $('ngen').textContent = 'Ночь рода'; drawNight(); };
+$('nightgo').onclick = () => openNight();
+function openNight() { nightIcons(); NT = null; ntPick = null; $('night').classList.add('on'); $('ndanger').hidden = $('nask').hidden = false; $('npicks').innerHTML = ''; $('ngo').disabled = true; $('ngen').textContent = 'Ночь рода'; drawNight(); }
 function nightIcons() { // значки опасностей — снимки самой опасности из той же студии, что Альманах (правило дизайнера)
   const im = $('ndanger').querySelectorAll('img'); if (im[0].src) return;
   [['phage', 'phage'], ['maw', 'amoeba'], ['hunger', 'me']].forEach(([d, k], i) => { try { im[i].src = snap(k, KAB.items[k]); } catch (e) { im[i].remove(); } });
 }
-$('nback').onclick = () => { $('night').classList.remove('on'); NT = null; };
+$('nback').onclick = () => { $('night').classList.remove('on'); NT = null; if (!ended) menuOpen(); }; // из меню ночь возвращает в меню
 $('nflag').onclick = e => flag('ночь рода', e.currentTarget);
 for (const b of $('ndanger').children) b.onclick = () => {
-  NT = night({ genes: Object.keys(world.genes).filter(g => world.genes[g]), n: world.stats.most }, b.dataset.d, world.seed, NJ, Object.keys(cfg.genes)); NT.danger = b.dataset.d;
+  NT = night({ genes: ROD.genes, n: ROD.most }, b.dataset.d, ROD.seed, NJ, Object.keys(cfg.genes)); NT.danger = b.dataset.d; // род — последний заплыв (из памяти: ночь зовут и из меню)
   ntT = 0; $('ndanger').hidden = $('nask').hidden = true;
 };
 $('ngo').onclick = () => { if (ntPick) start(ntPick.genes); };
@@ -224,6 +267,7 @@ function nightFrame(dt) {
 }
 function nightEnd() {
   const res = NT.result(), box = $('npicks'); NT.res = res; box.innerHTML = '';
+  ROD.branches = (ROD.branches || 0) + NT.branches.length; ROD.gens = (ROD.gens || 0) + NT.gen; saveRod();
   res.picks.forEach((q, k) => {
     const b = document.createElement('button'), i = document.createElement('i'); b.className = 'ghost'; i.style.background = q.color; b.appendChild(i);
     const t = document.createElement('span'), role = q.id === res.best ? 'Выше всех' : q.id === 0 ? 'Твой род' : 'Больше всех', nb = NJ.bands.length - 1;
@@ -332,7 +376,7 @@ function icon(g) {
 const idle = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 2000 }) : setTimeout(f, 300));
 setTimeout(function warm(i = 0) { const g = Object.keys(cfg.genes)[i]; if (!g) return; idle(() => { if (!paused && !ended) icon(g); setTimeout(() => warm(i + 1), 400); }); }, 6000); // значки заранее, по одному в свободную минуту: без рывка при первом гене и под пальцем
 GENY.gruppa = Object.fromEntries([...genomeData.arcs.flatMap(a => a.slots.map(x => [x.id, a.name])), ...genomeData.plasmids.map(x => [x.id, 'Чужие'])].filter(x => x[0])); // группа гена — дуга кольца
-const kab = almanahScreen({ K: KAB, cards, T: TEKSTY, G: GENY, met, snap, onSwim: () => { if (ended) start(); else if (paused) genome.close(); } });
+const kab = almanahScreen({ K: KAB, cards, T: TEKSTY, G: GENY, met, snap, onSwim: () => { if (ended || $('menu').classList.contains('on')) start(); else if (paused) genome.close(); } });
 const cabLabel = () => { $('cab').textContent = $('gcab').textContent = kab.label(); };
 cabLabel();
 const knowGenes = () => { let add = false; for (const g in world.genes) if (!met.has('gene:' + g)) { met.add('gene:' + g); add = true; } if (add) { saveMet(); cabLabel(); } }; // ген, который у тебя был, — запись в Альманахе
@@ -462,6 +506,7 @@ function say(text, ms, gene) { $('toast').textContent = text; if (gene) { const 
 const told = new Set(); // подсказка — один раз и только в момент, когда она нужна
 function tell(k, text) { if (told.has(k)) return; told.add(k); say(text, 2600); }
 start();
+if (ROD.deaths) menuOpen(); // первый запуск — без меню: сразу капля
 
 const toWorld = (sx, sy) => ({ x: (sx - W / 2) / view.z + view.x, y: (sy - H / 2) / view.z + view.y });
 let sway = [0, 0]; // лёгкое покачивание кадра после удара: плавная волна, не дрожь
@@ -554,6 +599,8 @@ function tick(dt) {
       $('cfact').textContent = t.priroda || k.fact; $('ctip').textContent = t.sovet || k.tip || '';
       $('ckill').src = KAB.items[kk] ? snap(kk, KAB.items[kk]) : ''; $('ckill').hidden = !KAB.items[kk];
       $('stats').innerHTML = pathText(world);
+      ROD.deaths = (ROD.deaths || 0) + 1; ROD.genes = Object.keys(world.genes).filter(g => world.genes[g]); ROD.most = world.stats.most; ROD.seed = world.seed; // род для ночи и меню
+      const kl = world.stats.killer || 'me'; ROD.killers = ROD.killers || {}; ROD.killers[kl] = (ROD.killers[kl] || 0) + 1; saveRod();
       setTimeout(() => { $('end').classList.add('on'); $('toast').classList.remove('on'); }, 700); // подсказка заплыва не ложится на экран гибели
     }
     return;
@@ -858,6 +905,8 @@ addEventListener('error', () => probe.errors++);
 let last = performance.now(), acc = [], js = [];
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
+  if (($('menu').classList.contains('on') || $('night').classList.contains('on')) && !frame.hid) { frame.hid = true; $('pause').style.display = $('flag').style.display = 'none'; } // кнопки заплыва не лежат поверх меню и ночи
+  if ($('menu').classList.contains('on') && !$('cabinet').classList.contains('on')) { last = now; probe.frames++; requestAnimationFrame(frame); return; } // меню закрывает мир: мир стоит
   if ($('night').classList.contains('on')) { last = now; nightFrame(dt); probe.frames++; requestAnimationFrame(frame); return; } // ночь рода закрывает мир
   const play = !ended; // замер «средний кадр» — только пока плывёшь; экран гибели в него не подмешивается
   if (play) { acc.push(now - last); if (acc.length > 300) acc.shift(); }
