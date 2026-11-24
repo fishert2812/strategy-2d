@@ -777,6 +777,21 @@ check('test_L024: слово мира в тексте умения или сущ
   console.log('    паспорт: непонятных игроку слов мира', bad.length, bad.slice(0, 6).join('; '));
   if (bad.length) return 'слово мира без имени из Альманаха: ' + bad.join('; ');
 });
+check('test_L032 (прогон 0.50, О22: «Спящую не берут», а через 6 с амёба глотает): уснула → амёба рядом → жива, проснулась, когда охотник уполз, и уплыла', () => {
+  const out = [];
+  for (let s = 1; s <= 4; s++) { const w = new World(cfg, 400 + s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9;
+    w.genes.spore = true; const a = w.me[0]; w.amoebas = [{ x: a.x + 5, y: a.y + s, vx: 0, vy: 0, m: 9, id: 50 }]; w.step(1 / 30, null);
+    if (!(a.spore > 0)) return 'клетка не уснула под амёбой';
+    let t = 0; while (w.me.length && a.spore > 0 && t < 60) { w.step(1 / 30, null); t += 1 / 30; }
+    const m = w.amoebas[0], gap = Math.hypot(m.x - a.x, m.y - a.y);
+    if (!w.me.length) return 'амёба проглотила спящую или только что проснувшуюся (заплыв ' + s + ')';
+    if (a.spore > 0) return 'спора не проснулась за 60 с';
+    for (let i = 0; i < 150 && w.me.length; i++) w.step(1 / 30, { dx: a.x - m.x, dy: a.y - m.y, p: 1 });
+    out.push(t.toFixed(1) + ' с, амёба в ' + gap.toFixed(0));
+    if (!w.me.length) return 'проснулась и не успела уплыть от амёбы (заплыв ' + s + ')'; }
+  console.log('    паспорт: спала / амёба на пробуждении —', out.join(' | '));
+});
+
 check('test_L024: умение не приходит дочке раньше встречи с тем, о ком оно (поле «после встречи с» в книге), а после встречи приходит', () => {
   const posle = Object.fromEntries(Object.keys(cfg.genes).map(k => [k, byKey(k).posle || []])), bad = [], got = new Set();
   for (let s = 1; s <= 6; s++) { const w = new World(cfg, s * 41); w.posle = posle;
