@@ -69,7 +69,7 @@ func facts() -> String:
 	lines.append(Time.get_datetime_string_from_system(false, true))
 	var box = scene.get("box") if scene else null
 	if box is BlackBox:
-		lines.append(box.summary(sim))
+		lines = [box.summary(sim), "", "Техника:"] + lines
 	return "\n".join(lines)
 
 
@@ -178,9 +178,7 @@ const FORM_JS := """
   var q = document.createElement('button'); q.id = 'report-quick';
   q.style.cssText = 'position:fixed;z-index:98;display:none;background:transparent;border:0;color:transparent;touch-action:manipulation';
   document.body.appendChild(q);
-  ['keydown', 'pointerdown', 'touchstart', 'mousedown', 'pointerup', 'touchend', 'mouseup'].forEach(function (k) {
-    q.addEventListener(k, function (e) { e.stopPropagation(); });
-  });
+  ['pointerdown', 'touchstart', 'mousedown'].forEach(function (k) { q.addEventListener(k, function (e) { e.stopPropagation(); }); });
   window._reportQuick = function (x, y, w, h, url, body, cb) {
     if (!url) { q.style.display = 'none'; return; }
     var c = document.getElementById('canvas').getBoundingClientRect();

@@ -45,7 +45,7 @@ func _ready() -> void:
 	# Прозрачная кнопка страницы ложится на «Отправить разбор», когда экран итога разложен.
 	$End/Center/Box/Send.item_rect_changed.connect(func(): if $End.visible: $Report.arm($End/Center/Box/Send))
 	$End/Center/Box/Phrase.pressed.connect($Report.open)
-	$Report.sent_out.connect(func(): $End/Center/Box/Send.text = "Разбор ушёл")
+	$Report.sent_out.connect(func(): $End/Center/Box/Send.text = "GitHub открыт: нажми Create")
 	flag_button.icon = load(look.flag.file)
 	SafeArea.apply($Hud)
 	if OS.has_feature("web"):
@@ -332,8 +332,7 @@ func put_flag(at: Variant) -> void:
 	s.position = at if at != null else world.to_local(flag_button.get_global_rect().get_center() - Vector2(0, 110))
 	things.add_child(s)
 	var t := s.create_tween()
-	t.tween_property(s, "modulate:a", 0.0, 0.5).set_delay(look.flag.show)
-	t.tween_callback(s.queue_free)
+	t.tween_property(s, "modulate:a", look.flag.after, 0.5).set_delay(look.flag.show)
 	$Feedback.play("path")
 	hint("флажок %s" % BlackBox._clock(f.t), false)
 
