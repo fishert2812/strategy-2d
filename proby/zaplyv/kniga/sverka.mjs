@@ -37,7 +37,7 @@ const at = s => SHAGI.indexOf(s);
 
 export function sverka({ records, cards, genes, slots, pages, files, spisok, ring, teksty, problemy, kto, resheniya, animacii, fayly = [] }) {
   const bad = [], seen = new Map();
-  const have = k => { const [t, key] = k.split(':'); return t === 'cards' ? cards[key] : t === 'gene' ? genes[key] && { name: genes[key][0], chto: genes[key][1] } : t === 'file' ? fayly.includes(key) && {} : null; };
+  const have = k => { const [t, key] = k.split(':'); return t === 'cards' ? cards[key] : t === 'gene' ? key in genes && {} /* имя и «что даёт» игра берёт из teksty_genov.json, в data.json их нет */ : t === 'file' ? fayly.includes(key) && {} : null; };
   if ([...files].sort().join() !== [...spisok].sort().join()) bad.push('zapisi/spisok.json не совпадает с файлами записей: ' + files.join(' ') + ' / ' + spisok.join(' '));
   const linked = new Set();
   for (const r of records) {
