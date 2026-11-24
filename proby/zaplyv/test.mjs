@@ -404,7 +404,7 @@ check('обмен генами касанием: побыл рядом с сор
   if (long.length !== 1) return 'за 2 с рядом ген не передан';
 });
 
-check('спора: последняя клетка с геном «Спора» не гибнет, а пережидает в споре и прорастает; второй раз — уже нет', () => {
+check('сон-персистер: последняя клетка с геном сна не гибнет, а засыпает, пережидает беду и просыпается; второй раз — уже нет', () => {
   const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
   const eatBy = w => { const a = w.me[0]; w.amoebas = [{ x: a.x + 5, y: a.y, vx: 0, vy: 0, m: 9, id: 50 }]; w.step(1 / 30, null); };
   const no = bare(121); eatBy(no);
