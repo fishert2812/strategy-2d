@@ -88,7 +88,7 @@ if (await tap('#gon', '«Плыть дальше»')) { await p.waitForTimeout(5
     const last = await p.evaluate(() => { const q = JSON.parse(localStorage.getItem('zaplyv.marks') || '[]'); return q[q.length - 1] || {}; });
     say(await marks() === m + 1 && (last.text || '').includes('тут странно') && (last.img || '').length > 3000 && !(await on('fsheet')), 'test_L023: отметка со словами и картинкой записана, лист закрыт');
     await p.evaluate(() => { navigator.canShare = () => true; navigator.share = async d => { window.shared = d.text; window.sharedFiles = (d.files || []).map(f => [f.name, f.size, f.type]); }; window.sharedFiles = null; });
-    if (await tap('#pause', 'пауза перед отправкой') && await tap('#gsend', '«Отправить» отметку с местом')) { const sf = await p.evaluate(() => [window.shared || '', window.sharedFiles || []]);
+    if (await tap('#pause', 'пауза перед отправкой') && await tap('#gsend', '«Отправить» отметку с местом')) { await p.waitForFunction(() => window.sharedFiles, null, { timeout: 5000 }).catch(() => {}); const sf = await p.evaluate(() => [window.shared || '', window.sharedFiles || []]);
       say(sf[0].includes('тут странно') && sf[1].some(f => f[1] > 3000 && /mesto/.test(f[0]) && f[2] === 'image/jpeg'), 'test_L023: «Отправить» отдаёт слова и картинку места (' + sf[1].map(f => f[0]).join(', ') + ')'); }
     if (await on('genome')) await tap('#gon', '«Плыть дальше» после отправки'); } }
 // Выбор дочки при делении: касание самой дочки берёт её ген.
