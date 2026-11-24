@@ -68,14 +68,14 @@ hr.pb { break-after: page; border: none; margin: 0; }
 // Вкладки собраны в пять групп: на телефоне сверху ряд групп, под ним вкладки открытой группы. Главная показывает оглавление.
 const GRUPPY = [
   ['Тебе решать', [['resheniya', 'Решения', 'Новые идеи с кнопками «Да», «Нет», «Потом»'], ['problemy', 'Проблемы', 'Всё, что ты нашёл, твоими словами, и что с этим сделано'], ['ochered', 'Очередь', 'Что строители берут дальше и что уже вышло']]],
-  ['Игра сейчас', [['igra', 'Игра', 'Что есть в игре сегодня'], ['dvizhenie', 'Плыть', 'Как клетка плывёт под пальцем'], ['mir', 'Мир', 'Капля и что в ней'], ['sushchestva', 'Существа', 'Кто живёт в капле'], ['kto', 'Кто с кем', 'Кто кого ест и кто кому помогает'], ['ekrany', 'Экраны', 'Меню, пауза, карта, Альманах, гибель'], ['animacii', 'Анимации', 'Что и как движется'], ['teksty', 'Тексты', 'Все надписи игры и правила, как их писать']]],
+  ['Игра сейчас', [['igra', 'Игра', 'Что есть в игре сегодня'], ['dvizhenie', 'Плыть', 'Как клетка плывёт под пальцем'], ['mir', 'Мир', 'Капля и что в ней'], ['sushchestva', 'Существа', 'Кто живёт в капле'], ['kto', 'Кто с кем', 'Кто кого ест и кто кому помогает'], ['ekrany', 'Экраны', 'Меню, пауза, карта, Альманах, гибель'], ['animacii', 'Анимации', 'Что и как движется'], ['otzyvy', 'Отзывы игроков', 'Что сказали свежие игроки о каждой версии'], ['teksty', 'Тексты', 'Все надписи игры и правила, как их писать']]],
   ['Умения и эволюция', [['razvitie', 'Развитие умений', 'Как умение растёт и меняется'], ['geny', 'Гены', 'Умения клетки и новые из каталога биолога'], ['navyki', 'Навыки', 'Умения, которые включаешь жестом'], ['puti', 'Пути генов', 'Откуда умение приходит'], ['evolyuciya', 'Эволюция', 'Режимы: ночь рода, свои породы, хищники'], ['geroy', 'Герой', 'За кого играешь и что растёт вместе с тобой']]],
   ['Мир впереди', [['eda', 'Еда', 'Чем питается клетка'], ['sreda', 'Среда', 'Свет, кислород, слизь, течение'], ['sosedi', 'Соседи', 'Новые существа'], ['il', 'Ил', 'Жизнь на дне'], ['karta', 'Карта', 'Пруд целиком и встречи'], ['doma', 'Домой', 'Куда ведёт заплыв']]],
   ['Как работаем', [['razrabotka', 'В разработке', 'Что ждёт твоего «да» и что уже утверждено'], ['plan', 'План', 'Порядок больших шагов'], ['nauka', 'Наука', 'Источники и замеры'], ['zhurnal', 'Журнал', 'Что менялось в книге по версиям']]]];
 const PAGES = [['oblozhka', 'Книга'], ...GRUPPY.flatMap(g => g[1].map(p => [p[0], p[1]]))];
 // Записи книги: один пункт — одна запись в zapisi/*.json. Их же читает сверка с игрой (sverka.mjs).
 const SHAG = { nauka: ['1', 'база науки'], adaptaciya: ['2', 'адаптация'], biolog: ['3', 'у биолога'], gotov: ['4', 'готов к стройке'], stroyka: ['5', 'строим'], v_igre: ['6', 'в игре'] };
-let Z = null, PR = [], KK = null, RS = null, AN = [];
+let Z = null, PR = [], KK = null, RS = null, AN = [], OT = [];
 // Решения Романа: ответы живут в этом браузере, «Отправить ответы» отдаёт их одним сообщением через «Поделиться».
 const otvety = () => { try { return JSON.parse(localStorage.getItem('zaplyv_resheniya') || '{}'); } catch { return {}; } };
 const pismo = (o, ver) => 'Решения по книге «Заплыва» ' + ver + ':\n' + RS.resheniya.filter(r => o[r.id]).map(r => `${r.id} ${r.zagolovok}: ${o[r.id]}`).join('\n');
@@ -86,6 +86,7 @@ async function zapisi() {
   const files = await (await fetch('zapisi/spisok.json', { cache: 'no-cache' })).json();
   Z = (await Promise.all(files.map(async f => (await (await fetch('zapisi/' + f + '.json', { cache: 'no-cache' })).json()).map(r => ({ ...r, file: f }))))).flat();
   PR = await (await fetch('problemy.json', { cache: 'no-cache' })).json();
+  OT = await (await fetch('otzyvy/spisok.json', { cache: 'no-cache' })).json();
   KK = await (await fetch('kto_s_kem.json', { cache: 'no-cache' })).json();
   RS = await (await fetch('resheniya.json', { cache: 'no-cache' })).json();
   AN = await (await fetch('animacii.json', { cache: 'no-cache' })).json();
@@ -163,10 +164,12 @@ function render(md) {
       out.push(`<div class="card"><div class="t">Ждут твоего «да»: ${zr.length}</div>${row('уже утверждено', String(da.length))}</div>` + Object.entries(gr).map(([f, rs]) => `<h2>${TAB[f] ? `<a href="#${f}">${TAB[f]}</a>` : f}: ${rs.length}</h2><ul>` + rs.map(r => `<li><span class="code">${r.id}</span>${inline(r.name)}${r.krugi && r.krugi.biolog ? '' : ' · у биолога'}</li>`).join('') + '</ul>').join('') +
         (da.length ? '<h2>Утверждено</h2><ul>' + da.map(r => `<li><span class="code">${r.id}</span>${inline(r.name)} · ${esc(r.roman)}</li>`).join('') + '</ul>' : '')); continue; }
     if (l.trim() === '{{oglavlenie}}') { out.push(GRUPPY.map(g => `<h3>${g[0]}</h3>` + g[1].map(([k, n, d]) => `<a class="tile" href="#${k}"><b>${n}</b><span>${d}</span></a>`).join('')).join('')); continue; }
+    if (l.trim() === '{{otzyvy}}') { out.push(OT.map(v => `<h2>Версия ${esc(v.versiya)}</h2><p>${esc(v.kogda)}. ${esc(v.kto)}.</p><p><b>Честно:</b> ${esc(v.chestno)}</p>` +
+      v.recenzii.map(([f, n]) => `<details class="otz" data-src="otzyvy/${esc(v.versiya)}/${f}.md"><summary>${esc(n)}</summary><div>Открываю…</div></details>`).join('')).join('')); continue; }
     if (l.trim() === '{{ochered}}') { out.push(ochered()); continue; }
     if (l.trim() === '{{kartochki}}') { out.push(Z.filter(r => r.kartochka).map(r => `<div class="card"><div class="t"><span class="code">${r.id}</span>${esc(r.kartochka.imya)} <em>${esc(r.latin || '')}</em></div>` +
       `<div class="step s${SHAG[r.shag][0]}">${r.shag === 'v_igre' ? 'в игре' : r.file === 'mutacii' ? 'новое, идёт в стройку' : 'спит на кольце'}</div>` + row('Что даёт', r.kartochka.daet) + row('В природе', r.kartochka.priroda) + '</div>').join('')); continue; }
-    if (l.trim() === '{{sushchestva}}') { out.push(Z.flatMap(r => Object.values(r.sushchestva || {}).map(c => `<div class="card"><div class="t"><span class="code">${r.id}</span>${esc(c.imya)}</div>` + row('Кто это', c.kto) + row('Совет', c.sovet) + row('В природе', c.priroda) + row('Если убил', c.ubil) + '</div>')).join('')); continue; }
+    if (l.trim() === '{{sushchestva}}') { out.push(Z.flatMap(r => Object.values(r.sushchestva || {}).map(c => `<div class="card"><div class="t"><span class="code">${r.id}</span>${esc(c.imya)}</div>` + row('Кто это', c.kto) + row('Совет', c.sovet) + row('В бою', c.boy) + (c.korotko ? row('При осмотре', ({ opasen: '⚠ опасен тебе · ', eda: '● еда · ', ne_tronet: '○ не тронет · ' }[c.otnoshenie] || '') + c.korotko + '. ' + c.znachit) : '') + row('В природе', c.priroda) + row('Если убил', c.ubil) + '</div>')).join('')); continue; }
     if (l.startsWith('|')) { // таблица → карточки: первая ячейка — заголовок, остальные — «шапка: значение»
       const head = cells(l); i += 2;
       while (i < L.length && L[i].startsWith('|')) {
@@ -221,6 +224,10 @@ document.addEventListener('click', e => { // касание номера пун�
   const t = document.getElementById('toast'); t.textContent = 'Скопировано: ' + c.textContent; t.classList.add('on');
   setTimeout(() => t.classList.remove('on'), 1400);
 });
+document.addEventListener('toggle', async e => { // рецензия игрока грузится, когда её раскрыли
+  const d = e.target; if (!d.open || !d.dataset || !d.dataset.src || d.dataset.ok) return; d.dataset.ok = '1';
+  const r = await fetch(d.dataset.src, { cache: 'no-cache' }); d.lastElementChild.innerHTML = r.ok ? render(await r.text()) : '<p>Рецензия не открылась.</p>';
+}, true);
 addEventListener('hashchange', show); show();
 </script>
 </body>

@@ -11,6 +11,12 @@ const p = await (await b.newContext({ ...pw.devices['iPhone 13'] })).newPage();
 await p.addInitScript(() => { if (!localStorage.getItem('zaplyv.met')) localStorage.setItem('zaplyv.met', JSON.stringify(['me', 'phage', 'amoeba', 'plant'])); }); // Альманах: есть что листать
 const errs = []; p.on('pageerror', e => errs.push(e.message));
 let bad = 0; const say = (ok, t) => { console.log((ok ? '  ок   ' : '  ПРОВАЛ ') + t); if (!ok) bad++; };
+// test_L018 (расширен 24.11, Роман: «описание талантов писал… имбицил»): на каждом экране, где игра говорит про умение или существо,
+// каждая строка — из файлов книги. Раньше сверка смотрела только Альманах, а выбор дочки и «Ген от сородича» брали черновые строки из data.json.
+const BOOK = async () => p.evaluate(async () => { const out = [], walk = o => { if (typeof o === 'string') out.push(o.trim()); else if (o && typeof o === 'object') Object.values(o).forEach(walk); };
+  for (const [f, k] of [['kniga/teksty_genov.json', 'geny'], ['kniga/teksty_sushchestv.json', 'sushchestva'], ['genome.json', 'from']]) walk((await (await fetch(f)).json())[k]); return out; });
+const notBook = async (texts, where) => { const B = await BOOK(), odd = texts.map(t => (t || '').trim()).filter(t => t && !B.includes(t));
+  say(texts.length && !odd.length, `test_L018: ${where} — каждая строка из книги` + (odd.length ? ': чужие «' + odd.join('» «') + '»' : texts.length ? '' : ': строк нет')); };
 await p.goto(url, { timeout: 60000 });
 await p.waitForFunction(() => window.zaplyvProbe && zaplyvProbe.frames > 20, null, { timeout: 30000 });
 // Касание пальцем: элемент должен быть виден, не меньше 44 pt и сверху в точке касания.
@@ -76,7 +82,12 @@ say(await p.evaluate(() => { const live = Object.keys(zaplyvWorld().cfg.genes).l
 await p.evaluate(() => [...document.querySelectorAll('#ring .slot')].find(s => s.querySelector('image')).dispatchEvent(new MouseEvent('click', { bubbles: true })));
 await p.waitForTimeout(300);
 say(await p.evaluate(() => { const i = document.querySelector('#gcard .gicon'); return !!i && i.getBoundingClientRect().width >= 60 && i.src.length > 3000; }), 'test_L021: в карточке гена — значок');
+await whole(['#gon', '#gmenu', '#gcab', '#gno', '#gflag'], 'пауза с выбранным геном');
+await notBook(await p.evaluate(() => [[...(document.querySelector('#gcard h2')?.childNodes || [])].filter(n => n.nodeType === 3).map(n => n.textContent).join(''), ...[...document.querySelectorAll('#gcard p')].filter(e => e.querySelector('b')).map(e => [...e.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join(''))]), 'карточка гена на кольце');
 if (await tap('#gon', '«Плыть дальше»')) { await p.waitForTimeout(500); say(!(await on('genome')) && await p.evaluate(() => zaplyvWorld().stats.time) > t0, '«Плыть дальше» закрывает геном, мир идёт'); }
+// test_L031 (прогон 0.44: «из игры в меню режимов попасть нельзя»): из паузы «Меню» открывает меню режимов, «Плыть» возвращает в тот же заплыв.
+if (await tap('#pause', 'пауза снова') && await tap('#gmenu', '«Меню» в паузе')) { const t1 = await p.evaluate(() => zaplyvWorld().stats.time); say(await on('menu'), 'test_L031: «Меню» в паузе открывает меню режимов');
+  if (await tap('#mgo', '«Плыть» из меню паузы')) { await p.waitForTimeout(500); say(!(await on('menu')) && await p.evaluate(t => zaplyvWorld().stats.time > t, t1), 'test_L031: «Плыть» из меню паузы продолжает тот же заплыв'); } }
 // test_L023 (Б16, Роман: «куда я его могу поставить чтобы игра вырезала…»): флажок тянут пальцем на место — игра вырезает кусок кадра и спрашивает словами.
 { const fb = await p.locator('#flag').boundingBox(), sx = fb.x + fb.width / 2, sy = fb.y + fb.height / 2; m = await marks();
   await p.mouse.move(sx, sy); await p.mouse.down(); for (let i = 1; i <= 10; i++) await p.mouse.move(sx + (195 - sx) * i / 10, sy + (430 - sy) * i / 10);
@@ -96,12 +107,21 @@ await p.evaluate(() => { const w = zaplyvWorld(), all = Object.keys(w.cfg.genes)
 await p.waitForTimeout(600);
 // test_L021 (Роман: «в меню генома нет ни одного значка»): у дочек на выборе — значок гена, снимок клетки, не пустой.
 say(await p.evaluate(() => [...document.querySelectorAll('#cards .gicon')].length === 2 && [...document.querySelectorAll('#cards .gicon')].every(i => i.naturalWidth >= 64 && i.src.length > 3000)), 'test_L021: у дочек — значки генов');
+await notBook(await p.evaluate(() => [...document.querySelectorAll('#cards button span, #cards button small')].map(e => e.textContent)), 'выбор дочки');
 const g1 = await p.evaluate(() => zaplyvWorld().choice[1]);
 if (await tap('#genes .kid ~ .kid', 'дочка справа')) say(await p.evaluate(g => zaplyvWorld().genes[g] && !document.getElementById('genes').classList.contains('on'), g1), 'касание дочки даёт её ген и закрывает выбор');
 await p.evaluate(() => { const w = zaplyvWorld(), all = Object.keys(w.cfg.genes).filter(g => !w.genes[g]); w.choice = all.slice(0, 2); });
 await p.waitForTimeout(600);
 const g0 = await p.evaluate(() => zaplyvWorld().choice[0]);
 if (await tap('#cards button', 'карточка гена дочки')) say(await p.evaluate(g => zaplyvWorld().genes[g], g0), 'карточка дочки даёт её ген');
+// test_L030 (дизайнер 24.11: колокольчик и коловратка убивают новичка без признака): у воронки на экране оранжевый край, у ближайшей он разгорается.
+{ const lit = async d => { await p.evaluate(d => { const w = zaplyvWorld(), a = w.me[0]; for (const l of ['amoebas', 'bdellos', 'slippers', 'bells', 'rotis']) w[l].length = 0; w.choice = [];
+    w.bells.push({ x: a.x + 300, y: a.y, dir: 0, shut: 0, id: 7001 }); const [bx, by] = w.bell(w.bells[0]); w.bells[0].x -= bx - (a.x + w.cfg.vortex_r + d); w.bells[0].y -= by - a.y; zaplyvProbe.warn = {}; }, d);
+    await p.waitForTimeout(250); return p.evaluate(() => zaplyvProbe.warn.bell || 0); };
+  const near = await lit(60), far = await lit(900);
+  say(near > 0 && !far, `test_L030: край воронки разгорается, когда до него меньше полутора секунд хода (кадров с тревогой ${near}), и молчит вдали (${far})`); }
+await p.evaluate(() => { const w = zaplyvWorld(), c = w.center(); w.events.push(['gene', c.x, c.y, 'fim']); }); await p.waitForFunction(() => document.getElementById('toast').textContent.startsWith('Ген от сородича'), null, { timeout: 4000 }).catch(() => {});
+{ const t = await p.evaluate(() => document.getElementById('toast').textContent); const m2 = t.match(/^Ген от сородича: (.*?) — (.*)$/); await notBook(m2 ? [m2[1], m2[2]] : [t], '«Ген от сородича»'); }
 // test_L029 (Роман 24.11: «хоть все бактерии уже по краям мертвы игра обратно не приближается»): колония расползлась — камера отъехала;
 // дальние погибли или застряли вдали — за 3 с камера снова у живых, и клетка на экране не мельче cfg.cam.min_px.
 { const z = () => p.evaluate(() => zaplyvProbe.z), cam = async (f, a) => { await p.evaluate(f, a); await p.waitForTimeout(3000); return z(); };
@@ -113,8 +133,11 @@ if (await tap('#cards button', 'карточка гена дочки')) say(awai
   const px = await p.evaluate(() => { const w = zaplyvWorld(); return 13 * Math.sqrt(w.me[0].m) * zaplyvProbe.z >= w.cfg.cam.min_px; });
   say(zs < z1 * 0.8 && zd > z1 * 0.9 && zf > z1 * 0.9 && px, `test_L029: камера отъехала к расползшейся колонии (${z1.toFixed(2)} → ${zs.toFixed(2)}), вернулась после гибели дальних (${zd.toFixed(2)}) и не уходит к застрявшим вдали (${zf.toFixed(2)})`); }
 await p.evaluate(() => { const w = zaplyvWorld(); w.genes.spore = false; w.stats.killer = 'amoeba'; w.me.length = 0; });
-await p.waitForTimeout(1200);
+await p.waitForTimeout(1200); await notBook(await p.evaluate(() => ['who', 'cname', 'ctext', 'cfact', 'ctip'].map(i => document.getElementById(i).textContent)), 'экран гибели');
+say(await p.evaluate(async () => { const C = await (await fetch('cards.json')).json(), T = (await (await fetch('kniga/teksty_sushchestv.json')).json()).sushchestva, st = document.getElementById('stats').textContent;
+  return Object.keys(C).every(k => !T[k] || T[k].imya === C[k].name || !st.includes(C[k].name)); }), 'test_L018: в строке «кто забрал» на экране гибели имена только из книги (прогон 0.44: «Сувойка» вместо «Колокольчик»)');
 await whole(['#again', '#tomenu', '#cab', '#eno'], 'экран гибели'); // до любых касаний: экран не прокручен
+say(await p.evaluate(() => ['hud', 'scalebox', 'ver'].every(i => getComputedStyle(document.getElementById(i)).visibility === 'hidden') && getComputedStyle(document.getElementById('end')).backgroundColor.startsWith('rgb(')), 'test_L031: лист гибели непрозрачный, надписи игры под ним скрыты');
 m = await marks();
 if (await tap('#eno', '«Не так» на экране гибели')) say(await seen('#note') && await marks() === m + 1, '«Не так» на экране гибели: отметка и надпись видна');
 // «Ночь рода» (спецификация design/zaplyv_noch_roda_spec.md): каждая кнопка ночи отвечает пальцу.
@@ -134,7 +157,11 @@ if (await toNight('снова') && await tap('#ndanger [data-d=phage]', 'опа�
   }
   await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 0; }); await p.waitForTimeout(1200);
 }
+await p.evaluate(() => { document.getElementById('end').scrollTop = 400; }); // игрок долистал лист гибели вниз
 if (await tap('#again', '«Плыть снова»')) say(!(await on('end')), '«Плыть снова» начинает заплыв');
+await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 0; }); await p.waitForTimeout(1200);
+say(await p.evaluate(() => document.getElementById('end').scrollTop === 0), 'test_L031: второй экран гибели открывается с начала, убийца сверху');
+if (await tap('#again', '«Плыть снова» ещё раз')) await p.waitForTimeout(300);
 // Меню-сценка (Э21): после гибели меню встречает при входе; объект выбирает режим, нижняя кнопка запускает.
 await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 0; }); await p.waitForTimeout(1200);
 await p.reload(); await p.waitForFunction(() => window.zaplyvProbe && zaplyvProbe.frames > 5, null, { timeout: 30000 }); await p.waitForTimeout(800);
@@ -148,6 +175,11 @@ if (await tap('#nback', '«Назад» из ночи в меню')) say(await o
 if (await tap('#mquiet', '«Тише»')) say((await p.textContent('#mquiet')) === 'Звук', '«Тише» выключает звук');
 await tap('#mquiet', '«Звук»');
 if (await tap('#mscene [data-m=swim]', 'объект «Заплыв»') && await tap('#mgo', '«Плыть» из меню')) say(!(await on('menu')) && await p.evaluate(() => zaplyvWorld().me.length > 0), '«Плыть» начинает заплыв');
+// Режим «Мутации» (новые мутации, mutacii.js): объект в меню, кнопка запускает заплыв в этом режиме.
+await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 0; }); await p.waitForTimeout(1200);
+await p.reload(); await p.waitForFunction(() => window.zaplyvProbe && zaplyvProbe.frames > 5, null, { timeout: 30000 }); await p.waitForTimeout(800);
+if (await tap('#mscene [data-m=mut]', 'объект «Мутации»')) say((await p.textContent('#mgo')) === 'Плыть с мутациями', 'касание «Мутаций» меняет подпись кнопки');
+if (await tap('#mgo', '«Плыть с мутациями»')) say(!(await on('menu')) && await p.evaluate(() => zaplyvWorld().mode === 'mut' && zaplyvWorld().me.length > 0), '«Плыть с мутациями» начинает заплыв в режиме мутаций');
 say(!errs.length, 'ошибок страницы нет' + (errs.length ? ': ' + errs.join('; ') : ''));
 await b.close();
 console.log(bad ? `КАСАНИЯ: провалов ${bad}` : 'КАСАНИЯ: все кнопки отвечают пальцу');
