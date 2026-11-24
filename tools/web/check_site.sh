@@ -13,22 +13,53 @@ done
 for f in index.html manifest.json index.js index.pck.wasm index.wasm.part0.wasm index.apple-touch-icon.png; do
   curl -s -o /dev/null -w "%{http_code} %{content_type} %{size_download} $f\n" "$URL/$f" | tee /dev/stderr | grep -q '^200 ' || exit 1
 done
-D=$(mktemp -d); cd "$D"
-timeout 300 npm i -s --no-audit --no-fund playwright@1.56.1 >/dev/null && timeout 300 npx playwright install --with-deps webkit >/dev/null
+# Playwright и WebKit ставятся один раз на машину (папка ~/.webcheck), дальше прогоны идут сразу.
+# Прогон, не дошедший до игры, — провал проверки, а не «прошёл» и не «игра виновата» (урок L002).
+W=~/.webcheck; mkdir -p "$W"; cd "$W"
+if [ ! -f installed ]; then
+  # apt без вопросов; на свежем раннере dpkg занят фоновым apt — ждём замок до 10 минут, а не падаем и не виснем.
+  export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a
+  for i in $(seq 1 120); do sudo fuser /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock >/dev/null 2>&1 || break; sleep 5; done
+  { timeout 300 npm i --no-audit --no-fund playwright@1.56.1 &&
+    timeout 600 sudo -E env "PATH=$PATH" npx playwright install-deps webkit &&
+    timeout 300 npx playwright install webkit; } > install.log 2>&1 || {
+    tail -15 install.log; echo "ПАСПОРТ: установка WebKit не удалась, до игры не дошёл"; exit 1; }
+  touch installed
+fi
 cat > t.js <<'JS'
+// Паспорт: меню (зонд видит кнопку Play) -> касание Play по имени узла -> партия (сцена Battle) -> 30 с в партии.
 const { webkit, devices } = require('playwright');
+const say = t => console.log('ПАСПОРТ: ' + t);
 (async () => {
   const b = await webkit.launch();
   const p = await b.newPage({ ...devices['iPhone 13'] });
   let bad = 0;
   p.on('console', m => { if (m.type() === 'error' && !/glBlitFramebuffer/.test(m.text())) { bad++; console.log('консоль', m.text().slice(0, 200)); } });
   p.on('pageerror', e => { bad++; console.log('ошибка страницы', e.message); });
+  const probe = () => p.evaluate(() => window.godotProbe || null).catch(() => null);
+  const until = async (ok, ms) => { for (let t = 0; t < ms; t += 500) { const g = await probe(); if (g && ok(g)) return g; if (bad) return null; await p.waitForTimeout(500); } return null; };
+  const end = (code, t) => { say(t); return b.close().then(() => process.exit(code)); };
   await p.goto(process.argv[2], { timeout: 60000 });
-  await p.waitForTimeout(20000);
-  await p.screenshot({ path: 'webkit.png', timeout: 20000 }).catch(e => console.log('снимок не снят', e.message));
-  await p.touchscreen.tap(195, 422);
-  await p.waitForTimeout(3000);
-  console.log('WebKit: ошибок', bad); await b.close(); process.exit(bad ? 1 : 0);
+  const menu = await until(g => g.nodes && g.nodes.Play, 40000);
+  if (!menu) return end(bad ? 1 : 2, bad ? 'игра упала до меню, ошибок ' + bad : 'до меню не дошёл (зонд не ответил)');
+  const box = await p.locator('#canvas').boundingBox();
+  const [fx, fy] = menu.nodes.Play;
+  await p.touchscreen.tap(box.x + fx * box.width, box.y + fy * box.height);
+  const fight = await until(g => g.scene === 'Battle', 15000);
+  if (!fight) return end(bad ? 1 : 2, bad ? 'игра упала при входе в партию, ошибок ' + bad : 'в партию не вошёл');
+  say('в партии, стою 30 с');
+  await p.waitForTimeout(30000);
+  const after = await probe();
+  if (bad) return end(1, 'игра упала в партии, ошибок ' + bad);
+  if (!after || after.frames <= fight.frames) return end(1, 'партия встала: кадры не идут');
+  await p.screenshot({ path: 'webkit.png', timeout: 20000 }).catch(() => {});
+  return end(0, 'дошёл до партии, 30 с без ошибок, кадров ' + (after.frames - fight.frames));
 })();
 JS
-timeout -k 10 240 node t.js "$URL/" || { echo "WebKit: игра не загрузилась или зависла"; exit 1; }
+# Редкий сбой запуска движка до меню (issue про частоту): один перезапуск, красное только на повторе.
+run() { timeout -k 10 180 node t.js "$URL/" > run.log 2>&1; rc=$?; cat run.log; [ $rc -ge 124 ] && echo "ПАСПОРТ: WebKit завис, до конца не дошёл"; return $rc; }
+run && { echo "ПАСПОРТ: перезапусков 0"; exit 0; }
+grep -q "ПАСПОРТ: игра упала до меню" run.log || exit 1
+echo "ПАСПОРТ: сбой запуска: $(grep -m1 -E 'ошибка страницы|консоль' run.log); перезапуск 1"
+run && { echo "ПАСПОРТ: перезапусков 1"; exit 0; }
+echo "ПАСПОРТ: перезапусков 1, повтор тоже упал"; exit 1

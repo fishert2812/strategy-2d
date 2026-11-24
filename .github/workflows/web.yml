@@ -28,4 +28,5 @@ jobs:
           git add -A
           git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com commit -q -m "Веб-сборка $(cat version.txt) из main"
           git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" "$PAGES_BRANCH"
+      - run: bash tools/web/test_L002.sh out/site
       - run: bash tools/web/check_site.sh "$SITE" "$(git rev-parse --short HEAD)"
