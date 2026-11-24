@@ -37,7 +37,7 @@ m = await marks();
 if (await tap('#gflag', 'флажок в геноме')) say(await seen('#note') && await marks() === m + 1, 'флажок в геноме: отметка и надпись видна');
 m = await marks();
 if (await tap('#gno', '«Не так» в геноме')) say(await seen('#note') && await marks() === m + 1, '«Не так» в геноме: отметка и надпись видна');
-if (await tap('#gcab', 'Альманах из генома')) say(await on('cabinet'), 'Альманах открылся');
+if (await tap('#ptabs [data-t=alm]', 'вкладка «Альманах»')) say(await on('cabinet'), 'Альманах открылся вкладкой паузы');
 // test_L019: у каждой карточки полки — снимок живой модели (картинка не пустая), разделы и карточка отвечают пальцу
 await p.waitForTimeout(1500);
 say(await p.evaluate(() => [...document.querySelectorAll('#shelf .kc img')].every(i => i.naturalWidth > 100 && i.src.length > 5000)), 'test_L019: у каждой записи Альманаха — снимок модели из игры');

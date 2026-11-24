@@ -326,6 +326,7 @@ $('mcv').addEventListener('click', e => { // касание отметки — �
   const h = document.createElement('h3'); h.textContent = gene ? (g ? g.imya : m.who) : (t.imya || m.who); card.appendChild(h);
   const p1 = document.createElement('p'); p1.textContent = gene ? 'Здесь ты нашёл чужой ген' + (c.list.length > 1 ? ' · ' + c.list.length + ' раза' : '') : 'Здесь ты погиб' + (c.list.length > 1 ? ' · ' + c.list.length + ' раза' : ''); card.appendChild(p1);
   const p2 = document.createElement('p'); p2.textContent = gene ? (g ? g.daet : '') : (t.sovet || ''); card.appendChild(p2);
+  const p3 = document.createElement('p'); p3.style.opacity = 0.7; p3.textContent = 'Слой: ' + { film: 'плёнка', light: 'светлая толща', oxy: 'граница кислорода', silt: 'ил' }[world.layer(m.y)]; card.appendChild(p3);
   card.hidden = false;
 });
 // «Не так»: одно касание — отметка с моментом игры. Копятся здесь, «Отправить» — меню «Поделиться» телефона.
@@ -774,7 +775,7 @@ function frame(now) {
   last = now;
   const t0 = performance.now();
   if (!ended && !paused) tick(dt);
-  if (paused && world.me.length) { // клетка — в середину кольца, крупно
+  if (paused && world.me.length && curTab === 'genome' && genome.inner() > 0) { // клетка — в середину кольца, крупно (только на вкладке «Геном»: на других кольцо спрятано)
     const c = world.me.reduce((b, a) => a.m > b.m ? a : b), [fx, fy] = genome.center(), k = Math.min(1, dt * 4);
     const z = cfg.genome_zoom * genome.inner() * W / innerWidth / (25 * Math.pow(c.m, 0.3)); // полклетки ≈ 25·m^0.3 единиц мира
     view.z += (z - view.z) * k;
