@@ -101,3 +101,31 @@ func test_safe_area_counts_from_window() -> String:
 	if phone[1] != 86 or phone[3] != 62:
 		return "на iPhone отступы сверху %d и снизу %d, ждали 86 и 62" % [phone[1], phone[3]]
 	return ""
+
+
+func _mouse(battle: Control, pos: Vector2, pressed: bool) -> void:
+	var e := InputEventMouseButton.new()
+	e.button_index = MOUSE_BUTTON_LEFT
+	e.position = pos
+	e.pressed = pressed
+	e.device = InputEvent.DEVICE_ID_EMULATION
+	battle.get_viewport().push_input(e, true)
+
+
+## Браузер шлёт на одно касание и касание, и мышь: здание ставится один раз, строка отладки их считает.
+func test_one_press_from_touch_and_its_mouse() -> String:
+	var battle: Control = await _battle(SIZES[0])
+	var spot := _at(battle, Vector2(250, 830))
+	for pos in [_button(battle, "camp"), spot]:
+		_touch(battle, pos, true)
+		_mouse(battle, pos, true)
+		_touch(battle, pos, false)
+		_mouse(battle, pos, false)
+	var camps: int = battle.sim.of_side(Sim.PLAYER, "camp").size()
+	var text: String = battle.debug_text()
+	battle.get_parent().free()
+	if camps != 1:
+		return "касание и его мышь поставили лагерей: %d, ждали 1" % camps
+	if not ("касаний 2" in text and "эмул 2" in text and "поле" in text):
+		return "строка отладки не посчитала нажатия: " + text
+	return ""
