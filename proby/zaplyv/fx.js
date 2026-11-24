@@ -4,8 +4,8 @@
 import { poke, stepVid, seen, rim, V } from './vid.js';
 export class Fx {
   constructor(cfg, CELL) { this.cfg = cfg; this.CELL = CELL; this.reset(); }
-  reset() { this.rings = []; this.zaps = []; this.drops = []; this.ghosts = []; }
-  busy() { return this.rings.length + this.zaps.length + this.drops.length + this.ghosts.length; }
+  reset() { this.rings = []; this.zaps = []; this.drops = []; this.ghosts = []; this.melts = []; }
+  busy() { return this.rings.length + this.zaps.length + this.drops.length + this.ghosts.length + this.melts.length; }
   ring(x, y, side, r) { this.rings.push({ x, y, side, r, t: 0 }); }
   on(k, x, y, size = 1, y2) {
     const R = (s, r) => this.ring(x, y, s, r);
@@ -14,8 +14,8 @@ export class Fx {
     if (k === 'gene') R(0, 120); // конъюгация
     if (k === 'zap') this.zaps.push({ x, y, x2: size, y2, t: 0 }); // выстрел гарпуна синегнойки
     if (k === 'grab') R(1, 40);
-    if (k === 'eat') R(2, 26 + 14 * size);
-    if (k === 'split') R(0, 70);
+    if (k === 'eat') this.melts.push({ x, y, s: size, t: 0 }); // зерно не летит в рот: тает на месте (биолог, «Всасывание еды»)
+    if (k === 'split') { R(0, 30); for (const s of [-1, 1]) this.drops.push({ x, y, vx: s * 90, vy: 0, t: 0.6, r: 0.5, c: 0 }); } // перехват лопнул: дочки отскочили рывком, рывок гаснет вязко
     if (k === 'leave') R(0, 50);
     if (k === 'stick') R(1, 22); // прилип фаг
     if (k === 'shake') R(0, 30);
@@ -47,9 +47,14 @@ export class Fx {
     const { scr, z, glow, ink } = d;
     this.zaps = this.zaps.filter(p => (p.t += 1 / 60) < 0.35);
     for (const p of this.zaps) { // гарпун: пружинный чехол выстреливает иглу
-      const [x1, y1] = scr(p.x, p.y), [x2, y2] = scr(p.x2, p.y2), f = 1 - p.t / 0.35;
-      for (let k = 0; k <= 12; k++) { const u = k / 12; ink.put(x1 + (x2 - x1) * u, y1 + (y2 - y1) * u, 1.4 * z + 0.5, 0.7, 1, 0.8, 0.9 * f); }
-      glow.put(x2, y2, 14 * z * f + 2, 0.7, 1, 0.8, 0.5 * f);
+      // Гарпун (биолог: чехол длиной с крупинку сжимается вдвое — копьё выстреливает за тысячные доли секунды): у стрелка короткий
+      // светлый штрих-чехол сжимается, удар — мгновенный тонкий штрих и искра, на жертве остаётся тёмный прокол.
+      const [x1, y1] = scr(p.x, p.y), [x2, y2] = scr(p.x2, p.y2), dx = x2 - x1, dy = y2 - y1, l = Math.hypot(dx, dy) || 1, ux = dx / l, uy = dy / l, H = V.zap;
+      const sh = Math.max(0.5, 1 - p.t / H.sheath * 0.5), L = H.len * z * sh; // чехол: сжатие вдвое
+      for (let k = 0; k < 4; k++) { const u = k / 3; glow.put(x1 + ux * (4 * z + u * L), y1 + uy * (4 * z + u * L), 1.2 * z + 0.4, 0.7, 1, 0.8, 0.7 * (1 - p.t / 0.35)); }
+      if (p.t < H.flash) { const f = 1 - p.t / H.flash; for (let k = 0; k <= 10; k++) { const u = k / 10; ink.put(x1 + dx * u, y1 + dy * u, 0.7 * z + 0.3, 0.75, 1, 0.85, 0.9 * f); }
+        glow.put(x2, y2, 8 * z * f + 2, 0.7, 1, 0.8, 0.6 * f); }
+      ink.put(x2, y2, 1.6 * z + 0.5, 0.15, 0.1, 0.2, 0.7 * (1 - p.t / 0.35)); // прокол
     }
     const P = V.lysis;
     for (const g of this.ghosts) { // призрак: пустая обвисшая оболочка с дырой на месте прорыва, мнётся и тает
@@ -62,7 +67,9 @@ export class Fx {
   }
   drawOver(d) {
     const { scr, z, glow } = d, CELL = this.CELL;
-    for (const p of this.drops) { const [x, y] = scr(p.x, p.y), f = p.t / V.lysis.life; glow.put(x, y, (2.2 * p.r * (1 - f * 0.5)) * z + 0.5, 0.95, 0.35, 0.7, 0.75 * (1 - f)); } // брызги розового сока
+    for (const p of this.drops) { const [x, y] = scr(p.x, p.y), f = p.t / V.lysis.life, c = p.c === 0 ? [0.75, 0.93, 1] : [0.95, 0.35, 0.7]; glow.put(x, y, (2.2 * p.r * (1 - f * 0.5)) * z + 0.5, c[0], c[1], c[2], 0.75 * (1 - f)); } // брызги сока (розовые) и искры рывка деления (голубые)
+    for (const m of this.melts) { const [x, y] = scr(m.x, m.y), f = m.t / V.eat.melt, k = Math.sqrt(m.s || 1) * (1 - f) * (1 - f); // зерно тает на месте: меньше и тусклее, ореол растекается
+      glow.put(x, y, 4 * z * k + 0.5, 1, 0.93, 0.65, 0.95 * (1 - f)); glow.put(x, y, 10 * z * Math.sqrt(m.s || 1) * (1 + 1.5 * f), 1, 0.8, 0.35, 0.22 * (1 - f)); }
     for (const r of this.rings) { // вспышка-кольцо
       const k = r.t / 0.6, [x, y] = scr(r.x, r.y), R = r.r * z * (0.3 + k), c = CELL[r.side];
       for (let i = 0; i < 28; i++) { const t = i * 0.2244; glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 4 * (1 - k) + 1.2, c.r, c.g, c.b, 0.6 * (1 - k)); }
@@ -72,6 +79,7 @@ export class Fx {
     const P = V.lysis, k = Math.exp(-P.drag * dt);
     for (const p of this.drops) { p.vx *= k; p.vy *= k; p.x += p.vx * dt; p.y += p.vy * dt; p.t += dt; }
     this.drops = this.drops.filter(p => p.t < P.life);
+    for (const m of this.melts) m.t += dt; this.melts = this.melts.filter(m => m.t < V.eat.melt);
     for (const g of this.ghosts) { g.vx += (Math.random() - 0.5) * 20 * dt; g.vy += (Math.random() - 0.5) * 20 * dt; g.vx *= 0.98; g.vy *= 0.98; g.x += g.vx * dt; g.y += g.vy * dt; g.ang += (Math.random() - 0.5) * 0.6 * dt; g.t += dt; } // дрейф и дрожь воды
     this.ghosts = this.ghosts.filter(g => g.t < P.ghost); for (const r of this.rings) r.t += dt; this.rings = this.rings.filter(r => r.t < 0.6); }
 }
