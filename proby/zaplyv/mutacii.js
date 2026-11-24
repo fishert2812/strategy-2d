@@ -65,6 +65,8 @@ export function cell(w, a, dt, th) {
   if (raft(w) && !a.grab) { // застёжки: каждая сестра тянется к середине плота, пока не встанет бок о бок
     const c = w.center(), dx = c.x - a.x, dy = c.y - a.y, d = Math.hypot(dx, dy), rest = 13 * Math.sqrt(a.m) * Math.sqrt(w.me.length) * M.flu.pack; // плот плотный: бок о бок, как соты
     if (d > rest) { const k = Math.min(1, M.flu.k * dt) * (d - rest) / d; a.x += dx * k; a.y += dy * k; }
+    const rs = 13 * Math.sqrt(a.m) * M.flu.sep; // но не налезают: палочка длинная, круг тесен — держим расстояние в длину палочки
+    for (const b of w.me) { if (b === a) continue; const ex = a.x - b.x, ey = a.y - b.y, e = Math.hypot(ex, ey) || 0.01; if (e < rs) { const k = (rs - e) / e * Math.min(1, 6 * dt) * 0.5; a.x += ex * k; a.y += ey * k; } }
     let vx = 0, vy = 0; for (const b of w.me) { vx += b.vx; vy += b.vy; } const al = Math.min(1, M.flu.align * dt); // плывут как одно: ход сестры тянется к ходу плота
     a.vx += (vx / w.me.length - a.vx) * al; a.vy += (vy / w.me.length - a.vy) * al;
   }
@@ -99,12 +101,13 @@ export function decoy(w, g) {
 }
 // Пузырьки-обманки в воде (зовёт main.js рядом с fx.drawUnder): светлые колечки цвета оболочки, гаснут к концу жизни.
 export function drawWorld({ w, scr, z, glow, ink }) {
+  const safe = w.me.length >= Math.min(...Object.values(M.flu.min)), br = safe ? 1 : 0.45; // застёжки загораются, когда семья уже не по зубам мелкому рту (книга: порог виден)
   if (raft(w)) for (let i = 0; i < w.me.length; i++) for (let j = i + 1; j < w.me.length; j++) { // застёжки между соседками: тёмная кромка, поверх светлая черта
     const p = w.me[i], q = w.me[j], d = Math.hypot(p.x - q.x, p.y - q.y), ri = 13 * Math.sqrt(p.m), rj = 13 * Math.sqrt(q.m);
     if (d > ri + rj + M.flu.r * 0.6) continue;
     const ux = (q.x - p.x) / (d || 1), uy = (q.y - p.y) / (d || 1);
     for (let k = -1; k <= 1; k++) for (let s = 0; s <= 4; s++) { const f = ri + (d - ri - rj) * s / 4, ox = -uy * k * 5, oy = ux * k * 5;
-      const [x, y] = scr(p.x + ux * f + ox, p.y + uy * f + oy); ink.put(x, y, 1.6 * z + 0.6, 0.08, 0.14, 0.22, 0.5); glow.put(x, y, 0.9 * z + 0.4, 0.55, 0.85, 1, 0.35); }
+      const [x, y] = scr(p.x + ux * f + ox, p.y + uy * f + oy); ink.put(x, y, 2.2 * z + 0.6, 0.08, 0.14, 0.22, 0.55); glow.put(x, y, 1.2 * z + 0.4, 0.55, 0.85, 1, 0.4 * br); }
   }
   for (const v of w.vesicles || []) { const [x, y] = scr(v.x, v.y), f = 1 - v.t / M.decoy.life, r = 2.2 * z + 1;
     for (let k = 0; k < 8; k++) { const t = k / 8 * 6.283; glow.put(x + Math.cos(t) * r, y + Math.sin(t) * r, 0.8 * z + 0.4, 0.55, 0.8, 0.95, 0.35 * f); }

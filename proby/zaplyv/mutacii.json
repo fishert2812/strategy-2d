@@ -56,7 +56,8 @@
    "roti": 7
   },
   "pins": 6,
-  "pack": 0.9,
-  "align": 4
+  "pack": 1.3,
+  "align": 4,
+  "sep": 2.3
  }
 }
