@@ -37,6 +37,7 @@ export class World {
     this.food = []; this.prey = []; this.amoebas = []; this.phages = []; this.plants = []; this.crumbs = []; this.bdellos = []; this.slime = []; this.slippers = []; this.bells = []; this.rotis = [];
     this.genes = {};
     this.choice = []; // три гена на выбор; пока не пусто — мир стоит
+    this.rush = 0; this.lastEat = -9; // разгон роста от серии
     this.stats = { eaten: 0, most: 1, path: 0, time: 0, gen: 0, lost: {}, killer: null };
     this.met = new Set(['me']); this.look = 0;
     this.steps = [...cfg.gene_steps];
@@ -83,21 +84,22 @@ export class World {
     const safe = far < c.safe_chunks;
     const pt = () => ({ x: ox + r() * C, y: oy + r() * C });
     // Еда пятнами: растворённого сахара везде чуть-чуть, а густо — только в пятнах (наше по биологу).
-    for (let i = 0; i < c.food_per_chunk[b]; i++) this.food.push({ ...pt(), vx: 0, vy: 0 });
+    for (let i = 0; i < c.food_per_chunk[b]; i++) this.food.push({ ...pt(), vx: 0, vy: 0, s: 0.7 });
     for (let k = 0; k < c.food_patches[b]; k++) {
       const at = pt(), R = 30 + r() * 50;
-      for (let i = 0; i < c.patch_food; i++) { const t = r() * 6.283, d = R * Math.sqrt(r()); this.food.push({ x: at.x + Math.cos(t) * d, y: at.y + Math.sin(t) * d, vx: 0, vy: 0 }); }
+      for (let i = 0; i < c.patch_food; i++) { const t = r() * 6.283, d = R * Math.sqrt(r()); this.food.push({ x: at.x + Math.cos(t) * d, y: at.y + Math.sin(t) * d, vx: 0, vy: 0, s: c.grain[0] + (c.grain[1] - c.grain[0]) * (1 - d / R) * r() }); } // в середине пятна куски крупнее
     }
-    if (far > c.bdello_from && r() < c.bdello_chance[b] * (1 + far * c.danger_growth)) this.bdellos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: r(), id: ++this.ids });
+    if (far > c.bdello_from && this.stats.gen > 0 && r() < c.bdello_chance[b] * (1 + far * c.danger_growth) * Math.min(2, this.me.length / 2)) // хищник идёт на густую добычу: пока ты один, его нет this.bdellos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: r(), id: ++this.ids });
     if (far > c.slipper_from && r() < c.slipper_chance[b]) this.slippers.push({ ...pt(), a: r() * 6.283, back: 0, id: ++this.ids });
     if (!safe && far > c.roti_from && r() < c.roti_chance[b]) this.rotis.push({ ...pt(), a: r() * 6.283, sit: false, t: r() * c.roti_swim, id: ++this.ids });
     if (r() < c.slime_chance[b]) { const at = pt(); this.slime.push({ ...at, a: r() * 3.14, len: 160 + r() * 220, w: 22 + r() * 22, id: ++this.ids }); } // тяж слизи: вязкий гель
     if (r() < c.crumb_chance[b]) this.crumbs.push({ ...pt(), m: 2 + r() * 3, id: ++this.ids }); // детрит: бурый комок, медленно тонет
     const np = 1 + Math.floor(r() * c.prey_per_chunk[b]);
     for (let i = 0; i < np; i++) this.prey.push({ ...pt(), vx: 0, vy: 0, m: 0.3 + r() * (0.9 + far * 0.5), a: r() * 6.3, id: ++this.ids, pair: r() < 0.4 });
+    const nPlants = this.plants.length;
     if (b === 2) for (let i = 0, n = 1 + Math.floor(r() * 3); i < n; i++) this.plants.push({ ...pt(), m: 3 + r() * 5, id: ++this.ids, t: r() });
     else if (r() < c.plant_chance) this.plants.push({ ...pt(), m: 3 + r() * 4, id: ++this.ids, t: r() });
-    if (!safe) for (const p of this.plants.slice(-3)) if (!p.bell && r() < c.bell_chance) { // сувойка сидит на нити водоросли
+    if (!safe) for (const p of this.plants.slice(nPlants)) if (!p.bell && r() < c.bell_chance) { // только на водорослях этого квадрата // сувойка сидит на нити водоросли
       p.bell = true; const d = r() * 6.283; this.bells.push({ x: p.x + Math.cos(d) * 30, y: p.y + Math.sin(d) * 30, dir: d, shut: 0, id: ++this.ids });
     }
     if (!safe && r() < c.amoeba_chance[b] * (1 + far * c.danger_growth))
@@ -113,7 +115,7 @@ export class World {
   divide() {
     const born = [];
     for (const c of this.me) {
-      if (c.m < this.cfg.split || c.sick >= 0 || c.held > 0) continue;
+      if (c.m < this.cfg.split || c.sick >= 0 || c.held > 0 || c.grab) continue;
       c.m /= 2; c.gen = (c.gen || 0) + 1; this.stats.gen = Math.max(this.stats.gen, c.gen);
       const ax = Math.cos(c.a), ay = Math.sin(c.a), r = radius(c.m);
       born.push({ x: c.x - ax * r * 1.2, y: c.y - ay * r * 1.2, vx: c.vx - ax * 60, vy: c.vy - ay * 60, m: c.m, a: c.a, sick: -1, gen: c.gen, id: ++this.ids });
@@ -156,8 +158,10 @@ export class World {
       let thrust = 0;
       if (want !== null && s > 1) {
         const d = wrap(want - a.a);
-        if (!a.tumble && Math.abs(d) > sw.tumble_angle && len(a.vx, a.vy) > s * 0.4) {
+        if (!a.tumble && Math.abs(d) > sw.tumble_angle && (len(a.vx, a.vy) > s * 0.4 || a.grab || a.held > 0)) {
           a.tumble = sw.tumble_time; // кувырок стряхивает фага, который ещё не впрыснул
+          if (a.grab) this.escape(a);
+          if (a.held > c.bdello_kill - c.bdello_loose) for (const b of this.bdellos) if (b.on === a) { b.on = null; b.t = 0; a.held = 0; a.free = c.free; this.events.push(['shake', b.x, b.y]); } // прилип, но ещё не вошёл — стряхнёшь
           for (const g of this.phages) if (g.on === a) { g.on = null; g.cool = 1.5; g.vx = -Math.cos(g.d) * 60; g.vy = -Math.sin(g.d) * 60; this.events.push(['shake', g.x, g.y]); }
         }
         // поворот с разгоном и доводкой: скорость поворота меняется плавно (не больше spin_acc рад/с²)
@@ -192,6 +196,10 @@ export class World {
     this.life(dt);
     this.eat(dt);
     this.hunters(dt);
+    this.hold(dt);
+    this.rush = Math.max(0, this.rush - (this.stats.time - this.lastEat > c.rush_gap ? c.rush_fall * dt : 0));
+    // Выросшая клетка делится сама через cfg.auto_split с (так делятся бактерии); касание — поделиться раньше, когда нужно.
+    if (this.me.length < c.auto_max && this.me.some(a => a.m >= c.split)) { this.ripe = (this.ripe || 0) + dt; if (this.ripe > c.auto_split) { this.ripe = 0; this.divide(); } } else this.ripe = 0;
     for (const a of this.me.filter(a => a.sick >= 0 && a.sick < dt)) {
       this.lose(a, a.x, a.y, 'phage');
       this.events.push(['burst', a.x, a.y]); this.spill(a.x, a.y);
@@ -254,7 +262,9 @@ export class World {
   // Медленное течение воды: у каждого места своё направление, меняется во времени.
   flow(x, y) { const t = hash(Math.floor(x / 500), Math.floor(y / 500), 77) * 6.283 + this.stats.time * 0.05; return [Math.cos(t) * this.cfg.flow, Math.sin(t) * this.cfg.flow]; }
 
-  grow(a, v) { a.m = Math.min(this.cfg.max_m, a.m + v * (this.genes.fast ? 2 : 1)); }
+  grow(a, v) { a.m = Math.min(this.cfg.max_m, a.m + v * (this.genes.fast ? 2 : 1) * (1 + this.rush)); }
+  // Съел — серия: куски подряд (не дольше cfg.rush_gap между ними) разгоняют рост, как в экспоненциальной фазе.
+  fed(x, y, size) { const c = this.cfg; this.rush = Math.min(c.rush_max, this.rush + (this.stats.time - this.lastEat < c.rush_gap ? c.rush_step * size : 0)); this.lastEat = this.stats.time; this.stats.eaten++; this.events.push(['eat', x, y, size]); }
 
   // Неживое и соседи: водоросль понемногу выделяет сахар вокруг себя (фикосфера), детрит тонет,
   // разлитая еда тормозит в вязкой воде.
@@ -279,10 +289,10 @@ export class World {
       for (const f of this.food) {
         const dx = a.x - f.x, dy = a.y - f.y, d = len(dx, dy);
         if (sense && d < r + 150) { f.x += dx / d * 90 * dt; f.y += dy / d * 90 * dt; }
-        if (d < r + 6 && !f.gone) { f.gone = true; this.grow(a, this.cfg.food); this.stats.eaten++; }
+        if (d < r + 6 && !f.gone) { f.gone = true; const z = f.s || 1; this.grow(a, this.cfg.food * z); this.fed(f.x, f.y, z); } // кусок кормит по размеру
       }
       for (const q of this.prey) if (!q.gone && q.m < a.m * 0.8 && dist(a, q) < r + radius(q.m) * 0.4) {
-        q.gone = true; this.grow(a, q.m * 0.5); this.stats.eaten++; this.events.push(['eat', q.x, q.y]);
+        q.gone = true; this.grow(a, q.m * 0.5); this.fed(q.x, q.y, 2);
       }
       for (const k of this.crumbs) if (dist(a, k) < r + radius(k.m) * 0.8) { // детрит растворяется медленно
         const bite = Math.min(k.m, 0.4 * dt); k.m -= bite; this.grow(a, bite);
@@ -291,7 +301,7 @@ export class World {
         const bite = Math.min(p.m, 0.5 * dt); p.m -= bite; this.grow(a, bite);
       }
       for (const m of this.amoebas) if (!m.gone && m.m < a.m * 0.8 && dist(a, m) < r + radius(m.m) * 0.4) {
-        m.gone = true; a.m = Math.min(this.cfg.max_m, a.m + m.m * 0.5); this.stats.eaten++; this.events.push(['eat', m.x, m.y]);
+        m.gone = true; a.m = Math.min(this.cfg.max_m, a.m + m.m * 0.5); this.fed(m.x, m.y, 2);
       }
     }
     this.food = this.food.filter(f => !f.gone);
@@ -299,6 +309,25 @@ export class World {
     this.plants = this.plants.filter(p => p.m > 0.3);
     this.crumbs = this.crumbs.filter(k => k.m > 0.2);
     this.amoebas = this.amoebas.filter(m => !m.gone);
+  }
+
+  // Пасть: клетку не съедают мгновенно — её держат, пока смыкается пищеварительный пузырёк (cfg.grab с).
+  // Резкий разворот (кувырок) вырывает, и ещё секунду клетку не поймать. Не успел — съеден.
+  grab(a, who, by) { if (a.grab || a.free > 0) return; a.grab = { who, by, t: this.cfg.grab }; this.events.push(['grab', a.x, a.y]); }
+  mouthOf(g) { const b = g.by; return g.who === 'slipper' ? this.mouth(b) : g.who === 'bell' ? this.bell(b) : this.head(b); }
+  hold(dt) {
+    for (const a of [...this.me]) {
+      a.free = Math.max(0, (a.free || 0) - dt);
+      const g = a.grab; if (!g) continue;
+      const [mx, my] = this.mouthOf(g);
+      a.x += (mx - a.x) * Math.min(1, 6 * dt); a.y += (my - a.y) * Math.min(1, 6 * dt); a.vx *= 0.5; a.vy *= 0.5;
+      g.t -= dt;
+      if (g.t <= 0) { a.grab = null; this.lose(a, mx, my, g.who); }
+    }
+  }
+  escape(a) { // кувырок в пасти: вырвался
+    const g = a.grab, [mx, my] = this.mouthOf(g), d = Math.hypot(a.x - mx, a.y - my) || 1, ux = d > 1 ? (a.x - mx) / d : -Math.cos(a.a), uy = d > 1 ? (a.y - my) / d : -Math.sin(a.a);
+    a.grab = null; a.free = this.cfg.free; a.m = Math.max(0.6, a.m * this.cfg.torn); // вырвалась, но оставила в пасти кусок a.x = mx + ux * 40; a.y = my + uy * 40; a.vx = ux * 220; a.vy = uy * 220; this.events.push(['shake', a.x, a.y]);
   }
 
   nearest(p, reach) {
@@ -351,7 +380,7 @@ export class World {
       const go = b.t > (b.rest || 0) ? c.bdello_speed : 0, k = Math.min(1, 8 * dt);
       b.vx += (Math.cos(b.a) * go - b.vx) * k; b.vy += (Math.sin(b.a) * go - b.vy) * k;
       b.x += b.vx * dt; b.y += b.vy * dt;
-      for (const a of this.me) if (dist(a, b) < radius(a.m) + 4) {
+      for (const a of this.me) if (dist(a, b) < radius(a.m) + 4 && !(a.free > 0)) {
         if (this.genes.capsule) { b.a += Math.PI; b.x += Math.cos(b.a) * 6; b.y += Math.sin(b.a) * 6; this.events.push(['bump', b.x, b.y]); break; }
         if (a.held > 0) break;
         b.on = a; b.a = Math.atan2(b.y - a.y, b.x - a.x) + Math.PI; a.held = c.bdello_kill; this.events.push(['sick', a.x, a.y]); break;
@@ -371,7 +400,7 @@ export class World {
         if (hit) { p.back = c.slipper_back; this.events.push(['bump', nx, ny]); }
       }
       const [mx, my] = this.mouth(p);
-      for (const a of [...this.me]) if (Math.hypot(a.x - mx, a.y - my) < c.mouth_r) this.lose(a, mx, my, 'slipper');
+      for (const a of this.me) if (Math.hypot(a.x - mx, a.y - my) < c.mouth_r) this.grab(a, 'slipper', p);
       for (const f of this.food) if (Math.hypot(f.x - mx, f.y - my) < c.funnel_r) { const d = Math.hypot(f.x - mx, f.y - my) || 1; f.x += (mx - f.x) / d * c.funnel * 0.6 * dt; f.y += (my - f.y) / d * c.funnel * 0.6 * dt; if (d < c.mouth_r) f.gone = true; }
     }
     // Сувойка сидит на стебле и гонит вихрь в рот. Медленную клетку затягивает; кто врежется с разгона —
@@ -382,7 +411,7 @@ export class World {
       for (const a of [...this.me]) {
         const d = Math.hypot(a.x - bx, a.y - by), sp = Math.hypot(a.vx, a.vy);
         if (d < c.bell_r + radius(a.m) && sp > c.bell_jolt) { v.shut = c.bell_shut; this.events.push(['snap', bx, by]); break; }
-        if (d < c.mouth_r) this.lose(a, bx, by, 'bell');
+        if (d < c.mouth_r) this.grab(a, 'bell', v);
       }
     }
     // Коловратка то плывёт колёсами вперёд, то присаживается на ногу и фильтрует — по часам, предсказуемо.
@@ -396,7 +425,7 @@ export class World {
         if (q.t > c.roti_swim) { q.sit = true; q.t = 0; this.events.push(['sit', q.x, q.y]); }
       }
       const [hx, hy] = this.head(q), pw = this.wheels(q);
-      for (const a of [...this.me]) if (Math.hypot(a.x - hx, a.y - hy) < c.roti_mouth) this.lose(a, hx, hy, 'roti');
+      for (const a of this.me) if (Math.hypot(a.x - hx, a.y - hy) < c.roti_mouth) this.grab(a, 'roti', q);
       for (const f of this.food) { const d = Math.hypot(f.x - hx, f.y - hy) || 1; if (d < c.roti_r) { const k = c.roti_vortex * pw * (1 - d / c.roti_r) * dt; f.x += (hx - f.x) / d * k; f.y += (hy - f.y) / d * k; if (d < c.roti_mouth) f.gone = true; } }
     }
     this.food = this.food.filter(f => !f.gone);
@@ -408,7 +437,7 @@ export class World {
         const ground = this.biome(m.x, m.y) === 2 || this.plants.some(p => dist(p, m) < 160) || this.crumbs.some(k => dist(k, m) < 120);
         const v = c.amoeba * (ground ? 1 : c.amoeba_open);
         wx = (a.x - m.x) / d * v; wy = (a.y - m.y) / d * v;
-        if (d < radius(m.m) + radius(a.m) * 0.3 && !this.genes.capsule) { this.lose(a, m.x, m.y, 'amoeba'); m.m += a.m * 0.5; }
+        if (d < radius(m.m) + radius(a.m) * 0.3 && !this.genes.capsule) { this.lose(a, m.x, m.y, 'amoeba'); m.m += a.m * 0.5; } // амёба обтекает целиком — из неё не вырваться, спасает капсула
       }
       const k = Math.min(1, dt);
       m.vx += (wx - m.vx) * k; m.vy += (wy - m.vy) * k; m.x += m.vx * dt; m.y += m.vy * dt;

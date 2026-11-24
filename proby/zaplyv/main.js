@@ -237,10 +237,12 @@ let toastT = 0;
 function meet(k) { // первая встреча: на секунду имя у края экрана, без паузы и без нажатий
   if (met.has(k) || !cards[k]) return;
   met.add(k); saveMet(); cabLabel();
-  $('toast').textContent = 'Новая карточка · ' + cards[k].name; $('toast').classList.add('on');
-  clearTimeout(toastT); toastT = setTimeout(() => $('toast').classList.remove('on'), 1600);
+  say('Новая карточка · ' + cards[k].name, 1600);
   beep(990, 0.12, 0.03, 'sine', 1.3);
 }
+function say(text, ms) { $('toast').textContent = text; $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => $('toast').classList.remove('on'), ms); }
+const told = new Set(); // подсказка — один раз и только в момент, когда она нужна
+function tell(k, text) { if (told.has(k)) return; told.add(k); say(text, 2600); }
 start();
 
 const toWorld = (sx, sy) => ({ x: (sx - W / 2) / view.z + view.x, y: (sy - H / 2) / view.z + view.y });
@@ -294,8 +296,10 @@ function pathText(w) {
 function ring(x, y, side, r) { rings.push({ x, y, side, r, t: 0 }); }
 
 function events() {
-  for (const [k, x, y] of world.events) {
-    if (k === 'eat') { ring(x, y, 2, 40); const n = performance.now(); if (n - lastEat > 60) { beep(300 + Math.random() * 200, 0.09, 0.04); lastEat = n; } }
+  for (const [k, x, y, size = 1] of world.events) {
+    if (k === 'grab') { ring(x, y, 1, 40); beep(240, 0.2, 0.05, 'sawtooth', 1.6); tell('grab', 'Схватили! Резко развернись — вырвешься'); }
+    if (k === 'sick' && world.me.some(a => a.held > 0)) tell('bdello', 'Прилип хищник! Резко развернись — стряхнёшь');
+    if (k === 'eat') { ring(x, y, 2, 26 + 14 * size); const n = performance.now(); if (n - lastEat > 60) { beep(300 + Math.random() * 200, 0.09, 0.04); lastEat = n; } }
     if (k === 'split') ring(x, y, 0, 70);
     if (k === 'meet') meet(x);
     if (k === 'stick') { ring(x, y, 1, 22); beep(520, 0.06, 0.04, 'square'); } // прилип фаг: резко развернись — стряхнёшь
@@ -336,7 +340,8 @@ function tick(dt) {
   const t = TINT[world.biome(view.x, view.y)];
   for (let i = 0; i < 3; i++) view.tint[i] += (t[i] - view.tint[i]) * Math.min(1, dt * 0.8);
   $('count').textContent = 'клеток ' + world.me.length;
-  $('eaten').textContent = 'съедено ' + world.stats.eaten;
+  $('eaten').textContent = world.rush > 0.05 ? 'рост ×' + (1 + world.rush).toFixed(1) : 'съедено ' + world.stats.eaten; // серия кусков подряд — рост быстрее
+  if (world.readyToSplit() && !world.me.some(a => a.grab || a.held > 0)) tell('split', 'Выросла! Коснись — поделишься. Или подожди');
 }
 
 // Вид «как под микроскопом» (тёмное поле): палочки длиной в 2–3 ширины растут в длину, внутри светлое
@@ -496,6 +501,8 @@ function paint(time) {
     const arc = u => -sag * 0.675 + sag * (1 - Math.min(1, (u * z / half) ** 2)); // прогиб в точке u (u — в единицах мира от центра)
     const pinch = a.m >= cfg.split ? 0.62 + 0.12 * Math.sin(time * 6) : 0; // перетяжка: вот-вот две
     bodies.rod(x, y, ang, half, w, pinch, [CELL[0].r, CELL[0].g, CELL[0].b], [CORE[0].r, CORE[0].g, CORE[0].b], a.id, -sag);
+    if (a.grab) glow.put(x, y, half * 1.8, 1, 0.25, 0.15, 0.22 + 0.15 * Math.sin(time * 14)); // схвачена: бьётся в пасти
+    if (world.rush > 0.05) glow.put(x, y, half * (1.4 + world.rush * 0.6), 1, 0.75, 0.35, 0.08 + 0.1 * world.rush); // разгон роста: рибосомы работают на всю
     if (pinch) for (let k = 0; k < 18; k++) { const t = k * 0.349, R = half * (1.35 + 0.08 * Math.sin(time * 5)); glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 2.2, 1, 1, 1, 0.4); }
     for (let k = 0; k < 16; k++) { // пили: короткие ворсинки по всей оболочке
       const t = k / 16 * 6.283, c = Math.cos(t), s = Math.sin(t), l = 1 + 0.25 * Math.sin(time * 3 + k * 1.7 + a.id);
@@ -560,7 +567,7 @@ function paint(time) {
   for (const p of puffs) { p.x += p.vx / 60; p.y += p.vy / 60; p.vx *= 0.95; p.vy *= 0.95; const [x, y] = scr(p.x, p.y); wake.put(x, y, (1.1 + p.t) * z, 0.8, 0.92, 1, 0.3 * (1 - p.t / 1.4)); }
   for (const f of world.food) { // сахар: мелкие светящиеся зёрна
     const [x, y] = scr(f.x, f.y); if (!on(x, y, 20)) continue;
-    glow.put(x, y, 9 * z, 1, 0.8, 0.35, 0.14); glow.put(x, y, 3.2 * z + 0.6, 1, 0.93, 0.65, 0.9);
+    const k = Math.sqrt(f.s || 1); glow.put(x, y, 9 * z * k, 1, 0.8, 0.35, 0.14); glow.put(x, y, 3.2 * z * k + 0.6, 1, 0.93, 0.65, 0.9); // крупный кусок крупнее и светит ярче
   }
   for (const g of world.phages) { // фаг T4: головка позади, хвостом вперёд — садится хвостом
     const [x, y] = scr(g.x, g.y); if (!on(x, y)) continue;
