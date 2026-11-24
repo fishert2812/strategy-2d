@@ -70,7 +70,7 @@
     "gait": {
       "carrier": {"hop": 7, "rate": 3.6, "squash": 0.14, "sway": 5},
       "carrier_loaded": {"hop": 2, "rate": 2.0, "squash": 0.06, "sway": 10},
-      "warrior": {"hop": 1.5, "rate": 2.6, "squash": 0.04, "sway": 0},
+      "warrior": {"hop": 3, "rate": 2.6, "squash": 0.06, "sway": 0},
       "fidget": {"hop": 2, "rate": 0.8, "squash": 0.05, "sway": 3}
     },
     "_fidget_max": "Во сколько раз чаще топчутся воины у коробка перед самым свистком.",

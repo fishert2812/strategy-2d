@@ -14,17 +14,17 @@ import numpy as np
 from PIL import Image
 
 SIZE = 256
-CROP = (64, 110, 1124, 1170)  # квадрат 1060x1060 вокруг фигурки во всех позах
+CROP = (4, 110, 1064, 1170)  # квадрат 1060x1060 вокруг фигурки во всех позах
 SOLE = 1115  # нижний край подошвы в исходных позах: все кадры подтягиваем к нему
 # Рука с иголкой: игла выше плеча и рукав до жилета. Кусок руки заходит под жилет на
 # OVERLAP точек, чтобы при повороте в плече не было щели.
 NEEDLE = (140, 260, 330, 520)
 ARM = (140, 515, 455, 705)
 EYE = (140, 700, 390, 775)  # ушко иглы под кулаком
-OVERLAP = 35
+OVERLAP = 70
 SHOULDER = (450, 610)
 # Поза удара: поворот руки в градусах (+ вперёд, к врагу) и сдвиг в исходных точках.
-STRIKE = [(-22, (6, -4)), (34, (-30, 8))]
+STRIKE = [(-22, (6, -4)), (16, (-45, 0))]
 RED_HUE = 0.0  # оттенок красной команды (0..1, 0 — красный)
 
 
@@ -68,7 +68,7 @@ def recolor(img: Image.Image, hue: float) -> Image.Image:
     blue = (hsv[:, 0] > 0.55) & (hsv[:, 0] < 0.75) & (hsv[:, 1] > 0.2)
     hsv[blue, 0] = hue
     hsv[blue, 1] = np.minimum(1, hsv[blue, 1] * 1.45)
-    hsv[blue, 2] = np.minimum(1, hsv[blue, 2] * 1.2)
+    hsv[blue, 2] = np.minimum(1, hsv[blue, 2] * 1.5)
     out = np.array([colorsys.hsv_to_rgb(*p) for p in hsv]).reshape(a.shape[0], a.shape[1], 3)
     a[:, :, :3] = out
     return Image.fromarray((a * 255).astype(np.uint8))
