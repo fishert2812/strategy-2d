@@ -14,7 +14,9 @@ import { M } from './mutacii.js';
 const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
 let bad = 0;
 // ONLY=L014 — запустить только проверки с этим номером урока (так selftest ломает игру и ждёт красного у нужной проверки).
+const TITLES = []; // названия проверок: по ним видно, у какого умения есть тест «сделал → случилось» (урок L024)
 const check = (name, fn) => {
+  TITLES.push(name);
   if (process.env.ONLY && !name.includes('test_' + process.env.ONLY)) return;
   try { const r = fn(); if (r) { bad++; console.log('  ПРОВАЛ', name + ':', r); } else console.log('  ок   ', name); }
   catch (e) { bad++; console.log('  ПРОВАЛ', name + ':', e.stack); }
@@ -44,7 +46,7 @@ check('клетка, плывущая к еде, вытягивается и д�
   if (w.stats.most < 2) return 'ни разу не поделилась';
 });
 
-check('амёба глотает клетку без капсулы и не может с капсулой', () => {
+check('амёба глотает клетку без капсулы и не может с капсулой [capsule]', () => {
   const res = [];
   for (const capsule of [false, true]) {
     const w = new World(cfg, 3);
@@ -60,7 +62,7 @@ check('амёба глотает клетку без капсулы и не мо
   if (res[1] !== 1) return 'с капсулой клетку всё равно съели';
 });
 
-check('фаг прилипает и впрыскивает, клетка лопается облаком новых фагов; CRISPR помнит только пережитых: первый фаг стоит сил и даёт полоску, второй режется даром', () => {
+check('[crispr] фаг прилипает и впрыскивает, клетка лопается облаком новых фагов; CRISPR помнит только пережитых: первый фаг стоит сил и даёт полоску, второй режется даром', () => {
   const res = [];
   for (const crispr of [false, true]) {
     const w = new World(cfg, 5);
@@ -416,7 +418,7 @@ check('обмен генами касанием: побыл рядом с сор
   if (long.length !== 1) return 'за 2 с рядом ген не передан';
 });
 
-check('сон-персистер: последняя клетка с геном сна не гибнет, а засыпает, пережидает беду и просыпается; второй раз — уже нет', () => {
+check('сон-персистер [spore]: последняя клетка с геном сна не гибнет, а засыпает, пережидает беду и просыпается; второй раз — уже нет', () => {
   const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
   const eatBy = w => { const a = w.me[0]; w.amoebas = [{ x: a.x + 5, y: a.y, vx: 0, vy: 0, m: 9, id: 50 }]; w.step(1 / 30, null); };
   const no = bare(121); eatBy(no);
@@ -430,7 +432,7 @@ check('сон-персистер: последняя клетка с геном 
   if (yes.me.length) return 'спора спасла дважды';
 });
 
-check('test_L016: по сверке биолога: кокков не глотаешь и токсин их не берёт (CDI бьёт только чужих палочек, они лопаются едой; свои и синегнойка целы); долго вплотную к кокку — щиплет, замедляет; новый замок — T4 не садится; хемотаксис ведёт клетку, а не еду; быстрый рост — деление раньше; по плазмиде только токсин, капсула, CRISPR', () => {
+check('test_L016 [toxin] [lock] [sense]: по сверке биолога: кокков не глотаешь и токсин их не берёт (CDI бьёт только чужих палочек, они лопаются едой; свои и синегнойка целы); долго вплотную к кокку — щиплет, замедляет; новый замок — T4 не садится; хемотаксис ведёт клетку, а не еду; быстрый рост — деление раньше; по плазмиде только токсин, капсула, CRISPR', () => {
   const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
   const touch = tox => { const w = bare(131), a = w.me[0]; w.genes.toxin = tox; const at = (dx, o) => ({ x: a.x + dx, y: a.y, vx: 0, vy: 0, a: 0, t: 9, rest: 9, cool: 0, ...o });
     w.prey = [{ ...at(8), m: 0.5, id: 4 }]; w.pseudos = [at(10, { strain: true, id: 5 }), at(-10, { id: 6 })]; w.donors = [{ ...at(0, { id: 7 }), y: a.y + 10, link: 0 }];
@@ -457,19 +459,19 @@ check('test_L016: по сверке биолога: кокков не глота
 });
 
 check('геном на паузе: у каждого гена из игры своё место на кольце; полученный ген включён, сказано, откуда он и что делает, а касание гена меняет вид клетки', () => {
-  const G = JSON.parse(readFileSync(new URL('./genome.json', import.meta.url))); G.pipe = cfg.plasmid_genes;
+  const G = JSON.parse(readFileSync(new URL('./genome.json', import.meta.url))); G.pipe = cfg.plasmid_genes; const BOOK = JSON.parse(readFileSync(new URL('./kniga/teksty_genov.json', import.meta.url))).geny;
   const all = layout(G), own = all.filter(p => !p.plasmid), ids = all.map(p => p.slot.id).filter(Boolean);
   const lost = Object.keys(cfg.genes).filter(g => !ids.includes(g));
   const w = new World(cfg, 7); w.amoebas = []; w.bdellos = []; w.phages = [];
   w.choice = ['fast', 'sense']; w.pick('fast');
-  const c = card(all.find(p => p.slot.id === 'fast').slot, w.genes, w.from, cfg.genes, G, 'Энергия');
-  const s = card(all.find(p => p.slot.id === 'sense').slot, w.genes, w.from, cfg.genes, G, 'Движение');
+  const c = card(all.find(p => p.slot.id === 'fast').slot, w.genes, w.from, BOOK, G, 'Энергия');
+  const s = card(all.find(p => p.slot.id === 'sense').slot, w.genes, w.from, BOOK, G, 'Движение');
   const blink = Object.keys(cfg.genes).filter(g => JSON.stringify(look({ [g]: true }, cfg.look)) === JSON.stringify(look({}, cfg.look)));
   console.log('    паспорт: своих мест', own.length, 'в дугах', G.arcs.map(a => a.slots.length).join('/'), '| без места', lost.join(',') || '—',
     '| быстрый рост:', c.have, c.sub, '| хемотаксис:', s.have, s.sub, '| ген без вида на теле', blink.join(',') || '—');
   if (own.length < 12 || own.some(p => p.a1 - p.a0 < 15)) return 'на кольце меньше 12 мест или место уже 15° — значок не влезет'; // мест столько, сколько генов (шаг 360/N)
   if (lost.length) return 'нет места на кольце: ' + lost;
-  if (!c.have || !c.sub.includes('от дочки') || c.lines[0][1] !== cfg.genes.fast[1]) return 'полученный ген не показан включённым';
+  if (!c.have || !c.sub.includes('от дочки') || c.lines[0][1] !== BOOK.rrn.daet) return 'полученный ген не показан включённым';
   if (s.have || !s.lines.some(l => l[0] === 'Откуда')) return 'невыбранная дочка показана как полученная';
   if (blink.length) return 'касание гена ничего не меняет на клетке: ' + blink;
 });
@@ -483,13 +485,13 @@ check('«Не так»: отметка сама называет версию, �
   w.me.length = 0; w.stats.killer = 'amoeba';
   const dead = mark(w, cards, '0.26', 'экран гибели', cfg.flag_r, c), msg = message([{ at: '24.11 21:40', text: live }, { at: '24.11 21:41', text: dead }]);
   console.log('    паспорт:', live, '|', dead.split(' · ').pop());
-  for (const part of ['0.26', '0:02', 'игра', 'Капсула', 'Акантамёба']) if (!live.includes(part)) return 'в отметке нет «' + part + '»';
+  for (const part of ['0.26', '0:02', 'игра', 'kps', 'Акантамёба']) if (!live.includes(part)) return 'в отметке нет «' + part + '»';
   if (live.includes('Фаг')) return 'далёкий фаг попал в «рядом»';
   if (!dead.includes('убил: Акантамёба')) return 'после гибели не сказано, кто убил';
   if (!msg.includes('отметок 2') || !msg.includes('2) 24.11 21:41')) return 'сообщение не собрало отметки';
 });
 
-check('фимбрии: отпустил палец у водоросли — прилип, поток воронки не тянет; повёл пальцем — плывёшь; без гена поток сносит', () => {
+check('фимбрии [fim]: отпустил палец у зелёной нити — прилип, поток воронки не тянет; повёл пальцем — плывёшь; без гена поток сносит', () => {
   const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
   const pull = (fim, finger) => { const w = bare(161), a = w.me[0]; w.genes.fim = fim; w.plants = [{ x: a.x, y: a.y + radius(a.m) + 18, m: 4, id: 2, t: 0 }];
     w.suck = () => [60, 0]; // поток воронки/вихря рядом: 60 ед/с вбок
@@ -703,6 +705,74 @@ check('пруд с планом (К1): слои сверху вниз посто
   if (c.x > E.x0 + 200) return 'до края не доплыла за 60 с: ' + Math.round(c.x - E.x0);
   if (w.seen.size <= seen0 + 2) return 'туман не расходится: открыто клеток ' + w.seen.size;
   console.log('    паспорт: пруд ' + P.w + '×' + P.h + ', старт на глубине ' + w.depth(0).toFixed(2) + ', у левого края x=' + Math.round(c.x) + ', открыто клеток ' + w.seen.size + ' из ' + P.grid[0] * P.grid[1]);
+});
+
+// Урок L018 (расширен 24.11) и L024 «антибред»: игрок видит про умения только слова книги, слово мира в тексте — имя из Альманаха
+// или рядом с именем хозяина, хозяина бот встречает в заплыве, у каждого умения есть тест «сделал → случилось».
+const BOOKG = JSON.parse(readFileSync(new URL('./kniga/teksty_genov.json', import.meta.url))).geny, BOOKS = JSON.parse(readFileSync(new URL('./kniga/teksty_sushchestv.json', import.meta.url))).sushchestva;
+const SLOVA = JSON.parse(readFileSync(new URL('./slova_mira.json', import.meta.url)));
+const byKey = k => Object.values(BOOKG).find(q => q.klyuch === k);
+check('test_L018: имя и «что даёт» каждого умения — только из книги; в данных игры нет своих описаний умений', () => {
+  const src = readFileSync(new URL('./main.js', import.meta.url), 'utf8') + readFileSync(new URL('./genome.js', import.meta.url), 'utf8');
+  const raw = Object.entries(cfg.genes).filter(([k, v]) => typeof v !== 'string' || /[а-яё]/i.test(v)).map(([k]) => k);
+  const nobook = Object.keys(cfg.genes).filter(k => { const b = byKey(k); return !b || !b.imya || !b.daet || !b.priroda; });
+  const leak = (src.match(/genes\[[^\]]+\]\[[01]\]/g) || []);
+  console.log(`    паспорт: умений ${Object.keys(cfg.genes).length}, с текстом в data.json ${raw.length}, без записи книги ${nobook.length}, показов мимо книги ${leak.length}`);
+  if (raw.length) return 'в data.json свои описания умений: ' + raw;
+  if (nobook.length) return 'у умения нет имени, «что даёт» или «в природе» в книге: ' + nobook;
+  if (leak.length) return 'игра показывает строку умения мимо книги: ' + leak.join(' ');
+});
+const owners = () => { const n = {}; for (const k in SLOVA.lists) n[k] = (BOOKS[k] && BOOKS[k].imya) || (SLOVA.imena || {})[k] || ''; return n; };
+const stem = w => w.toLowerCase().replace(/ё/g, 'е').slice(0, Math.max(3, w.length - 2));
+const named = (text, k) => owners()[k].split(/\s+/).filter(Boolean).some(w => text.replace(/ё/g, 'е').toLowerCase().includes(stem(w)));
+const strange = (text, self) => { const t = text.toLowerCase().replace(/ё/g, 'е'), out = [];
+  for (const [st, k] of Object.entries(SLOVA.slova)) { const s = st.replace(/ё/g, 'е'); const re = new RegExp('(^|[^а-я])' + s + '[а-я]*', 'g');
+    for (const m of t.matchAll(re)) { const word = m[0].replace(/^[^а-я]/, ''); if (k === self || owners()[k].toLowerCase().replace(/ё/g, 'е').includes(word) || named(text, k)) continue; out.push(word + '→' + (owners()[k] || k)); } }
+  return out; };
+check('test_L024: слово мира в тексте умения или существа — имя из Альманаха или стоит рядом с именем хозяина', () => {
+  const bad = [];
+  for (const k of Object.keys(cfg.genes)) { const b = byKey(k); for (const w of strange(b.daet, null)) bad.push(`${b.imya}: «${w}»`); }
+  for (const [k, t] of Object.entries(BOOKS)) for (const f of ['kto', 'sovet']) if (t[f]) for (const w of strange(t[f], k)) bad.push(`${t.imya} (${f}): «${w}»`);
+  console.log('    паспорт: непонятных игроку слов мира', bad.length, bad.slice(0, 6).join('; '));
+  if (bad.length) return 'слово мира без имени из Альманаха: ' + bad.join('; ');
+});
+check('test_L024: умение не приходит дочке раньше встречи с тем, о ком оно (поле «после встречи с» в книге), а после встречи приходит', () => {
+  const posle = Object.fromEntries(Object.keys(cfg.genes).map(k => [k, byKey(k).posle || []])), bad = [], got = new Set();
+  for (let s = 1; s <= 6; s++) { const w = new World(cfg, s * 41); w.posle = posle;
+    for (let i = 0; i < 30 * 240 && w.me.length; i++) {
+      if (w.choice.length) { for (const g of w.choice) { got.add(g); const miss = posle[g].filter(k => !w.met.has(k)); if (miss.length) bad.push(`${byKey(g).imya} до встречи с ${miss.join(', ')}`); } w.pick(w.choice[0]); }
+      const c = w.center(); let best = null, bd = 1e9; for (const f of w.food) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } }
+      w.step(1 / 30, best ? { x: best.x, y: best.y } : { x: c.x + 100, y: c.y }); } }
+  const w = new World(cfg, 3); w.posle = posle; const g = Object.keys(posle).find(k => posle[k].length); const before = w.offer(g); for (const k of posle[g]) w.known.add(k);
+  console.log('    паспорт: предложено дочкам', [...got].join(', '), '| нарушений', bad.length);
+  if (bad.length) return 'умение раньше встречи: ' + [...new Set(bad)].join('; ');
+  if (before || !w.offer(g)) return `«${byKey(g).imya}»: до встречи ${before ? 'предлагается' : 'нет'}, после встречи из Альманаха ${w.offer(g) ? 'есть' : 'нет'}`;
+});
+check('test_L024: каждого, кого называет «что даёт» умения, бот-новичок встречает в заплыве (8 заплывов по 5 минут, не реже чем в половине)', () => {
+  const novice = w => { const c = w.center(); let best = null, bd = 260; for (const f of w.food) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } } return best ? { x: best.x, y: best.y } : { dx: Math.cos(w.dir), dy: Math.sin(w.dir), p: 1 }; };
+  const texts = Object.keys(cfg.genes).map(k => byKey(k).daet).join(' ').toLowerCase().replace(/ё/g, 'е'); // хозяева слов из «что даёт» умений
+  const need = [...new Set(Object.entries(SLOVA.slova).filter(([st]) => new RegExp('(^|[^а-я])' + st.replace(/ё/g, 'е')).test(texts)).map(([, k]) => k))], met = Object.fromEntries(need.map(k => [k, 0]));
+  for (let s = 1; s <= 8; s++) { const w = new World(cfg, s * 53); w.dir = s * 1.3; const got = new Set();
+    for (let i = 0; i < 30 * 300 && w.me.length && got.size < need.length; i++) { w.step(1 / 30, novice(w)); if (w.choice.length) w.pick(w.choice[0]); if (i % 15) continue; const c = w.center();
+      for (const k of need) if (!got.has(k) && w[SLOVA.lists[k]].some(o => (k !== 'strain' || o.strain) && (k !== 'pseudo' || !o.strain) && Math.hypot(o.x - c.x, o.y - c.y) < 250)) got.add(k); }
+    for (const k of got) met[k]++; }
+  console.log('    паспорт: встречен в заплывах из 8 —', need.map(k => (owners()[k] || k) + ' ' + met[k]).join(', '));
+  const rare = need.filter(k => met[k] < 4); if (rare.length) return 'слово мира про то, что игрок почти не встречает: ' + rare.map(k => owners()[k] || k);
+});
+check('умения: обещание = поведение [flagellum] [fast] — с мощным хвостом в слизи не тормозишь; с быстрым ростом без еды худеешь быстрее', () => {
+  const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
+  const slime = fl => { const w = bare(171), a = w.me[0]; a.a = 0; w.genes.flagellum = fl; w.slime = [{ x: a.x + 150, y: a.y, a: 0, len: 600, w: 60, id: 1 }]; run(w, 3, { dx: 1, dy: 0, p: 1 }); return a.x; };
+  const burn = f => { const w = bare(172), a = w.me[0]; a.m = 3; w.genes.fast = f; run(w, 10, null); return 3 - a.m; };
+  const [x0, x1, b0, b1] = [slime(false), slime(true), burn(false), burn(true)];
+  console.log(`    паспорт: за 3 с через слизь без хвоста ${x0.toFixed(0)}, с хвостом ${x1.toFixed(0)}; за 10 с без еды потеряно массы — обычная ${b0.toFixed(2)}, быстрый рост ${b1.toFixed(2)}`);
+  if (!(x1 > x0 * 1.2)) return 'мощный хвост не помогает в слизи';
+  if (!(b1 > b0)) return 'быстрый рост не худеет быстрее без еды';
+});
+check('test_L024: у каждого умения есть тест «сделал → случилось» с [ключом] в названии', () => {
+  const mut = readFileSync(new URL('./test_mutacii.mjs', import.meta.url), 'utf8'); // новые мутации проверяет свой файл (шаг zaplyv_mut)
+  const none = Object.keys(cfg.genes).filter(k => !TITLES.some(t => t.includes('[' + k + ']')) && !mut.includes("check('[" + k + ']'));
+  console.log('    паспорт: умений без теста-обещания', none.length, none.join(', '));
+  if (none.length) return 'обещание умения не проверено поведением: ' + none;
 });
 
 console.log(bad ? 'ЗАПЛЫВ: провалов ' + bad : 'ЗАПЛЫВ: все проверки прошли');

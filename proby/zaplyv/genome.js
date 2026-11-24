@@ -16,14 +16,14 @@ export function layout(G) {
   return out;
 }
 
-// Что написать на карточке гена. genes — гены клетки, from — откуда пришли, names — data.json genes.
-export function card(slot, genes, from, names, G, arcName) {
-  const live = slot.id && names[slot.id], have = !!(live && genes[slot.id]);
-  if (!live) return { title: slot.name, latin: slot.gene === '?' ? '' : slot.gene, have, sub: (arcName ? arcName + ' · ' : '') + 'спит',
-    lines: [['Даст', slot.soon], ['Откуда', slot.gene === '?' ? 'пусто' : G.from.none]] };
+// Что написать на карточке гена. Все слова — только из книги (kniga/teksty_genov.json, урок L018): book — её гены по латинскому имени.
+export function card(slot, genes, from, book, G, arcName) {
+  const b = book[slot.gene] || {}, live = !!(slot.id && b.klyuch === slot.id), have = !!(live && genes[slot.id]);
+  if (!live) return { title: b.imya || 'Пусто', latin: slot.gene === '?' ? '' : slot.gene, have, sub: (arcName ? arcName + ' · ' : '') + 'спит',
+    lines: (b.daet ? [['Даст', b.daet]] : []).concat([['Откуда', slot.gene === '?' ? 'пусто' : G.from.none]]) };
   const pipe = (G.pipe || []).includes(slot.id); // по трубочке ходят только плазмидные гены (data.json plasmid_genes)
-  return { title: names[slot.id][0], latin: slot.gene === slot.id ? '' : slot.gene /* у умения без одного настоящего гена латыни нет (книга) */, have, sub: (arcName ? arcName + ' · ' : 'чужой · ') + (have ? G.from[from[slot.id]] || G.from.kid : 'спит'),
-    lines: [['В игре', names[slot.id][1]], ['На теле', slot.body], ['В науке', slot.science]].concat(have ? [] : [['Откуда', pipe ? G.from.canpipe : G.from.can]]) };
+  return { title: b.imya, latin: slot.gene === slot.id ? '' : slot.gene /* у умения без одного настоящего гена латыни нет (книга) */, have, sub: (arcName ? arcName + ' · ' : 'чужой · ') + (have ? G.from[from[slot.id]] || G.from.kid : 'спит'),
+    lines: [['Что даёт', b.daet], ['В природе', b.priroda]].concat(have ? [] : [['Откуда', pipe ? G.from.canpipe : G.from.can]]) };
 }
 
 const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent?.appendChild(e); return e; };
@@ -81,7 +81,7 @@ export function genomeScreen({ G, cfg, world, icon = () => '', onOpen, onClose, 
   }
 
   function select(slot, arc) {
-    pick = slot; const w = world(), c = card(slot, w.genes, w.from || {}, cfg.genes, G, arc >= 0 ? G.arcs[arc].name : '');
+    pick = slot; const w = world(), c = card(slot, w.genes, w.from || {}, G.book || {}, G, arc >= 0 ? G.arcs[arc].name : '');
     S.blink = slot.id && cfg.genes[slot.id] ? slot.id : null; // на клетке мигает то, что меняет ген (спящий — показывает, каким станешь)
     box.innerHTML = '';
     if (slot.id && cfg.genes[slot.id] && icon(slot.id)) { const im = document.createElement('img'); im.className = 'gicon big'; im.alt = ''; im.src = icon(slot.id); im.style.borderColor = arc >= 0 ? G.arcs[arc].color : slot.color; box.appendChild(im); }
