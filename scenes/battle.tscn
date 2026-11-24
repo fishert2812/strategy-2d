@@ -247,7 +247,7 @@ autowrap_mode = 3
 [node name="Send" type="Button" parent="End/Center/Box"]
 custom_minimum_size = Vector2(340, 96)
 layout_mode = 2
-theme_override_font_sizes/font_size = 30
+theme_override_font_sizes/font_size = 40
 text = "Отправить разбор"
 
 [node name="Phrase" type="Button" parent="End/Center/Box"]
