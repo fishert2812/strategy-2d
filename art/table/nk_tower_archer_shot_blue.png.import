@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cd60kjkvgxojf"
-path="res://.godot/imported/hq_red.png-648f529085d4f7834afcc19d83d87188.ctex"
+uid="uid://drmkgl7a1wyqt"
+path="res://.godot/imported/nk_tower_archer_shot_blue.png-e8add634503b24219bda8af5e7c03778.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/table/hq_red.png"
-dest_files=["res://.godot/imported/hq_red.png-648f529085d4f7834afcc19d83d87188.ctex"]
+source_file="res://art/table/nk_tower_archer_shot_blue.png"
+dest_files=["res://.godot/imported/nk_tower_archer_shot_blue.png-e8add634503b24219bda8af5e7c03778.ctex"]
 
 [params]
 
