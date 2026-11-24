@@ -49,12 +49,19 @@ func step(dt: float) -> void:
 			if u.kind == "warrior" and not u.go:
 				u.go = true
 				u.leg = 0
+		for b in buildings:
+			if b.kind == "tower":
+				b.awake = gold[b.side] >= cfg.tower.upkeep
+				gold[b.side] -= cfg.tower.upkeep if b.awake else 0
+				b.slept = not b.awake
 		changed.emit("whistle", {})
 	for b in buildings.duplicate():
 		if b.kind == "camp":
 			_camp(b, dt)
 		elif b.kind == "barracks":
 			_barracks(b, dt)
+		elif b.kind == "tower" and b.awake:
+			_tower(b, dt)
 	for u in units.duplicate():
 		if u.hp <= 0:
 			continue
@@ -216,6 +223,21 @@ func _barracks(b: Dictionary, dt: float) -> void:
 	units.append({"id": _id(), "side": b.side, "kind": "warrior", "pos": b.pos + post, "hp": cfg.warrior.hp, "home": b, "cd": 0.0, "post": post, "go": false, "leg": 0})
 
 
+## Башня: по ближайшему чужому человеку в круге, по одному; постройки не трогает.
+func _tower(b: Dictionary, dt: float) -> void:
+	b.timer = maxf(0.0, b.timer - dt)
+	var foe := {}
+	for o in units:
+		if o.side != b.side and o.hp > 0 and o.pos.distance_to(b.pos) <= cfg.tower.range:
+			if foe.is_empty() or o.pos.distance_to(b.pos) < foe.pos.distance_to(b.pos):
+				foe = o
+	if foe.is_empty() or b.timer > 0:
+		return
+	b.timer = cfg.tower.hit_every
+	changed.emit("hit", {"side": b.side, "pos": foe.pos, "id": foe.id, "by": b.id, "max_hp": 0})
+	_wound(foe, cfg.tower.damage, b)
+
+
 ## Воин: дерётся с ближним чужим. После свистка идёт по тропе казармы: ломает постройку в её конце
 ## или стоит в конце и держит место. Без тропы ждёт у казармы следующего свистка.
 func _warrior(u: Dictionary, dt: float) -> void:
@@ -267,10 +289,15 @@ func _hit(u: Dictionary, x: Dictionary) -> void:
 	if x.has("max_hp"):
 		damage(x, cfg.warrior.siege)
 		return
-	x.hp -= cfg.warrior.damage
+	_wound(x, cfg.warrior.damage, u)
+
+
+func _wound(x: Dictionary, amount: float, by: Dictionary) -> void:
+	x.hp -= amount
 	if x.hp <= 0:
 		units = units.filter(func(o): return not is_same(o, x))
-		x.by = u.id
+		x.by = by.id
+		by.kills = by.get("kills", 0) + 1
 		changed.emit("killed", x)
 
 
@@ -373,7 +400,7 @@ func building_at(pos: Vector2, side: int) -> Dictionary:
 
 func _add_building(side: int, kind: String, pos: Vector2) -> Dictionary:
 	var hp: float = cfg.buildings[kind].hp
-	var b := {"id": _id(), "side": side, "kind": kind, "pos": pos, "hp": hp, "max_hp": hp, "target": {}, "route": [], "timer": 0.0, "hungry": false}
+	var b := {"id": _id(), "side": side, "kind": kind, "pos": pos, "hp": hp, "max_hp": hp, "target": {}, "route": [], "timer": 0.0, "hungry": false, "awake": false, "slept": false}
 	buildings.append(b)
 	changed.emit("built", b)
 	return b
