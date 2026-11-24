@@ -30,7 +30,7 @@ export function tekst(who, k, polya = POLYA) {
   return bad;
 }
 export const sobratS = records => Object.fromEntries(records.flatMap(r => Object.entries(r.sushchestva || {}).filter(([, c]) => c.kopirayter).map(([k, c]) => { const { kopirayter, ...t } = c; return [k, { nomer: r.id, ...t }]; })));
-export const sobrat = records => Object.fromEntries(records.filter(r => r.kartochka && r.kartochka.kopirayter).map(r => [r.latin, { nomer: r.id, klyuch: (r.kod || []).map(k => k.split(':')).filter(k => k[0] === 'gene').map(k => k[1])[0] || null, imya: r.kartochka.imya, daet: r.kartochka.daet, priroda: r.kartochka.priroda }]));
+export const sobrat = records => Object.fromEntries(records.filter(r => r.kartochka && r.kartochka.kopirayter).map(r => [r.latin, { nomer: r.id, klyuch: (r.kod || []).map(k => k.split(':')).filter(k => k[0] === 'gene').map(k => k[1])[0] || null, imya: r.kartochka.imya, daet: r.kartochka.daet, priroda: r.kartochka.priroda, ...(r.kartochka.posle ? { posle: r.kartochka.posle } : {}) }]));
 
 export const SHAGI = ['nauka', 'adaptaciya', 'biolog', 'gotov', 'stroyka', 'v_igre'];
 const at = s => SHAGI.indexOf(s);
