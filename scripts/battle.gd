@@ -53,7 +53,7 @@ func _ready() -> void:
 	# Прозрачная кнопка страницы ложится на «Отправить разбор», когда экран итога разложен.
 	$End/Center/Box/Send.item_rect_changed.connect(func(): if $End.visible: $Report.arm($End/Center/Box/Send))
 	$End/Center/Box/Phrase.pressed.connect($Report.open)
-	$Report.sent_out.connect(func(): $End/Center/Box/Send.text = "GitHub: войди и нажми Create")
+	$Report.sent_out.connect(func(): $End/Center/Box/Send.text = "Войди и нажми Create")
 	flag_button.icon = load(look.flag.file)
 	for c in ["icon_normal_color", "icon_pressed_color", "icon_hover_color", "icon_focus_color"]:  # розовый, не белый флаг «сдаюсь»
 		flag_button.add_theme_color_override(c, Color(look.flag.color))
