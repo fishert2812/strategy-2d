@@ -193,6 +193,7 @@ fetch('../version.txt').then(r => r.ok ? r.text() : '').then(t => { if (t.trim()
 
 function start(genes) {
   world = new World(cfg, (Math.random() * 2 ** 31) | 0);
+  world.posle = Object.fromEntries(Object.values(GENY.geny || {}).filter(q => q.klyuch).map(q => [q.klyuch, q.posle || []])); world.known = met; // ген от того, кого уже встречал
   if (Array.isArray(genes)) world.inherit(genes); // заплыв веткой рода после «Ночи рода»
   $('night').classList.remove('on'); $('menu').classList.remove('on');
   view = { x: 0, y: 0, z: 2.2, tint: [...TINT[0]] };

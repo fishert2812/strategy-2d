@@ -46,6 +46,7 @@ case_ "test_L025: кнопки гибели ниже края экрана" 52_z
 case_ "test_L018: выбор дочки снова с черновой строкой" 52_zaplyv_tap.sh red "sed -i \"s/b.children\[2\].textContent = geneBook(g).daet || '';/b.children[2].textContent = 'отпустил палец у водоросли';/\" $Z/main.js"
 ONLY=L018 case_ "test_L018: описание умения снова в data.json" 50_zaplyv.sh red "sed -i 's/\"fim\": \"fimH\"/\"fim\": \"отпустил палец у водоросли\"/' $Z/data.json"
 ONLY=L024 case_ "test_L024: «водоросль» вместо имени из Альманаха" 50_zaplyv.sh red "sed -i 's/Слизь тебя больше не тормозит/Водоросль тебя больше не тормозит/' $Z/kniga/teksty_genov.json"
+ONLY=L024 case_ "test_L024: умение дочке до встречи" 50_zaplyv.sh red "sed -i 's/return !this.genes\[g\] \&\& (this.posle/return !this.genes[g] || (this.posle/' $Z/sim.js"
 ONLY=L024 case_ "test_L024: умение без теста-обещания" 50_zaplyv.sh red "sed -i 's/сон-персистер \[spore\]/сон-персистер/' $Z/test.mjs"
 ONLY=L022 case_ "test_L022: вирус снова красный, как запятая" 50_zaplyv.sh red "sed -i 's/\"phage\": \[0.92, 0.9, 1.0\]/\"phage\": [1.0, 0.3, 0.4]/' $Z/data.json"
 ONLY=L020 case_ "test_L020: зелёные жгутики" 50_zaplyv.sh red "sed -i 's/\"color\": \[0.74, 0.87, 1.0\]/\"color\": [0.3, 1.0, 0.4]/' $Z/data.json"

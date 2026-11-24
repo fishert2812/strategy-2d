@@ -735,6 +735,18 @@ check('test_L024: слово мира в тексте умения или сущ
   console.log('    паспорт: непонятных игроку слов мира', bad.length, bad.slice(0, 6).join('; '));
   if (bad.length) return 'слово мира без имени из Альманаха: ' + bad.join('; ');
 });
+check('test_L024: умение не приходит дочке раньше встречи с тем, о ком оно (поле «после встречи с» в книге), а после встречи приходит', () => {
+  const posle = Object.fromEntries(Object.keys(cfg.genes).map(k => [k, byKey(k).posle || []])), bad = [], got = new Set();
+  for (let s = 1; s <= 6; s++) { const w = new World(cfg, s * 41); w.posle = posle;
+    for (let i = 0; i < 30 * 240 && w.me.length; i++) {
+      if (w.choice.length) { for (const g of w.choice) { got.add(g); const miss = posle[g].filter(k => !w.met.has(k)); if (miss.length) bad.push(`${byKey(g).imya} до встречи с ${miss.join(', ')}`); } w.pick(w.choice[0]); }
+      const c = w.center(); let best = null, bd = 1e9; for (const f of w.food) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } }
+      w.step(1 / 30, best ? { x: best.x, y: best.y } : { x: c.x + 100, y: c.y }); } }
+  const w = new World(cfg, 3); w.posle = posle; const g = Object.keys(posle).find(k => posle[k].length); const before = w.offer(g); for (const k of posle[g]) w.known.add(k);
+  console.log('    паспорт: предложено дочкам', [...got].join(', '), '| нарушений', bad.length);
+  if (bad.length) return 'умение раньше встречи: ' + [...new Set(bad)].join('; ');
+  if (before || !w.offer(g)) return `«${byKey(g).imya}»: до встречи ${before ? 'предлагается' : 'нет'}, после встречи из Альманаха ${w.offer(g) ? 'есть' : 'нет'}`;
+});
 check('test_L024: каждого, кого называет «что даёт» умения, бот-новичок встречает в заплыве (8 заплывов по 5 минут, не реже чем в половине)', () => {
   const novice = w => { const c = w.center(); let best = null, bd = 260; for (const f of w.food) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } } return best ? { x: best.x, y: best.y } : { dx: Math.cos(w.dir), dy: Math.sin(w.dir), p: 1 }; };
   const texts = Object.keys(cfg.genes).map(k => byKey(k).daet).join(' ').toLowerCase().replace(/ё/g, 'е'); // хозяева слов из «что даёт» умений
