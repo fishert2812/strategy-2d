@@ -203,7 +203,6 @@ func _hit(u: Dictionary, x: Dictionary) -> void:
 	x.hp -= cfg.warrior.damage
 	if x.hp <= 0:
 		units = units.filter(func(o): return not is_same(o, x))
-		x.by = u.id
 		changed.emit("killed", x)
 
 

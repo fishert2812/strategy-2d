@@ -49,14 +49,8 @@
     "gait": {
       "carrier": {"hop": 7, "rate": 3.6, "squash": 0.14, "sway": 5},
       "carrier_loaded": {"hop": 2, "rate": 2.0, "squash": 0.06, "sway": 10},
-      "warrior": {"hop": 3, "rate": 2.6, "squash": 0.08, "sway": 2},
-      "fidget": {"hop": 2, "rate": 0.8, "squash": 0.05, "sway": 3}
+      "warrior": {"hop": 3, "rate": 2.6, "squash": 0.08, "sway": 2}
     },
-    "_fidget_max": "Во сколько раз чаще топчутся воины у коробка перед самым свистком.",
-    "fidget_max": 6,
-    "clash": {"bounce": 14, "time": 0.3, "shake": 5, "calm": 3},
-    "cheer": {"hop": 10, "time": 0.3},
-    "table_jump": {"height": 6, "time": 0.25},
     "strike": {"windup": 5, "lunge": 11, "knock": 9, "squash": 0.3, "time": 0.28}
   },
   "_frames": "Место под кадры, которые Роман дорисует в GPT: имя файла в art/table без .png; пусто — кадра пока нет, движение делается одной картинкой.",

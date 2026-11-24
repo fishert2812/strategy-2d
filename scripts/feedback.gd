@@ -2,9 +2,9 @@ extends Node
 ## Отклик на действия: звук, вспышка, дрожь здания, тряска экрана, всплывающее золото.
 ## Звуки — наборы Kenney (CC0), список в art/LICENSES.md.
 
-const SOUNDS := ["path", "built", "gold", "hit", "destroyed", "win", "lose", "error", "whistle", "clash"]
+const SOUNDS := ["path", "built", "gold", "hit", "destroyed", "win", "lose", "error", "whistle"]
 const FILES := {"path": "click", "built": "build", "gold": "coin", "hit": "hit", "destroyed": "crash"}
-const QUIET := {"gold": -8.0, "hit": -6.0, "clash": -4.0}
+const QUIET := {"gold": -8.0, "hit": -6.0}
 
 var played := {}
 var _players := {}

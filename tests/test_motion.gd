@@ -58,36 +58,3 @@ func test_same_outcome_with_and_without_motion() -> String:
 	if a != z:
 		return "с движением %s, без него %s" % [a, z]
 	return ""
-
-
-## Свисток подбрасывает стол, ждущие воины топчутся, встречные отряды сшибаются со звоном.
-func test_whistle_fidget_and_clash() -> String:
-	var battle := _battle()
-	var sim: Sim = battle.sim
-	sim.gold = [200, 200]
-	var mine := sim.build(Sim.PLAYER, "barracks", Vector2(260, 780))
-	var theirs := sim.build(Sim.ENEMY, "barracks", Vector2(460, 220))
-	sim.set_route(mine, [theirs.pos])
-	sim.set_route(theirs, [mine.pos])
-	var fidget := false
-	var bump := 0.0
-	while sim.time < sim.cfg.whistle.every + 0.1:
-		battle._process(DT)
-		bump = maxf(bump, battle.bump)
-		for u in sim.units:
-			var s: Sprite2D = battle.sprite_of(u.id)
-			if u.kind == "warrior" and not u.go and s != null and s.offset != s.get_meta("base_offset"):
-				fidget = true
-	await (Engine.get_main_loop() as SceneTree).process_frame
-	bump = maxf(bump, battle.bump)
-	for i in int(20 / DT):
-		battle._process(DT)
-	var clashes: int = battle.get_node("Feedback").played.get("clash", 0)
-	battle.free()
-	if not fidget:
-		return "воины у коробка не топчутся до свистка"
-	if bump <= 0:
-		return "стол не подпрыгнул на свисток"
-	if clashes == 0:
-		return "встречные отряды не сшиблись со звоном"
-	return ""

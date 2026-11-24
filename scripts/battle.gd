@@ -10,10 +10,6 @@ var sim: Sim
 var look: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(LOOK))
 var motion := Motion.new(look.motion)
 var shake := 0.0
-## Подскок стола на свисток, в точках экрана.
-var bump := 0.0
-## Когда воин последний раз дрался (id → время): первая сшибка после затишья — со звоном.
-var _fought := {}
 var enemy: Enemy
 var _sprites := {}
 var _drag := {}
@@ -75,7 +71,6 @@ func _process(dt: float) -> void:
 	world.scale = Vector2(k, k)
 	world.position = Vector2((size.x - field.x * k) / 2, top + (room.y - field.y * k) / 2)
 	world.position += Vector2(randf_range(-shake, shake), randf_range(-shake, shake))
-	world.position.y -= bump
 	shake = move_toward(shake, 0.0, dt * 40.0)
 	$Hud/Box/Top/Gold.text = "Крошки %d" % sim.gold[Sim.PLAYER]
 	$Hud/Box/Top/Time.text = "%d:%02d" % [int(sim.time) / 60, int(sim.time) % 60]
@@ -127,20 +122,12 @@ func _sync_units(dt: float) -> void:
 			s.position = u.pos
 			things.add_child(s)
 			_units[u.id] = s
-			if u.kind == "warrior":
-				motion.hop(s, 1, u.home.pos - u.pos)
 		var sprite: Sprite2D = _units[u.id]
 		# Люди нарисованы лицом влево: идёт вправо — отражаем.
 		if absf(u.pos.x - sprite.position.x) > 0.01:
 			sprite.flip_h = u.pos.x > sprite.position.x
 		var gait: String = u.kind if u.get("carry", 0.0) <= 0 else "carrier_loaded"
-		var moved: float = u.pos.distance_to(sprite.position)
-		if u.kind == "warrior" and not u.go and moved < 0.01:
-			# Ждут свистка — топчутся, и чем ближе свисток, тем быстрее.
-			var hurry: float = lerpf(motion.cfg.fidget_max, 1.0, sim.whistle / sim.cfg.whistle.every)
-			motion.walk(sprite, "fidget", 1.0, dt * hurry)
-		else:
-			motion.walk(sprite, gait, moved, dt)
+		motion.walk(sprite, gait, u.pos.distance_to(sprite.position), dt)
 		sprite.position = u.pos
 	_drop_missing(_units, seen)
 
@@ -309,19 +296,7 @@ func _on_sim(what: String, data: Dictionary) -> void:
 		"hit":
 			var by: Sprite2D = _units.get(data.by)
 			if by != null:
-				var dir: Vector2 = (data.pos - by.position).normalized()
-				if _clashing(data):
-					motion.clash(by, _units.get(data.id), dir)
-					shake = maxf(shake, motion.cfg.clash.shake)
-					$Feedback.play("clash")
-				else:
-					motion.strike(by, _units.get(data.id), dir)
-		"killed":
-			motion.hop(_units.get(data.get("by")), 2)
-		"whistle":
-			var t := create_tween()
-			t.tween_property(self, "bump", motion.cfg.table_jump.height, motion.cfg.table_jump.time / 2)
-			t.tween_property(self, "bump", 0.0, motion.cfg.table_jump.time / 2)
+				motion.strike(by, _units.get(data.id), (data.pos - by.position).normalized())
 		"built":
 			var l: Dictionary = look[data.kind]
 			var s := _add_sprite(data.id, l, _tex(l.files[data.side]), data.pos)
@@ -339,15 +314,6 @@ func _on_sim(what: String, data: Dictionary) -> void:
 		"ended":
 			$End/Center/Box/Title.text = "Победа!" if data.winner == Sim.PLAYER else "Поражение"
 			$End.show()
-
-
-## Первая сшибка двух воинов, которые до этого не дрались: оба отскакивают со звоном.
-func _clashing(data: Dictionary) -> bool:
-	var pair := sim.units.filter(func(u): return u.id in [data.by, data.id] and u.kind == "warrior").map(func(u): return u.id)
-	var calm: bool = pair.size() == 2 and pair.all(func(id): return _fought.get(id, -INF) < sim.time - motion.cfg.clash.calm)
-	for id in pair:
-		_fought[id] = sim.time
-	return calm
 
 
 func _bar_top() -> float:
