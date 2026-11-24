@@ -214,19 +214,21 @@ static func _seg_dist(c: Vector2, a: Vector2, b: Vector2) -> float:
 ## Где отряд казармы на этом ходу встретит чужих: первая точка его тропы, где рядом (march_aggro) стоят чужие воины,
 ## иначе цель на конце — с её защитниками (ждущие воины казарм не дальше defend.radius). Честно: по тому, что на столе сейчас.
 ## {} — нет отряда, тропы или встречи. Иначе {pos, n: [мои, чужие]}.
-func meet(b: Dictionary) -> Dictionary:
+func meet(b: Dictionary, route = null) -> Dictionary:
+	# route — тропа, которую игрок ещё тянет: метку видно до отпускания, даже если отряд не собран.
+	var path: Array = b.route if route == null else route
 	var mine := units.filter(func(u): return is_same(u.home, b) and u.kind == "warrior")
-	if mine.is_empty() or b.route.is_empty():
+	if (mine.is_empty() and route == null) or path.is_empty():
 		return {}
 	var r: float = cfg.warrior.march_aggro
 	var foes := units.filter(func(u): return u.side != b.side and u.kind == "warrior")
-	var pts: Array = [b.pos] + b.route
+	var pts: Array = [b.pos] + path
 	for i in range(1, pts.size()):
 		for k in int(pts[i - 1].distance_to(pts[i]) / 20.0) + 1:
 			var p: Vector2 = pts[i - 1].move_toward(pts[i], k * 20.0)
 			if p.distance_to(b.pos) > r and foes.any(func(u): return u.pos.distance_to(p) <= r):
 				return {"pos": p, "n": [mine.size(), foes.filter(func(u): return u.pos.distance_to(p) <= r * 1.5).size()]}
-	var t: Dictionary = b.target
+	var t: Dictionary = b.target if route == null else building_at(path[-1], 1 - b.side)
 	if t.is_empty() or t.hp <= 0:
 		return {}
 	var guards := foes.filter(func(u): return not u.go and u.home.pos.distance_to(t.pos) <= cfg.defend.radius)

@@ -198,6 +198,8 @@ func _sync_meets() -> void:
 	var show: bool = sim.whistle <= look.meet.before or not _drag.is_empty()
 	for b in sim.of_side(Sim.PLAYER, "barracks"):
 		var m: Dictionary = sim.meet(b) if show else {}
+		if is_same(_drag.get("from"), b):
+			m = sim.meet(b, _drag.trail + [_drag.at]) if _drag.has("at") else {}
 		if m.is_empty() or sim.units.any(func(u): return is_same(u.home, b) and u.go):
 			continue
 		seen[b.id] = true
@@ -394,6 +396,7 @@ func _move(pos: Vector2) -> void:
 	if _drag.has("from"):
 		# След пальца: точка каждые route.step единиц поля.
 		var at := world.to_local(pos)
+		_drag.at = at
 		if _drag.trail.is_empty() or _drag.trail[-1].distance_to(at) >= sim.cfg.route.step:
 			_drag.trail.append(at)
 		# Под пальцем — живая линия ровно по пальцу, без пересчёта: чистая форма считается при отпускании.

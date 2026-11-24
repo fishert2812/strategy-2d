@@ -65,5 +65,14 @@ func test_meet_mark_shown_before_whistle() -> String:
 		why = "перед свистком нет метки «6 : 1»: %s" % (l.text if l else "нет")
 	elif why == "" and absf(l.position.y + l.size.y / 2 + battle.look.meet.lift - 450) > sim.cfg.warrior.march_aggro:
 		why = "метка не над местом стычки: %s" % l.position
+	# Пока игрок тянет новую тропу — метка по ней, ещё до отпускания и задолго до свистка.
+	sim.whistle = 15.0
+	_foe(sim, sim.of_side(Sim.ENEMY, "home")[0], Vector2(150, 450))
+	battle._drag = {"from": b, "trail": [Vector2(250, 600)], "at": Vector2(150, 300)}
+	await tree.process_frame
+	l = battle._meets.get(b.id)
+	if why == "" and (l == null or l.text != "6 : 1" or absf(l.position.x + l.size.x / 2 - 150) > sim.cfg.warrior.march_aggro):
+		why = "пока тянешь тропу к чужому, метки «6 : 1» у него нет: %s" % (l.text if l else "нет")
+	battle._drag = {}
 	battle.get_parent().free()
 	return why
