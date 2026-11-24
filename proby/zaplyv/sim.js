@@ -272,7 +272,9 @@ export class World {
   // Признак заранее: ближайшая к колонии зона и тревога 0…1 — 1 у края и внутри, 0 дальше zone.lead секунд хода от края.
   warning() { let best = null, bd = 1e9;
     for (const zn of this.zones()) for (const a of this.me) { const d = Math.hypot(a.x - zn[0], a.y - zn[1]) - zn[2]; if (d < bd) { bd = d; best = zn; } }
-    return best ? { zone: best, level: Math.max(0, Math.min(1, 1 - bd / (this.cfg.speed * this.cfg.zone.lead))) } : null; }
+    const out = best ? { zone: best, level: Math.max(0, Math.min(1, 1 - bd / (this.cfg.speed * this.cfg.zone.lead))) } : null;
+    const b = this.bdellos.find(q => q.aim && !q.on); // запятая целится или уже бросилась: тревога полная
+    return b ? { zone: [b.x, b.y, 0, 'bdello'], level: 1, who: b } : out; }
   wheels(q) { const c = this.cfg; return q.sit ? Math.max(c.roti_swim_k, Math.min(1, q.t / c.roti_spin)) : c.roti_swim_k; }
   // Течение в точке от всех воронок и вихрей: тянет к рту, у сувойки ещё и закручивает.
   suck(x, y) {
@@ -480,17 +482,20 @@ export class World {
       }
       b.t -= dt;
       if (b.t <= 0) { // рывок окончен: пауза и новый курс — почти наугад, чуть к добыче, если она рядом
-        const prey = this.rodNear(b, c.bdello_sense);
-        b.a = prey && r() < 0.4 ? Math.atan2(prey.y - b.y, prey.x - b.x) + (r() - 0.5) * 0.6 : r() * 6.283;
-        b.rest = 0.3 + r() * 0.5; b.t = b.rest + 0.6 + r() * 0.8;
+        const prey = this.rodNear(b, c.bdello_sense); b.aim = null;
+        if (prey && r() < 0.4 && this.me.includes(prey)) { b.aim = prey; b.aimT = c.zone.lead; b.rest = 0; b.t = c.zone.lead + c.bdello_dash; } // выбрала тебя: zone.lead секунд целится, светясь, потом бросок (признак заранее, L030)
+        else { b.a = prey && r() < 0.4 ? Math.atan2(prey.y - b.y, prey.x - b.x) + (r() - 0.5) * 0.6 : r() * 6.283; b.rest = 0.3 + r() * 0.5; b.t = b.rest + 0.6 + r() * 0.8; }
       }
-      const go = b.t > (b.rest || 0) ? c.bdello_speed : 0, k = Math.min(1, 8 * dt);
+      if (b.aim && !this.me.includes(b.aim)) { b.aim = null; b.aimT = 0; } // цель пропала — бросок отменён
+      if (b.aimT > 0) { b.aimT -= dt; b.a = Math.atan2(b.aim.y - b.y, b.aim.x - b.x); }
+      const go = b.aimT > 0 ? c.bdello_speed * c.bdello_creep : b.t > (b.rest || 0) ? c.bdello_speed : 0, k = Math.min(1, 8 * dt);
       b.vx += (Math.cos(b.a) * go - b.vx) * k; b.vy += (Math.sin(b.a) * go - b.vy) * k;
       b.x += b.vx * dt; b.y += b.vy * dt;
       for (const a of this.me) if (dist(a, b) < radius(a.m) + 4 && !(a.free > 0)) {
         if (this.genes.capsule) { b.a += Math.PI; b.x += Math.cos(b.a) * 6; b.y += Math.sin(b.a) * 6; this.events.push(['bump', b.x, b.y]); break; }
         if (a.held > 0) break;
-        b.on = a; b.a = Math.atan2(b.y - a.y, b.x - a.x) + Math.PI; a.held = c.bdello_kill; this.events.push(['bore', a.x, a.y]); break; // запятая вбуравливается — своё событие, не как впрыск вируса
+        if (!b.aim) { b.a += Math.PI; b.x += Math.cos(b.a) * 6; b.y += Math.sin(b.a) * 6; break; } // не целилась в тебя — задела и отскочила: без признака не нападает
+        b.on = a; b.aim = null; b.a = Math.atan2(b.y - a.y, b.x - a.x) + Math.PI; a.held = c.bdello_kill; this.events.push(['bore', a.x, a.y]); break; // запятая вбуравливается — своё событие, не как впрыск вируса
       }
       if (!b.on) for (const v of [...this.pseudos, ...this.donors]) if (!(v.held > 0) && Math.hypot(v.x - b.x, v.y - b.y) < 12) { // и синегнойка, и сородич — его обычная добыча
         b.on = v; b.a = Math.atan2(b.y - v.y, b.x - v.x) + Math.PI; v.held = c.bdello_kill; break; }
