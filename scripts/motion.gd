@@ -29,7 +29,7 @@ func frames(s: Sprite2D, pics: Array, pose: Dictionary) -> void:
 	s.set_meta("blow", -1.0)
 
 
-func _pose(s: Sprite2D, moved: float) -> void:
+func _pose(s: Sprite2D, moved: float, gait: String) -> void:
 	if not s.has_meta("frames"):
 		return
 	var p: Dictionary = s.get_meta("pose")
@@ -40,13 +40,15 @@ func _pose(s: Sprite2D, moved: float) -> void:
 	elif moved > 0.01:
 		var d: float = s.get_meta("dist") + moved
 		s.set_meta("dist", d)
-		i = p.run[int(d / p.stride) % p.run.size()]
+		# С грузом свой шаг (носильщик с полным мешком), иначе обычный.
+		var run: Array = p.get("runs", {}).get(gait, p.run)
+		i = run[int(d / p.stride) % run.size()]
 	s.texture = s.get_meta("frames")[i]
 
 
 ## Шаг вприпрыжку: прыжок, приземление со сплющиванием, покачивание. moved — путь за кадр.
 func walk(s: Sprite2D, gait: String, moved: float, dt: float) -> void:
-	_pose(s, 0.0 if gait == "fidget" else moved)
+	_pose(s, 0.0 if gait == "fidget" else moved, gait)
 	var g: Dictionary = cfg.gait[gait]
 	var ph: float = s.get_meta("phase")
 	ph = ph + dt * g.rate if moved > 0.01 else move_toward(ph, roundf(ph), dt * 4.0)
