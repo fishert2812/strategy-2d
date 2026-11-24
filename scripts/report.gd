@@ -65,7 +65,7 @@ func facts() -> String:
 			for b in sim.buildings:
 				if b.side == side:
 					count[b.kind] = count.get(b.kind, 0) + 1
-			lines.append(("наши: " if side == Sim.PLAYER else "враг: ") + ", ".join(count.keys().map(func(k): return "%s %d" % [cfg.names.get(k, k), count[k]])))
+			lines.append(("наши: " if side == Sim.PLAYER else "враг: ") + (", ".join(count.keys().map(func(k): return "%s %d" % [cfg.names.get(k, k), count[k]])) if count else "ничего не осталось"))
 	lines.append(Time.get_datetime_string_from_system(false, true))
 	var box = scene.get("box") if scene else null
 	if box is BlackBox:

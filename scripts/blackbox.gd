@@ -11,6 +11,18 @@ var built := [0, 0]
 var destroyed := [0, 0]
 var lost := [0, 0]
 var idle := {"camp": 0.0, "barracks": 0.0}  # простой: лагерь без залежи, казарма без тропы, с
+## Для звания (design/kto_ty_takoy.md, data/titles.json): походы, башни, голод, сон, запас.
+var _titles: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/titles.json"))
+var first_barracks := INF
+var intrude_t := INF  # первая своя постройка на половине врага
+var threads := 0
+var off_home := 0  # нитки казарм не на кружку
+var towers := 0
+var carriers := [0, 0]  # сбитые носильщики по сторонам
+var hungry := 0.0
+var sleepy := {}  # казарма → секунд без нитки
+var rich := 0.0
+var _half := 0.0
 var _now := 0.0
 var _last_error := {"t": -INF}
 const NEAR := {"home": ["у твоей кружки", "у кружки врага"], "camp": ["у твоего лагеря", "у лагеря врага"],
@@ -21,21 +33,34 @@ func on_sim(what: String, data: Dictionary) -> void:
 	match what:
 		"built":
 			built[data.side] += 1
+			if data.side == Sim.PLAYER:
+				if data.kind == "barracks": first_barracks = minf(first_barracks, _now)
+				if data.pos.y < _half: intrude_t = minf(intrude_t, _now)
 		"destroyed":
 			destroyed[data.side] += 1
 		"path":
 			if data.side == Sim.PLAYER:
 				redraws += 1
+				if data.kind == "barracks" and not data.target.is_empty():
+					threads += 1; off_home += int(data.target.kind != "home")
 		"killed":
 			if data.get("kind") == "warrior":
 				lost[data.side] += 1
+			elif data.get("kind") == "carrier":
+				carriers[data.side] += 1
 
 
 func step(sim: Sim, dt: float) -> void:
 	_now = sim.time
+	_half = sim.cfg.field[1] / 2.0
+	towers = maxi(towers, sim.of_side(Sim.PLAYER, "tower").size())
+	rich += dt if sim.gold[Sim.PLAYER] > _titles.rich_gold else 0.0
 	for b in sim.of_side(Sim.PLAYER):
 		if b.kind in idle and _idle(b):
 			idle[b.kind] += dt
+		if b.kind == "barracks":
+			hungry += dt if b.hungry else 0.0
+			sleepy[b.id] = sleepy.get(b.id, 0.0) + (dt if b.route.is_empty() else 0.0)
 
 
 func error(text: String) -> void:
@@ -51,14 +76,31 @@ func flag(sim: Sim, pos: Variant) -> Dictionary:
 	return f
 
 
+## Числа партии, по которым ставится звание.
+func stats(sim: Sim) -> Dictionary:
+	return {"won": int(sim.winner == Sim.PLAYER), "lost_buildings": destroyed[0], "actions": built[0] + redraws,
+		"intrude_t": intrude_t, "first_barracks": first_barracks, "threads": threads, "off_home": off_home,
+		"towers": towers, "carriers_killed": carriers[1], "trap": carriers[1] / maxf(1, lost[1]),
+		"hungry": hungry, "sleepy": sleepy.values().max() if sleepy else 0.0, "rich_share": rich / maxf(1, sim.time)}
+
+
+## Звание: первое сверху, у которого все числа в пределах; последнее подходит всегда.
+func title(sim: Sim) -> Dictionary:
+	var s := stats(sim)
+	for t in _titles.list:
+		if t.need.keys().all(func(k): return s[k] >= t.need[k][0] and s[k] <= t.need[k][1]):
+			return t
+	return {}
+
+
 func times() -> String: return ", ".join(flags.map(func(f): return _clock(f.t)))
 
 
 ## Сводка для заявки человеческими словами. Короткая, чтобы влезла в адрес.
 func summary(sim: Sim) -> String:
-	var out := ["Партия %s, %s. Флажков: %d." % [_clock(sim.time), ["ещё шла", "победа", "поражение"][sim.winner + 1], flags.size()]]
+	var out := ["Партия %s, %s. Флажков: %d. Звание: %s." % [_clock(sim.time), ["ещё шла", "победа", "поражение"][sim.winner + 1], flags.size(), title(sim).name]]
 	for f in flags.slice(0, 8):  # больше восьми строк не влезет в адрес заявки
-		out.append("- %s %s: у тебя %d крошек, построек %d, без дела %d%s" % [_clock(f.t), f.where, f.gold, f.mine, f.idle, f.near])
+		out.append("- %s %s: крошки %d, построек %d, без дела %d%s" % [_clock(f.t), f.where, f.gold, f.mine, f.idle, f.near])
 	if flags.size() > 8: out.append("- и ещё флажки: " + ", ".join(flags.slice(8).map(func(f): return _clock(f.t))))
 	out.append("Что заметила игра:")
 	out.append("- построено у тебя %d, у врага %d; разрушено твоих %d, вражеских %d" % [built[0], built[1], destroyed[0], destroyed[1]])

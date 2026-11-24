@@ -537,6 +537,8 @@ func _on_sim(what: String, data: Dictionary) -> void:
 			$End/Center/Box/Title.text = "Победа!" if data.winner == Sim.PLAYER else "Поражение"
 			$End/Center/Box/Flags.text = "Флажки: " + box.times() if not box.flags.is_empty() else "Флажков нет, ящик всё равно уйдёт"
 			$End/Center/Box/Send.text = "Отправить разбор"
+			var who := box.title(sim)
+			$End/Center/Box/Who.text = "Сегодня ты %s\n%s\n%s" % [who.name, who.line, who.hint]
 			$End.show()
 			$Report.arm($End/Center/Box/Send)
 

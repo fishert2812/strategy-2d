@@ -227,6 +227,14 @@ theme_override_font_sizes/font_size = 72
 text = "Победа!"
 horizontal_alignment = 1
 
+[node name="Who" type="Label" parent="End/Center/Box"]
+custom_minimum_size = Vector2(560, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "Сегодня ты Работяга"
+horizontal_alignment = 1
+autowrap_mode = 3
+
 [node name="Flags" type="Label" parent="End/Center/Box"]
 custom_minimum_size = Vector2(560, 0)
 layout_mode = 2
