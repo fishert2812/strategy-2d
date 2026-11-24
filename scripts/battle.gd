@@ -312,7 +312,7 @@ func _release(pos: Vector2) -> void:
 	var why := sim.can_build(Sim.PLAYER, d.what, _on_table(at))
 	if why != "" and dragged:
 		# Причина остаётся там, где была над пальцем, и гаснет.
-		$Feedback.play("error")
+		$Feedback.play("error"); box.error(why)
 		$Why.show()
 		$Why.modulate.a = 1.0
 		create_tween().tween_property($Why, "modulate:a", 0.0, 1.0).set_delay(0.6)

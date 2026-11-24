@@ -7,11 +7,11 @@ func _flag(battle: Control) -> Vector2:
 	return battle.flag_button.get_global_rect().get_center()
 
 
-## Польза: флажок, перетянутый пальцем на стол, попадает в разбор с местом, секундой и тем, что не вышло перед ним.
+## Польза: флажок, перетянутый пальцем на стол, попадает в разбор с местом, секундой и тем, что не вышло перед ним (отказ постройки под пальцем).
 func test_flag_on_spot_lands_in_report() -> String:
 	var battle: Control = await t._battle(t.SIZES[0])
 	t._tap(battle, _flag(battle))
-	battle.hint("занято: мешает казарма")
+	t._drag(battle, battle.buttons.camp.get_global_rect().get_center(), battle.world.to_global(battle.sim.of_side(Sim.PLAYER)[0].pos))
 	t._drag(battle, _flag(battle), battle.world.to_global(Vector2(360, 500)))
 	var line := "- 0:00 %s: у тебя" % battle.box.flags[-1].where
 	var report: String = battle.box.summary(battle.sim)
@@ -20,7 +20,7 @@ func test_flag_on_spot_lands_in_report() -> String:
 	var err := ""
 	if flags.size() != 2 or battle.sim.of_side(Sim.PLAYER).size() != 1 or flags[0].pos != null or flags[1].pos == null or flags[1].pos.distance_to(Vector2(360, 500)) > 2:
 		err = "флажки не те: %s" % [flags]
-	elif not report.contains(line) or line.contains("без места") or not report.contains("перед этим не вышло: «занято: мешает казарма»"):
+	elif not report.contains(line) or line.contains("без места") or not report.contains("перед этим не вышло: «нельзя: тут постройка»"):
 		err = "в разборе нет места и того, что было перед флажком: " + report.left(300)
 	elif marks != 2 or battle.flag_button.text != "2":
 		err = "на поле значков %d, на кнопке «%s»" % [marks, battle.flag_button.text]
