@@ -323,6 +323,7 @@ function events() {
     if (k === 'stick') { ring(x, y, 1, 22); beep(520, 0.06, 0.04, 'square'); } // прилип фаг: резко развернись — стряхнёшь
     if (k === 'shake') { ring(x, y, 0, 30); beep(700, 0.07, 0.03); }
     if (k === 'cut') ring(x, y, 2, 26);
+    if (k === 'learn') { ring(x, y, 2, 80); beep(620, 0.4, 0.05, 'sine', 1.4); say('Пережила фага! Его кусок — новая полоска CRISPR: теперь T4 не страшен', 3000); }
     if (k === 'sit') ring(x, y, 0, 46); // коловратка присела на ногу: сейчас раскрутит колёса
     if (k === 'snap') { ring(x, y, 0, 60); beep(1200, 0.06, 0.04, 'square', 0.3); } // сувойка сжалась пружиной
     if (k === 'bump') { ring(x, y, 0, 24); beep(880, 0.05, 0.03); } // капсула: хищник отскочил
@@ -542,7 +543,7 @@ function paint(time) {
     bubbles.put(x - hx * r * 0.45 - hy * r * 0.2, y - hy * r * 0.45 + hx * r * 0.2, r * 0.18 * Math.sqrt(v) + 1, 0.85, 0.95, 1, 0.3 * (1 - v * v * v));
   }
   const [cr, cg, cb] = [CELL[0].r, CELL[0].g, CELL[0].b];
-  const b = genome.blink, lkAll = look(b && Math.sin(time * 9) > 0 ? { ...world.genes, [b]: !world.genes[b] } : world.genes, cfg.look); // на паузе мигает часть клетки, которую меняет выбранный ген
+  const b = genome.blink, lkAll = look(b && Math.sin(time * 9) > 0 ? { ...world.genes, [b]: !world.genes[b] } : world.genes, cfg.look, world.spacers.size); // на паузе мигает часть клетки, которую меняет выбранный ген
   if (kids) kids.forEach((a, i) => { a.x = view.x + (i ? 1 : -1) * W * 0.24 / z; a.y = view.y - 20 / z; a.a = -Math.PI / 2 + Math.sin(time * 0.8 + i * 2) * 0.12; a.m = 1.7 + 0.1 * Math.sin(time * 1.3 + i); }); // дочки покачиваются на месте
   const phageNear = world.phages.some(g => g.host === 'me' && Math.hypot(g.x - view.x, g.y - view.y) < 220);
   const foodNear = world.food.some(f => Math.hypot(f.x - view.x, f.y - view.y) < 120);
@@ -555,7 +556,7 @@ function paint(time) {
   }
   for (const a of kids || world.me) { // палочка: мягкое тело
     if (a.spore > 0) continue; // перёд ведёт, корма и пучок жгутиков идут по его следу
-    const lk = a.g ? look({ ...world.genes, [a.g]: true }, cfg.look) : lkAll, w = 8.5 * Math.pow(a.m, 0.3) * z * (a.g ? 1.9 : 1), sp = Math.hypot(a.vx, a.vy);
+    const lk = a.g ? look({ ...world.genes, [a.g]: true }, cfg.look, world.spacers.size) : lkAll, w = 8.5 * Math.pow(a.m, 0.3) * z * (a.g ? 1.9 : 1), sp = Math.hypot(a.vx, a.vy);
     const run = sp > 25 && !a.tumble, wob = run ? 0.035 : 0.015; // встречное вращение тела к пучку: 3 раза в секунду
     const half = a.held > 0 ? w * (1.05 + 0.6 * a.held / cfg.bdello_kill) : w * (1.6 + 1.0 * Math.min(a.m, cfg.split) / cfg.split), tailW = w * 7.5 / z; // хищник внутри — клетка округляется в шарик
     const body = follow(a, half / z, tailW);
@@ -578,7 +579,7 @@ function paint(time) {
       const [px, py] = along(u, s * w * e + arc(u / z)); glow.put(px, py, w * 0.5, 0.75, 0.95, 1, 0.09);
     }
     for (let k = 0; k < lk.stripes; k++) { // CRISPR: полоски-штрихкод поперёк тела, вспыхивают, когда рядом знакомый фаг
-      const u = (k - (lk.stripes - 1) / 2) * w * (0.32 + 0.1 * (k % 2)), al = phageNear ? 0.55 + 0.35 * Math.sin(time * 12) : 0.3;
+      const u = (k - (lk.stripes - 1) / 2) * w * (0.32 + 0.1 * (k % 2)), al = phageNear && world.spacers.size ? 0.55 + 0.35 * Math.sin(time * 12) : 0.3;
       for (let j = -3; j <= 3; j++) { const [px, py] = along(u, j * w * 0.2 + arc(u / z)); glow.put(px, py, 0.9 * z + 0.3, 0.7, 1, 0.8, al); }
     }
     for (let k = 0; k < lk.toxin; k++) { // токсин: тёмные точки у края
