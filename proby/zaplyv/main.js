@@ -246,16 +246,16 @@ $('malm').onclick = () => kab.open();
 // «Ночь рода» (night.js; design/zaplyv_noch_roda_spec.md): после гибели род живёт 1000 поколений, игрок выбирает опасность, потом ветку.
 let NT = null, ntT = 0, ntPick = null;
 const geneName = g => (Object.values(GENY.geny || {}).find(q => q.klyuch === g) || {}).imya || g;
-$('nightgo').onclick = () => openNight();
+$('tomenu').onclick = () => { $('end').classList.remove('on'); menuOpen(); }; // режимы — только в меню: заплыв остаётся заплывом (Роман: «мы тестируем разные режимы»)
 function openNight() { nightIcons(); NT = null; ntPick = null; $('night').classList.add('on'); $('ndanger').hidden = $('nask').hidden = false; $('npicks').innerHTML = ''; $('ngo').disabled = true; $('ngen').textContent = 'Ночь рода'; drawNight(); }
 function nightIcons() { // значки опасностей — снимки самой опасности из той же студии, что Альманах (правило дизайнера)
   const im = $('ndanger').querySelectorAll('img'); if (im[0].src) return;
   [['phage', 'phage'], ['maw', 'amoeba'], ['hunger', 'me']].forEach(([d, k], i) => { try { im[i].src = snap(k, KAB.items[k]); } catch (e) { im[i].remove(); } });
 }
-$('nback').onclick = () => { $('night').classList.remove('on'); NT = null; if (!ended) menuOpen(); }; // из меню ночь возвращает в меню
+$('nback').onclick = () => { $('night').classList.remove('on'); NT = null; $('end').classList.remove('on'); menuOpen(); }; // ночь — режим из меню: назад в меню
 $('nflag').onclick = e => flag('ночь рода', e.currentTarget);
 for (const b of $('ndanger').children) b.onclick = () => {
-  NT = night({ genes: ROD.genes, n: ROD.most }, b.dataset.d, ROD.seed, NJ, Object.keys(cfg.genes)); NT.danger = b.dataset.d; // род — последний заплыв (из памяти: ночь зовут и из меню)
+  NT = night({ genes: ROD.genes || [], n: ROD.most || 1 }, b.dataset.d, ROD.seed || 1, NJ, Object.keys(cfg.genes)); NT.danger = b.dataset.d; // род — последний заплыв (из памяти: ночь зовут и из меню)
   ntT = 0; $('ndanger').hidden = $('nask').hidden = true;
 };
 $('ngo').onclick = () => { if (ntPick) start(ntPick.genes); };
@@ -542,7 +542,8 @@ function say(text, ms, gene) { $('toast').textContent = text; if (gene) { const 
 const told = new Set(); // подсказка — один раз и только в момент, когда она нужна
 function tell(k, text) { if (told.has(k)) return; told.add(k); say(text, 2600); }
 start();
-if (ROD.deaths) menuOpen(); // первый запуск — без меню: сразу капля
+if (ROD.visits || ROD.deaths) menuOpen(); // со второго запуска игра открывается меню режимов (Роман: «почему нет меню выбора режима»); самый первый — сразу заплыв, без непонятных слов (дизайнер)
+ROD.visits = (ROD.visits || 0) + 1; saveRod();
 
 const toWorld = (sx, sy) => ({ x: (sx - W / 2) / view.z + view.x, y: (sy - H / 2) / view.z + view.y });
 let sway = [0, 0]; // лёгкое покачивание кадра после удара: плавная волна, не дрожь

@@ -29,8 +29,14 @@ const seen = sel => p.evaluate(s => { const e = document.querySelector(s); if (!
 const marks = () => p.evaluate(() => JSON.parse(localStorage.getItem('zaplyv.marks') || '[]').length);
 const on = id => p.evaluate(i => document.getElementById(i).classList.contains('on'), id);
 
-say(!(await on('menu')), 'первый запуск — без меню, сразу капля (Э21)');
+// test_L025 (Роман 24.11: «почему я не вижу этот режим?» — кнопка «Ночь рода» стояла ниже края экрана iPhone): каждая кнопка
+// экрана целиком внутри видимой высоты Safari с панелями (iPhone 13: 664) без прокрутки, иначе красное.
+const whole = async (sels, where) => { const out = await p.evaluate(ss => ss.map(s => { const e = document.querySelector(s); if (!e) return s + ' нет'; const r = e.getBoundingClientRect(), st = getComputedStyle(e);
+  if (st.display === 'none' || r.width < 1) return null; return r.top >= 0 && r.bottom <= innerHeight + 0.5 ? null : `${s} ${Math.round(r.top)}–${Math.round(r.bottom)} при высоте ${innerHeight}`; }).filter(Boolean), sels);
+  say(!out.length, `test_L025: ${where} — все кнопки на экране без прокрутки` + (out.length ? ': ' + out.join('; ') : '')); };
+say(!(await on('menu')), 'самый первый запуск — сразу заплыв, без меню (дизайнер)');
 let m = await marks();
+await whole(['#pause', '#flag'], 'заплыв');
 if (await tap('#flag', 'флажок в игре')) say(await seen('#note') && await marks() === m + 1, 'флажок в игре: отметка записана и надпись видна');
 if (await tap('#pause', 'пауза')) say(await on('genome'), 'пауза открывает геном');
 if (await tap('#ring .slot', 'ген на кольце')) say(await p.evaluate(() => !!document.querySelector('#gcard h2')), 'касание гена открывает карточку');
@@ -80,7 +86,11 @@ if (await tap('#gon', '«Плыть дальше»')) { await p.waitForTimeout(5
   say(frozen && img > 3000, 'test_L023: флажок тянется на место, мир замер, кусок кадра вырезан (' + img + ' байт)');
   await p.fill('#ftext', 'тут странно'); if (await tap('#fsave', '«Записать» отметку с картинкой')) {
     const last = await p.evaluate(() => { const q = JSON.parse(localStorage.getItem('zaplyv.marks') || '[]'); return q[q.length - 1] || {}; });
-    say(await marks() === m + 1 && (last.text || '').includes('тут странно') && (last.img || '').length > 3000 && !(await on('fsheet')), 'test_L023: отметка со словами и картинкой записана, лист закрыт'); } }
+    say(await marks() === m + 1 && (last.text || '').includes('тут странно') && (last.img || '').length > 3000 && !(await on('fsheet')), 'test_L023: отметка со словами и картинкой записана, лист закрыт');
+    await p.evaluate(() => { navigator.canShare = () => true; navigator.share = async d => { window.shared = d.text; window.sharedFiles = (d.files || []).map(f => [f.name, f.size, f.type]); }; window.sharedFiles = null; });
+    if (await tap('#pause', 'пауза перед отправкой') && await tap('#gsend', '«Отправить» отметку с местом')) { const sf = await p.evaluate(() => [window.shared || '', window.sharedFiles || []]);
+      say(sf[0].includes('тут странно') && sf[1].some(f => f[1] > 3000 && /mesto/.test(f[0]) && f[2] === 'image/jpeg'), 'test_L023: «Отправить» отдаёт слова и картинку места (' + sf[1].map(f => f[0]).join(', ') + ')'); }
+    if (await on('genome')) await tap('#gon', '«Плыть дальше» после отправки'); } }
 // Выбор дочки при делении: касание самой дочки берёт её ген.
 await p.evaluate(() => { const w = zaplyvWorld(), all = Object.keys(w.cfg.genes).filter(g => !w.genes[g]); w.choice = all.slice(0, 2); });
 await p.waitForTimeout(600);
@@ -97,13 +107,17 @@ await p.waitForTimeout(1200);
 m = await marks();
 if (await tap('#eno', '«Не так» на экране гибели')) say(await seen('#note') && await marks() === m + 1, '«Не так» на экране гибели: отметка и надпись видна');
 // «Ночь рода» (спецификация design/zaplyv_noch_roda_spec.md): каждая кнопка ночи отвечает пальцу.
-if (await tap('#nightgo', '«Ночь рода»')) say(await on('night') && await seen('#ndanger'), '«Ночь рода» открывает выбор опасности');
+await whole(['#again', '#tomenu', '#cab', '#eno'], 'экран гибели');
+const toNight = async w => await tap('#tomenu', '«Меню режимов» ' + w) && await tap('#mscene [data-m=night]', 'режим «Ночь рода» ' + w) && await tap('#mgo', '«Начать ночь» ' + w);
+if (await toNight('с экрана гибели')) say(await on('night') && await seen('#ndanger'), '«Ночь рода» из меню открывает выбор опасности');
 m = await marks();
 if (await tap('#nflag', '«Не так» в ночи рода')) say(await seen('#note') && await marks() === m + 1, '«Не так» в ночи рода: отметка записана');
-if (await tap('#nback', '«Назад» из ночи')) say(!(await on('night')) && await on('end'), '«Назад» возвращает на экран гибели');
-if (await tap('#nightgo', '«Ночь рода» снова') && await tap('#ndanger [data-d=phage]', 'опасность «Фаги»')) {
+if (await tap('#nback', '«Назад» из ночи')) say(!(await on('night')) && await on('menu'), '«Назад» из ночи возвращает в меню');
+if (await tap('#mscene [data-m=swim]', 'объект «Заплыв»') && await tap('#mgo', '«Плыть»')) { await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 0; }); await p.waitForTimeout(1200); }
+if (await toNight('снова') && await tap('#ndanger [data-d=phage]', 'опасность «Фаги»')) {
   await p.waitForTimeout(600); say(await p.evaluate(() => zaplyvNight() && zaplyvNight().gen > 0), 'после выбора опасности поколения идут');
-  await p.evaluate(() => zaplyvNight().run()); await p.waitForTimeout(500);
+  await p.evaluate(() => zaplyvNight().run()); await p.waitForFunction(() => document.querySelector('#npicks button'), null, { timeout: 8000 }).catch(() => {}); await p.waitForTimeout(200); // ждём сами кнопки веток, а не время (WebKit рисует позже)
+  await whole(['#nback', '#nflag', '#ngo', '#npicks button'], 'конец ночи рода');
   if (await tap('#npicks button', 'ветка «выше всех»')) {
     const g = await p.evaluate(() => zaplyvNight().res.picks[0].genes);
     if (await tap('#ngo', '«Плыть этой веткой»')) { await p.waitForTimeout(300); say(await p.evaluate(g => !document.getElementById('night').classList.contains('on') && g.every(k => zaplyvWorld().genes[k]), g), '«Плыть этой веткой» начинает заплыв с генами ветки: ' + g); }
@@ -114,7 +128,8 @@ if (await tap('#again', '«Плыть снова»')) say(!(await on('end')), '�
 // Меню-сценка (Э21): после гибели меню встречает при входе; объект выбирает режим, нижняя кнопка запускает.
 await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 0; }); await p.waitForTimeout(1200);
 await p.reload(); await p.waitForFunction(() => window.zaplyvProbe && zaplyvProbe.frames > 5, null, { timeout: 30000 }); await p.waitForTimeout(800);
-say(await on('menu'), 'после гибели вход открывает меню-сценку');
+say(await on('menu'), 'со второго запуска игра открывается меню режимов (Роман: «почему нет меню выбора режима»)');
+await whole(['#mgo', '#mquiet', '#malm'], 'меню режимов');
 say((await p.textContent('#mgo')) === 'Плыть', 'по умолчанию выбран заплыв: одно касание до игры');
 if (await tap('#mscene [data-m=hunt]', 'закрытый режим «Охота»')) say(await seen('#mscene [data-m=hunt] .mtip') && (await p.textContent('#mgo')) === 'Плыть', 'закрытый режим отвечает строкой у самого объекта, выбор не меняется');
 if (await tap('#mscene [data-m=night]', 'объект «Ночь рода»')) say((await p.textContent('#mgo')) === 'Начать ночь', 'касание объекта меняет подпись кнопки');
