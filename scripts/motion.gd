@@ -55,3 +55,27 @@ func _kick(v: Vector2, s: Sprite2D) -> void:
 
 func _pulse(v: float, s: Sprite2D) -> void:
 	s.set_meta("pulse", v)
+
+
+## Столкновение: оба отскакивают друг от друга.
+func clash(a: Sprite2D, b: Sprite2D, dir: Vector2) -> void:
+	var k: float = cfg.clash.bounce
+	for pair in [[a, -dir], [b, dir]]:
+		var s: Sprite2D = pair[0]
+		if s != null and s.has_meta("kick"):
+			var t := s.create_tween().set_parallel()
+			t.tween_method(_kick.bind(s), pair[1] * k, Vector2.ZERO, cfg.clash.time)
+			t.tween_method(_pulse.bind(s), -cfg.strike.squash, 0.0, cfg.clash.time)
+
+
+## Победитель дважды подпрыгивает; воин выскакивает из коробка — тоже прыжок, из точки from.
+func hop(s: Sprite2D, times: int, from := Vector2.ZERO) -> void:
+	if s == null or not s.has_meta("kick"):
+		return
+	var h: float = cfg.cheer.hop
+	var t := s.create_tween()
+	t.tween_method(_kick.bind(s), from, from.lerp(Vector2.ZERO, 0.5) + Vector2(0, -h), cfg.cheer.time / 2)
+	t.tween_method(_kick.bind(s), from.lerp(Vector2.ZERO, 0.5) + Vector2(0, -h), Vector2.ZERO, cfg.cheer.time / 2)
+	for i in times - 1:
+		t.tween_method(_kick.bind(s), Vector2.ZERO, Vector2(0, -h), cfg.cheer.time / 2)
+		t.tween_method(_kick.bind(s), Vector2(0, -h), Vector2.ZERO, cfg.cheer.time / 2)
