@@ -62,7 +62,7 @@ func test_end_screen_sends_in_one_tap() -> String:
 		battle.put_flag(Vector2(100 + i, 200) if i % 2 else null)
 	for b in sim.of_side(Sim.ENEMY):
 		sim.damage(b, 1e9)
-	var flags: String = battle.get_node("End/Center/Box/Flags").text
+	var flags: String = battle.get_node("End/Center/Box/Flags").text if battle.get_node("End").z_index > 1 else "флажки поверх итога"
 	await (Engine.get_main_loop() as SceneTree).process_frame
 	var report: Control = battle.get_node("Report")
 	battle.get_node("End/Center/Box/Send").pressed.emit()
