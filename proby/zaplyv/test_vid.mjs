@@ -125,5 +125,18 @@ check('test_vid_eaten_each: у каждого едока своя гибель; 
   if (sig.size < 6) miss.push('смерти повторяются: разных ' + sig.size + ' из 6');
   return miss.join('; ');
 });
+check('test_vid_defend: отбилась — у каждой защиты свой след: дуга на борту у врага, клочья при рывке из пасти, мазок слизи у амёбы', () => {
+  const C = { r: 1, g: 1, b: 1 }, miss = [], me = { x: 0, y: 0, vx: 220, vy: 0, m: 4, a: 0 };
+  const run = (k, x, y) => { const fx = new Fx({}, [C, C, C]); fx.reset(); fx.world = { me: [me], amoebas: [{ x: 60, y: 0 }] }; fx.on(k, x, y); fx.step(0.3);
+    const pts = []; const b = { put: (px, py) => pts.push([px, py]) }; fx.drawOver({ scr: (u, v) => [u, v], z: 1, time: 0, glow: b, ink: b }); return { fx, pts }; };
+  const sh = run('shrug', 30, 0); if (!sh.fx.flicks.length) miss.push('новая дверь: нет дуги');
+  else { const q = sh.fx.flicks[0]; if (q.x <= 0 || q.x >= 30) miss.push('дуга не на борту между клеткой и вирусом'); if (sh.pts.length < 8) miss.push('дуга не видна через 0,3 с'); }
+  const ph = run('shake', 30, 0); if (!ph.fx.flicks.length || ph.fx.flicks[0].kind !== 1) miss.push('стряхнула вирус: нет своего следа');
+  const es = run('shake', 0, 0); if (es.fx.flicks.length || es.fx.drops.length < 6) miss.push('вырвалась из пасти: нет клочьев');
+  else if (es.fx.drops.some(p => p.vx > 0)) miss.push('клочья летят вперёд, а не остаются позади');
+  const sl = run('slip', 0, 0); if (sl.fx.drops.length < 6 || sl.fx.drops.some(p => p.vx < 0)) miss.push('выскользнула: нет мазка слизи к амёбе');
+  for (const [n, r] of [['shrug', sh], ['shake', ph], ['slip', sl]]) if (r.fx.rings.length) miss.push(n + ': всё ещё простое кольцо');
+  return miss.join('; ');
+});
 console.log(bad ? 'ВИД: провалов ' + bad : 'ВИД: все проверки прошли');
 process.exit(bad ? 1 : 0);
