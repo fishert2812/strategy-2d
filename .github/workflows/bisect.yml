@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ref: [bd3775f, 7a0cd1f]
+        ref: [648a586]
     steps:
       - uses: actions/checkout@v4
         with:

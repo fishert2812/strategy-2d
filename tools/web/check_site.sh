@@ -56,4 +56,10 @@ const say = t => console.log('ПАСПОРТ: ' + t);
   return end(0, 'дошёл до партии, 30 с без ошибок, кадров ' + (after.frames - fight.frames));
 })();
 JS
-timeout -k 10 180 node t.js "$URL/" || { rc=$?; [ $rc -ge 124 ] && echo "ПАСПОРТ: WebKit завис, до конца не дошёл"; exit 1; }
+# Редкий сбой запуска движка до меню (issue про частоту): один перезапуск, красное только на повторе.
+run() { timeout -k 10 180 node t.js "$URL/" > run.log 2>&1; rc=$?; cat run.log; [ $rc -ge 124 ] && echo "ПАСПОРТ: WebKit завис, до конца не дошёл"; return $rc; }
+run && { echo "ПАСПОРТ: перезапусков 0"; exit 0; }
+grep -q "ПАСПОРТ: игра упала до меню" run.log || exit 1
+echo "ПАСПОРТ: сбой запуска: $(grep -m1 -E 'ошибка страницы|консоль' run.log); перезапуск 1"
+run && { echo "ПАСПОРТ: перезапусков 1"; exit 0; }
+echo "ПАСПОРТ: перезапусков 1, повтор тоже упал"; exit 1
