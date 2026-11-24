@@ -7,16 +7,18 @@
   "home_tilt": [0, 8, 16, 24],
   "_check": "Надпись «ШАХ!» на кружке: размер шрифта, время показа в секундах.",
   "check": {"size": 72, "time": 2.0},
+  "_home_states": "Кружка по прочности: выше доли — эта картинка (по цветам).",
   "home": {
-    "files": ["hq_blue", "hq_red"],
+    "files": ["nk_hq_blue", "nk_hq_red"],
+    "states": [[0.5, ["nk_hq_blue", "nk_hq_red"]], [0.0, ["nk_hq_cracked_blue", "nk_hq_cracked_red"]]],
     "width": 173
   },
   "camp": {
-    "files": ["camp_blue", "camp_red"],
+    "files": ["nk_camp_blue", "nk_camp_red"],
     "width": 140
   },
   "barracks": {
-    "files": ["barracks_blue", "barracks_red"],
+    "files": ["nk_barracks_blue", "nk_barracks_red"],
     "width": 140
   },
   "carrier": {
@@ -24,16 +26,16 @@
     "width": 56,
     "anchor": [0.5, 0.8672]
   },
-  "_warrior": "Вязаный воин: кадры из поз Романа (tools/art/warrior_frames.py). files — стойка; frames — все кадры по цветам. pose: run — порядок кадров бега, stride — путь в точках поля на один кадр, stand — кадр на месте, windup и thrust — замах и укол, blow — доли удара, когда замах сменяется уколом и укол стойкой.",
+  "_warrior": "Воин из раскадровки Романа «Ночь на кухне» (tools/art/pack_import.py). files — стойка; frames — все кадры по цветам: 0–7 шаг, 8 стойка, 9 замах, 10 удар. pose: run — порядок кадров бега, stride — путь в точках поля на один кадр, stand — кадр на месте, windup и thrust — замах и удар, blow — доли удара, когда замах сменяется ударом и удар стойкой.",
   "warrior": {
-    "files": ["warrior_blue_1", "warrior_red_1"],
+    "files": ["nk_warrior_blue_08", "nk_warrior_red_08"],
     "frames": [
-      ["warrior_blue_0", "warrior_blue_1", "warrior_blue_2", "warrior_blue_3", "warrior_blue_4"],
-      ["warrior_red_0", "warrior_red_1", "warrior_red_2", "warrior_red_3", "warrior_red_4"]
+      ["nk_warrior_blue_00", "nk_warrior_blue_01", "nk_warrior_blue_02", "nk_warrior_blue_03", "nk_warrior_blue_04", "nk_warrior_blue_05", "nk_warrior_blue_06", "nk_warrior_blue_07", "nk_warrior_blue_08", "nk_warrior_blue_09", "nk_warrior_blue_10"],
+      ["nk_warrior_red_00", "nk_warrior_red_01", "nk_warrior_red_02", "nk_warrior_red_03", "nk_warrior_red_04", "nk_warrior_red_05", "nk_warrior_red_06", "nk_warrior_red_07", "nk_warrior_red_08", "nk_warrior_red_09", "nk_warrior_red_10"]
     ],
-    "pose": {"run": [0, 1, 2, 1], "stride": 8, "stand": 1, "windup": 3, "thrust": 4, "blow": [0.35, 0.8]},
-    "width": 64,
-    "anchor": [0.5, 0.9481]
+    "pose": {"run": [0, 1, 2, 3, 4, 5, 6, 7], "stride": 6, "stand": 8, "windup": 9, "thrust": 10, "blow": [0.35, 0.8]},
+    "width": 84,
+    "anchor": [0.5, 0.8672]
   },
   "tower": {
     "files": ["tower_archer_blue", ""],
@@ -70,7 +72,7 @@
     "gait": {
       "carrier": {"hop": 7, "rate": 3.6, "squash": 0.14, "sway": 5},
       "carrier_loaded": {"hop": 2, "rate": 2.0, "squash": 0.06, "sway": 10},
-      "warrior": {"hop": 3, "rate": 2.6, "squash": 0.06, "sway": 0},
+      "warrior": {"hop": 0, "rate": 2.6, "squash": 0.0, "sway": 0},
       "fidget": {"hop": 2, "rate": 0.8, "squash": 0.05, "sway": 3}
     },
     "_fidget_max": "Во сколько раз чаще топчутся воины у коробка перед самым свистком.",

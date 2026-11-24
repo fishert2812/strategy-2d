@@ -120,6 +120,10 @@ func _process(dt: float) -> void:
 	for b in sim.buildings:
 		# Прочность кружки видна креном: чем сильнее побита, тем сильнее кренится.
 		if b.kind == "home":
+			for st in look.home.get("states", []):
+				if b.hp / b.max_hp > st[0]:
+					_sprites[b.id].texture = _tex(st[1][b.side])
+					break
 			_sprites[b.id].rotation_degrees = look.home_tilt[mini(3, int((1.0 - b.hp / b.max_hp) * 4.0))]
 		# Голодный коробок: крошек на воина нет — темнеет.
 		_sprites[b.id].self_modulate = Color(0.45, 0.42, 0.4) if b.hungry else Color.WHITE

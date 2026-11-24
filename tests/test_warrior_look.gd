@@ -58,8 +58,8 @@ func test_warrior_frames_share_ground() -> String:
 	var size := Vector2i.ZERO
 	var ground := -1
 	for side in [0, 1]:
-		for i in 5:
-			var img: Image = load(dir + "warrior_%s_%d.png" % [["blue", "red"][side], i]).get_image()
+		for i in 11:
+			var img: Image = load(dir + "nk_warrior_%s_%02d.png" % [["blue", "red"][side], i]).get_image()
 			if img.is_compressed():
 				img.decompress()
 			if size != Vector2i.ZERO and img.get_size() != size:
@@ -73,4 +73,22 @@ func test_warrior_frames_share_ground() -> String:
 			if ground >= 0 and absi(low - ground) > 1:
 				return "кадр %d: подошва на %d, а у первого на %d" % [i, low, ground]
 			ground = low
+	return ""
+
+
+## Побитая кружка трескается: игрок видит, что его дом вот-вот падёт, и видит это на картинке, а не только по полоске.
+func test_home_cracks_when_beaten() -> String:
+	var battle := _battle()
+	var sim: Sim = battle.sim
+	var home: Dictionary = sim.of_side(Sim.PLAYER, "home")[0]
+	battle._process(DT)
+	var whole: Texture2D = battle.sprite_of(home.id).texture
+	home.hp = home.max_hp * 0.3
+	battle._process(DT)
+	var beaten: Texture2D = battle.sprite_of(home.id).texture
+	battle.free()
+	if whole == beaten:
+		return "у побитой кружки та же картинка"
+	if not beaten.resource_path.contains("cracked"):
+		return "побитая кружка не треснула: %s" % beaten.resource_path
 	return ""
