@@ -34,7 +34,7 @@
     },
     {
      "id": "gas",
-     "gene": "gas"
+     "gene": "gvpA"
     }
    ]
   },
@@ -95,11 +95,11 @@
     },
     {
      "id": "abort",
-     "gene": "abort"
+     "gene": "abi"
     },
     {
      "id": "door",
-     "gene": "door"
+     "gene": "ompF"
     },
     {
      "id": "decoy",
