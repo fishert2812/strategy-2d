@@ -8,6 +8,7 @@ const url = process.argv[2], kind = process.argv[3] || 'chromium';
 const opts = process.env.CHROME ? { executablePath: process.env.CHROME, args: ['--no-sandbox'] } : {};
 const b = await pw[kind].launch(opts);
 const p = await (await b.newContext({ ...pw.devices['iPhone 13'] })).newPage();
+await p.addInitScript(() => { if (!localStorage.getItem('zaplyv.met')) localStorage.setItem('zaplyv.met', JSON.stringify(['me', 'phage', 'amoeba', 'plant'])); }); // Альманах: есть что листать
 const errs = []; p.on('pageerror', e => errs.push(e.message));
 let bad = 0; const say = (ok, t) => { console.log((ok ? '  ок   ' : '  ПРОВАЛ ') + t); if (!ok) bad++; };
 await p.goto(url, { timeout: 60000 });
@@ -36,8 +37,16 @@ m = await marks();
 if (await tap('#gflag', 'флажок в геноме')) say(await seen('#note') && await marks() === m + 1, 'флажок в геноме: отметка и надпись видна');
 m = await marks();
 if (await tap('#gno', '«Не так» в геноме')) say(await seen('#note') && await marks() === m + 1, '«Не так» в геноме: отметка и надпись видна');
-if (await tap('#gcab', 'кабинет из генома')) say(await on('cabinet'), 'кабинет открылся');
-if (await tap('#back', 'назад из кабинета')) say(!(await on('cabinet')) && await on('genome'), 'кабинет закрылся, геном на месте');
+if (await tap('#gcab', 'Альманах из генома')) say(await on('cabinet'), 'Альманах открылся');
+// test_L019: у каждой карточки полки — снимок живой модели (картинка не пустая), разделы и карточка отвечают пальцу
+await p.waitForTimeout(1500);
+say(await p.evaluate(() => [...document.querySelectorAll('#shelf .kc img')].every(i => i.naturalWidth > 100 && i.src.length > 5000)), 'test_L019: у каждой записи Альманаха — снимок модели из игры');
+if (await tap('#kpills button:nth-child(2)', 'раздел «Еда»')) say(await p.evaluate(() => document.querySelectorAll('#shelf .kc').length > 0 && document.querySelector('#kpills .on').dataset.g === 'food'), 'раздел «Еда» открылся');
+if (await tap('#kpills button:nth-child(1)', 'раздел «Обитатели»')) say(await p.evaluate(() => !!document.querySelector('#shelf .kc[data-k=me]')), 'раздел «Обитатели» открылся');
+if (await tap('#shelf .kc[data-k=me]', 'карточка «Ты»')) say(await seen('#kcard') && await p.evaluate(() => document.querySelectorAll('#kblocks .kb').length >= 2 && document.getElementById('kimg').naturalWidth > 100), 'карточка открылась: модель и блоки текста');
+if (await tap('#knext', 'следующая карточка')) say(await p.evaluate(() => document.getElementById('kname').textContent !== 'Ты, кишечная палочка'), 'листается к следующей');
+if (await tap('#kback', 'назад к полке')) say(await seen('#kshelf'), 'полка снова видна');
+if (await tap('#back', 'назад из Альманаха')) say(!(await on('cabinet')) && await on('genome'), 'Альманах закрылся, геном на месте');
 // «Отправить» в геноме: меню «Поделиться» телефона подменяем, отметки должны уйти одним сообщением.
 await p.evaluate(() => { navigator.share = async d => { window.shared = d.text; }; });
 m = await marks();
