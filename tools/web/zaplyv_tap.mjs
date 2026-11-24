@@ -98,6 +98,16 @@ const g0 = await p.evaluate(() => zaplyvWorld().choice[0]);
 if (await tap('#cards button', 'карточка гена дочки')) say(await p.evaluate(g => zaplyvWorld().genes[g], g0), 'карточка дочки даёт её ген');
 await p.evaluate(() => { const w = zaplyvWorld(), c = w.center(); w.events.push(['gene', c.x, c.y, 'fim']); }); await p.waitForFunction(() => document.getElementById('toast').textContent.startsWith('Ген от сородича'), null, { timeout: 4000 }).catch(() => {});
 { const t = await p.evaluate(() => document.getElementById('toast').textContent); const m2 = t.match(/^Ген от сородича: (.*?) — (.*)$/); await notBook(m2 ? [m2[1], m2[2]] : [t], '«Ген от сородича»'); }
+// test_L029 (Роман 24.11: «хоть все бактерии уже по краям мертвы игра обратно не приближается»): колония расползлась — камера отъехала;
+// дальние погибли или застряли вдали — за 3 с камера снова у живых, и клетка на экране не мельче cfg.cam.min_px.
+{ const z = () => p.evaluate(() => zaplyvProbe.z), cam = async (f, a) => { await p.evaluate(f, a); await p.waitForTimeout(3000); return z(); };
+  await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 1; Object.assign(w.me[0], { m: 1, grab: null, held: 0, sick: -1 }); for (const l of ['amoebas', 'bdellos', 'slippers', 'bells', 'rotis', 'phages']) w[l].length = 0; });
+  await p.waitForTimeout(3000); const z1 = await z();
+  const zs = await cam(() => { const w = zaplyvWorld(), a = w.me[0]; for (let i = 0; i < 6; i++) w.me.push({ ...a, id: 900 + i, x: a.x + Math.cos(i) * 450, y: a.y + Math.sin(i) * 450, vx: 0, vy: 0 }); });
+  const zd = await cam(() => { zaplyvWorld().me.length = 1; });
+  const zf = await cam(() => { const w = zaplyvWorld(), a = w.me[0]; for (let i = 0; i < 3; i++) w.me.push({ ...a, id: 950 + i, x: a.x - 2000, y: a.y + i * 30, vx: 0, vy: 0, stun: 1e9 }); });
+  const px = await p.evaluate(() => { const w = zaplyvWorld(); return 13 * Math.sqrt(w.me[0].m) * zaplyvProbe.z >= w.cfg.cam.min_px; });
+  say(zs < z1 * 0.8 && zd > z1 * 0.9 && zf > z1 * 0.9 && px, `test_L029: камера отъехала к расползшейся колонии (${z1.toFixed(2)} → ${zs.toFixed(2)}), вернулась после гибели дальних (${zd.toFixed(2)}) и не уходит к застрявшим вдали (${zf.toFixed(2)})`); }
 await p.evaluate(() => { const w = zaplyvWorld(); w.genes.spore = false; w.stats.killer = 'amoeba'; w.me.length = 0; });
 await p.waitForTimeout(1200); await notBook(await p.evaluate(() => ['who', 'cname', 'ctext', 'cfact', 'ctip'].map(i => document.getElementById(i).textContent)), 'экран гибели');
 await whole(['#again', '#tomenu', '#cab', '#eno'], 'экран гибели'); // до любых касаний: экран не прокручен

@@ -48,6 +48,7 @@ ONLY=L018 case_ "test_L018: описание умения снова в data.jso
 ONLY=L024 case_ "test_L024: «водоросль» вместо имени из Альманаха" 50_zaplyv.sh red "sed -i 's/Слизь тебя больше не тормозит/Водоросль тебя больше не тормозит/' $Z/kniga/teksty_genov.json"
 ONLY=L024 case_ "test_L024: умение дочке до встречи" 50_zaplyv.sh red "sed -i 's/return !this.genes\[g\] \&\& (this.posle/return !this.genes[g] || (this.posle/' $Z/sim.js"
 ONLY=L024 case_ "test_L024: умение без теста-обещания" 50_zaplyv.sh red "sed -i 's/сон-персистер \[spore\]/сон-персистер/' $Z/test.mjs"
+case_ "test_L029: камера тянется к отставшим вдали" 52_zaplyv_tap.sh red "sed -i 's/const flock = live.filter(a => Math.hypot(a.x - lead.x, a.y - lead.y) < C.group)/const flock = world.me/' $Z/main.js"
 ONLY=L022 case_ "test_L022: вирус снова красный, как запятая" 50_zaplyv.sh red "sed -i 's/\"phage\": \[0.92, 0.9, 1.0\]/\"phage\": [1.0, 0.3, 0.4]/' $Z/data.json"
 ONLY=L020 case_ "test_L020: зелёные жгутики" 50_zaplyv.sh red "sed -i 's/\"color\": \[0.74, 0.87, 1.0\]/\"color\": [0.3, 1.0, 0.4]/' $Z/data.json"
 # Слой «вид и анимации» «Заплыва» (53_zaplyv_vid.sh): событие без анимации и умение, не видное на теле, обязаны дать красное.
