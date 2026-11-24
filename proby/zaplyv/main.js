@@ -4,6 +4,7 @@
 // Сверху — точки: еда, жгутики, крупинки внутри клеток, фаги, взвесь вдали и размытые соринки вблизи.
 import * as THREE from './three.module.min.js';
 import { World, radius } from './sim.js';
+import * as mut from './mutacii.js';
 import { Stick } from './controls.js';
 import { follow } from './soft.js';
 import { look } from './look.js';
@@ -191,8 +192,8 @@ const ver = (await (await fetch('version.json')).json()).number; // свой н�
 $('ver').textContent = 'Заплыв ' + ver;
 fetch('../version.txt').then(r => r.ok ? r.text() : '').then(t => { if (t.trim()) $('ver').textContent = 'Заплыв ' + ver + ' · ' + t.trim().slice(0, 7); }).catch(() => {});
 
-function start(genes) {
-  world = new World(cfg, (Math.random() * 2 ** 31) | 0);
+function start(genes, mode) {
+  world = new World(cfg, (Math.random() * 2 ** 31) | 0); world.mode = mode || 'swim'; // режим «Мутации» включает новые мутации (mutacii.js)
   world.posle = Object.fromEntries(Object.values(GENY.geny || {}).filter(q => q.klyuch).map(q => [q.klyuch, q.posle || []])); world.known = met; // ген от того, кого уже встречал
   if (Array.isArray(genes)) world.inherit(genes); // заплыв веткой рода после «Ночи рода»
   $('night').classList.remove('on'); $('menu').classList.remove('on');
@@ -200,7 +201,7 @@ function start(genes) {
   fx.reset(); fx.world = world; ended = false; // fx читает мир: сидящие вирусы, запятые, амёбы
   $('end').classList.remove('on');
 }
-$('again').onclick = () => start();
+$('again').onclick = () => start(null, world.mode); // снова в том же режиме
 // Род между заплывами: гибели, последний род (для ночи), ветки и поколения ночей, «Тише». Память — в этом браузере.
 let ROD = {}; try { ROD = JSON.parse(localStorage.getItem('zaplyv.rod') || '{}') || {}; } catch (_) {}
 const saveRod = () => { try { localStorage.setItem('zaplyv.rod', JSON.stringify(ROD)); } catch (_) {} };
@@ -210,6 +211,7 @@ const MODES = {
   swim: { go: 'Плыть', line: 'Твоя клетка в капле пруда. Ешь, делись, не попадись' },
   night: { go: 'Начать ночь', line: 'Тысяча поколений за полминуты. Ставишь одну опасность' },
   sel: { lock: 'Пройди ночь рода — и сможешь растить свои породы' },
+  mut: { go: 'Плыть с мутациями', line: 'Та же капля, но дочки и соседки приносят новые мутации' },
   hunt: { lock: 'Погибни от красной запятой трижды — и сыграешь за неё' },
   deep: { lock: 'Доплыви до ила — и увидишь, что было в капле миллиард лет назад' },
   dry: { lock: 'Скоро: выжить, когда воды почти не осталось' },
@@ -238,7 +240,7 @@ function menuPick(m, quiet) {
   $('mscene').classList.toggle('picked', !quiet);
   mSel = m; $('mgo').textContent = M.go;
 }
-function menuGo() { if (mSel === 'night') { $('menu').classList.remove('on'); openNight(); } else start(); }
+function menuGo() { if (mSel === 'night') { $('menu').classList.remove('on'); openNight(); } else if (menuGo.back && !ended && world.me.length && mSel === world.mode) { $('menu').classList.remove('on'); menuGo.back = false; } else { menuGo.back = false; start(null, mSel); } } // из паузы: «Плыть» в том же режиме возвращает в тот же заплыв, другой режим — новый заплыв
 for (const o of document.querySelectorAll('#mscene .mo')) { o.onclick = () => menuPick(o.dataset.m); o.ondblclick = () => { menuPick(o.dataset.m); if (!MODES[o.dataset.m].lock) menuGo(); }; }
 $('mgo').onclick = menuGo;
 $('mquiet').onclick = () => { ROD.quiet = !ROD.quiet; saveRod(); $('mquiet').textContent = ROD.quiet ? 'Звук' : 'Тише'; };
@@ -246,6 +248,7 @@ $('malm').onclick = () => kab.open();
 
 // «Ночь рода» (night.js; design/zaplyv_noch_roda_spec.md): после гибели род живёт 1000 поколений, игрок выбирает опасность, потом ветку.
 let NT = null, ntT = 0, ntPick = null;
+$('gmenu').onclick = () => { genome.close(); menuOpen(); menuGo.back = true; }; // путь в меню из паузы (L031)
 $('tomenu').onclick = () => { $('end').classList.remove('on'); menuOpen(); }; // режимы — только в меню: заплыв остаётся заплывом (Роман: «мы тестируем разные режимы»)
 function openNight() { nightIcons(); NT = null; ntPick = null; $('night').classList.add('on'); $('ndanger').hidden = $('nask').hidden = false; $('npicks').innerHTML = ''; $('ngo').disabled = true; $('ngen').textContent = 'Ночь рода'; drawNight(); }
 function nightIcons() { // значки опасностей — снимки самой опасности из той же студии, что Альманах (правило дизайнера)
@@ -255,7 +258,7 @@ function nightIcons() { // значки опасностей — снимки с
 $('nback').onclick = () => { $('night').classList.remove('on'); NT = null; $('end').classList.remove('on'); menuOpen(); }; // ночь — режим из меню: назад в меню
 $('nflag').onclick = e => flag('ночь рода', e.currentTarget);
 for (const b of $('ndanger').children) b.onclick = () => {
-  NT = night({ genes: ROD.genes || [], n: ROD.most || 1 }, b.dataset.d, ROD.seed || 1, NJ, Object.keys(cfg.genes)); NT.danger = b.dataset.d; // род — последний заплыв (из памяти: ночь зовут и из меню)
+  NT = night({ genes: ROD.genes || [], n: ROD.most || 1 }, b.dataset.d, ROD.seed || 1, NJ, mut.base(cfg)); NT.danger = b.dataset.d; // род — последний заплыв (из памяти: ночь зовут и из меню)
   ntT = 0; $('ndanger').hidden = $('nask').hidden = true;
 };
 $('ngo').onclick = () => { if (ntPick) start(ntPick.genes); };
@@ -304,6 +307,7 @@ try { for (const k of JSON.parse(localStorage.getItem('zaplyv.met') || '[]')) me
 const saveMet = () => { try { localStorage.setItem('zaplyv.met', JSON.stringify([...met])); } catch (_) {} };
 const KAB = await (await fetch('almanah.json')).json();
 const GENY = await fetch('kniga/teksty_genov.json').then(r => r.ok ? r.json() : {}).catch(() => ({})); // гены: имена и тексты книги
+mut.addGenes(cfg); mut.names(cfg, GENY); // новые мутации: имена из книги
 const TEKSTY = await fetch('kniga/teksty_sushchestv.json').then(r => r.ok ? r.json() : {}).then(j => j.sushchestva || {}).catch(() => ({})); // тексты книги
 // Снимок модели: на миг подменяем мир студией с одним существом в середине кадра, рисуем тем же paint и вырезаем середину.
 const LISTS = { me: 'me', phage: 'phages', bdello: 'bdellos', amoeba: 'amoebas', slipper: 'slippers', bell: 'bells', roti: 'rotis',
@@ -640,7 +644,7 @@ function tick(dt) {
       $('stats').innerHTML = pathText(world);
       ROD.deaths = (ROD.deaths || 0) + 1; ROD.genes = Object.keys(world.genes).filter(g => world.genes[g]); ROD.most = world.stats.most; ROD.seed = world.seed; // род для ночи и меню
       const kl = world.stats.killer || 'me'; ROD.killers = ROD.killers || {}; ROD.killers[kl] = (ROD.killers[kl] || 0) + 1; saveRod();
-      setTimeout(() => { $('end').classList.add('on'); $('toast').classList.remove('on'); }, 700); // подсказка заплыва не ложится на экран гибели
+      setTimeout(() => { $('end').classList.add('on'); $('end').scrollTop = 0; $('toast').classList.remove('on'); }, 700); // лист гибели всегда с начала: убийца сверху (L031) // подсказка заплыва не ложится на экран гибели
     }
     return;
   }
@@ -688,6 +692,22 @@ function paint(time) {
       if (i % 3 === 0) ink.put(px + Math.sin(i * 7.1) * g.w * 0.5 * z, py + Math.cos(i * 5.3) * g.w * 0.5 * z, 0.8 * z + 0.3, 0.8, 0.9, 1, 0.35);
     }
   }
+  { const Zc = cfg.zone, wn = world.warning(); // край зоны затягивания: тонкая сплошная линия (точки — язык еды, их не занимаем), еле видна всегда, ярче в полутора радиусах, разгорается только у ближайшей (L030)
+    for (const zn of world.zones()) { const [wx, wy, R] = zn, [x, y] = scr(wx, wy), Rz = R * z; if (!on(x, y, Rz)) continue;
+      const d = world.me.reduce((m, a) => Math.min(m, Math.hypot(a.x - wx, a.y - wy)), 1e9), lv = wn && wn.zone[0] === wx && wn.zone[1] === wy ? wn.level : 0;
+      const al = (d < R * 1.5 ? Zc.near : Zc.far) + (Zc.warn - Zc.near) * lv, [cr, cg, cb] = Zc.color, n = Math.max(90, Math.round(6.283 * Rz / Zc.step)), sz = (0.6 + 0.4 * lv) * z + 0.5;
+      for (let k = 0; k < n; k++) { const t = k / n * 6.283; ink.put(x + Math.cos(t) * Rz, y + Math.sin(t) * Rz, sz, cr, cg, cb, al); }
+      for (let k = 0; k < Zc.ticks; k++) { const t = k / Zc.ticks * 6.283 + time * 0.2; // чёрточки внутрь: куда тянет, видно, даже когда рта не видно
+        for (let i = 0; i < 6; i++) { const r = Rz * (1 - Zc.tick * i / 5); ink.put(x + Math.cos(t) * r, y + Math.sin(t) * r, sz * (1 - i * 0.1), cr, cg, cb, al * (1 - i * 0.12)); } }
+      if (lv > 0) probe.warn[zn[3]] = (probe.warn[zn[3]] || 0) + 1;
+      for (const a of world.me) { if (Math.hypot(a.x - wx, a.y - wy) > R) continue; const [ax, ay] = scr(a.x, a.y); // тебя тянет: штрихи бегут от клетки к рту
+        for (let k = 0; k < Zc.streak; k++) { const f = (time * 1.2 + k / Zc.streak) % 1;
+          for (let i = 0; i < 6; i++) { const u = (f + i * 0.015) * 0.7; ink.put(ax + (x - ax) * u, ay + (y - ay) * u, 1.1 * z + 0.5, cr, cg, cb, Zc.warn * (1 - f) * (0.4 + i * 0.12)); } } } } }
+  { const wn = world.warning(); if (wn && wn.level > 0) { const [x, y] = scr(wn.zone[0], wn.zone[1]); // источник тревоги за кадром: стрелка у края экрана, острием к нему (L030)
+    if (!on(x, y, wn.zone[2] * z - 12)) { const [cx, cy] = scr(world.center().x, world.center().y), a = Math.atan2(y - cy, x - cx), ux = Math.cos(a), uy = Math.sin(a), m = 34;
+      const t = Math.min((ux > 0 ? W - m - cx : m - cx) / (ux || 1e-9), (uy > 0 ? H - m - cy : m - cy) / (uy || 1e-9)), px = cx + ux * t, py = cy + uy * t, [cr, cg, cb] = cfg.zone.color, al = 0.45 + 0.4 * wn.level;
+      probe.edge = (probe.edge || 0) + 1;
+      for (let i = 0; i < 12; i++) { const s = i * 1.6; ink.put(px + ux * s * 1.4, py + uy * s * 1.4, 4, cr, cg, cb, al); ink.put(px + ux * 18 - (ux + uy) * s * 0.75, py + uy * 18 - (uy - ux) * s * 0.75, 4, cr, cg, cb, al); ink.put(px + ux * 18 - (ux - uy) * s * 0.75, py + uy * 18 - (uy + ux) * s * 0.75, 4, cr, cg, cb, al); } } } }
   for (const p of world.slippers) { // туфелька: огромная клетка в ресничках, воронка-рот на боку, поток в рот виден
     const [x, y] = scr(p.x, p.y), L = cfg.slipper_len * z; if (!on(x, y, L)) continue;
     const ux = Math.cos(p.a), uy = Math.sin(p.a), w = L * 0.27;
@@ -812,12 +832,15 @@ function paint(time) {
       glow.put(x - ux * (w * 2.3 + f * w * 7) - uy * wv, y - uy * (w * 2.3 + f * w * 7) + ux * wv, 1.1 * Math.max(z, 0.7), 0.6, 1, 0.8, 0.55 * (1 - f * 0.5)); }
     if (q.cool > 0) glow.put(x, y, w * 3.5, 0.5, 1, 0.75, 0.25 * q.cool); // только что стреляла
   }
-  fx.drawUnder({ scr, z, time, glow, ink });
+  fx.drawUnder({ scr, z, time, glow, ink }); mut.drawWorld({ w: world, scr, z, glow, ink }); // пузырьки-обманки
   for (const b of world.bdellos) { // бделловибрион: запятая вдвое мельче тебя, один толстый жгутик; на рывке — след
-    const [x, y] = scr(b.x, b.y); if (!on(x, y)) continue;
+    const [x, y] = scr(b.x, b.y); if (!on(x, y) && !b.aim) continue; // целится из-за кадра — линия прицела всё равно видна
     const w = 4.2 * z, sp = Math.hypot(b.vx, b.vy), ang = b.a, ux = Math.cos(ang), uy = Math.sin(ang);
     bodies.rod(x, y, ang, w * 1.5, w, 0, cfg.danger.bdello, [0.75, 0.12, 0.08], b.id, w * 0.35); // слегка изогнутая запятая
     glow.put(x, y, w * 4, 1, 0.3, 0.1, 0.12 + (b.on ? 0.1 * Math.sin(time * 16) : 0));
+    if (b.aim) { const [cr, cg, cb] = cfg.zone.color, [tx, ty] = scr(b.aim.x, b.aim.y), L = Math.hypot(tx - x, ty - y); probe.warn.bdello = (probe.warn.bdello || 0) + 1; // выбрала тебя: светится и тянет тонкую линию прицела к клетке (L030)
+      glow.put(x, y, w * 6, cr, cg, cb, 0.35 + 0.2 * Math.sin(time * 12));
+      const run = (time * 40) % 16; for (let k = 2; k < L / 4; k++) { const d = k * 4 + run; if (d % 16 > 8 || d > L) continue; const u = d / L; ink.put(x + (tx - x) * u, y + (ty - y) * u, 0.8 * z + 0.5, cr, cg, cb, 0.55 * (1 - u * 0.5)); } } // штрихи бегут от запятой к тебе
     for (let k = 1; k <= 22; k++) { const s = k / 22, wv = Math.sin(s * 9 - time * 30) * w * 0.5 * s;
       glow.put(x - ux * (w * 1.5 + s * w * 6) - uy * wv, y - uy * (w * 1.5 + s * w * 6) + ux * wv, 1.1 * Math.max(z, 0.7), 1, 0.55, 0.3, 0.6 * (1 - s * 0.6)); }
     if (sp > 150) for (let k = 1; k <= 8; k++) ink.put(x - b.vx * 0.012 * k * z, y - b.vy * 0.012 * k * z, w * (1 - k / 10), 1, 0.4, 0.2, 0.18 * (1 - k / 9)); // рывок
@@ -907,7 +930,7 @@ function paint(time) {
   for (let i = 0; i < 32; i++) { // вдали: частицы в расфокусе — кольца, плывут медленнее
     const h = Math.abs(Math.sin(i * 91.7) * 43758.5) % 1, h2 = Math.abs(Math.sin(i * 12.9) * 9631.2) % 1;
     const warm = i % 3 === 0; // тёплые огоньки вдали, как на снимках
-    far.put(wrap(h * 1400 - view.x * 0.35, 1400) - 340, wrap(h2 * 2400 - view.y * 0.35, 2400) - 500, (warm ? 6 : 14) + h * (warm ? 14 : 46), warm ? 1 : 0.6, warm ? 0.55 : 0.8, warm ? 0.2 : 1, warm ? 0.25 : 0.025 + h2 * 0.035);
+    far.put(wrap(h * 1400 - view.x * 0.35, 1400) - 340, wrap(h2 * 2400 - view.y * 0.35, 2400) - 500, (warm ? 6 : 14) + h * (warm ? 14 : 46), warm ? 1 : 0.6, warm ? 0.9 : 0.8, warm ? 0.75 : 1, warm ? 0.2 : 0.025 + h2 * 0.035);
   }
   for (let i = 0; i < 70; i++) { // рядом: пылинки дрожат (броуновское) — видно, какие мы маленькие
     const h = Math.abs(Math.sin(i * 33.1) * 1758.5) % 1, h2 = Math.abs(Math.sin(i * 71.3) * 5631.7) % 1;
@@ -942,7 +965,7 @@ function render(t, after) {
 }
 // Замер для проверки: кадры, худший и средний кадр за последние 5 с, число клеток и точек.
 window.zaplyvWorld = () => world; // для проверок и кадров
-const probe = window.zaplyvProbe = { frames: 0, worst: 0, avg: 0, js: 0, jsWorst: 0, cells: 0, dots: 0, errors: 0 };
+const probe = window.zaplyvProbe = { warn: {}, frames: 0, worst: 0, avg: 0, js: 0, jsWorst: 0, cells: 0, dots: 0, errors: 0 };
 addEventListener('error', () => probe.errors++);
 let last = performance.now(), acc = [], js = [];
 function frame(now) {
