@@ -26,6 +26,8 @@ var taps := {"touch": 0, "mouse": 0, "emulated": 0}
 var _last := ""
 var _units := {}
 var _lines := {}
+## Подсказки стола: пунктир «тяни сюда» от лагеря без тропы (id лагеря → линия).
+var _hints := {}
 ## Тропа, которая после отпускания подтягивается в чистую форму: казарма и линия под пальцем.
 var _settle := {}
 var _loaded := []
@@ -71,6 +73,7 @@ func restart() -> void:
 	_sprites.clear()
 	_units.clear()
 	_lines.clear()
+	_hints.clear()
 	_drag = {}
 	_pick({})
 	ghost.hide()
@@ -118,8 +121,7 @@ func _process(dt: float) -> void:
 				s.texture = _tex(st[1])
 				break
 	for b in sim.buildings:
-		# Голодный коробок: крошек на воина нет — темнеет.
-		_sprites[b.id].self_modulate = Color(0.45, 0.42, 0.4) if b.hungry else Color.WHITE
+		_hungry(b)
 		var bar: ProgressBar = _sprites[b.id].get_node("Hp")
 		bar.value = b.hp / b.max_hp * 100.0
 		bar.visible = b.hp < b.max_hp
@@ -131,6 +133,7 @@ func _process(dt: float) -> void:
 	if $Hud/Box/Debug.visible:
 		$Hud/Box/Debug.text = debug_text()
 	_sync_paths()
+	_sync_hints()
 	_sync_units(dt)
 
 
@@ -145,6 +148,61 @@ func _sync_paths() -> void:
 			_lines[b.id] = _line(Color(look.path_colors[b.side]))
 		_points(_lines[b.id], pts)
 	_drop_missing(_lines, seen)
+
+
+## Стол сам подсказывает новичку: от лагеря без тропы к ближайшему печенью снова и снова
+## тянется пунктир — «тяни сюда». Тропа легла — подсказка гаснет.
+func _sync_hints() -> void:
+	var seen := {}
+	var h: Dictionary = look.hint
+	for b in sim.of_side(Sim.PLAYER, "camp"):
+		var to := _nearest_cookie(b.pos)
+		if b.target.get("gold", 0) > 0 or to == Vector2.INF or is_same(_drag.get("from"), b):
+			continue
+		seen[b.id] = true
+		if not _hints.has(b.id):
+			_hints[b.id] = _stroke(Color(look.path_colors[Sim.PLAYER]), h.width)
+			_hints[b.id].texture = _dash(h.dash)
+			_hints[b.id].texture_mode = Line2D.LINE_TEXTURE_TILE
+			_hints[b.id].texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+			$World/Paths.add_child(_hints[b.id])
+		var k: float = fmod(sim.time, h.period) / h.period
+		_hints[b.id].points = PackedVector2Array([b.pos, b.pos.lerp(to, ease(minf(1.0, k * 1.4), 0.4))])
+		_hints[b.id].modulate.a = h.alpha * (1.0 - smoothstep(0.75, 1.0, k))
+	_drop_missing(_hints, seen)
+
+
+func _nearest_cookie(from: Vector2) -> Vector2:
+	var best := Vector2.INF
+	for d in sim.deposits:
+		if d.gold > 0 and d.pos.distance_to(from) < best.distance_to(from):
+			best = d.pos
+	return best
+
+
+## Пунктир: чёрточка и просвет (в точках), белые — красит цвет линии.
+func _dash(dash: Array) -> Texture2D:
+	var img := Image.create(dash[0] + dash[1], 2, false, Image.FORMAT_RGBA8)
+	img.fill_rect(Rect2i(0, 0, dash[0], 2), Color.WHITE)
+	return ImageTexture.create_from_image(img)
+
+
+## Голодный коробок (крошек на воина нет): над ним пустая крошка, и он мотает «нет».
+func _hungry(b: Dictionary) -> void:
+	var s: Sprite2D = _sprites[b.id]
+	var bowl: Sprite2D = s.get_node_or_null("Hungry")
+	if b.hungry and bowl == null:
+		bowl = Sprite2D.new()
+		bowl.name = "Hungry"
+		bowl.texture = _tex(look.hungry.icon)
+		bowl.scale = Vector2.ONE * look.hungry.size / bowl.texture.get_width() / s.scale.x
+		bowl.position = Vector2(0, -look.hungry.lift) / s.scale.x
+		bowl.modulate = Color(1, 1, 1, look.hungry.alpha)
+		s.add_child(bowl)
+	if bowl != null:
+		bowl.visible = b.hungry
+		bowl.rotation_degrees = look.hungry.shake * sin(sim.time * TAU * look.hungry.rate)
+		s.rotation_degrees = bowl.rotation_degrees * 0.3 if b.hungry else 0.0
 
 
 func _sync_units(dt: float) -> void:

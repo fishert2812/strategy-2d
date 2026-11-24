@@ -154,3 +154,30 @@ func test_pictures_loaded_before_play() -> String:
 	var missing := ["warrior_blue", "warrior_red", "barracks_blue", "tower_archer_blue", "porter_red"].filter(func(f): return not ResourceLoader.has_cached(battle.look.dir + f + ".png"))
 	battle.get_parent().free()
 	return "" if missing.is_empty() else "не загружены заранее: %s" % [missing]
+
+
+## Стол подсказывает новичку без слов: от лагеря без тропы тянется пунктир к ближайшему печенью,
+## тропа легла — пунктир гаснет; голодная казарма показывает крошку над собой и мотает «нет».
+func test_table_hints_camp_path_and_hungry_barracks() -> String:
+	var battle: Control = await _battle(Vector2i(720, 1281))
+	var sim: Sim = battle.sim
+	var tree := Engine.get_main_loop() as SceneTree
+	var camp := sim.build(Sim.PLAYER, "camp", Vector2(250, 830))
+	sim.time = 0.8
+	await tree.process_frame
+	var line: Line2D = battle._hints.get(camp.id)
+	var why := ""
+	if line == null or line.points.size() != 2 or line.points[1].distance_to(Vector2(170, 760)) > line.points[0].distance_to(Vector2(170, 760)):
+		why = "у лагеря без тропы нет пунктира к печенью"
+	sim.set_path(camp, Vector2(170, 760))
+	await tree.process_frame
+	if why == "" and battle._hints.has(camp.id):
+		why = "тропа легла, а пунктир остался"
+	var b := sim.build(Sim.PLAYER, "barracks", Vector2(450, 700))
+	b.hungry = true
+	await tree.process_frame
+	var bowl: Node = battle.sprite_of(b.id).get_node_or_null("Hungry")
+	if why == "" and (bowl == null or not bowl.visible):
+		why = "голодная казарма не показывает крошку"
+	battle.get_parent().free()
+	return why
