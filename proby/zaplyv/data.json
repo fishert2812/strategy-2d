@@ -5,7 +5,7 @@
 	"split": 2.0,
 	"max_m": 9,
 	"food": 0.14, "danger": { "phage": [0.92, 0.9, 1.0], "bdello": [1.0, 0.38, 0.15] }, "genome_zoom": 0.7, "pond": { "w": 24000, "h": 36000, "x0": 0.3, "y0": 0.3, "film": 0.05, "oxy": 0.62, "silt": 0.74, "shore": 0.88, "grid": [12, 18] }, "icon_span": 34, "icon_dim": 0.4, "fim_reach": 8, "flag": { "color": [0.74, 0.87, 1.0], "alpha": 0.32, "bundle": 2.5, "unbundle": 1.2, "fan_out": 12, "fan_in": 3, "spin": 4, "rest_spin": 3, "tumble_b": 0.85 }, "crispr_cost": 0.6, "flag_r": 500,
-  "close_up": 0.85, "grain": [0.6, 2.4], "rush_gap": 1.5, "rush_step": 0.12, "rush_max": 1, "rush_fall": 0.3,
+  "close_up": 0.85, "cam": { "group": 700, "min_px": 9 }, "grain": [0.6, 2.4], "rush_gap": 1.5, "rush_step": 0.12, "rush_max": 1, "rush_fall": 0.3,
 	"grab": 1.3, "free": 1.0, "torn": 0.75, "bdello_loose": 1.2, "auto_split": 3, "auto_max": 4, "me_max": 10, "away_speed": 120, "away_time": 2.5,
 	"amoeba": 64,
 	"amoeba_open": 0.15,
