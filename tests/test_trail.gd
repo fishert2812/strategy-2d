@@ -96,6 +96,27 @@ func test_squad_moves_on_to_next_target() -> String:
 	return ""
 
 
+## Урок L007, лаги: пока палец ведёт длинную тропу, одно движение стоит меньше 2 мс (было до 60 мс:
+## нитку пересчитывали на каждом движении). Берём лучший из трёх прогонов, чтобы не мерить шум машины.
+func test_L007_drawing_is_cheap() -> String:
+	var tree := Engine.get_main_loop() as SceneTree
+	var battle: Control = load("res://scenes/battle.tscn").instantiate()
+	tree.root.add_child(battle)
+	await tree.process_frame
+	var b: Dictionary = battle.sim.build(Sim.PLAYER, "barracks", Vector2(360, 760))
+	var best := INF
+	for run in 3:
+		battle._drag = {"from": b, "line": battle._line(Color.WHITE), "start": Vector2.ZERO, "trail": []}
+		var t0 := Time.get_ticks_usec()
+		for i in 150:
+			battle._move(battle.world.to_global(Vector2(360 + 250 * sin(i / 12.0), 790 - i * 4.5)))
+		best = minf(best, (Time.get_ticks_usec() - t0) / 150000.0)
+		battle._drag.line.free()
+	battle.free()
+	print("    движение пальца при рисовании: %.3f мс" % best)
+	return "" if best < 2.0 else "движение пальца стоит %.2f мс (можно до 2)" % best
+
+
 ## Пальцем на экране: ведёшь от казармы в обход и отпускаешь — тропа ложится с изгибом.
 func test_finger_draws_bent_route() -> String:
 	var tree := Engine.get_main_loop() as SceneTree
@@ -126,9 +147,9 @@ func test_finger_draws_bent_route() -> String:
 	var route: Array = b.route.duplicate()
 	var target: String = b.target.get("kind", "")
 	holder.free()
-	if shown != [b.pos] + route:
-		return "под пальцем %s, а легло %s" % [shown, [b.pos] + route]
-	if route.size() < 2 or route[0].distance_to(Vector2(110, 500)) > 70:
+	if shown[-1].distance_to(way[2]) > 1.0 or shown.size() < 20:
+		return "под пальцем не линия по пальцу: %s" % [shown]
+	if route.size() < 2 or not route.any(func(p): return p.distance_to(way[1]) < 50):
 		return "палец провёл тропу в обход, а легла %s" % [route]
 	if target != "home":
 		return "конец тропы у дома врага, а цель «%s»" % target

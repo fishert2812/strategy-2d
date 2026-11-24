@@ -50,6 +50,8 @@
     "tower": "icon_tower"
   },
   "path_colors": ["#6DA8F4", "#E97062"],
+  "_route_settle": "За сколько секунд нарисованная тропа после отпускания подтягивается в чистую форму.",
+  "route_settle": 0.25,
   "path_width": 10,
   "path_edge": {
     "color": "#3B2414",
