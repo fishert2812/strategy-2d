@@ -1,5 +1,5 @@
 extends Control
-## Экран партии: поле, здания, постройка и тропы перетягиванием, конец партии.
+## Экран партии: поле, здания, постройка и тропы касанием или перетягиванием, конец партии.
 
 const TEX := {
 	"home": preload("res://art/rts/medievalStructure_05.png"),
@@ -18,12 +18,15 @@ const PATH_COLOR := [Color(0.2, 0.45, 1.0, 0.75), Color(0.95, 0.2, 0.15, 0.75)]
 const TINT := [Color(0.6, 0.78, 1.0), Color(1.0, 0.6, 0.55)]
 const TOP := 90.0
 const BOTTOM := 190.0
+## Сдвиг пальца меньше этого — касание, а не перетягивание.
+const TAP := 24.0
 
 var sim: Sim
 var shake := 0.0
 var enemy: Enemy
 var _sprites := {}
 var _drag := {}
+var _picked := {}
 var _units := {}
 var _lines := {}
 
@@ -47,6 +50,7 @@ func restart() -> void:
 	_units.clear()
 	_lines.clear()
 	_drag = {}
+	_pick({})
 	ghost.hide()
 	sim = Sim.new()
 	sim.changed.connect(_on_sim)
@@ -126,16 +130,25 @@ func _line(color: Color) -> Line2D:
 	return line
 
 
+## Палец на телефоне: касание и перетягивание. Мышь — для компьютера; мышь, которую
+## браузер сам делает из касания, пропускаем, чтобы одно касание не сработало дважды.
 func _unhandled_input(e: InputEvent) -> void:
-	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
+	if e is InputEventMouse and e.device == InputEvent.DEVICE_ID_EMULATION:
+		return
+	if (e is InputEventScreenTouch and e.index == 0) or (e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT):
 		if e.pressed:
 			_press(e.position)
 		elif not _drag.is_empty():
 			_release(e.position)
-	elif e is InputEventMouseMotion and _drag.has("from"):
-		_drag.line.points = [_drag.from.pos, world.to_local(e.position)]
-	elif e is InputEventMouseMotion and not _drag.is_empty():
-		ghost.position = world.to_local(e.position)
+	elif ((e is InputEventScreenDrag and e.index == 0) or e is InputEventMouseMotion) and not _drag.is_empty():
+		_move(e.position)
+
+
+func _move(pos: Vector2) -> void:
+	if _drag.has("from"):
+		_drag.line.points = [_drag.from.pos, world.to_local(pos)]
+	elif _drag.has("what"):
+		ghost.position = world.to_local(pos)
 		var ok: bool = sim.can_build(Sim.PLAYER, _drag.what, ghost.position) == ""
 		ghost.modulate = Color(1, 1, 1, 0.7) if ok else Color(1, 0.3, 0.3, 0.7)
 
@@ -145,40 +158,66 @@ func _press(pos: Vector2) -> void:
 		return
 	for kind in buttons:
 		if buttons[kind].get_global_rect().has_point(pos):
-			_drag = {"what": kind}
+			_pick({})
+			_drag = {"what": kind, "start": pos}
 			ghost.texture = TEX[kind]
 			ghost.position = world.to_local(pos)
 			ghost.show()
 			return
+	if not _picked.is_empty():
+		_drag = {"tap": true, "start": pos}
+		return
 	var b := sim.building_at(world.to_local(pos), Sim.PLAYER)
 	if b.get("kind") in ["camp", "barracks"]:
-		_drag = {"from": b, "line": _line(PATH_COLOR[Sim.PLAYER].lightened(0.4))}
+		_drag = {"from": b, "line": _line(PATH_COLOR[Sim.PLAYER].lightened(0.4)), "start": pos}
 
 
 func _release(pos: Vector2) -> void:
 	ghost.hide()
 	var at := world.to_local(pos)
-	if _drag.has("from"):
-		_drag.line.queue_free()
-		if not sim.set_path(_drag.from, at) and _drag.from.pos.distance_to(at) > 60:
-			hint("тяни тропу к залежи" if _drag.from.kind == "camp" else "тяни тропу к зданию врага")
-		_drag = {}
-		return
-	var kind: String = _drag.what
+	var tap: bool = pos.distance_to(_drag.start) < TAP
+	var d := _drag
 	_drag = {}
+	if d.has("line"):
+		d.line.queue_free()
+	if d.has("tap"):
+		d = _picked
+		_pick({})
+	elif tap:
+		_pick(d)
+		return
+	if d.has("from"):
+		if not sim.set_path(d.from, at) and (tap or d.from.pos.distance_to(at) > 60):
+			hint("тяни тропу к залежи" if d.from.kind == "camp" else "тяни тропу к зданию врага")
+		return
 	if pos.y > size.y - BOTTOM:
 		return
-	var why := sim.can_build(Sim.PLAYER, kind, at)
+	var why := sim.can_build(Sim.PLAYER, d.what, at)
 	if why != "":
 		hint(why)
 	else:
-		sim.build(Sim.PLAYER, kind, at)
+		sim.build(Sim.PLAYER, d.what, at)
 
 
-func hint(text: String) -> void:
+## Выбор касанием: тронул кнопку или своё здание — следующее касание поля ставит здание или тропу.
+func _pick(d: Dictionary) -> void:
+	_picked = {}
+	for kind in buttons:
+		buttons[kind].self_modulate = Color.WHITE
+	if d.has("what"):
+		_picked = {"what": d.what}
+		buttons[d.what].self_modulate = Color(1.0, 0.85, 0.3)
+		hint("коснись поля, где строить", false)
+	elif d.has("from"):
+		_picked = {"from": d.from}
+		hint("коснись залежи" if d.from.kind == "camp" else "коснись здания врага", false)
+
+
+func hint(text: String, error := true) -> void:
 	var label: Label = $Hud/Box/Hint
 	label.text = text
-	$Feedback.play("error")
+	if error:
+		$Feedback.play("error")
 	label.modulate.a = 1.0
 	create_tween().tween_property(label, "modulate:a", 0.0, 1.2).set_delay(0.6)
 
