@@ -54,7 +54,7 @@ func test_flag_does_not_break_building_and_paths() -> String:
 func test_end_screen_sends_in_one_tap() -> String:
 	var battle: Control = await t._battle(t.SIZES[0])
 	var sim: Sim = battle.sim
-	sim.build(Sim.PLAYER, "camp", Vector2(250, 830))
+	sim.build(Sim.PLAYER, "camp", Vector2(250, 830)).target = {}  # лагерь без тропы: печенье кончилось
 	battle.hint("тяни тропу к залежи")
 	for i in 20:
 		battle.box.step(sim, 1.5)

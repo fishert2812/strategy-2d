@@ -50,3 +50,24 @@ func test_deposit_runs_out() -> String:
 	if sim.deposits[0].gold != 0 or sim.gold[Sim.PLAYER] - before != 12:
 		return "в залежи осталось %d, принесли %d из 12" % [sim.deposits[0].gold, sim.gold[Sim.PLAYER] - before]
 	return ""
+
+
+## Зачем игроку: новичку не надо догадываться, что лагерю нужна тропа (слепой игрок на 0.25 ждал 30 с,
+## на 0.29 принял подсказку за работу). Лагерь сразу тянет тропу к ближайшему свободному печенью и носит крошки,
+## второй лагерь рядом берёт другое печенье, перетягивание меняет цель.
+func test_camp_mines_nearest_cookie_by_itself() -> String:
+	var sim := Sim.new()
+	sim.gold = [1000, 1000]
+	var a := sim.build(Sim.PLAYER, "camp", Vector2(250, 830))
+	var b := sim.build(Sim.PLAYER, "camp", Vector2(250, 700))
+	if a.target.get("pos") != Vector2(170, 760):
+		return "лагерь не взял ближайшее печенье сам: %s" % [a.target.get("pos")]
+	if b.target.is_empty() or is_same(b.target, a.target):
+		return "второй лагерь не взял другое свободное печенье"
+	var g: float = sim.gold[Sim.PLAYER]
+	for i in int(30 / 0.05):
+		sim.step(0.05)
+	if sim.gold[Sim.PLAYER] - g <= sim.cfg.home_drip.gold * 30 / sim.cfg.home_drip.every:
+		return "лагерь без перетягивания не принёс крошек за 30 с"
+	sim.set_path(a, Vector2(360, 500))
+	return "" if a.target.get("pos") == Vector2(360, 500) else "перетягивание не сменило печенье"
