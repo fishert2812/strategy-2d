@@ -111,3 +111,32 @@ func test_tower_keeps_novice_camp_longer() -> String:
 	if guarded <= bare:
 		return "с башней у лагеря новичок теряет лагерь не позже, чем без неё"
 	return ""
+
+
+## На экране видно, что башня стреляет: в миг выстрела у лучника на катушке натянут лук со стрелой.
+func test_tower_shows_arrow_on_shot() -> String:
+	var battle: Control = load("res://scenes/battle.tscn").instantiate()
+	(Engine.get_main_loop() as SceneTree).root.add_child(battle)
+	var sim: Sim = battle.sim
+	sim.gold = [400, -1000]
+	var tower := sim.build(Sim.PLAYER, "tower", Vector2(360, 600))
+	if tower.is_empty():
+		battle.free()
+		return "башня не встала"
+	tower.awake = true
+	sim.whistle = 1000.0
+	sim.units.append({"id": 990, "side": Sim.ENEMY, "kind": "warrior", "pos": Vector2(360, 540), "hp": 1000.0, "home": tower, "cd": 0.0, "post": Vector2.ZERO, "go": false, "leg": 0})
+	var shots := []
+	sim.changed.connect(func(what, data):
+		if what == "hit" and data.by == tower.id:
+			shots.append(sim.time))
+	while shots.is_empty() and sim.time < 10:
+		battle._process(DT)
+	var shot := not shots.is_empty()
+	var tex: String = battle.sprite_of(tower.id).texture.resource_path
+	battle.free()
+	if not shot:
+		return "башня за 10 с не выстрелила"
+	if not tex.contains("shot"):
+		return "в миг выстрела у башни картинка %s, а не кадр со стрелой" % tex
+	return ""
