@@ -369,7 +369,14 @@ func build(side: int, kind: String, pos: Vector2) -> Dictionary:
 	if can_build(side, kind, pos) != "":
 		return {}
 	gold[side] -= cfg.buildings[kind].cost
-	return _add_building(side, kind, pos)
+	var b := _add_building(side, kind, pos)
+	if kind == "camp":  # лагерь сам тянет тропу к ближайшему свободному печенью; перетягивание меняет цель
+		var taken := of_side(side, "camp").map(func(c): return c.target)
+		var free := deposits.filter(func(d): return d.gold > 0 and not taken.any(func(t): return is_same(t, d)))
+		free.sort_custom(func(a, c): return a.pos.distance_to(pos) < c.pos.distance_to(pos))
+		if not free.is_empty():
+			set_path(b, free[0].pos)
+	return b
 
 
 func damage(b: Dictionary, amount: float) -> void:
