@@ -37,6 +37,13 @@ a { color: var(--accent); }
 .step.s3 { border-color: var(--energy); color: var(--energy); } .step.s4, .step.s5 { border-color: var(--move); color: var(--move); } .step.s6 { border-color: var(--accent); color: var(--accent); }
 .krugi { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; margin-top: 8px; color: var(--dim); } .krugi .ok { color: var(--accent); }
 details { margin-top: 6px; } summary { min-height: 44px; display: flex; align-items: center; color: var(--accent); font-size: 15px; cursor: pointer; }
+.kk { overflow-x: auto; margin: 10px -16px; padding: 0 16px; } .kk table { border-collapse: collapse; font-size: 13px; }
+.kk tr th:first-child { white-space: normal; min-width: 104px; max-width: 104px; line-height: 1.15; }
+.kk th { font-weight: 500; color: var(--dim); padding: 2px 4px; white-space: nowrap; text-align: left; } .kk tr:first-child th { text-align: center; }
+.kk td { width: 26px; min-width: 26px; height: 26px; text-align: center; border: 1px solid var(--line); font-size: 12px; padding: 0; }
+.k-igra { background: rgba(60, 255, 200, 0.28); } .k-zapis { background: rgba(111, 211, 255, 0.25); } .k-nauka { background: rgba(255, 209, 102, 0.25); } .k-pusto { background: rgba(255, 154, 115, 0.3); } .k-net { background: rgba(255, 255, 255, 0.04); }
+.r b i, .bar i { display: inline-block; width: 18px; height: 18px; border-radius: 5px; border: 1px solid var(--line); } i.st { font-style: normal; font-size: 12px; padding: 1px 7px; border-radius: 8px; white-space: nowrap; }
+.bar { display: flex; height: 18px; margin: 8px 0; border-radius: 9px; overflow: hidden; } .bar i { width: auto; border: none; border-radius: 0; }
 hr.pb { break-after: page; border: none; margin: 0; }
 @media print { body { background: var(--bg); -webkit-print-color-adjust: exact; print-color-adjust: exact; } li, .r, h2, h3 { break-inside: avoid; } h2, h3 { break-after: avoid; } }
 #toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 24px); transform: translateX(-50%); padding: 10px 18px;
@@ -50,15 +57,18 @@ hr.pb { break-after: page; border: none; margin: 0; }
 <script>
 // Книга «Заплыва»: страницы — .md рядом, этот файл только показывает их под телефон. Таблицы становятся карточками.
 const PAGES = [['oblozhka', 'Книга'], ['igra', 'Игра'], ['dvizhenie', 'Плыть'], ['mir', 'Мир'], ['sushchestva', 'Существа'],
-  ['geroy', 'Герой'], ['eda', 'Еда'], ['sreda', 'Среда'], ['sosedi', 'Соседи'], ['il', 'Ил'], ['karta', 'Карта'], ['doma', 'Домой'], ['evolyuciya', 'Эволюция'], ['geny', 'Гены'], ['puti', 'Пути генов'], ['ekrany', 'Экраны'], ['problemy', 'Проблемы'], ['teksty', 'Тексты'], ['plan', 'План'], ['nauka', 'Наука'], ['ochered', 'Очередь'], ['zhurnal', 'Журнал']];
+  ['geroy', 'Герой'], ['eda', 'Еда'], ['sreda', 'Среда'], ['sosedi', 'Соседи'], ['kto', 'Кто с кем'], ['il', 'Ил'], ['karta', 'Карта'], ['doma', 'Домой'], ['evolyuciya', 'Эволюция'], ['geny', 'Гены'], ['puti', 'Пути генов'], ['ekrany', 'Экраны'], ['problemy', 'Проблемы'], ['teksty', 'Тексты'], ['plan', 'План'], ['nauka', 'Наука'], ['ochered', 'Очередь'], ['zhurnal', 'Журнал']];
 // Записи книги: один пункт — одна запись в zapisi/*.json. Их же читает сверка с игрой (sverka.mjs).
 const SHAG = { nauka: ['1', 'база науки'], adaptaciya: ['2', 'адаптация'], biolog: ['3', 'у биолога'], gotov: ['4', 'готов к стройке'], stroyka: ['5', 'строим'], v_igre: ['6', 'в игре'] };
-let Z = null, PR = [];
+let Z = null, PR = [], KK = null;
+const ZN = { est: ['🍽', 'ест'], byot: ['⚔️', 'бьёт или травит'], zarazhaet: ['🦠', 'заражает'], pomogaet: ['🤝', 'помогает, кормит, учит'], sopernik: ['🥊', 'соперник за еду'], nichego: ['·', 'не трогает'], vopros: ['?', 'вопрос биологу'] };
+const KST = { igra: ['в игре', 6], zapis: ['задумано', 4], nauka: ['наука есть, в игре нет', 3], pusto: ['пусто, у биолога', 1] };
 async function zapisi() {
   if (Z) return Z;
   const files = await (await fetch('zapisi/spisok.json', { cache: 'no-cache' })).json();
   Z = (await Promise.all(files.map(async f => (await (await fetch('zapisi/' + f + '.json', { cache: 'no-cache' })).json()).map(r => ({ ...r, file: f }))))).flat();
   PR = await (await fetch('problemy.json', { cache: 'no-cache' })).json();
+  KK = await (await fetch('kto_s_kem.json', { cache: 'no-cache' })).json();
   return Z;
 }
 const krug = (r, k, n) => `<span class="${r.krugi && r.krugi[k] ? 'ok' : 'no'}">${r.krugi && r.krugi[k] ? '●' : '○'} ${n}${r.krugi && r.krugi[k] ? ' (' + esc(r.krugi[k]) + ')' : ''}</span>`;
@@ -106,6 +116,17 @@ function render(md) {
     if (l.trim() === '{{problemy}}') { const ST = { novaya: ['новая', 3], chinim: ['чиним', 4], gotovo: ['готово к стройке', 4], vyshlo: ['вышло', 6], pravilo: ['стало правилом', 6] };
       out.push(`<div class="card">` + Object.entries(ST).map(([k, [n]]) => `<div class="r"><b>${n}</b><span>${PR.filter(p => p.status === k).length}</span></div>`).join('') + '</div>' +
         [...PR].reverse().map(p => `<div class="card"><div class="t"><span class="code">${p.id}</span>«${esc(p.slova)}»</div><div class="step s${ST[p.status][1]}">${ST[p.status][0]}${p.versiya ? ' в ' + p.versiya : ''} · ${p.kogda}</div>${row('Что с этим', p.chto)}</div>`).join('')); continue; }
+    if (l.trim() === '{{kto_s_kem}}') { const N = KK.kto, S = KK.svyazi, nm = Object.fromEntries(N);
+      const cell = (a, b) => { const x = S.filter(s => s.a === a && s.b === b); return `<td class="k-${x.length ? x[0].st : 'net'}">${x.map(s => ZN[s.z][0]).join('')}</td>`; };
+      out.push('<div class="card">' + Object.values(ZN).map(([z, n]) => `<div class="r"><b>${z}</b><span>${n}</span></div>`).join('') + Object.entries(KST).map(([k, [n]]) => `<div class="r"><b><i class="k-${k}"></i></b><span>${n}: ${S.filter(s => s.st === k).length}</span></div>`).join('') + '<div class="r"><b></b><span>пустая клетка: ещё не разобрано</span></div></div>' +
+        '<div class="kk"><table><tr><th></th>' + N.map((_, i) => `<th>${i + 1}</th>`).join('') + '</tr>' + N.map(([a, n], i) => `<tr><th>${i + 1} ${esc(n)}</th>` + N.map(([b]) => cell(a, b)).join('') + '</tr>').join('') + '</table></div>' +
+        N.map(([a, n], i) => { const x = S.filter(s => s.a === a || s.b === a); return `<div class="card"><div class="t">${i + 1}. ${esc(n)}</div>` + x.map(s => `<div class="r"><b>${ZN[s.z][0]} ${esc(s.a === a ? nm[s.b] : nm[s.a] + ' → ' + (a === 'me' ? 'ты' : 'сюда'))}</b><span>${inline(s.t)} <i class="st k-${s.st}">${KST[s.st][0]}${s.gde ? ' ' + s.gde : ''}</i></span></div>`).join('') + '</div>'; }).join('')); continue; }
+    if (l.trim() === '{{polnota}}') { const n = k => Z.filter(r => r.shag === k).length, T = Z.length, S = KK.svyazi, kn = k => S.filter(s => s.st === k).length, pairs = KK.kto.length * KK.kto.length;
+      const bar = parts => '<div class="bar">' + parts.map(([v, c]) => `<i class="${c}" style="flex:${v}"></i>`).join('') + '</div>';
+      out.push(`<div class="card"><div class="t">Пунктов в книге: ${T}</div>` + bar([[n('v_igre'), 'k-igra'], [n('gotov') + n('stroyka'), 'k-zapis'], [T - n('v_igre') - n('gotov') - n('stroyka'), 'k-nauka']]) +
+        row('в игре', String(n('v_igre'))) + row('готово к стройке', String(n('gotov') + n('stroyka'))) + row('у биолога и раньше', String(T - n('v_igre') - n('gotov') - n('stroyka'))) + row('проверено биологом', Z.filter(r => r.krugi && r.krugi.biolog).length + ' из ' + T) +
+        `</div><div class="card"><div class="t">Кто с кем: ${KK.kto.length} существ, ${pairs} клеток</div>` + bar([[kn('igra'), 'k-igra'], [kn('zapis') + kn('nauka'), 'k-nauka'], [kn('pusto'), 'k-pusto'], [pairs - S.length, 'k-net']]) +
+        row('в игре', String(kn('igra'))) + row('наука есть, в игре нет', String(kn('zapis') + kn('nauka'))) + row('вопрос биологу', String(kn('pusto'))) + row('не разобрано', String(pairs - new Set(S.map(s => s.a + s.b)).size)) + '</div>'); continue; }
     if (l.trim() === '{{ochered}}') { out.push(ochered()); continue; }
     if (l.trim() === '{{kartochki}}') { out.push(Z.filter(r => r.kartochka).map(r => `<div class="card"><div class="t"><span class="code">${r.id}</span>${esc(r.kartochka.imya)} <em>${esc(r.latin)}</em></div>` +
       `<div class="step s${SHAG[r.shag][0]}">${r.shag === 'v_igre' ? 'в игре' : 'спит на кольце'}</div>` + row('Что даёт', r.kartochka.daet) + row('В природе', r.kartochka.priroda) + '</div>').join('')); continue; }
