@@ -7,7 +7,8 @@ import { World, radius } from './sim.js';
 import { Stick } from './controls.js';
 import { follow } from './soft.js';
 import { look } from './look.js';
-import { whip } from './whip.js';
+import * as vid from './vid.js';
+import { Fx } from './fx.js';
 import { Bodies } from './body3d.js';
 import { genomeScreen } from './genome.js';
 import { mark, message } from './feedback.js';
@@ -29,6 +30,7 @@ const scene = new THREE.Scene(); // точки поверх тел
 const bodies = new Bodies();
 // Цвета как на раскрашенных снимках: у каждой стороны оболочка одного цвета, содержимое другого.
 const CELL = [new THREE.Color(0.35, 0.85, 1.0), new THREE.Color(1.0, 0.5, 0.2), new THREE.Color(0.6, 1.0, 0.35)]; // оболочка
+const fx = new Fx(cfg, CELL); // анимации взаимодействий (fx.js)
 const CORE = [new THREE.Color(0.85, 0.22, 0.62), new THREE.Color(0.8, 0.1, 0.16), new THREE.Color(1.0, 0.82, 0.2)]; // содержимое
 const TINT = [[0.02, 0.07, 0.12], [0.08, 0.035, 0.1], [0.03, 0.08, 0.05]]; // вода, сладкая, ил
 
@@ -152,7 +154,7 @@ const near = new Dots(12, scene, 5, false, 0); // передний план: р�
 const dust = new Dots(120, scene, 3, true, 0.9);
 const bubbles = new Dots(60, scene, 4, 'ring', 0);
 const wake = new Dots(240, scene, 3, true, 0.9); // след в воде: частицы, которые клетка расталкивает
-let puffs = [], cur = [0, 0], zaps = [], kids = null;
+let puffs = [], cur = [0, 0], kids = null;
 
 function resize() {
   const w = innerWidth, h = innerHeight;
@@ -180,7 +182,7 @@ const beep = (f, dur, vol = 0.05, type = 'sine', slide = 0.6) => {
 
 const STICK = 56; // полный ход большого пальца (~30 точек экрана); дальше кольцо едет за пальцем
 const pad = new Stick(STICK);
-let world, view, finger = null, down = null, moved = false, rings = [], shake = 0, ended = false, lastEat = 0;
+let world, view, finger = null, down = null, moved = false, shake = 0, ended = false, lastEat = 0;
 const $ = id => document.getElementById(id);
 const ver = (await (await fetch('version.json')).json()).number; // свой номер «Заплыва», список — VERSIONS.md
 $('ver').textContent = 'Заплыв ' + ver;
@@ -189,7 +191,7 @@ fetch('../version.txt').then(r => r.ok ? r.text() : '').then(t => { if (t.trim()
 function start() {
   world = new World(cfg, (Math.random() * 2 ** 31) | 0);
   view = { x: 0, y: 0, z: 2.2, tint: [...TINT[0]] };
-  rings = []; ended = false;
+  fx.reset(); ended = false;
   $('end').classList.remove('on');
 }
 $('again').onclick = start;
@@ -218,16 +220,16 @@ function studio(k, it) {
 }
 function snap(k, it) {
   if (it.gene) return geneShot(it.gene, 480, 300); // ген в Альманахе — тот же снимок, что значок: часть, которую он даёт, подсвечена
-  const keep = [world, view, kids, down, moved, rings, puffs, zaps, paint.t];
+  const keep = [world, view, kids, down, moved, fx.rings, puffs, fx.zaps, paint.t];
   const out = document.createElement('canvas'); out.width = 480; out.height = 300;
   try {
-    world = studio(k, it); kids = null; down = null; moved = true; rings = []; puffs = []; zaps = [];
+    world = studio(k, it); kids = null; down = null; moved = true; fx.reset(); puffs = [];
     const side = Math.min(W, H) * 0.9;
     view = { x: 0, y: 0, z: side * 0.62 / it.span, tint: [...TINT[0]] };
     for (let i = 0; i < 4; i++) render(30 + i / 30); // пара кадров: тело и жгутики встают на место
     const sx = canvas.width / W, cw = side * sx, ch = cw * 300 / 480;
     out.getContext('2d').drawImage(canvas, (canvas.width - cw) / 2, (canvas.height - ch) / 2, cw, ch, 0, 0, 480, 300);
-  } finally { [world, view, kids, down, moved, rings, puffs, zaps, paint.t] = keep; }
+  } finally { [world, view, kids, down, moved, fx.rings, puffs, fx.zaps, paint.t] = keep; }
   return out.toDataURL('image/jpeg', 0.86);
 }
 // Значок гена (макет дизайнера: круг, тело приглушено, часть, которую даёт ген, подсвечена). Снимаем клетку без гена и с геном
@@ -235,14 +237,14 @@ function snap(k, it) {
 const icons = new Map();
 function geneShot(g, NW, NH) {
   const grab = genes => {
-    const keep = [world, view, kids, down, moved, rings, puffs, zaps, paint.t], c = document.createElement('canvas'); c.width = NW; c.height = NH;
+    const keep = [world, view, kids, down, moved, fx.rings, puffs, fx.zaps, paint.t], c = document.createElement('canvas'); c.width = NW; c.height = NH;
     try {
-      world = studio('me', { a: -0.5 }); world.genes = genes; kids = null; down = null; moved = true; rings = []; puffs = []; zaps = [];
+      world = studio('me', { a: -0.5 }); world.genes = genes; kids = null; down = null; moved = true; fx.reset(); puffs = [];
       const side = Math.min(W, H) * 0.9; view = { x: 0, y: 0, z: side * 0.62 / cfg.icon_span, tint: [...TINT[0]] };
       for (let i = 0; i < 4; i++) { paint.t = 30; render(30); } // время стоит: оба снимка в одной позе, разница — только ген
       const sx = canvas.width / W, cw = side * sx * 0.62 * Math.max(1, NW / NH), ch = cw * NH / NW;
       c.getContext('2d').drawImage(canvas, (canvas.width - cw) / 2, (canvas.height - ch) / 2, cw, ch, 0, 0, NW, NH);
-    } finally { [world, view, kids, down, moved, rings, puffs, zaps, paint.t] = keep; }
+    } finally { [world, view, kids, down, moved, fx.rings, puffs, fx.zaps, paint.t] = keep; }
     return c.getContext('2d').getImageData(0, 0, NW, NH);
   };
   const A = grab({}), B = grab({ [g]: true }), a = A.data, b = B.data;
@@ -346,7 +348,7 @@ function ask() {
   const box = $('cards'); box.innerHTML = ''; $('genes').querySelectorAll('.kid').forEach(e => e.remove());
   kids = world.choice.map((g, i) => ({ g, x: 0, y: 0, vx: 0, vy: 0, m: 1.7, a: -Math.PI / 2, id: 900 + i, sick: -1 })); // две дочки крупно: мутация видна на теле
   world.choice.forEach((g, i) => {
-    const go = () => { world.pick(g); kids = null; $('genes').classList.remove('on'); ring(world.center().x, world.center().y, 0, 300); beep(660, 0.4, 0.06, 'sine', 1.5); };
+    const go = () => { world.pick(g); kids = null; $('genes').classList.remove('on'); fx.ring(world.center().x, world.center().y, 0, 300); beep(660, 0.4, 0.06, 'sine', 1.5); };
     const b = document.createElement('button');
     b.innerHTML = '<img class="gicon" alt="">' + cfg.genes[g][0] + '<small>' + cfg.genes[g][1] + '</small>'; b.firstChild.src = icon(g); b.onclick = go; box.appendChild(b);
     const k = document.createElement('button'); k.className = 'kid'; k.style.left = i ? '52%' : '2%'; k.onclick = go; k.setAttribute('aria-label', cfg.genes[g][0]); $('genes').appendChild(k);
@@ -366,38 +368,28 @@ function pathText(w) {
     + `Мутации: ${genes}` + (lost ? `<br>Отняли клеток: ${lost}` : '');
 }
 
-const flags = new Map(); // состояние жгутиков каждой клетки между кадрами (whip.js)
-function whips(a, run, dt, beat) {
-  let F = flags.get(a.id); if (!F) { F = { b: run ? 1 : 0, fan: 0, ph: 0, om: 4, t: Math.random() * 9 }; flags.set(a.id, F); }
-  whip(F, a.tumble ? 'tumble' : run ? 'run' : 'rest', dt, beat, cfg.flag);
-  if (flags.size > 64) for (const k of flags.keys()) { if (!world.me.some(c => c.id === k)) flags.delete(k); }
-  return F;
-}
-function ring(x, y, side, r) { rings.push({ x, y, side, r, t: 0 }); }
 
 function events() {
   for (const [k, x, y, size = 1, y2] of world.events) {
-    if (k === 'spore') { ring(x, y, 0, 160); beep(200, 0.6, 0.06, 'sine', 0.5); say('Уснула! Спящую не берут — переждёшь беду', 2600); }
-    if (k === 'sprout') { ring(x, y, 2, 120); beep(520, 0.3, 0.05, 'sine', 2); }
-    if (k === 'gene') { ring(x, y, 0, 120); beep(780, 0.3, 0.05, 'sine', 1.6); say('Ген от сородича: ' + cfg.genes[size][0] + ' — ' + cfg.genes[size][1], 2600, size); } // конъюгация
-    if (k === 'zap') { zaps.push({ x, y, x2: size, y2, t: 0 }); beep(1500, 0.05, 0.05, 'square', 0.4); } // выстрел гарпуна синегнойки
-    if (k === 'grab') { ring(x, y, 1, 40); beep(240, 0.2, 0.05, 'sawtooth', 1.6); tell('grab', 'Схватили! Резко развернись — вырвешься'); }
+    fx.on(k, x, y, size, y2); // вид — fx.js, здесь звук и подписи
+    if (k === 'spore') { beep(200, 0.6, 0.06, 'sine', 0.5); say('Уснула! Спящую не берут — переждёшь беду', 2600); }
+    if (k === 'sprout') { beep(520, 0.3, 0.05, 'sine', 2); }
+    if (k === 'gene') { beep(780, 0.3, 0.05, 'sine', 1.6); say('Ген от сородича: ' + cfg.genes[size][0] + ' — ' + cfg.genes[size][1], 2600, size); } // конъюгация
+    if (k === 'zap') { beep(1500, 0.05, 0.05, 'square', 0.4); } // выстрел гарпуна синегнойки
+    if (k === 'grab') { beep(240, 0.2, 0.05, 'sawtooth', 1.6); tell('grab', 'Схватили! Резко развернись — вырвешься'); }
     if (k === 'sick' && world.me.some(a => a.held > 0)) tell('bdello', 'Прилип хищник! Резко развернись — стряхнёшь');
-    if (k === 'eat') { ring(x, y, 2, 26 + 14 * size); const n = performance.now(); if (n - lastEat > 60) { beep(300 + Math.random() * 200, 0.09, 0.04); lastEat = n; } }
-    if (k === 'split') ring(x, y, 0, 70);
-    if (k === 'leave') { ring(x, y, 0, 50); tell('leave', 'Дочка уплыла жить сама — мутации копятся дальше'); }
+    if (k === 'eat') { const n = performance.now(); if (n - lastEat > 60) { beep(300 + Math.random() * 200, 0.09, 0.04); lastEat = n; } }
+    if (k === 'leave') { tell('leave', 'Дочка уплыла жить сама — мутации копятся дальше'); }
     if (k === 'meet') meet(x);
-    if (k === 'stick') { ring(x, y, 1, 22); beep(520, 0.06, 0.04, 'square'); } // прилип фаг: резко развернись — стряхнёшь
-    if (k === 'shake') { ring(x, y, 0, 30); beep(700, 0.07, 0.03); }
-    if (k === 'cut') ring(x, y, 2, 26);
-    if (k === 'learn') { ring(x, y, 2, 80); beep(620, 0.4, 0.05, 'sine', 1.4); say('Пережила фага! Его кусок — новая полоска CRISPR: теперь T4 не страшен', 3000); }
-    if (k === 'sit') ring(x, y, 0, 46); // коловратка присела на ногу: сейчас раскрутит колёса
-    if (k === 'snap') { ring(x, y, 0, 60); beep(1200, 0.06, 0.04, 'square', 0.3); } // сувойка сжалась пружиной
-    if (k === 'bump') { ring(x, y, 0, 24); beep(880, 0.05, 0.03); } // капсула: хищник отскочил
-    if (k === 'pop') { ring(x, y, 2, 90); beep(260, 0.25, 0.06, 'triangle', 0.6); } // чужая клетка лопнула
-    if (k === 'pinch') { ring(x, y, 1, 50); beep(1400, 0.05, 0.03, 'square', 0.6); tell('pinch', 'Кокк щиплет своим ядом — отплыви'); }
-    if (k === 'sick') { ring(x, y, 1, 50); beep(180, 0.3, 0.05, 'sawtooth', 0.7); }
-    if (k === 'burst' || k === 'eaten') { ring(x, y, 1, 150); shake = 1; beep(110, 0.45, 0.09, 'triangle', 0.5); }
+    if (k === 'stick') { beep(520, 0.06, 0.04, 'square'); } // прилип фаг: резко развернись — стряхнёшь
+    if (k === 'shake') { beep(700, 0.07, 0.03); }
+    if (k === 'learn') { beep(620, 0.4, 0.05, 'sine', 1.4); say('Пережила фага! Его кусок — новая полоска CRISPR: теперь T4 не страшен', 3000); }
+    if (k === 'snap') { beep(1200, 0.06, 0.04, 'square', 0.3); } // сувойка сжалась пружиной
+    if (k === 'bump') { beep(880, 0.05, 0.03); } // капсула: хищник отскочил
+    if (k === 'pop') { beep(260, 0.25, 0.06, 'triangle', 0.6); } // чужая клетка лопнула
+    if (k === 'pinch') { beep(1400, 0.05, 0.03, 'square', 0.6); tell('pinch', 'Кокк щиплет своим ядом — отплыви'); }
+    if (k === 'sick') { beep(180, 0.3, 0.05, 'sawtooth', 0.7); }
+    if (k === 'burst' || k === 'eaten') { shake = 1; beep(110, 0.45, 0.09, 'triangle', 0.5); }
   }
   world.events.length = 0;
 }
@@ -583,10 +575,7 @@ function paint(time) {
       glow.put(x - ux * (w * 2.3 + f * w * 7) - uy * wv, y - uy * (w * 2.3 + f * w * 7) + ux * wv, 1.1 * Math.max(z, 0.7), 0.6, 1, 0.8, 0.55 * (1 - f * 0.5)); }
     if (q.cool > 0) glow.put(x, y, w * 3.5, 0.5, 1, 0.75, 0.25 * q.cool); // только что стреляла
   }
-  zaps = zaps.filter(p => (p.t += 1 / 60) < 0.35);
-  for (const p of zaps) { const [x1, y1] = scr(p.x, p.y), [x2, y2] = scr(p.x2, p.y2), f = 1 - p.t / 0.35; // гарпун: пружинный чехол выстреливает иглу
-    for (let k = 0; k <= 12; k++) { const u = k / 12; ink.put(x1 + (x2 - x1) * u, y1 + (y2 - y1) * u, 1.4 * z + 0.5, 0.7, 1, 0.8, 0.9 * f); }
-    glow.put(x2, y2, 14 * z * f + 2, 0.7, 1, 0.8, 0.5 * f); }
+  fx.drawUnder({ scr, z, time, glow, ink });
   for (const b of world.bdellos) { // бделловибрион: запятая вдвое мельче тебя, один толстый жгутик; на рывке — след
     const [x, y] = scr(b.x, b.y); if (!on(x, y)) continue;
     const w = 4.2 * z, sp = Math.hypot(b.vx, b.vy), ang = b.a, ux = Math.cos(ang), uy = Math.sin(ang);
@@ -616,11 +605,7 @@ function paint(time) {
   const phageNear = world.phages.some(g => g.host === 'me' && Math.hypot(g.x - view.x, g.y - view.y) < 220);
   const foodNear = world.food.some(f => Math.hypot(f.x - view.x, f.y - view.y) < 120);
   for (const a of world.me) if (a.spore > 0) { // сон-персистер: та же палочка, но погасшая — серая, жгутики обвисли, редкое «дыхание»; перед пробуждением теплеет
-    const [x, y] = scr(a.x, a.y), w = 8.5 * Math.pow(a.m, 0.3) * z, f = 1 - a.spore / cfg.spore, ux = Math.cos(a.a), uy = Math.sin(a.a);
-    bodies.rod(x, y, a.a, w * 2.1, w, 0, [0.32 + 0.4 * f, 0.36 + 0.2 * f, 0.46 + 0.1 * f], [0.2, 0.25, 0.35], a.id, 0);
-    for (let j = 0; j < 4; j++) for (let k = 1; k <= 10; k++) { const s = j % 2 ? 1 : -1, b = (j < 2 ? -0.5 : 0.5) * w * 2, f2 = k / 10; // обвисшие жгутики не бьют
-      ink.put(x + ux * b - uy * s * (w + f2 * w * 2.5) - ux * f2 * w * 1.5, y + uy * b + ux * s * (w + f2 * w * 2.5) - uy * f2 * w * 1.5, 0.7 * z + 0.3, 0.5, 0.55, 0.65, 0.35); }
-    glow.put(x, y, w * 2.4, 0.6, 0.7, 1, 0.06 + 0.08 * (0.5 + 0.5 * Math.sin(time * 1.2)) + 0.25 * f * f);
+    const [x, y] = scr(a.x, a.y); vid.sleeper({ a, x, y, z, time, cfg, bodies, glow, ink });
   }
   for (const a of kids || world.me) { // палочка: мягкое тело
     if (a.spore > 0) continue; // перёд ведёт, корма и пучок жгутиков идут по его следу
@@ -638,72 +623,7 @@ function paint(time) {
     if (a.grab) glow.put(x, y, half * 1.8, 1, 0.25, 0.15, 0.22 + 0.15 * Math.sin(time * 14)); // схвачена: бьётся в пасти
     if (world.rush > 0.05) glow.put(x, y, half * (1.4 + world.rush * 0.6), 1, 0.75, 0.35, 0.08 + 0.1 * world.rush); // разгон роста: рибосомы работают на всю
     if (pinch) for (let k = 0; k < 18; k++) { const t = k * 0.349, R = half * (1.35 + 0.08 * Math.sin(time * 5)); glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 2.2, 1, 1, 1, 0.4); }
-    for (let k = 0; k < 16; k++) { // пили: короткие ворсинки по всей оболочке
-      const t = k / 16 * 6.283, c = Math.cos(t), s = Math.sin(t), l = 1 + 0.25 * Math.sin(time * 3 + k * 1.7 + a.id);
-      for (const e of [1.08, 1.32 * l]) { const u = c * (half - w * 0.2) + c * w * (e - 1), [px, py] = along(u, s * w * e + arc(u / z)); ink.put(px, py, 0.9 * z + 0.4, 0.55, 0.9, 1, 0.55); }
-    }
-    if (lk.halo) for (let k = 0; k < 30; k++) { // капсула: прозрачный ореол слизи вокруг тела, слегка колышется
-      const t = k / 30 * 6.283, c = Math.cos(t), s = Math.sin(t), e = 1.55 + 0.08 * Math.sin(time * 2 + k * 0.9), u = c * (half - w * 0.2) + c * w * (e - 1);
-      const [px, py] = along(u, s * w * e + arc(u / z)); glow.put(px, py, w * 0.5, 0.75, 0.95, 1, 0.09);
-    }
-    for (let k = 0; k < lk.stripes; k++) { // CRISPR: полоски-штрихкод поперёк тела, вспыхивают, когда рядом знакомый фаг
-      const u = (k - (lk.stripes - 1) / 2) * w * (0.32 + 0.1 * (k % 2)), al = phageNear && world.spacers.size ? 0.55 + 0.35 * Math.sin(time * 12) : 0.3;
-      for (let j = -3; j <= 3; j++) { const [px, py] = along(u, j * w * 0.2 + arc(u / z)); glow.put(px, py, 0.9 * z + 0.3, 0.7, 1, 0.8, al); }
-    }
-    for (let k = 0; k < lk.toxin; k++) { // токсин: тёмные точки у края
-      const t = k / lk.toxin * 6.283 + a.id, u = Math.cos(t) * (half - w * 0.45), [px, py] = along(u, Math.sin(t) * w * 0.78 + arc(u / z));
-      ink.put(px, py, 1.3 * z + 0.4, 0.12, 0.02, 0.1, 0.75);
-    }
-    for (let k = 0; k < lk.pili; k++) { const t = k / lk.pili * 6.283 + 0.1, ct = Math.cos(t), st = Math.sin(t); // фимбрии: короткие прямые волоски; прилип — натянуты
-      for (let j = 0; j < 3; j++) { const e = 1.04 + j * (a.stuck ? 0.13 : 0.09), u = ct * (half - w * 0.1) * (1 + (e - 1) * 0.5), [px, py] = along(u, st * w * e + arc(u / z)); ink.put(px, py, 0.8 * z + 0.3, 0.85, 0.9, 0.8, a.stuck ? 0.75 : 0.45); } }
-    for (let k = 0; k < lk.studs; k++) { const t = k / lk.studs * 6.283 + 0.2, u = Math.cos(t) * (half - w * 0.15), [px, py] = along(u, Math.sin(t) * w * 1.02 + arc(u / z)); ink.put(px, py, 1.5 * z + 0.4, 0.25, 0.45, 1, 0.85); }
-    if (world.plasmid && !a.g) for (let k = 0; k < 12; k++) { const t = k / 12 * 6.283 + time * 0.8, [px, py] = along(Math.cos(t) * w * 0.35 + w * 0.3, Math.sin(t) * w * 0.35); glow.put(px, py, 0.9 * z + 0.4, 1, 0.95, 0.6, 0.7); } // плазмида: колечко ДНК, теперь и ты донор
-    if (lk.dormant) { const [px, py] = along(-half + w * 0.9, arc(-half / z + w * 0.9 / z)); glow.put(px, py, w * 0.6, 0.45, 0.55, 1, 0.3 + 0.15 * Math.sin(time * 1.2 + a.id)); } // ген сна: у кормы тусклое голубое пятно медленно дышит
-    for (let k = 0; k < lk.receptors; k++) { // хемотаксис: рецепторы на переднем конце мигают, когда чуют еду
-      const t = (k - 2) * 0.35, [px, py] = along(half - w * 0.15 + Math.cos(t) * w * 0.1, Math.sin(t) * w * 0.85 + arc(half / z));
-      glow.put(px, py, 1.4 * z + 0.4, 1, 0.95, 0.5, foodNear ? 0.5 + 0.45 * Math.sin(time * 14 + k) : 0.25);
-    }
-    for (let k = 0; k < lk.ribosomes; k++) { // содержимое: розовые зёрна рибосом (быстрый рост — их вдвое больше)
-      const t = k * 2.4 + a.id, u = Math.sin(t + time * 0.2) * (half - w * 0.8), [px, py] = along(u, Math.cos(t * 1.7 + time * 0.25) * w * 0.45 + arc(u / z));
-      glow.put(px, py, 1.6 * z + 0.6, 1, 0.35, 0.75, 0.35);
-    }
-    for (let k = 0; k < 4; k++) { // зёрна плывут внутри
-      const t = time * (0.5 + k * 0.17) + a.id * 1.3 + k * 2.1, u = Math.sin(t) * (half - w * 0.6), [px, py] = along(u, Math.cos(t * 1.3) * w * 0.4 + arc(u / z));
-      ink.put(px, py, 0.9 * z + 0.7, 0.85, 1, 0.95, 0.5);
-    }
-    // Жгутики (по книге, «Движение»; Berg, «E. coli in Motion»). Состояние у каждой клетки своё и меняется плавно, без щелчков:
-    // b — насколько нити собраны в пучок за кормой, fan — насколько пучок разлетелся веером в кувырке, ph — угол вращения моторов.
-    // На ходу: пучок-штопор за кормой, по нему бежит спиральная волна, в повороте пучок запаздывает по следу тела.
-    // Кувырок: моторы переключаются, пучок за долю секунды расходится веером, часть нитей становится «кудрявой».
-    // Покой: нити расходятся от боков, вяло колышутся и дрожат от ударов молекул воды; пучок собирается ~полсекунды.
-    const F = whips(a, run, pdt, lk.beat);
-    const mid = (lk.flagella - 1) / 2, sp5 = 5 / lk.flagella, B = F.b, P = F.fan, sb = Math.sin(ang), cb = Math.cos(ang);
-    for (let f = 0; f < lk.flagella; f++) {
-      const t0 = f * 6.283 / lk.flagella + 0.6 + a.id, c0 = Math.cos(t0), s0 = Math.sin(t0); // место мотора на боку (жгутики по всему телу)
-      const [rx0, ry0] = along(c0 * (half - w * 0.5), s0 * w * 0.9), l0 = Math.hypot(c0 * 1.2 - 0.8, s0 * 1.8) || 1;
-      const rdx = (ax * (c0 * 1.2 - 0.8) - ay * s0 * 1.8) / l0, rdy = (ay * (c0 * 1.2 - 0.8) + ax * s0 * 1.8) / l0; // в покое — вбок и чуть назад
-      const [sx0, sy0] = along(-half + w * 0.3, (f - mid) * w * 0.22 * sp5 + arc(half / z)), spread = (f - mid) * 0.6 * sp5;
-      const fdx = -Math.cos(ang + spread), fdy = -Math.sin(ang + spread), curl = P * (f % 3 === 1 ? 1 : 0.25); // в кувырке нить меняет форму спирали
-      const ph = F.ph + f * 0.5, slow = F.t * 0.6 + f * 1.7;
-      for (let k = 1; k <= 40; k++) {
-        const s = k / 40, grow = Math.min(1, s * 3);
-        // покой: от бока наружу, медленная волна + броуновская дрожь
-        let xr = 0, yr = 0, xt = 0, yt = 0;
-        if (B < 0.995) { const Lr = s * w * 5.2, wr = (Math.sin(s * 7 - ph * 0.3) * 0.3 + Math.sin(s * 3 + slow) * 0.35 + Math.sin(s * 11 - slow * 2.3) * 0.08) * w * grow;
-        xr = rx0 + rdx * Lr - rdy * wr; yr = ry0 + rdy * Lr + rdx * wr; }
-        if (B > 0.005) { // считаем только те формы, которые сейчас видны: цена кадра та же
-        // пучок: по следу тела за кормой, нити сходятся, спиральная волна бежит назад
-        const back = s * w * 7, [qx, qy] = scr(...body.at(2 * half / z + back / z)), [ux2, uy2] = scr(...body.at(2 * half / z + back / z + 2));
-        const tl = Math.hypot(ux2 - qx, uy2 - qy) || 1, nx = -(uy2 - qy) / tl, ny = (ux2 - qx) / tl, off = (f - mid) * sp5 * w * 0.22 * (1 - s * 0.9);
-        const wb = Math.sin(s * 10 - ph) * w * 0.42 * grow;
-        const xb = qx - ay * off + nx * wb, yb = qy + ax * off + ny * wb;
-        // веер: от кормы каждая нить в свою сторону, кудрявые — частой спиралью
-        const bs = s * w * 5.8, wf = Math.sin(s * (10 + 12 * curl) - ph) * w * (0.42 + 0.4 * curl) * grow;
-        const xf = sx0 + fdx * bs - fdy * wf, yf = sy0 + fdy * bs + fdx * wf;
-        xt = xb + (xf - xb) * P; yt = yb + (yf - yb) * P; }
-        glow.put(xr + (xt - xr) * B, yr + (yt - yr) * B, (0.8 * Math.max(z, 0.7) + 0.3) * (1 - s * 0.45), fc[0], fc[1], fc[2], cfg.flag.alpha * (1 - s * 0.6)); // нить в цвете оболочки: светло-голубая, тоньше и прозрачнее к концу
-      }
-    }
+    vid.skin({ a, lk, x, y, ang, ax, ay, half, w, z, along, arc, body, scr, time, pdt, run, phageNear, foodNear, spacers: world.spacers.size, plasmid: world.plasmid, cfg, alive: world.me, glow, ink });
     if (a.sick >= 0) glow.put(x, y, half, 1, 0.2, 0.3, 0.25 + 0.2 * Math.sin(time * 20));
   }
   for (const b of world.away) { // уплывшая дочка: уходит своим курсом и тает в толще
@@ -736,10 +656,7 @@ function paint(time) {
       for (let t = 0.33; t <= 1; t += 0.33) { pink(P(0.85 * s + (kx - 0.85 * s) * t, sd * 0.35 * s + (ky - sd * 0.35 * s) * t), s * 0.11, 0.8); pink(P(kx + (ex - kx) * t, ky + (ey - ky) * t), s * 0.11, 0.8); }
     }
   }
-  for (const r of rings) { // вспышка-кольцо
-    const k = r.t / 0.6, [x, y] = scr(r.x, r.y), R = r.r * z * (0.3 + k), c = CELL[r.side];
-    for (let i = 0; i < 28; i++) { const t = i * 0.2244; glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 4 * (1 - k) + 1.2, c.r, c.g, c.b, 0.6 * (1 - k)); }
-  }
+  fx.drawOver({ scr, z, time, glow, ink });
   if (down) { // джойстик под большим пальцем: кольцо в точке касания и шарик за пальцем
     for (let i = 0; i < 32; i++) { const t = i * 0.19635; glow.put(down.x + Math.cos(t) * STICK, down.y + Math.sin(t) * STICK, 2.2, 1, 1, 1, 0.25); }
     const dx = finger.x - down.x, dy = finger.y - down.y, l = Math.hypot(dx, dy), k = l > STICK ? STICK / l : 1;
@@ -805,8 +722,7 @@ function frame(now) {
     view.x += (c.x - (fx - 0.5) * W / view.z - view.x) * k; view.y += (c.y - (fy - 0.5) * H / view.z - view.y) * k;
   }
   { const hide = ended || paused || !!kids; if (hide !== frame.hid) { frame.hid = hide; $('pause').style.display = $('flag').style.display = hide ? 'none' : ''; } }
-  for (const r of rings) r.t += dt;
-  rings = rings.filter(r => r.t < 0.6);
+  fx.step(dt);
   shake = Math.max(0, shake - dt * 0.9);
   sway = [Math.sin(now / 1000 * 5) * 6 * shake, Math.sin(now / 1000 * 3.7 + 1) * 4 * shake];
   // Экран гибели или кабинет закрыли мир: кадр не перерисовываем (раньше мир под ними рисовался дальше, и в WebKit без видеокарты кадр рос с 27 до 50 мс).
