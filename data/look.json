@@ -60,5 +60,7 @@
     "strike": {"windup": 5, "lunge": 11, "knock": 9, "squash": 0.3, "time": 0.28}
   },
   "_frames": "Место под кадры, которые Роман дорисует в GPT: имя файла в art/table без .png; пусто — кадра пока нет, движение делается одной картинкой.",
-  "frames": {"warrior_attack": ["", ""], "porter_empty": ["", ""], "fx_clash": "", "fx_puff": "", "icon_kettle": ""}
+  "frames": {"warrior_attack": ["", ""], "porter_empty": ["", ""], "fx_clash": "", "fx_puff": "", "icon_kettle": ""},
+  "_flag": "Флажок Романа на поле: картинка, ширина в точках поля, цвет, сколько секунд виден.",
+  "flag": {"file": "res://art/ui/flag.png", "width": 52, "color": "#FFD23F", "show": 3.0}
 }

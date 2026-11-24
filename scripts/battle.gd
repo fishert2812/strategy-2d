@@ -15,6 +15,8 @@ var bump := 0.0
 ## Когда воин последний раз дрался (id → время): первая сшибка после затишья — со звоном.
 var _fought := {}
 var enemy: Enemy
+## Чёрный ящик партии: флажки Романа и ход партии для разбора (scripts/blackbox.gd).
+var box: BlackBox
 var _sprites := {}
 var _drag := {}
 var _picked := {}
@@ -29,6 +31,7 @@ var _lines := {}
 @onready var things: Node2D = $World/Things
 @onready var ghost: Sprite2D = $World/Ghost
 @onready var buttons := {"camp": $Hud/Box/Bar/camp, "barracks": $Hud/Box/Bar/barracks}
+@onready var flag_button: Button = $Hud/Box/Bar/Flag
 
 
 func _ready() -> void:
@@ -38,6 +41,10 @@ func _ready() -> void:
 	for kind in buttons:
 		buttons[kind].icon = _tex(look.icons[kind])
 	$End/Center/Box/Again.pressed.connect(restart)
+	$End/Center/Box/Send.pressed.connect($Report.quick)
+	$End/Center/Box/Phrase.pressed.connect($Report.open)
+	$Report.sent_out.connect(func(): $End/Center/Box/Send.text = "Разбор ушёл")
+	flag_button.icon = load(look.flag.file)
 	SafeArea.apply($Hud)
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("window._t=0;addEventListener('touchstart',function(){window._t++},{capture:true,passive:true})")
@@ -57,15 +64,21 @@ func restart() -> void:
 	sim.changed.connect(_on_sim)
 	sim.changed.connect($Feedback.on_sim)
 	enemy = Enemy.new(sim)
+	box = BlackBox.new()
+	sim.changed.connect(box.on_sim)
+	flag_button.text = "0"
 	for b in sim.buildings:
 		_on_sim("built", b)
 	for d in sim.deposits:
 		_add_sprite(d.id, look.deposit, _tex(look.deposit.states[0][1]), d.pos)
 	$End.hide()
+	$Report.disarm()
 
 
 func _process(dt: float) -> void:
 	enemy.step(dt)
+	if sim.winner == -1:
+		box.step(sim, dt)
 	sim.step(dt)
 	var field := Sim._v(sim.cfg.field)
 	# Поле целиком между полоской сверху и кнопками снизу, на любом экране.
@@ -237,6 +250,11 @@ func _press(pos: Vector2) -> void:
 		return
 	if sim.winner != -1:
 		return
+	# Флажок: тем же жестом, что постройка, и раньше выбора, чтобы не построить по ошибке.
+	if flag_button.get_global_rect().has_point(pos):
+		_pick({})
+		_drag = {"flag": true, "start": pos}
+		return
 	for kind in buttons:
 		if buttons[kind].get_global_rect().has_point(pos):
 			_pick({})
@@ -261,6 +279,9 @@ func _release(pos: Vector2) -> void:
 	_drag = {}
 	if d.has("line"):
 		d.line.queue_free()
+	if d.has("flag"):
+		put_flag(null if tap or pos.y > _bar_top() else at)
+		return
 	if d.has("tap"):
 		d = _picked
 		_pick({})
@@ -295,10 +316,29 @@ func _pick(d: Dictionary) -> void:
 		hint("коснись залежи" if d.from.kind == "camp" else "коснись здания врага", false)
 
 
+## Флажок Романа «вот тут»: в ящик, значок на поле (или над кнопкой, если без места), щелчок.
+func put_flag(at: Variant) -> void:
+	var f := box.flag(sim, at)
+	flag_button.text = str(box.flags.size())
+	var s := Sprite2D.new()
+	s.texture = load(look.flag.file)
+	s.scale = Vector2.ONE * look.flag.width / s.texture.get_width()
+	s.modulate = Color(look.flag.color)
+	s.position = at if at != null else world.to_local(flag_button.get_global_rect().get_center() - Vector2(0, 110))
+	s.offset.y = -s.texture.get_height() * 0.4
+	things.add_child(s)
+	var t := s.create_tween()
+	t.tween_property(s, "modulate:a", 0.0, 0.5).set_delay(look.flag.show)
+	t.tween_callback(s.queue_free)
+	$Feedback.play("path")
+	hint("флажок %s" % BlackBox._clock(f.t), false)
+
+
 func hint(text: String, error := true) -> void:
 	var label: Label = $Hud/Box/Hint
 	label.text = text
 	if error:
+		box.error(text)
 		$Feedback.play("error")
 	label.modulate.a = 1.0
 	create_tween().tween_property(label, "modulate:a", 0.0, 1.2).set_delay(0.6)
@@ -338,7 +378,15 @@ func _on_sim(what: String, data: Dictionary) -> void:
 			_sprites.erase(data.id)
 		"ended":
 			$End/Center/Box/Title.text = "Победа!" if data.winner == Sim.PLAYER else "Поражение"
+			$End/Center/Box/Flags.text = "Флажки: " + box.times() if not box.flags.is_empty() else "Флажков нет, ящик всё равно уйдёт"
+			$End/Center/Box/Send.text = "Отправить разбор"
+			_arm_send.call_deferred()
 			$End.show()
+
+
+## Кнопка «Отправить разбор» готовится, когда экран итога уже разложен.
+func _arm_send() -> void:
+	$Report.arm($End/Center/Box/Send)
 
 
 ## Первая сшибка двух воинов, которые до этого не дрались: оба отскакивают со звоном.
