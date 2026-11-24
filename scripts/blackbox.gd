@@ -81,7 +81,7 @@ func stats(sim: Sim) -> Dictionary:
 	return {"won": int(sim.winner == Sim.PLAYER), "lost_buildings": destroyed[0], "actions": built[0] + redraws,
 		"intrude_t": intrude_t, "first_barracks": first_barracks, "threads": threads, "off_home": off_home,
 		"towers": towers, "carriers_killed": carriers[1], "trap": carriers[1] / maxf(1, lost[1]),
-		"hungry": hungry, "sleepy": sleepy.values().max() if sleepy else 0.0, "rich_share": rich / maxf(1, sim.time)}
+		"hungry": hungry, "sleepy": sleepy.values().max() if sleepy else 0.0, "rich_share": minf(1, rich / maxf(1, sim.time))}
 
 
 ## Звание: первое сверху, у которого все числа в пределах; последнее подходит всегда.
