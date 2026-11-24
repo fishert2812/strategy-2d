@@ -46,8 +46,9 @@ func step(dt: float) -> void:
 	if whistle <= 0:
 		whistle += cfg.whistle.every
 		for u in units:
-			if u.kind == "warrior":
+			if u.kind == "warrior" and not u.go:
 				u.go = true
+				u.leg = 0
 		changed.emit("whistle", {})
 	for b in buildings.duplicate():
 		if b.kind == "camp":
@@ -66,6 +67,8 @@ func step(dt: float) -> void:
 ## Тропа от здания к точке: прилипает к ближайшей цели в радиусе snap.
 ## Лагерь — к залежи, казарма — к зданию врага.
 func set_path(b: Dictionary, point: Vector2) -> bool:
+	if b.kind == "barracks":
+		return set_route(b, [point])
 	var best := {}
 	var choices := deposits.filter(func(d): return d.gold > 0) if b.kind == "camp" else of_side(1 - b.side)
 	for c in choices:
@@ -76,6 +79,50 @@ func set_path(b: Dictionary, point: Vector2) -> bool:
 	b.target = best
 	changed.emit("path", b)
 	return true
+
+
+## Тропа воинов по следу пальца: сглаживается до route.bends изгибов и кончается где угодно.
+## Конец у постройки врага (в радиусе snap) — отряд её ломает, иначе стоит в конце и держит место.
+func set_route(b: Dictionary, trail: Array) -> bool:
+	var field := _v(cfg.field)
+	var pts: Array = [b.pos]
+	for p in trail:
+		pts.append(Vector2(p).clamp(Vector2.ZERO, field))
+	var eps: float = cfg.route.smooth
+	var route := _simplify(pts, eps)
+	while route.size() > cfg.route.bends + 2:
+		eps *= 1.5
+		route = _simplify(pts, eps)
+	route.pop_front()
+	if route.is_empty() or route[-1].distance_to(b.pos) < cfg.snap / 2.0:
+		return false
+	b.target = {}
+	for c in of_side(1 - b.side):
+		if c.pos.distance_to(route[-1]) <= cfg.snap and (b.target.is_empty() or c.pos.distance_to(route[-1]) < b.target.pos.distance_to(route[-1])):
+			b.target = c
+	if not b.target.is_empty():
+		route[-1] = b.target.pos
+	b.route = route
+	changed.emit("path", b)
+	return true
+
+
+## Рамер — Дуглас — Пекер: убирает точки, отклоняющиеся от прямой меньше чем на eps.
+static func _simplify(pts: Array, eps: float) -> Array:
+	if pts.size() < 3:
+		return pts.duplicate()
+	var far := 0.0
+	var at := 0
+	for i in range(1, pts.size() - 1):
+		var d: float = pts[i].distance_to(Geometry2D.get_closest_point_to_segment(pts[i], pts[0], pts[-1]))
+		if d > far:
+			far = d
+			at = i
+	if far <= eps:
+		return [pts[0], pts[-1]]
+	var left := _simplify(pts.slice(0, at + 1), eps)
+	left.pop_back()
+	return left + _simplify(pts.slice(at), eps)
 
 
 func _camp(b: Dictionary, dt: float) -> void:
@@ -94,11 +141,11 @@ func _barracks(b: Dictionary, dt: float) -> void:
 		return
 	b.timer = 0.0
 	var post := Vector2((b.id % 5 - 2) * 14, 44 + (b.id % 3) * 10)
-	units.append({"id": _id(), "side": b.side, "kind": "warrior", "pos": b.pos + post, "hp": cfg.warrior.hp, "home": b, "cd": 0.0, "post": post, "go": false})
+	units.append({"id": _id(), "side": b.side, "kind": "warrior", "pos": b.pos + post, "hp": cfg.warrior.hp, "home": b, "cd": 0.0, "post": post, "go": false, "leg": 0})
 
 
-## Воин: дерётся с ближним чужим. После свистка идёт по тропе и ломает здание в её конце;
-## без тропы или после победы ждёт у казармы следующего свистка.
+## Воин: дерётся с ближним чужим. После свистка идёт по тропе казармы: ломает постройку в её конце
+## или стоит в конце и держит место. Без тропы ждёт у казармы следующего свистка.
 func _warrior(u: Dictionary, dt: float) -> void:
 	var w: Dictionary = cfg.warrior
 	u.cd = maxf(0.0, u.cd - dt)
@@ -107,16 +154,27 @@ func _warrior(u: Dictionary, dt: float) -> void:
 		if o.side != u.side and o.hp > 0 and o.pos.distance_to(u.pos) <= w.aggro:
 			if foe.is_empty() or o.pos.distance_to(u.pos) < foe.pos.distance_to(u.pos):
 				foe = o
-	var t: Dictionary = u.home.target
+	var route: Array = u.home.route
 	if not foe.is_empty():
 		if _reach(u, foe.pos, w.reach, w.speed * dt):
 			_hit(u, foe)
-	elif u.go and not t.is_empty() and t.hp > 0:
-		if _reach(u, t.pos, w.reach + cfg.buildings[t.kind].size, w.speed * dt):
-			_hit(u, t)
+	elif u.go and not route.is_empty():
+		_march(u, route, w.speed * dt)
 	else:
 		u.go = false
 		_walk(u, u.home.pos + u.post, w.speed * dt)
+
+
+func _march(u: Dictionary, route: Array, dist: float) -> void:
+	var leg := mini(u.leg, route.size() - 1)
+	var t: Dictionary = u.home.target
+	if leg < route.size() - 1:
+		if _walk(u, route[leg], dist):
+			u.leg = leg + 1
+	elif t.is_empty():
+		_walk(u, route[leg] + u.post * 0.6, dist)
+	elif t.hp > 0 and _reach(u, t.pos, cfg.warrior.reach + cfg.buildings[t.kind].size, dist):
+		_hit(u, t)
 
 
 func _reach(u: Dictionary, to: Vector2, r: float, dist: float) -> bool:
@@ -195,10 +253,28 @@ func damage(b: Dictionary, amount: float) -> void:
 	buildings = buildings.filter(func(x): return not is_same(x, b))
 	units = units.filter(func(u): return not is_same(u.home, b))
 	changed.emit("destroyed", b)
+	_next_target(b)
 	for side in [PLAYER, ENEMY]:
 		if of_side(side).is_empty() and winner == -1:
 			winner = 1 - side
 			changed.emit("ended", {"winner": winner})
+
+
+## Цель разрушена: отряды, шедшие на неё, сами идут к ближайшей следующей постройке врага.
+func _next_target(gone: Dictionary) -> void:
+	for bb in buildings:
+		if not is_same(bb.target, gone):
+			continue
+		var next := {}
+		for c in of_side(gone.side):
+			if next.is_empty() or c.pos.distance_to(gone.pos) < next.pos.distance_to(gone.pos):
+				next = c
+		bb.target = next
+		bb.route = [] if next.is_empty() else [next.pos]
+		for u in units:
+			if is_same(u.home, bb):
+				u.leg = 0
+		changed.emit("path", bb)
 
 
 func of_side(side: int, kind := "") -> Array:
@@ -221,7 +297,7 @@ func _near_own(side: int, pos: Vector2) -> bool:
 
 func _add_building(side: int, kind: String, pos: Vector2) -> Dictionary:
 	var hp: float = cfg.buildings[kind].hp
-	var b := {"id": _id(), "side": side, "kind": kind, "pos": pos, "hp": hp, "max_hp": hp, "target": {}, "timer": 0.0}
+	var b := {"id": _id(), "side": side, "kind": kind, "pos": pos, "hp": hp, "max_hp": hp, "target": {}, "route": [], "timer": 0.0}
 	buildings.append(b)
 	changed.emit("built", b)
 	return b
