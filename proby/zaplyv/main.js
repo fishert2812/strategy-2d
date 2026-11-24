@@ -7,6 +7,7 @@ import { World, radius } from './sim.js';
 import { Stick } from './controls.js';
 import { follow } from './soft.js';
 import { look } from './look.js';
+import { whip } from './whip.js';
 import { Bodies } from './body3d.js';
 import { genomeScreen } from './genome.js';
 import { mark, message } from './feedback.js';
@@ -307,6 +308,13 @@ function pathText(w) {
     + `Мутации: ${genes}` + (lost ? `<br>Отняли клеток: ${lost}` : '');
 }
 
+const flags = new Map(); // состояние жгутиков каждой клетки между кадрами (whip.js)
+function whips(a, run, dt, beat) {
+  let F = flags.get(a.id); if (!F) { F = { b: run ? 1 : 0, fan: 0, ph: 0, om: 4, t: Math.random() * 9 }; flags.set(a.id, F); }
+  whip(F, a.tumble ? 'tumble' : run ? 'run' : 'rest', dt, beat, cfg.flag);
+  if (flags.size > 64) for (const k of flags.keys()) { if (!world.me.some(c => c.id === k)) flags.delete(k); }
+  return F;
+}
 function ring(x, y, side, r) { rings.push({ x, y, side, r, t: 0 }); }
 
 function events() {
@@ -319,6 +327,7 @@ function events() {
     if (k === 'sick' && world.me.some(a => a.held > 0)) tell('bdello', 'Прилип хищник! Резко развернись — стряхнёшь');
     if (k === 'eat') { ring(x, y, 2, 26 + 14 * size); const n = performance.now(); if (n - lastEat > 60) { beep(300 + Math.random() * 200, 0.09, 0.04); lastEat = n; } }
     if (k === 'split') ring(x, y, 0, 70);
+    if (k === 'leave') { ring(x, y, 0, 50); tell('leave', 'Дочка уплыла жить сама — мутации копятся дальше'); }
     if (k === 'meet') meet(x);
     if (k === 'stick') { ring(x, y, 1, 22); beep(520, 0.06, 0.04, 'square'); } // прилип фаг: резко развернись — стряхнёшь
     if (k === 'shake') { ring(x, y, 0, 30); beep(700, 0.07, 0.03); }
@@ -378,6 +387,7 @@ const SPIKES = [[1, 0.45, 0.75], [1, 0.6, 0.2], [0.45, 0.7, 1], [0.8, 0.5, 1]];
 const BALL = [null, [0.55, 0.48, 0.8], [0.55, 0.95, 0.3]], BRIM = [null, [0.85, 0.8, 1], [0.85, 1, 0.6]]; // не по зубам (сиреневые), съедобное
 const ball = (x, y, r, side, seed) => bodies.sphere(x, y, r, BALL[side], BRIM[side], seed);
 function paint(time) {
+  const pdt = Math.min(0.05, Math.max(0, time - (paint.t ?? time))); paint.t = time; // шаг для плавных состояний рисунка
   const z = view.z, big = world.biggest();
   bodies.begin();
   const on = (x, y, pad = 80) => x > -pad && x < W + pad && y > -pad && y < H + pad;
@@ -603,31 +613,45 @@ function paint(time) {
       const t = time * (0.5 + k * 0.17) + a.id * 1.3 + k * 2.1, u = Math.sin(t) * (half - w * 0.6), [px, py] = along(u, Math.cos(t * 1.3) * w * 0.4 + arc(u / z));
       ink.put(px, py, 0.9 * z + 0.7, 0.85, 1, 0.95, 0.5);
     }
-    // жгутики: на бегу — пучок за кормой, ложится по дуге пути; в кувырке — веером, два кудрявые; на месте — врозь и медленно
-    const fan = a.tumble ? a.tumble / cfg.swim.tumble_time : 0;
-    const mid = (lk.flagella - 1) / 2, sp5 = 5 / lk.flagella; // пучок той же толщины, нитей больше
+    // Жгутики (по книге, «Движение»; Berg, «E. coli in Motion»). Состояние у каждой клетки своё и меняется плавно, без щелчков:
+    // b — насколько нити собраны в пучок за кормой, fan — насколько пучок разлетелся веером в кувырке, ph — угол вращения моторов.
+    // На ходу: пучок-штопор за кормой, по нему бежит спиральная волна, в повороте пучок запаздывает по следу тела.
+    // Кувырок: моторы переключаются, пучок за долю секунды расходится веером, часть нитей становится «кудрявой».
+    // Покой: нити расходятся от боков, вяло колышутся и дрожат от ударов молекул воды; пучок собирается ~полсекунды.
+    const F = whips(a, run, pdt, lk.beat);
+    const mid = (lk.flagella - 1) / 2, sp5 = 5 / lk.flagella, B = F.b, P = F.fan, sb = Math.sin(ang), cb = Math.cos(ang);
     for (let f = 0; f < lk.flagella; f++) {
-      let bx, by, dx, dy;
-      if (run || a.tumble) {
-        const spread = fan * (f - mid) * 0.55 * sp5;
-        [bx, by] = along(-half + w * 0.3, (f - mid) * w * 0.22 * sp5 + arc(half / z));
-        dx = -Math.cos(ang + spread); dy = -Math.sin(ang + spread);
-      } else { const t = f * 6.283 / lk.flagella + 0.6 + a.id, c = Math.cos(t), s = Math.sin(t); [bx, by] = along(c * (half - w * 0.5), s * w * 0.9); const l = Math.hypot(c * 1.2, s * 1.8); dx = (ax * c * 1.2 - ay * s * 1.8) / l; dy = (ay * c * 1.2 + ax * s * 1.8) / l; }
-      const curly = fan > 0 && f % 3 === 1; // вышедший из пучка жгутик перекручивается
+      const t0 = f * 6.283 / lk.flagella + 0.6 + a.id, c0 = Math.cos(t0), s0 = Math.sin(t0); // место мотора на боку (жгутики по всему телу)
+      const [rx0, ry0] = along(c0 * (half - w * 0.5), s0 * w * 0.9), l0 = Math.hypot(c0 * 1.2 - 0.8, s0 * 1.8) || 1;
+      const rdx = (ax * (c0 * 1.2 - 0.8) - ay * s0 * 1.8) / l0, rdy = (ay * (c0 * 1.2 - 0.8) + ax * s0 * 1.8) / l0; // в покое — вбок и чуть назад
+      const [sx0, sy0] = along(-half + w * 0.3, (f - mid) * w * 0.22 * sp5 + arc(half / z)), spread = (f - mid) * 0.6 * sp5;
+      const fdx = -Math.cos(ang + spread), fdy = -Math.sin(ang + spread), curl = P * (f % 3 === 1 ? 1 : 0.25); // в кувырке нить меняет форму спирали
+      const ph = F.ph + f * 0.5, slow = F.t * 0.6 + f * 1.7;
       for (let k = 1; k <= 40; k++) {
-        const s = k / 40, back = s * w * (run ? 7 : 5.5), amp = w * (curly ? 0.8 : 0.42) * Math.min(1, s * 3);
-        const wv = Math.sin(s * (curly ? 22 : 10) - time * (run ? lk.beat : 4) + f * 0.5) * amp, conv = run ? (f - mid) * sp5 * w * 0.22 * (s * 0.9) : 0;
-        let px = bx + dx * back, py = by + dy * back, nx = dy, ny = -dx;
-        if (run) { // пучок лежит на следе клетки: где она прошла, там и хвост
-          const [qx, qy] = scr(...body.at(2 * half / z + back / z)), [rx, ry] = scr(...body.at(2 * half / z + back / z + 2));
-          const ox = -ay * (f - mid) * sp5 * w * 0.22, oy = ax * (f - mid) * sp5 * w * 0.22; // свой сдвиг жгутика в пучке
-          const tl = Math.hypot(rx - qx, ry - qy) || 1; nx = -(ry - qy) / tl; ny = (rx - qx) / tl;
-          px = qx + ox * (1 - s * 0.9); py = qy + oy * (1 - s * 0.9);
-        }
-        glow.put(px + nx * (wv - conv), py + ny * (wv - conv), 0.8 * Math.max(z, 0.7) + 0.3, cr, cg, cb, 0.5 * (1 - s * 0.5));
+        const s = k / 40, grow = Math.min(1, s * 3);
+        // покой: от бока наружу, медленная волна + броуновская дрожь
+        let xr = 0, yr = 0, xt = 0, yt = 0;
+        if (B < 0.995) { const Lr = s * w * 5.2, wr = (Math.sin(s * 7 - ph * 0.3) * 0.3 + Math.sin(s * 3 + slow) * 0.35 + Math.sin(s * 11 - slow * 2.3) * 0.08) * w * grow;
+        xr = rx0 + rdx * Lr - rdy * wr; yr = ry0 + rdy * Lr + rdx * wr; }
+        if (B > 0.005) { // считаем только те формы, которые сейчас видны: цена кадра та же
+        // пучок: по следу тела за кормой, нити сходятся, спиральная волна бежит назад
+        const back = s * w * 7, [qx, qy] = scr(...body.at(2 * half / z + back / z)), [ux2, uy2] = scr(...body.at(2 * half / z + back / z + 2));
+        const tl = Math.hypot(ux2 - qx, uy2 - qy) || 1, nx = -(uy2 - qy) / tl, ny = (ux2 - qx) / tl, off = (f - mid) * sp5 * w * 0.22 * (1 - s * 0.9);
+        const wb = Math.sin(s * 10 - ph) * w * 0.42 * grow;
+        const xb = qx - ay * off + nx * wb, yb = qy + ax * off + ny * wb;
+        // веер: от кормы каждая нить в свою сторону, кудрявые — частой спиралью
+        const bs = s * w * 5.8, wf = Math.sin(s * (10 + 12 * curl) - ph) * w * (0.42 + 0.4 * curl) * grow;
+        const xf = sx0 + fdx * bs - fdy * wf, yf = sy0 + fdy * bs + fdx * wf;
+        xt = xb + (xf - xb) * P; yt = yb + (yf - yb) * P; }
+        glow.put(xr + (xt - xr) * B, yr + (yt - yr) * B, 0.8 * Math.max(z, 0.7) + 0.3, cr, cg, cb, 0.5 * (1 - s * 0.5));
       }
     }
     if (a.sick >= 0) glow.put(x, y, half, 1, 0.2, 0.3, 0.25 + 0.2 * Math.sin(time * 20));
+  }
+  for (const b of world.away) { // уплывшая дочка: уходит своим курсом и тает в толще
+    const [x, y] = scr(b.x, b.y), w = 8.5 * Math.pow(b.m, 0.3) * z, f = b.t / cfg.away_time; if (!on(x, y)) continue;
+    if (f < 0.7) bodies.rod(x, y, b.a, w * 2.2, w, 0, [CELL[0].r, CELL[0].g, CELL[0].b], [CORE[0].r, CORE[0].g, CORE[0].b], b.id, 0);
+    glow.put(x, y, w * 3, 0.6, 0.85, 1, 0.25 * (1 - f));
   }
   for (const a of world.me) { // след: клетка расталкивает взвесь, частицы расходятся и гаснут — вязкость видна
     const sp = Math.hypot(a.vx, a.vy); if (sp < 40 || puffs.length > 230) continue;

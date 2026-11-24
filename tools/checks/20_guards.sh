@@ -29,7 +29,7 @@ done < <(find art audio -type f ! -name 'LICENSES.md' ! -name '*.import' 2>/dev/
 
 # 5. У каждого урока в lessons.md есть защита test_Lxxx.
 for id in $(grep -oE '\bL[0-9]{3}\b' lessons.md 2>/dev/null | sort -u); do
-  grep -rqE "test_$id\b" tests/ tools/ || bad "урок $id без защиты test_$id"
+  grep -rqE "test_$id\b" tests/ tools/ proby/ || bad "урок $id без защиты test_$id"
 done
 
 # 6. Не больше 300 строк кода в PR (метка big снимает предел; CI передаёт PR_LABELS).
