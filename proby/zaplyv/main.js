@@ -1,4 +1,5 @@
-// «Заплыв» на экране (Three.js). Держи палец — клетки плывут к нему; короткое касание — вытянувшиеся делятся.
+// «Заплыв» на экране (Three.js). Управление большим пальцем: коснулся где угодно — там встал джойстик,
+// сдвиг пальца от этой точки задаёт, куда и как быстро плыть; короткое касание — вытянувшиеся делятся.
 // Живые клетки: каждая капля — мягкое пятно в слое поля (половина разрешения), пятна складываются,
 // шейдер режет сумму по порогу и освещает по наклону поля: объём, блик, светлая кромка, свечение.
 // Сверху — точки: еда, жгутики, крупинки внутри клеток, фаги, взвесь вдали и размытые соринки вблизи.
@@ -142,6 +143,7 @@ const beep = (f, dur, vol = 0.05, type = 'sine', slide = 0.6) => {
   o.connect(g).connect(audio.destination); o.start(t); o.stop(t + dur);
 };
 
+const STICK = 70;
 let world, view, finger = null, down = null, moved = false, rings = [], shake = 0, ended = false, lastEat = 0;
 const $ = id => document.getElementById(id);
 fetch('../version.txt').then(r => r.ok ? r.text() : 'dev').then(t => $('ver').textContent = 'проба · ' + t.trim().slice(0, 7)).catch(() => {});
@@ -206,7 +208,12 @@ function events() {
 
 function tick(dt) {
   if (world.choice.length) { ask(); return; }
-  world.step(dt, finger ? toWorld(finger.x, finger.y) : null);
+  let stick = null; // джойстик: направление и сила из сдвига пальца, полный ход — STICK единиц
+  if (finger && down) {
+    const dx = finger.x - down.x, dy = finger.y - down.y, l = Math.hypot(dx, dy);
+    if (l > 6) stick = { dx: dx / l, dy: dy / l, p: Math.min(1, l / STICK) };
+  }
+  world.step(dt, stick);
   events();
   if (!world.me.length) {
     if (!ended) {
@@ -285,9 +292,14 @@ function paint(time) {
     const k = r.t / 0.6, [x, y] = scr(r.x, r.y), R = r.r * z * (0.3 + k), c = CELL[r.side];
     for (let i = 0; i < 28; i++) { const t = i * 0.2244; glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 5 * (1 - k) + 1.5, c.r, c.g, c.b, 0.7 * (1 - k)); }
   }
-  if (!moved && world.me.length) { // подсказка без слов: «палец» уводит клетку вверх
-    const k = (time / 1.6) % 1, [x, y] = scr(world.me[0].x, world.me[0].y);
-    glow.put(x, y - 220 * k - 40, 34, 1, 1, 1, 0.35 * (1 - k));
+  if (down) { // джойстик под большим пальцем: кольцо в точке касания и шарик за пальцем
+    for (let i = 0; i < 32; i++) { const t = i * 0.19635; glow.put(down.x + Math.cos(t) * STICK, down.y + Math.sin(t) * STICK, 2.2, 1, 1, 1, 0.25); }
+    const dx = finger.x - down.x, dy = finger.y - down.y, l = Math.hypot(dx, dy), k = l > STICK ? STICK / l : 1;
+    glow.put(down.x + dx * k, down.y + dy * k, 26, 0.7, 0.95, 1, 0.22);
+  } else if (!moved && world.me.length) { // подсказка без слов: палец внизу экрана тянет вверх
+    const k = (time / 1.6) % 1, x = W / 2, y = H * 0.78;
+    for (let i = 0; i < 32; i++) { const t = i * 0.19635; glow.put(x + Math.cos(t) * STICK, y + Math.sin(t) * STICK, 2.2, 1, 1, 1, 0.2); }
+    glow.put(x, y - STICK * k, 26, 1, 1, 1, 0.35 * (1 - k * 0.5));
   }
   const px = view.x * 0.35, py = view.y * 0.35; // взвесь вдали плывёт медленнее, соринки вблизи — быстрее
   for (let i = 0; i < 60; i++) {
@@ -306,6 +318,7 @@ function paint(time) {
 }
 
 // Замер для проверки: кадры, худший и средний кадр за последние 5 с, число клеток и точек.
+window.zaplyvWorld = () => world; // для проверок и кадров
 const probe = window.zaplyvProbe = { frames: 0, worst: 0, avg: 0, js: 0, jsWorst: 0, cells: 0, dots: 0, errors: 0 };
 addEventListener('error', () => probe.errors++);
 let last = performance.now(), acc = [], js = [];

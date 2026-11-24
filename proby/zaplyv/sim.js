@@ -118,7 +118,7 @@ export class World {
 
   pick(g) { this.genes[g] = true; this.choice = []; }
 
-  // Шаг мира. target — куда тянет палец (точка мира) или null, если палец отпущен.
+  // Шаг мира. target — джойстик {dx, dy, p}, точка мира {x, y} или null, если палец отпущен.
   step(dt, target) {
     if (this.choice.length || !this.me.length) return;
     const c = this.cfg, r = this.r;
@@ -128,13 +128,17 @@ export class World {
     const k = Math.min(1, (target ? 4 : 10) * dt);
     for (const a of this.me) {
       let wx, wy;
-      if (target) {
+      if (target && target.dx !== undefined) { // джойстик: все плывут в одну сторону, сила — ход пальца
+        const s = speed / Math.pow(a.m, 0.2) * target.p;
+        wx = target.dx * s; wy = target.dy * s;
+      } else if (target) { // точка мира: плыть к ней
         const tx = target.x - a.x, ty = target.y - a.y, l = len(tx, ty) || 1;
         const s = speed / Math.pow(a.m, 0.2) * Math.min(1, l / 60);
         wx = tx / l * s; wy = ty / l * s;
-      } else { // палец отпущен: в воде клетка встаёт сразу (вязкость), остаётся только дрожь
-        const t = r() * 6.283;
-        wx = Math.cos(t) * 25; wy = Math.sin(t) * 25;
+      } else { // палец отпущен: в воде клетка встаёт сразу (вязкость); её медленно сносит и поворачивает (~90° за 10 с)
+        a.drift = (a.drift ?? r() * 6.283) + (r() - 0.5) * dt * 1.5;
+        wx = Math.cos(a.drift) * 7; wy = Math.sin(a.drift) * 7;
+        a.a += (a.id % 2 ? 0.16 : -0.16) * dt;
       }
       for (const o of this.me) { // дочерние не налезают друг на друга
         if (o === a) continue;
