@@ -647,6 +647,14 @@ function paint(time) {
       if (i % 3 === 0) ink.put(px + Math.sin(i * 7.1) * g.w * 0.5 * z, py + Math.cos(i * 5.3) * g.w * 0.5 * z, 0.8 * z + 0.3, 0.8, 0.9, 1, 0.35);
     }
   }
+  { const Zc = cfg.zone, wn = world.warning(); // край зоны затягивания: еле виден всегда, ярче в полутора радиусах, разгорается только у ближайшей (L030)
+    for (const zn of world.zones()) { const [wx, wy, R] = zn, [x, y] = scr(wx, wy); if (!on(x, y, R * z)) continue;
+      const d = world.me.reduce((m, a) => Math.min(m, Math.hypot(a.x - wx, a.y - wy)), 1e9), lv = wn && wn.zone[0] === wx && wn.zone[1] === wy ? wn.level : 0;
+      const al = (d < R * 1.5 ? Zc.near : Zc.far) + (Zc.warn - Zc.near) * lv, [cr, cg, cb] = Zc.color;
+      for (let k = 0; k < Zc.dots; k++) { const t = k / Zc.dots * 6.283 + time * 0.25; glow.put(x + Math.cos(t) * R * z, y + Math.sin(t) * R * z, (0.9 + lv) * z + 0.4, cr, cg, cb, al); }
+      if (lv > 0) probe.warn[zn[3]] = (probe.warn[zn[3]] || 0) + 1;
+      for (const a of world.me) { if (Math.hypot(a.x - wx, a.y - wy) > R) continue; const [ax, ay] = scr(a.x, a.y); // тебя тянет: струйки от клетки к рту
+        for (let k = 0; k < Zc.streak; k++) { const f = (time * 1.4 + k / Zc.streak) % 1; glow.put(ax + (x - ax) * f * 0.6, ay + (y - ay) * f * 0.6, 2 * z + 0.5, cr, cg, cb, 0.7 * (1 - f)); } } } }
   for (const p of world.slippers) { // туфелька: огромная клетка в ресничках, воронка-рот на боку, поток в рот виден
     const [x, y] = scr(p.x, p.y), L = cfg.slipper_len * z; if (!on(x, y, L)) continue;
     const ux = Math.cos(p.a), uy = Math.sin(p.a), w = L * 0.27;
@@ -901,7 +909,7 @@ function render(t, after) {
 }
 // Замер для проверки: кадры, худший и средний кадр за последние 5 с, число клеток и точек.
 window.zaplyvWorld = () => world; // для проверок и кадров
-const probe = window.zaplyvProbe = { frames: 0, worst: 0, avg: 0, js: 0, jsWorst: 0, cells: 0, dots: 0, errors: 0 };
+const probe = window.zaplyvProbe = { warn: {}, frames: 0, worst: 0, avg: 0, js: 0, jsWorst: 0, cells: 0, dots: 0, errors: 0 };
 addEventListener('error', () => probe.errors++);
 let last = performance.now(), acc = [], js = [];
 function frame(now) {

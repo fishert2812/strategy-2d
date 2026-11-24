@@ -704,5 +704,21 @@ check('пруд с планом (К1): слои сверху вниз посто
   console.log('    паспорт: пруд ' + P.w + '×' + P.h + ', старт на глубине ' + w.depth(0).toFixed(2) + ', у левого края x=' + Math.round(c.x) + ', открыто клеток ' + w.seen.size + ' из ' + P.grid[0] * P.grid[1]);
 });
 
+check('test_L030: у каждой воронки видимая зона и признак за zone.lead секунд хода до края; тревога только у ближайшей', () => {
+  const bare = () => { const w = new World(cfg, 5); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
+  const out = [];
+  for (const [kind, list, mk] of [['slipper', 'slippers', a => ({ x: a.x, y: a.y, a: 0, back: 0, id: 3 })], ['bell', 'bells', a => ({ x: a.x, y: a.y, dir: 0, shut: 0, id: 3 })], ['roti', 'rotis', a => ({ x: a.x, y: a.y, a: 0, sit: true, t: 9, id: 3 })]]) {
+    const w = bare(), a = w.me[0]; w[list] = [mk({ x: 0, y: 0 })]; const zn = w.zones()[0], R = zn[2], lead = cfg.speed * cfg.zone.lead;
+    const at = d => { a.x = zn[0] - R - d; a.y = zn[1]; const v = w.warning(); return v ? v.level : 0; };
+    const near = at(lead * 0.5), edge = at(0), far = at(lead * 1.2);
+    let pull = 0; { a.x = zn[0] - R * 0.6; a.y = zn[1]; const [fx] = w.suck(a.x, a.y); pull = fx; }
+    out.push(`${kind} R${R}: ${near.toFixed(2)}/${edge.toFixed(2)}/${far.toFixed(2)} тянет ${pull.toFixed(0)}`);
+    if (!(near > 0.3 && edge === 1 && far === 0)) return `${kind}: признак у края ${edge}, за полсрока ${near}, далеко ${far}`;
+    if (!(pull > 0)) return `${kind}: зона на воде не совпадает с тем, где тянет`; }
+  const w = bare(), a = w.me[0]; w.bells = [{ x: 200, y: 0, dir: 0, shut: 0, id: 3 }, { x: -400, y: 0, dir: 3.14, shut: 0, id: 4 }]; a.x = 0; a.y = 0;
+  const v = w.warning(); if (!v || v.zone[0] < 0) return 'тревога не у ближайшей воронки';
+  console.log('    паспорт: тревога за полсрока / у края / далеко —', out.join(' | '));
+});
+
 console.log(bad ? 'ЗАПЛЫВ: провалов ' + bad : 'ЗАПЛЫВ: все проверки прошли');
 process.exit(bad ? 1 : 0);
