@@ -35,9 +35,9 @@ export const sobrat = records => Object.fromEntries(records.filter(r => r.kartoc
 export const SHAGI = ['nauka', 'adaptaciya', 'biolog', 'gotov', 'stroyka', 'v_igre'];
 const at = s => SHAGI.indexOf(s);
 
-export function sverka({ records, cards, genes, slots, pages, files, spisok, ring, teksty, problemy, kto, resheniya, animacii }) {
+export function sverka({ records, cards, genes, slots, pages, files, spisok, ring, teksty, problemy, kto, resheniya, animacii, fayly = [] }) {
   const bad = [], seen = new Map();
-  const have = k => { const [t, key] = k.split(':'); return t === 'cards' ? cards[key] : t === 'gene' ? genes[key] && { name: genes[key][0], chto: genes[key][1] } : null; };
+  const have = k => { const [t, key] = k.split(':'); return t === 'cards' ? cards[key] : t === 'gene' ? genes[key] && { name: genes[key][0], chto: genes[key][1] } : t === 'file' ? fayly.includes(key) && {} : null; };
   if ([...files].sort().join() !== [...spisok].sort().join()) bad.push('zapisi/spisok.json не совпадает с файлами записей: ' + files.join(' ') + ' / ' + spisok.join(' '));
   const linked = new Set();
   for (const r of records) {
@@ -131,7 +131,7 @@ function load() {
   const g = j('../genome.json');
   const slots = [...g.arcs.flatMap(a => a.slots), ...g.plasmids].map(s => s.id).filter(Boolean);
   const ring = [...g.arcs.flatMap(a => a.slots), ...g.plasmids].map(s => s.gene).filter(x => x && x !== '?');
-  return { records, cards: j('../cards.json'), genes: j('../data.json').genes, slots, pages, files, spisok: j('zapisi/spisok.json'), ring, teksty: { ...j('teksty_genov.json'), sushchestva: j('teksty_sushchestv.json').sushchestva }, problemy: j('problemy.json'), kto: j('kto_s_kem.json'), resheniya: j('resheniya.json'), animacii: j('animacii.json') };
+  return { records, fayly: readdirSync(new URL('../', here)), cards: j('../cards.json'), genes: j('../data.json').genes, slots, pages, files, spisok: j('zapisi/spisok.json'), ring, teksty: { ...j('teksty_genov.json'), sushchestva: j('teksty_sushchestv.json').sushchestva }, problemy: j('problemy.json'), kto: j('kto_s_kem.json'), resheniya: j('resheniya.json'), animacii: j('animacii.json') };
 }
 
 const S = load();
@@ -174,6 +174,7 @@ if (process.argv.includes('--selftest')) {
     ['кто с кем: связь ссылается на запись, которой нет', s => { s.kto.svyazi[0].gde = 'Щ1'; return s; }, true],
     ['кто с кем: карточка игры не стоит в сетке', s => { s.kto.kto.pop(); return s; }, true],
     ['проблема «вышло» без версии', s => { s.problemy[0].versiya = ''; s.problemy[0].status = 'vyshlo'; return s; }, true],
+    ['запись «в игре» ссылается на файл игры, которого нет', s => { s.records.find(r => (r.kod || []).some(k => k.startsWith('file:'))).kod = ['file:net_takogo.js']; return s; }, true],
     ['test_L018: ген в игре без карточки', s => { delete s.records.find(r => r.kartochka && r.kod).kartochka; return s; }, true],
     ['test_L018: файл текстов для игры отстал от книги', s => { s.teksty.geny = { net: 1 }; return s; }, true],
   ];

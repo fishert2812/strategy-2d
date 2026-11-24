@@ -7,6 +7,7 @@ import { whip } from './whip.js';
 import { layout, card } from './genome.js';
 import { mark, message } from './feedback.js';
 import { entries, shelf, page } from './almanah.js';
+import * as karta from './karta.js';
 import { readFileSync } from 'node:fs';
 import { night } from './night.js';
 const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
@@ -524,7 +525,7 @@ check('test_L013: новичок без касаний и уворотов не 
     const w = new World(cfg, s * 53); w.dir = s * 1.3; let t = null;
     for (let i = 0; i < 30 * 30 && w.me.length && t === null; i++) {
       w.step(1 / 30, novice(w)); if (w.choice.length) w.pick(w.choice[0]);
-      const e = w.events.find(e => ['grab', 'stick', 'sick', 'zap', 'eaten', 'burst', 'pinch'].includes(e[0])); w.events.length = 0;
+      const e = w.events.find(e => ['grab', 'stick', 'sick', 'bore', 'zap', 'eaten', 'burst', 'pinch'].includes(e[0])); w.events.length = 0;
       if (e || w.amoebas.some(m => w.me.some(a => Math.hypot(a.x - m.x, a.y - m.y) < 120))) t = w.stats.time;
     }
     out.push(t ?? 99);
@@ -651,6 +652,56 @@ check('test_night_start: заплыв, начатый веткой, несёт �
   if (!w.genes.lock || !w.genes.capsule || w.from.lock !== 'kid') return 'гены ветки не в заплыве: ' + JSON.stringify(w.genes);
   if (Object.keys(w.genes).length !== 2) return 'лишние гены: ' + Object.keys(w.genes);
   if (night({ genes: [], n: 2 }, 'phage', 9, NJ, ALL).run().result().picks.some(p => p.genes.some(g => !ALL.includes(g)))) return 'ветка с геном, которого нет в игре';
+});
+
+// Урок L022 (Роман, 0.33: «фаги меня убивают красного цвета даже после изучения таланта» — убивала хищная запятая, а прилипший фаг тоже светился красным).
+check('test_L022: убийцу видно и называют верно — фаг не красный, как запятая; экран гибели говорит словами книги, кто убил', () => {
+  const J = f => JSON.parse(readFileSync(new URL(f, import.meta.url))), T = J('./kniga/teksty_sushchestv.json').sushchestva, K = J('./almanah.json');
+  const hue = c => { const [r, g, b] = c, mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn || 1; return ((mx === r ? (g - b) / d : mx === g ? 2 + (b - r) / d : 4 + (r - g) / d) * 60 + 360) % 360; };
+  const sat = c => Math.max(...c) - Math.min(...c), P = cfg.danger.phage, B = cfg.danger.bdello;
+  if (!(sat(P) < 0.25 || Math.min(Math.abs(hue(P) - hue(B)), 360 - Math.abs(hue(P) - hue(B))) > 90)) return 'свечение фага того же цвета, что хищная запятая: ' + P;
+  const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
+  const out = [];
+  for (const [who, put] of [['phage', w => w.cloud(radius(1) + 1, 0, 'me', 0)], ['bdello', w => { w.bdellos = [{ x: 40, y: 0, vx: 0, vy: 0, a: Math.PI, t: 2, id: 8 }]; }],
+    ['amoeba', w => { w.amoebas = [{ x: 5, y: 0, vx: 0, vy: 0, m: 9, id: 50 }]; }]]) {
+    const w = bare(140 + out.length); w.me[0].x = 0; w.me[0].y = 0; put(w); run(w, cfg.inject + cfg.sick + 6, null);
+    if (w.me.length) return `«${who}» не убил голую клетку — сценарий не тот`;
+    if (w.stats.killer !== who) return `убил «${who}», а экран гибели назовёт «${w.stats.killer}»`;
+    const t = T[who]; if (!t || !t.ubil || !t.imya || !t.kto || !t.sovet) return `у «${who}» нет текстов книги для экрана гибели (ubil, imya, kto, sovet)`;
+    if (!K.items[who]) return `у «${who}» нет модели для экрана гибели`;
+    out.push(who + ': ' + t.ubil);
+  }
+  // защита, обещанная картой гена, держит: капсула — от амёбы, новая дверь — от вируса, память — второй вирус бессилен
+  const cap = bare(150); cap.genes.capsule = true; cap.amoebas = [{ x: 5, y: 0, vx: 0, vy: 0, m: 9, id: 50 }]; cap.me[0].x = cap.me[0].y = 0; run(cap, 6, null);
+  if (!cap.me.length) return '«Скользкая шуба» обещает выскользнуть от амёбы, а амёба съела';
+  const lock = bare(151); lock.genes.lock = true; lock.me[0].x = lock.me[0].y = 0; lock.cloud(radius(1) + 1, 0, 'me', 0); run(lock, cfg.inject + cfg.sick + 1, null);
+  if (!lock.me.length) return '«Новая дверь» обещает, что вирус не сядет, а вирус убил';
+  console.log('    паспорт: фаг ' + P + ', запятая ' + B + '; ' + out.join(' | '));
+});
+
+check('карта (Э18–Э19): слои по порядку, отметки в одном месте слипаются с числом, счёт словами', () => {
+  const P = cfg.pond, F = karta.frame(P, 360, 520), B = karta.bands(P);
+  if (B.map(b => b[0]).join() !== 'film,light,oxy,silt' || B[0][1] !== 0 || B[3][2] !== 1) return 'полосы слоёв: ' + JSON.stringify(B);
+  const [sx, sy] = karta.toMap(P, F, 0, 0); if (Math.abs(sy - F.h * P.y0) > 1 || Math.abs(sx - F.w * P.x0) > 1) return 'старт не там на карте: ' + [sx, sy];
+  const C = karta.clusters([{ kind: 'death', x: 0, y: 0, who: 'amoeba' }, { kind: 'death', x: 50, y: 40, who: 'phage' }, { kind: 'gene', x: 30, y: 0, who: 'gene:capsule' }, { kind: 'death', x: 9000, y: 9000, who: 'bdello' }], P, F);
+  if (C.length !== 3 || C[0].list.length !== 2) return 'слипание отметок: ' + C.map(c => c.kind + c.list.length).join();
+  const t = karta.count(P, new Set(['3,0', '3,5', '3,6'])); if (t !== 'Ты видел два слоя пруда из четырёх') return 'счёт: ' + t;
+  console.log('    паспорт: ' + C.map(c => c.kind + '×' + c.list.length).join(', ') + '; ' + t);
+});
+
+check('пруд с планом (К1): слои сверху вниз постоянны, ты начинаешь в светлой толще, за край не уплыть, туман расходится, где проплыл', () => {
+  const w = new World(cfg, 21), E = w.pond(), P = cfg.pond;
+  const order = [E.y0 + 10, 0, E.y0 + P.h * (P.oxy + 0.02), E.y1 - 10].map(y => w.layer(y)).join();
+  if (order !== 'film,light,oxy,silt') return 'слои не по порядку: ' + order;
+  const w2 = new World(cfg, 99); if (w2.layer(E.y1 - 10) !== 'silt' || w2.biome(0, E.y1 - 10) !== 2) return 'в другом заплыве ил не на дне';
+  if (w.biome(0, E.y1 - 10) !== 2 || w.biome(0, E.y0 + 10) !== 1) return 'у ила и плёнки не их вид мира';
+  const seen0 = w.seen.size;
+  run(w, 60, w => { if (w.choice.length) w.pick(w.choice[0]); w.amoebas = []; w.bdellos = []; w.phages = []; w.pseudos = []; w.slippers = []; w.bells = []; w.rotis = []; return { dx: -1, dy: 0, p: 1 }; });
+  const c = w.me[0]; if (!c) return 'клетка погибла по дороге к краю';
+  if (c.x < E.x0) return 'уплыла за левый край пруда: ' + Math.round(c.x);
+  if (c.x > E.x0 + 200) return 'до края не доплыла за 60 с: ' + Math.round(c.x - E.x0);
+  if (w.seen.size <= seen0 + 2) return 'туман не расходится: открыто клеток ' + w.seen.size;
+  console.log('    паспорт: пруд ' + P.w + '×' + P.h + ', старт на глубине ' + w.depth(0).toFixed(2) + ', у левого края x=' + Math.round(c.x) + ', открыто клеток ' + w.seen.size + ' из ' + P.grid[0] * P.grid[1]);
 });
 
 console.log(bad ? 'ЗАПЛЫВ: провалов ' + bad : 'ЗАПЛЫВ: все проверки прошли');
