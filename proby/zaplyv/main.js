@@ -498,7 +498,7 @@ function ask() {
     b.innerHTML = '<img class="gicon" alt=""><span></span><small></small>'; b.children[1].textContent = geneName(g); b.children[2].textContent = geneBook(g).daet || ''; b.firstChild.src = icon(g); b.firstChild.style.borderColor = geneColor(g); b.onclick = go; box.appendChild(b); // имя и «что даёт» — только из книги (урок L018)
     const k = document.createElement('button'); k.className = 'kid'; k.style.left = i ? '52%' : '2%'; k.onclick = go; k.setAttribute('aria-label', geneName(g)); $('genes').appendChild(k);
   });
-  $('genes').classList.add('on');
+  $('genes').classList.add('on'); $('toast').classList.remove('on'); // всплывашка не ложится на заголовок выбора
   beep(440, 0.5, 0.05, 'sine', 2);
 }
 
@@ -881,7 +881,9 @@ function frame(now) {
   probe.covered = covered;
   if (covered) { probe.frames++; requestAnimationFrame(frame); return; }
   goalArrow();
-  render(now / 1000, () => { if (!ended) { js.push(performance.now() - t0); if (js.length > 300) js.shift(); } });
+  const solo = kids ? Object.fromEntries(['food', 'slime', ...Object.values(LISTS)].filter(l => l !== 'me').map(l => [l, world[l]])) : null; // выбор дочки: на сцене только две дочки — чужое существо не попадает за дочку (холодный игрок видел амёбу на «Пучке жгутиков»)
+  if (solo) for (const l in solo) world[l] = [];
+  try { render(now / 1000, () => { if (!ended) { js.push(performance.now() - t0); if (js.length > 300) js.shift(); } }); } finally { if (solo) Object.assign(world, solo); }
   if (probe.frames % 60 === 0) knowGenes();
   probe.frames++; probe.cells = world.me.length;
   probe.js = js.reduce((s, v) => s + v, 0) / Math.max(js.length, 1); probe.jsWorst = Math.max(0, ...js.slice(5)); probe.path = Math.max(probe.path || 0, world.stats.path);
