@@ -13,6 +13,7 @@ import { Bodies } from './body3d.js';
 import { genomeScreen } from './genome.js';
 import { mark, message } from './feedback.js';
 import { almanahScreen } from './almanah.js';
+import * as karta from './karta.js';
 
 const cfg = await (await fetch('data.json')).json();
 const cards = await (await fetch('cards.json')).json();
@@ -283,9 +284,82 @@ let toastT = 0;
 // Пауза с геномом: мир замирает, твоя клетка крупно в середине кольца ДНК.
 let paused = false;
 const genome = genomeScreen({ G: genomeData, cfg, world: () => world, icon: g => icon(g),
-  onOpen: () => { paused = true; document.body.classList.add('paused'); pad.end(0); down = null; finger = null; },
-  onClose: () => { paused = false; document.body.classList.remove('paused'); },
-  onCabinet: () => $('cab').onclick(), onSend: () => send(), onDraw: () => showMarks() });
+  onOpen: () => { paused = true; document.body.classList.add('paused'); pad.end(0); down = null; finger = null; openTab(); },
+  onClose: () => { paused = false; document.body.classList.remove('paused'); leaveTabs(); },
+  onCabinet: () => tab('alm'), onSend: () => send(), onDraw: () => showMarks() });
+
+// Пауза с вкладками (книга, Э17): Геном · Карта · Альманах, внизу одна «Плыть». Открывается та, с которой ушёл;
+// в самый первый раз — Геном (карта ещё пуста), после первой гибели — Карта.
+let KARTA = { seen: [], marks: [] };
+try { KARTA = { ...KARTA, ...JSON.parse(localStorage.getItem('zaplyv.karta') || '{}') }; } catch (_) {}
+const saveKarta = () => { try { localStorage.setItem('zaplyv.karta', JSON.stringify(KARTA)); } catch (_) {} };
+const keepSeen = () => { const all = new Set([...KARTA.seen, ...world.seen]); KARTA.seen = [...all]; saveKarta(); }; // туман помнит все заплывы: слои пруда постоянны (К2)
+const addMark = m => { KARTA.marks.push({ ...m, run: world.seed }); KARTA.marks = KARTA.marks.slice(-60); saveKarta(); };
+let curTab = null, mapT = 0, mapHit = null, mapOpenedAt = 0;
+const mapIcons = {};
+const iconOf = who => { if (!mapIcons[who]) { const im = new Image(); im.src = who.startsWith('gene:') ? icon(who.slice(5)) : KAB.items[who] ? snap(who, KAB.items[who]) : ''; mapIcons[who] = im; } return mapIcons[who]; };
+function tab(t) {
+  curTab = t; try { localStorage.setItem('zaplyv.tab', t); } catch (_) {}
+  const G = $('genome'), C = $('cabinet');
+  G.classList.toggle('tab-map', t === 'map'); G.classList.toggle('tab-alm', t === 'alm');
+  for (const b of $('ptabs').children) { b.classList.toggle('on', b.dataset.t === t); b.setAttribute('aria-selected', b.dataset.t === t); }
+  $('map').hidden = t !== 'map'; $('mcard').hidden = true;
+  if (t === 'alm') { knowGenes(); kab.open(); C.classList.add('inpause'); const top = $('ptabs').getBoundingClientRect().bottom + 6, bot = innerHeight - $('gon').getBoundingClientRect().top + 8;
+    C.style.top = top + 'px'; C.style.bottom = bot + 'px'; } else if (C.classList.contains('inpause')) { kab.close(); C.classList.remove('inpause'); C.style.top = C.style.bottom = ''; }
+  if (t === 'map') { keepSeen(); mapOpenedAt = performance.now(); }
+}
+function openTab() { let t = null; try { t = localStorage.getItem('zaplyv.tab'); } catch (_) {} tab(t || (KARTA.marks.some(m => m.kind === 'death') ? 'map' : 'genome')); }
+function leaveTabs() { const C = $('cabinet'); if (C.classList.contains('inpause')) { kab.close(); C.classList.remove('inpause'); C.style.top = C.style.bottom = ''; } curTab = null; }
+for (const b of $('ptabs').children) b.onclick = () => tab(b.dataset.t);
+{ let sx = null; // смахивание влево-вправо — соседняя вкладка, вниз от шапки — «Плыть»
+  const order = ['genome', 'map', 'alm'];
+  $('genome').addEventListener('touchstart', e => { const t = e.touches[0]; sx = t.clientX > 28 ? [t.clientX, t.clientY, $('ptabs').getBoundingClientRect().bottom > t.clientY] : null; }, { passive: true });
+  $('genome').addEventListener('touchend', e => { if (!sx) return; const t = e.changedTouches[0], dx = t.clientX - sx[0], dy = t.clientY - sx[1];
+    if (Math.abs(dx) > 70 && Math.abs(dy) < 50) tab(order[(order.indexOf(curTab) + (dx < 0 ? 1 : 2)) % 3]);
+    else if (sx[2] && dy > 90 && Math.abs(dx) < 60) genome.close(); sx = null; }, { passive: true }); }
+// Метка-цель в заплыве: тонкая стрелка у края экрана в её сторону и расстояние; доплыл — гаснет сама.
+window.zaplyvKarta = { data: () => KARTA, hits: () => mapHit }; // для обхода касаниями (tools/web/zaplyv_tap.mjs)
+function goalArrow() {
+  const el = $('goal'), G = KARTA.goal;
+  if (!G || paused || ended || !world.me.length) { el.hidden = true; return; }
+  const c = world.center(), d = Math.hypot(G.x - c.x, G.y - c.y);
+  if (d < 260) { fx.ring(G.x, G.y, 0, 160); delete KARTA.goal; saveKarta(); el.hidden = true; return; }
+  const a = Math.atan2(G.y - c.y, G.x - c.x), R = Math.min(innerWidth, innerHeight) * 0.42;
+  el.hidden = false; el.style.transform = `translate(${innerWidth / 2 + Math.cos(a) * R}px, ${innerHeight / 2 + Math.sin(a) * R}px)`;
+  el.firstChild.style.transform = `rotate(${a}rad)`; el.lastChild.textContent = '≈' + (d / 26 / 1000).toFixed(1).replace('.', ',') + ' мм';
+}
+function drawMap() {
+  const cv = $('mcv'), box = $('mbox').getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+  if (cv.width !== Math.round(box.width * dpr) || cv.height !== Math.round(box.height * dpr)) { cv.width = Math.round(box.width * dpr); cv.height = Math.round(box.height * dpr); }
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const all = new Set([...KARTA.seen, ...world.seen]), last = KARTA.marks.length - 1, c = world.center(), t = (performance.now() - mapOpenedAt) / 1000;
+  const icons = {}; for (const m of KARTA.marks) icons[m.who] = iconOf(m.who);
+  const me = world.me.length ? c : null; if (!mapIcons.me) mapIcons.me = Object.assign(new Image(), { src: snap('me', KAB.items.me) });
+  const R = karta.draw(ctx, box.width, box.height, { P: cfg.pond, seen: all, marks: KARTA.marks, goal: KARTA.goal, me, icons, meImg: mapIcons.me, t, hot: t < 1.2 && last >= 0 ? karta.clusters(KARTA.marks, cfg.pond, karta.frame(cfg.pond, box.width, box.height)).findIndex(q => q.list.includes(KARTA.marks[last])) : -1 });
+  mapHit = R.C;
+  $('mhead').textContent = (me ? 'Ты в слое «' + { film: 'плёнка', light: 'светлая толща', oxy: 'граница кислорода', silt: 'ил' }[world.layer(c.y)] + '» · ' : '') + karta.count(cfg.pond, all);
+}
+$('mcv').addEventListener('click', e => { // касание отметки — карточка места
+  const r = $('mcv').getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, card = $('mcard');
+  const c = (mapHit || []).find(q => Math.hypot(q.x - x, q.y - y) < 22);
+  if (!c) { card.hidden = true; return; }
+  const m = c.list[c.list.length - 1], gene = m.who.startsWith('gene:'), t = gene ? null : TEKSTY[m.who] || {};
+  const g = gene ? Object.values(GENY.geny).find(q => q.klyuch === m.who.slice(5)) : null;
+  card.innerHTML = ''; card.style.borderColor = gene ? 'rgba(90,230,150,0.5)' : '';
+  const im = new Image(); im.src = iconOf(m.who).src; im.alt = ''; card.appendChild(im);
+  const h = document.createElement('h3'); h.textContent = gene ? (g ? g.imya : m.who) : (t.imya || m.who); card.appendChild(h);
+  const p1 = document.createElement('p'); p1.textContent = gene ? 'Здесь ты нашёл чужой ген' + (c.list.length > 1 ? ' · ' + c.list.length + ' раза' : '') : 'Здесь ты погиб' + (c.list.length > 1 ? ' · ' + c.list.length + ' раза' : ''); card.appendChild(p1);
+  const p2 = document.createElement('p'); p2.textContent = gene ? (g ? g.daet : '') : (t.sovet || ''); card.appendChild(p2);
+  const go = document.createElement('button'); go.id = 'mgoal'; go.className = 'ghost'; go.textContent = 'Запомнить это место'; // метка-цель (Э20): стрелка у края экрана в заплыве
+  go.onclick = ev => { ev.stopPropagation(); KARTA.goal = { x: m.x, y: m.y }; saveKarta(); go.textContent = 'Запомнено · стрелка покажет путь'; go.disabled = true; };
+  if (KARTA.goal && c.list.some(q => q.x === KARTA.goal.x && q.y === KARTA.goal.y)) { go.textContent = 'Это место — твоя цель'; go.disabled = true; }
+  card.appendChild(go);
+  if (world.me.length) { const w0 = world.center(), dx = m.x - w0.x, dy = m.y - w0.y, sec = Math.hypot(dx, dy) / cfg.speed; // куда плыть, а не только в каком слое
+    const wy = Math.abs(dy) > 400 ? (dy > 0 ? 'вниз' : 'вверх') : '', wx = Math.abs(dx) > 400 ? (dx > 0 ? 'вправо' : 'влево') : '';
+    const p4 = document.createElement('p'); p4.className = 'mway'; p4.textContent = !wy && !wx ? 'Ты рядом с этим местом' : 'Плыть ' + [wy, wx].filter(Boolean).join(' и ') + ', ' + (sec < 20 ? 'несколько секунд' : sec < 45 ? 'примерно полминуты' : sec < 90 ? 'около минуты' : 'около ' + Math.round(sec / 60) + ' минут');
+    card.insertBefore(p4, go); }
+  card.hidden = false;
+});
 // «Не так»: одно касание — отметка с моментом игры. Копятся здесь, «Отправить» — меню «Поделиться» телефона.
 let marks = [];
 try { marks = JSON.parse(localStorage.getItem('zaplyv.marks') || '[]'); } catch (_) {}
@@ -387,7 +461,7 @@ function events() {
     fx.on(k, x, y, size, y2); // вид — fx.js, здесь звук и подписи
     if (k === 'spore') { beep(200, 0.6, 0.06, 'sine', 0.5); say('Уснула! Спящую не берут — переждёшь беду', 2600); }
     if (k === 'sprout') { beep(520, 0.3, 0.05, 'sine', 2); }
-    if (k === 'gene') { beep(780, 0.3, 0.05, 'sine', 1.6); say('Ген от сородича: ' + cfg.genes[size][0] + ' — ' + cfg.genes[size][1], 2600, size); } // конъюгация
+    if (k === 'gene') { beep(780, 0.3, 0.05, 'sine', 1.6); say('Ген от сородича: ' + cfg.genes[size][0] + ' — ' + cfg.genes[size][1], 2600, size); addMark({ kind: 'gene', x, y, who: 'gene:' + size }); } // конъюгация
     if (k === 'zap') { beep(1500, 0.05, 0.05, 'square', 0.4); } // выстрел гарпуна синегнойки
     if (k === 'grab') { beep(240, 0.2, 0.05, 'sawtooth', 1.6); tell('grab', 'Схватили! Резко развернись — вырвешься'); }
     if (k === 'bore') { beep(180, 0.3, 0.05, 'sawtooth', 0.7); tell('bdello', 'Прилип хищник! Резко развернись — стряхнёшь'); } // запятая вбуравливается
@@ -418,6 +492,7 @@ function tick(dt) {
     if (!ended) {
       ended = true;
       const kk = world.stats.killer, k = cards[kk] || cards.me, t = TEKSTY[kk] || {}; // кто убил — словами книги и его моделью (урок L022)
+      if (world.stats.where && kk) addMark({ kind: 'death', x: world.stats.where[0], y: world.stats.where[1], who: kk }); keepSeen(); // отметка на карте: где погиб и кто убил (Э19)
       $('who').textContent = t.ubil || k.who; $('cname').textContent = t.imya || k.name; $('ctext').textContent = t.kto || k.text;
       $('cfact').textContent = t.priroda || k.fact; $('ctip').textContent = t.sovet || k.tip || '';
       $('ckill').src = KAB.items[kk] ? snap(kk, KAB.items[kk]) : ''; $('ckill').hidden = !KAB.items[kk];
@@ -731,7 +806,7 @@ function frame(now) {
   last = now;
   const t0 = performance.now();
   if (!ended && !paused) tick(dt);
-  if (paused && world.me.length) { // клетка — в середину кольца, крупно
+  if (paused && world.me.length && curTab === 'genome' && genome.inner() > 0) { // клетка — в середину кольца, крупно (только на вкладке «Геном»: на других кольцо спрятано)
     const c = world.me.reduce((b, a) => a.m > b.m ? a : b), [fx, fy] = genome.center(), k = Math.min(1, dt * 4);
     const z = cfg.genome_zoom * genome.inner() * W / innerWidth / (25 * Math.pow(c.m, 0.3)); // полклетки ≈ 25·m^0.3 единиц мира
     view.z += (z - view.z) * k;
@@ -742,9 +817,11 @@ function frame(now) {
   shake = Math.max(0, shake - dt * 0.9);
   sway = [Math.sin(now / 1000 * 5) * 6 * shake, Math.sin(now / 1000 * 3.7 + 1) * 4 * shake];
   // Экран гибели или кабинет закрыли мир: кадр не перерисовываем (раньше мир под ними рисовался дальше, и в WebKit без видеокарты кадр рос с 27 до 50 мс).
+  if (paused && curTab === 'map') { goalArrow(); drawMap(); probe.frames++; probe.covered = true; requestAnimationFrame(frame); return; } // карта закрывает мир: рисуем только её
   const covered = $('end').classList.contains('on') || $('cabinet').classList.contains('on');
   probe.covered = covered;
   if (covered) { probe.frames++; requestAnimationFrame(frame); return; }
+  goalArrow();
   render(now / 1000, () => { if (!ended) { js.push(performance.now() - t0); if (js.length > 300) js.shift(); } });
   if (probe.frames % 60 === 0) knowGenes();
   probe.frames++; probe.cells = world.me.length;
