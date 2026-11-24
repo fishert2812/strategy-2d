@@ -733,5 +733,16 @@ check('test_L030: запятая сначала целится zone.lead сек�
   if (!bounced) return 'запятая без прицела вцепилась';
 });
 
+check('test_L030: охотящаяся амёба видна зоной захвата раньше, чем схватит', () => {
+  const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; w.stats.gen = 0; return w; };
+  const leads = [];
+  for (let s = 1; s <= 4; s++) { const w = bare(300 + s), a = w.me[0]; w.amoebas = [{ x: a.x + 160, y: a.y + s * 10, vx: 0, vy: 0, m: 6, id: 9 }]; let first = null;
+    for (let i = 0; i < 30 * 60 && w.me.includes(a); i++) { const v = w.warning(); if (v && v.zone[3] === 'amoeba') { if (first === null) first = w.stats.time; } else first = null; w.step(1 / 30, null); a.vx = a.vy = 0; }
+    if (!w.me.includes(a)) leads.push(first === null ? 0 : w.stats.time - first); }
+  console.log('    паспорт: зона амёбы видна до захвата, с —', leads.map(x => x.toFixed(1)).join(' '));
+  if (!leads.length) return 'амёба так и не схватила за 60 с';
+  if (leads.some(x => x < cfg.zone.lead * 0.9)) return 'захват без признака за zone.lead: ' + leads.map(x => x.toFixed(1)).join(', ');
+});
+
 console.log(bad ? 'ЗАПЛЫВ: провалов ' + bad : 'ЗАПЛЫВ: все проверки прошли');
 process.exit(bad ? 1 : 0);
