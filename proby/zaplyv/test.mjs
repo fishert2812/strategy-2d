@@ -382,6 +382,15 @@ check('синегнойка сама не нападает; врежешься �
   if (bd.bdellos.length) return 'запятая не погибла о синегнойку';
 });
 
+check('при мутации — две дочки с разными мутациями, выбранная мутация остаётся у клона', () => {
+  const w = new World(cfg, 5); w.me[0].m = 2.1; w.divide();
+  const [a, b] = w.choice; w.pick(b);
+  console.log('    паспорт: дочки', a, '/', b, '| выбрана', b, '| гены', Object.keys(w.genes).join());
+  if (w.choice.length) return 'выбор не закрылся';
+  if (!a || !b || a === b) return 'нет двух разных дочек';
+  if (!w.genes[b] || w.genes[a]) return 'у клона не та мутация';
+});
+
 check('мир без краёв: уплыл далеко — вокруг снова еда, позади забыто', () => {
   const w = new World(cfg, 11);
   w.genes.capsule = w.genes.crispr = true;

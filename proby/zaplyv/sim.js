@@ -129,7 +129,7 @@ export class World {
       this.steps.shift();
       const left = Object.keys(this.cfg.genes).filter(g => !this.genes[g]);
       for (let i = left.length - 1; i > 0; i--) { const j = Math.floor(this.r() * (i + 1)); [left[i], left[j]] = [left[j], left[i]]; }
-      this.choice = left.slice(0, 3);
+      this.choice = left.slice(0, 2); // две дочки — у каждой своя мутация
     }
     return born.length;
   }
