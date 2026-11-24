@@ -7,8 +7,12 @@ signal changed(what: String, data: Dictionary)
 const PLAYER := 0
 const ENEMY := 1
 const DATA := "res://data/game.json"
+const MODES := "res://data/modes.json"
+## Вариант партии, выбранный в меню (data/modes.json).
+static var chosen := "rout"
 
 var cfg: Dictionary
+var mode: Dictionary
 var time := 0.0
 var gold := [0, 0]
 var winner := -1
@@ -24,6 +28,7 @@ var _next_id := 1
 func _init(overrides := {}) -> void:
 	cfg = JSON.parse_string(FileAccess.get_file_as_string(DATA))
 	cfg.merge(overrides, true)
+	mode = JSON.parse_string(FileAccess.get_file_as_string(MODES))[cfg.get("mode", chosen)]
 	gold = [cfg.start_gold, cfg.start_gold]
 	whistle = cfg.whistle.every
 	for side in [PLAYER, ENEMY]:
@@ -269,7 +274,10 @@ func _warrior(u: Dictionary, dt: float) -> void:
 		_march(u, route, w.speed * dt)
 	else:
 		u.go = false
-		_walk(u, u.home.pos + u.post, w.speed * dt)
+		# Шах: кружку бьют — ждущие свистка бегут к ней и дерутся с теми, кто рядом.
+		var mug := of_side(u.side, "home")
+		var alarm: bool = not mug.is_empty() and mug[0].get("alarm", -1.0) > time
+		_walk(u, mug[0].pos + u.post if alarm else u.home.pos + u.post, w.speed * dt)
 
 
 func _march(u: Dictionary, route: Array, dist: float) -> void:
@@ -297,6 +305,10 @@ func _hit(u: Dictionary, x: Dictionary) -> void:
 	u.cd = cfg.warrior.hit_every
 	changed.emit("hit", {"side": u.side, "pos": x.pos, "id": x.id, "by": u.id, "max_hp": x.get("max_hp", 0)})
 	if x.has("max_hp"):
+		if x.kind == "home" and mode.alarm > 0:
+			if x.get("alarm", -1.0) <= time:
+				changed.emit("check", x)
+			x.alarm = time + mode.alarm
 		damage(x, cfg.warrior.siege)
 		return
 	_wound(x, cfg.warrior.damage, u)
@@ -376,7 +388,7 @@ func damage(b: Dictionary, amount: float) -> void:
 		changed.emit("gold", {"side": 1 - b.side, "amount": loot, "pos": b.pos})
 	_next_target(b)
 	for side in [PLAYER, ENEMY]:
-		if of_side(side).is_empty() and winner == -1:
+		if (of_side(side).is_empty() or (mode.win == "home" and of_side(side, "home").is_empty())) and winner == -1:
 			winner = 1 - side
 			changed.emit("ended", {"winner": winner})
 

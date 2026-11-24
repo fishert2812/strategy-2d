@@ -78,7 +78,7 @@ func flag(sim: Sim, pos: Variant) -> Dictionary:
 
 ## Числа партии, по которым ставится звание.
 func stats(sim: Sim) -> Dictionary:
-	return {"won": int(sim.winner == Sim.PLAYER), "lost_buildings": destroyed[0], "actions": built[0] + redraws,
+	return {"won": int(sim.winner == Sim.PLAYER), "mate_left": sim.of_side(Sim.ENEMY).size() if sim.winner == Sim.PLAYER and sim.mode.win == "home" else -1, "lost_buildings": destroyed[0], "actions": built[0] + redraws,
 		"intrude_t": intrude_t, "first_barracks": first_barracks, "threads": threads, "off_home": off_home,
 		"towers": towers, "carriers_killed": carriers[1], "trap": carriers[1] / maxf(1, lost[1]),
 		"hungry": hungry, "sleepy": sleepy.values().max() if sleepy else 0.0, "rich_share": minf(1, rich / maxf(1, sim.time))}
@@ -98,7 +98,7 @@ func times() -> String: return ", ".join(flags.map(func(f): return _clock(f.t)))
 
 ## Сводка для заявки человеческими словами. Короткая, чтобы влезла в адрес.
 func summary(sim: Sim) -> String:
-	var out := ["Партия %s, %s. Флажков: %d. Звание: %s." % [_clock(sim.time), ["ещё шла", "победа", "поражение"][sim.winner + 1], flags.size(), title(sim).name]]
+	var out := ["Партия %s («%s»), %s. Флажков: %d. Звание: %s." % [_clock(sim.time), sim.mode.title, ["ещё шла", "победа", "поражение"][sim.winner + 1], flags.size(), title(sim).name]]
 	for f in flags.slice(0, 8):  # больше восьми строк не влезет в адрес заявки
 		out.append("- %s %s: крошки %d, построек %d, без дела %d%s" % [_clock(f.t), f.where, f.gold, f.mine, f.idle, f.near])
 	if flags.size() > 8: out.append("- и ещё флажки: " + ", ".join(flags.slice(8).map(func(f): return _clock(f.t))))
