@@ -226,12 +226,18 @@ function showMarks() {
   $('esend').style.display = n ? '' : 'none'; $('esend').textContent = label;
   const g = $('gsend'); if (g) { g.style.display = n ? '' : 'none'; g.textContent = `Отправить · ${n}`; }
 }
-function flag(screen) {
+// Отклик на касание флажка виден на любом экране: флажок вспыхивает, рядом своя надпись поверх всех слоёв (урок L017).
+let noteT = 0;
+function flag(screen, btn) {
   const now = new Date(), at = `${now.getDate()}.${String(now.getMonth() + 1).padStart(2, '0')} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
-  marks.push({ at, text: mark(world, cards, $('ver').textContent.replace('Заплыв ', ''), screen, cfg.flag_r, { x: view.x, y: view.y }) });
+  let text; try { text = mark(world, cards, $('ver').textContent.replace('Заплыв ', ''), screen, cfg.flag_r, { x: view.x, y: view.y }); } catch (e) { text = $('ver').textContent + ' · ' + screen + ' · (подробности не собрались: ' + e.message + ')'; }
+  marks.push({ at, text });
   try { localStorage.setItem('zaplyv.marks', JSON.stringify(marks)); } catch (_) {}
-  showMarks(); beep(880, 0.08, 0.04, 'sine', 0.8);
-  say(`Отметка ${marks.length} записана` + (screen === 'игра' ? ' · отправить — на паузе' : ''), 1800);
+  showMarks();
+  const n = $('note'); n.textContent = `⚑ Отметка ${marks.length} записана` + (screen === 'игра' ? ' · отправить — на паузе' : ''); n.classList.add('on');
+  clearTimeout(noteT); noteT = setTimeout(() => n.classList.remove('on'), 2200);
+  if (btn) { btn.classList.remove('hit'); void btn.offsetWidth; btn.classList.add('hit'); }
+  try { beep(880, 0.08, 0.04, 'sine', 0.8); } catch (_) {}
 }
 async function send() {
   const text = message(marks);
@@ -240,11 +246,11 @@ async function send() {
     else { await navigator.clipboard.writeText(text); say('Скопировано — вставь в чат', 2200); }
     marks = []; try { localStorage.removeItem('zaplyv.marks'); } catch (_) {}
     showMarks();
-  } catch (_) { /* отменил отправку — отметки остаются */ }
+  } catch (e) { if (e?.name !== 'AbortError') say('Не отправилось — отметки целы, попробуй ещё', 2200); } /* отменил отправку — отметки остаются */
 }
-$('flag').onclick = () => flag('игра');
-$('gflag').onclick = $('gno').onclick = () => flag('геном');
-$('eno').onclick = () => flag('экран гибели');
+$('flag').onclick = e => flag('игра', e.currentTarget);
+$('gflag').onclick = $('gno').onclick = e => flag('геном', e.currentTarget);
+$('eno').onclick = e => flag('экран гибели', e.currentTarget);
 $('esend').onclick = send;
 showMarks();
 function meet(k) { // первая встреча: на секунду имя у края экрана, без паузы и без нажатий
