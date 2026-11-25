@@ -14,6 +14,10 @@ case_() {
   local name=$1 step=$2 want=$3; shift 3
   (cd "$WT" && git reset -q --hard HEAD && git clean -qfd && eval "$*" &&
    git -c user.name=selftest -c user.email=selftest@local commit -qam selftest --allow-empty >/dev/null)
+  # поломка, которая не изменила ни одного файла (код ушёл из-под sed), ничего не проверяет: это провал самопроверки, а не «зелёный сторож»
+  if [ "$want" = red ] && [ -z "$(cd "$WT" && git diff --name-only origin/selftest-base HEAD)" ]; then
+    echo "  SELFTEST: $name — поломка не легла (sed не нашёл код), сторож не проверен"; fail=1
+    (cd "$WT" && git reset -q --hard origin/selftest-base); return; fi
   (cd "$WT" && BASE_REF=selftest-base bash "$ROOT/tools/checks/$step" >/dev/null 2>&1); rc=$?
   (cd "$WT" && git reset -q --hard selftest-base 2>/dev/null || git reset -q --hard origin/selftest-base)
   got=green; [ $rc -ne 0 ] && got=red
@@ -32,6 +36,7 @@ case_ "доказывает несуществующий тест" 26_meaning.sh
 case_ "исправная новая версия" 26_meaning.sh green "$BUMP"' && sed -i "0,/^- \*\*/s//- **$m** (проба, PR #0): проба. Зачем игроку: проба. Доказывает: \`test_selftest_probe\`.\n&/" CHANGELOG.md && printf "extends RefCounted\nfunc test_selftest_probe() -> String:\n\treturn \"\"\n" > tests/test_selftest_probe.gd && git add -A'
 # «Заплыв»: на каждый урок L008–L016 возвращаем ошибку в игру — проверка с этим номером обязана покраснеть (ONLY — только она).
 Z=proby/zaplyv
+case_ "test.mjs: проверка выпала из деления на части" 50_zaplyv.sh red "sed -i \"s/|| 'c';/|| 'x';/\" $Z/test.mjs"
 ONLY=L008 case_ "test_L008: фаг снова гонится" 50_zaplyv.sh red "sed -i 's/(fx - g.vx)/(fx + (this.me[0] ? Math.sign(this.me[0].x - g.x) * 300 : 0) - g.vx)/' $Z/sim.js"
 ONLY=L009 case_ "test_L009: деление только касанием" 50_zaplyv.sh red "sed -i 's/\"auto_split\": 3,/\"auto_split\": 999,/' $Z/data.json"
 ONLY=L010 case_ "test_L010: еда без размера" 50_zaplyv.sh red "sed -i 's/const z = f.s || 1;/const z = 1;/' $Z/sim.js"
@@ -40,18 +45,20 @@ ONLY=L030 case_ "test_L030: запятая кусает без прицела" 5
 ONLY=L030 case_ "test_L030: признак воронки в последний миг" 50_zaplyv.sh red "sed -i 's/\"lead\": 1.5,/\"lead\": 0.01,/' $Z/data.json"
 ONLY=L012 case_ "test_L012: потолок мутаций" 50_zaplyv.sh red "sed -i 's/\"gene_every\": 5/\"gene_every\": 999/' $Z/data.json"
 ONLY=L013 case_ "test_L013: опасность у самого старта" 50_zaplyv.sh red "sed -i 's/const safe = far < c.safe_chunks;/const safe = false;/' $Z/sim.js"
-ONLY=L014 case_ "test_L014: запятая не рождается в мире" 50_zaplyv.sh red "sed -i 's/ this.bdellos.push({ ...pt()/ 0 \&\& this.bdellos.push({ ...pt()/' $Z/sim.js"
-ONLY=L016 case_ "test_L016: токсин снова бьёт не родню" 50_zaplyv.sh red "sed -i 's/if (q.strain \&\& !q.gone/if (!q.gone/' $Z/sim.js"
+ONLY=L014 case_ "test_L014: запятая не рождается в мире" 50_zaplyv.sh red "sed -i 's/ this\.bdellos\.push(/ 0 \&\& this.bdellos.push(/g' $Z/sim.js"
+ONLY=L016 case_ "test_L016: токсин снова бьёт не родню" 50_zaplyv.sh red "sed -i 's/dv.anketa(dv.klyuch(q)).rodnya \&\& !q.gone/!q.gone/' $Z/sim.js"
 ONLY=L019 case_ "test_L019: существо без места в Альманахе" 50_zaplyv.sh red "python3 -c \"import json;p='$Z/almanah.json';d=json.load(open(p));d['items'].pop('amoeba');json.dump(d,open(p,'w'))\""
 case_ "test_L017: невидимый слой поверх кнопок «Заплыва»" 52_zaplyv_tap.sh red "sed -i 's|<div id=\"note\"|<div style=\"position:fixed;inset:0;z-index:99\"></div>&|' proby/zaplyv/index.html"
 case_ "test_L017: флажок молчит после касания" 52_zaplyv_tap.sh red "sed -i 's|n.classList.add(.on.);|/* нет отклика */|' proby/zaplyv/main.js"
 ONLY=L043 case_ "test_L043: опасный встречается молча" 52_zaplyv_tap.sh red "sed -i \"s/if (fresh || t.otnoshenie === 'opasen') say/if (fresh) say/\" $Z/main.js"
-ONLY=L057 case_ "test_L057: слой свечения снова мал для колонии, крошки пропадают" 52_zaplyv_tap.sh red "sed -i 's/\"dots\": { \"glow\": 24000, \"ink\": 12000 }/\"dots\": { \"glow\": 3000, \"ink\": 3000 }/' $Z/data.json"
+ONLY=L062 case_ "test_L062: слой свечения снова мал для колонии, крошки пропадают" 52_zaplyv_tap.sh red "sed -i 's/\"dots\": { \"glow\": 24000, \"ink\": 12000 }/\"dots\": { \"glow\": 3000, \"ink\": 3000 }/' $Z/data.json"
 ONLY=L046 case_ "test_L046: слизь снова мутной пеленой" 52_zaplyv_tap.sh red "sed -i 's/\"core\": 0.55, \"core_a\": 0.02/\"core\": 1.2, \"core_a\": 0.06/' $Z/data.json"
 ONLY=L053 case_ "test_L053: выбор навыка снова останавливает мир" 52_zaplyv_tap.sh red "sed -i 's/    if (!this.me.length) return; \/\/ выбор навыка/    if (this.choice.length || !this.me.length) return; \/\/ выбор навыка/' $Z/sim.js"
+ONLY=L042 case_ "test_L042: вирус сел молча" 52_zaplyv_tap.sh red "sed -i \"s/tell('stick', 'Сел вирус! Резко развернись — стряхнёшь, пока не впрыснул')/0/\" $Z/main.js"
+ONLY=L053 case_ "test_L053: свайп с полосы снова берёт навык" 52_zaplyv_tap.sh red "sed -i 's/if (oswipe) return; //' $Z/main.js"
 ONLY=L042 case_ "test_L042: вирус сел молча" 52_zaplyv_tap.sh red "sed -i \"s/tell('stick', 'Сел вирус! Резко развернись — стряхнёшь, пока не впрыснул');//\" $Z/main.js"
 ONLY=L044 case_ "test_L044: Альманах молчит, что цвета — метки" 52_zaplyv_tap.sh red "sed -i 's/\$(.knote.).hidden = !S.note;/\$(\"knote\").hidden = true;/' $Z/almanah.js"
-ONLY=L050 case_ "test_L050: деление снова рывком (vid.birth не вызван)" 52_zaplyv_tap.sh red "sed -i 's/vid.birth(a, time, world.me)/({ d: [0, 0], pinch: 0 })/' $Z/main.js"
+ONLY=L050 case_ "test_L050: деление снова рывком (vid.birth не вызван)" 52_zaplyv_tap.sh red "sed -i 's/vid.birth(a, time, world.me,/(() => ({ d: [0, 0], pinch: 0 }))(a, time, world.me,/' $Z/main.js"
 ONLY=L045 case_ "test_L045: вирус снова слетает от любого поворота" 50_zaplyv.sh red "sed -i 's/ \&\& c.inject - g.t < c.phage_shake//' $Z/sim.js"
 ONLY=L052 case_ "test_L052: кадр снова не в полную плотность" 52_zaplyv_tap.sh red "sed -i 's/\"dpr_full\": 3,/\"dpr_full\": 2.5,/' $Z/data.json"
 ONLY=L021 case_ "test_L021: значки генов пропали" 52_zaplyv_tap.sh red "sed -i 's/^function icon(g) {/function icon(g) { return String();/' $Z/main.js"
@@ -61,13 +68,14 @@ case_ "test_L036: ночь пересоздаёт холст каждый кад
 case_ "test_L038: кадр в двойной плотности на экране тройной" 52_zaplyv_tap.sh red "sed -i 's/\"dpr_max\": 2.5/\"dpr_max\": 2/' $Z/data.json"
 case_ "test_L039: сестра за кадром без стрелки" 52_zaplyv_tap.sh red "sed -i 's/if (on(x, y, -8)) continue; const bad/continue; const bad/' $Z/main.js"
 case_ "test_L040: полоса роста стоит на месте" 52_zaplyv_tap.sh red "sed -i 's/(top.m - sp \/ 2) \/ (sp \/ 2)/1/' $Z/main.js"
+ONLY=L041 case_ "test_L041: клетка снова проходит сквозь кокка" 50_zaplyv.sh red "sed -i 's/ q.x += (q.x - a.x) \* k; q.y += (q.y - a.y) \* k;//' $Z/sim.js"
 case_ "test_L031: лист гибели помнит прокрутку" 52_zaplyv_tap.sh red "sed -i 's/\$(.end.).scrollTop = 0; //' $Z/main.js"
 case_ "test_L025: кнопки гибели ниже края экрана" 52_zaplyv_tap.sh red "sed -i 's/flex-shrink: 0; position: sticky;/flex-shrink: 0;/' $Z/index.html"
 # L018 (расширен) и L024 «антибред»: черновая строка умения мимо книги, описание в data.json, слово мира без имени из Альманаха, умение без теста-обещания — красное.
 case_ "test_L018: выбор дочки снова с черновой строкой" 52_zaplyv_tap.sh red "sed -i \"s/b.children\[2\].textContent = mut.daet(world, g, geneBook(g));/b.children[2].textContent = 'отпустил палец у водоросли';/\" $Z/main.js"
 ONLY=L018 case_ "test_L018: описание умения снова в data.json" 50_zaplyv.sh red "sed -i 's/\"fim\": \"fimH\"/\"fim\": \"отпустил палец у водоросли\"/' $Z/data.json"
 ONLY=L024 case_ "test_L024: «водоросль» вместо имени из Альманаха" 50_zaplyv.sh red "sed -i 's/Отпусти палец у зелёной нити/Отпусти палец у водоросли/' $Z/kniga/teksty_genov.json"
-ONLY=L024 case_ "test_L024: умение дочке до встречи" 50_zaplyv.sh red "sed -i 's/return !this.genes\[g\] \&\& (this.posle/return !this.genes[g] || (this.posle/' $Z/sim.js"
+ONLY=L024 case_ "test_L024: умение дочке до встречи" 50_zaplyv.sh red "sed -i 's/(this\.posle\[g\] || \[\])\.every(/[].every(/' $Z/sim.js"
 ONLY=L024 case_ "test_L024: умение без теста-обещания" 50_zaplyv.sh red "sed -i 's/сон-персистер \[spore\]/сон-персистер/' $Z/test.mjs"
 # L032: амёба снова ждёт у спящей — проснувшуюся съедает
 ONLY=L032 case_ "test_L032: спора просыпается у амёбы" 50_zaplyv.sh red "sed -i 's/if (a \&\& a.spore > 0) { const d/if (false) { const d/; s/if (!this.amoebas.some(m => dist(m, a) < radius(m.m) + c.spore_safe)/if (true/' $Z/sim.js"
@@ -83,11 +91,15 @@ ONLY=L054 case_ "test_L054: выводок без предела" 50_zaplyv.sh r
 ONLY=L054 case_ "test_L054: гнездо без передышки" 50_zaplyv.sh red "sed -i 's/if (prey \\&\\& !calm \\&\\& r()/if (prey \\&\\& r()/' $Z/sim.js"
 # L047: след за клеткой снова бусами
 ONLY=L047 case_ "test_L047: след бусами" 53_zaplyv_vid.sh red "sed -i 's/wake.put(x, y, (5 + 9 \\* p.t)/wake.put(x, y, (1.1 + 9 * p.t)/' $Z/main.js"
+# L057: колония снова делится рывком, проходит сквозь себя и расплывается
+ONLY=L057 case_ "test_L057: само-деление разом" 50_zaplyv.sh red "sed -i 's/this.divide(this.me.length >= c.auto_max, true)/this.divide(this.me.length >= c.auto_max)/' $Z/sim.js"
+ONLY=L057 case_ "test_L057: толчок кружками" 50_zaplyv.sh red "sed -i 's/const \\[dx, dy, d, rr\\] = this.rodGap(a, o);/const dx = a.x - o.x, dy = a.y - o.y, d = len(dx, dy), rr = radius(a.m) + radius(o.m);/' $Z/sim.js"
+ONLY=L057 case_ "test_L057: без тяги к своим" 50_zaplyv.sh red "sed -i 's/if (d > K.r) {/if (false) {/' $Z/sim.js"
 # L055: деление снова с толчком и с выдуманной перетяжкой
 ONLY=L055 case_ "test_L055: дочка с толчком" 53_zaplyv_vid.sh red "sed -i 's/vx: c.vx, vy: c.vy,/vx: c.vx - ax * 60, vy: c.vy - ay * 60,/' $Z/sim.js"
 ONLY=L055 case_ "test_L055: палочка толстеет, а не длиннеет" 53_zaplyv_vid.sh red "sed -i 's/half: D.half0 \\* 2 \\* fm/half: D.half0 * (1 + fm)/' $Z/vid.js"
 # L051: дочки снова складываются бок о бок
-ONLY=L051 case_ "test_L051: сёстры дрейфуют врозь" 50_zaplyv.sh red "sed -i 's/ kid.drift = c.drift;//' $Z/sim.js"
+ONLY=L051 case_ "test_L051: дочки снова на месте матери" 50_zaplyv.sh red "sed -i 's/const D = this.cfg.split_apart \\* r \\/ 2;/const D = 0;/' $Z/sim.js"
 # L049: колония снова застревает на четырёх
 ONLY=L049 case_ "test_L049: само-деление снова отпускает дочек с четырёх" 50_zaplyv.sh red "sed -i 's/\"auto_max\": 10/\"auto_max\": 4/' $Z/data.json"
 case_ "test_L029: камера тянется к отставшим вдали" 52_zaplyv_tap.sh red "sed -i 's/const flock = live.filter(a => Math.hypot(a.x - lead.x, a.y - lead.y) < C.group)/const flock = world.me/' $Z/main.js"
