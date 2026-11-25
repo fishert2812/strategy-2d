@@ -10,7 +10,7 @@ const chast = (z, k) => ({ ...VC.chasti[k], ...(z.chasti?.[k] || {}) });
 // Настоящие величины одной записи (в толщинах эталона и условных единицах): из них складываются отношения.
 export function velichiny(z, k = ZK) { const O = os(z.forma?.tochki || iz_formy(z.forma?.tip || 'palochka', z.forma?.dlina || 2.14, 1, z.forma?.izgib || 0));
   const L = O.dlina, d = O.poperechnik, r = Math.cbrt(3 * O.obem / (4 * Math.PI)), zh = z.chasti?.zhgutiki ? chast(z, 'zhgutiki') : { n: 0 }, zl = zh.n ? (zh.dlina_tela ? zh.dlina_tela * L : zh.dlina) : 0;
-  const R = d * (0.8 + 0.2 * L / d), F = process.env?.ZAKONY_LOMAT ? 1 : Math.pow(zh.n, k.stepen_tyagi) * Math.pow(zl, k.stepen_dliny), v = F / R;
+  const R = d * (0.8 + 0.2 * L / d), vr = z.chasti?.vorsinki ? chast(z, 'vorsinki') : {}, F = process.env?.ZAKONY_LOMAT ? 1 : Math.pow(zh.n, k.stepen_tyagi) * Math.pow(zl, k.stepen_dliny) + (vr.grebut ? vr.n * vr.dlina * k.tyaga_resnichek : 0), v = F / R; // реснички (ворс с grebut) тоже гребут
   const sl = z.chasti?.obolochka ? chast(z, 'obolochka').sloi : [], stenka = sl.length ? 1 - Math.min(...sl.map(s => s.r)) : 0; // толщина стенки — свойство материала, с телом не растёт
   let chasti = 0; for (const [kl, [pole, cena]] of Object.entries(k.cena_chastey)) if (z.chasti?.[kl]) chasti += (chast(z, kl)[pole] || 0) * cena;
   const est_rot = !!z.zony?.rot, rot = est_rot ? dolya(z, 'rot') * O.obvod : 0;

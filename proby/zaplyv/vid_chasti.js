@@ -136,3 +136,11 @@ export function sluchaynaya(osnova, rnd, PR = VC.predely) {
   Object.assign(chasti, perekrasit(chasti, ton, nas, ton2, PR));
   return { forma: { tip: 'os', tochki }, chasti };
 }
+
+// Мутация: запись дочки = запись матери с малым сдвигом (sila — доля ширины предела). Меняется один случайный параметр одной части или толщина одной точки тела.
+export function mutaciya(zapis, rnd, sila = 0.15, PR = VC.predely) { const z = { ...zapis, forma: { ...zapis.forma, tochki: zapis.forma.tochki.map(q => [...q]) }, chasti: { ...zapis.chasti } };
+  const hody = [['telo']]; for (const [k, pr] of Object.entries(PR.chasti)) if (z.chasti[k]) for (const p of Object.keys(pr)) hody.push([k, p]);
+  const [k, p] = hody[Math.floor(rnd() * hody.length)], sdvig = (a, [ot, do_], cel) => { const v = Math.max(ot, Math.min(do_, a + (rnd() - 0.5) * 2 * sila * (do_ - ot))); return cel ? Math.round(v) : +v.toFixed(3); };
+  if (k === 'telo') { const i = Math.floor(rnd() * z.forma.tochki.length); z.forma.tochki[i][2] = sdvig(z.forma.tochki[i][2], PR.telo.tolshchina); }
+  else { const st = { ...VC.chasti[k], ...z.chasti[k] }, pr = PR.chasti[k][p]; z.chasti[k] = { ...z.chasti[k], [p]: sdvig(st[p] ?? pr[0], pr, p === 'n') }; }
+  return z; }

@@ -13,11 +13,15 @@ const krug = d => Math.abs(((d % TAU) + TAU + Math.PI) % TAU - Math.PI);
 // Все зоны записи: свои поверх общих. У любого тела есть «оболочка» — весь обвод.
 export const zony = zapis => { const Z = { obolochka: { ...D.obolochka } }; for (const [k, v] of Object.entries(zapis.zony || {})) Z[k] = { ...D[k], ...v }; return Z; };
 // Точки обвода с именами зон, в которые они попали. poza: { x, y, a, tolshchina } — где существо в мире. n — сколько точек.
-export function obvod_zon(zapis, poza, n = D.tochek) { const O = telo(zapis), Z = zony(zapis), w = poza.tolshchina, ux = Math.cos(poza.a), uy = Math.sin(poza.a), T = [];
-  for (let i = 0; i < n; i++) { const t = i / n * TAU, k = O.kray(t), imena = [];
-    for (const [imya, z] of Object.entries(Z)) { const c = centry(O, z.mesto); if (!c || c.some(q => krug(t - q) <= z.shirina * Math.PI)) imena.push(imya); }
-    T.push({ x: poza.x + (k.x * ux - k.y * uy) * w, y: poza.y + (k.x * uy + k.y * ux) * w, n: poza.a + k.n, zony: imena }); }
-  return { O, T, poza }; }
+// Тело записи не меняется, пока не поменяли запись: точки обвода с зонами считаются один раз (в единицах толщины), поза только сдвигает и крутит.
+const KESH = new WeakMap();
+function v_tele(zapis, n) { let k = KESH.get(zapis); if (k && k.n === n) return k; const O = telo(zapis), Z = zony(zapis), T = [];
+  for (let i = 0; i < n; i++) { const t = i / n * TAU, q = O.kray(t), imena = [];
+    for (const [imya, z] of Object.entries(Z)) { const c = centry(O, z.mesto); if (!c || c.some(m => krug(t - m) <= z.shirina * Math.PI)) imena.push(imya); }
+    T.push({ x: q.x, y: q.y, n: q.n, zony: imena }); }
+  k = { n, O, Z, T }; KESH.set(zapis, k); return k; }
+export function obvod_zon(zapis, poza, n = D.tochek) { const K = v_tele(zapis, n), w = poza.tolshchina, ux = Math.cos(poza.a), uy = Math.sin(poza.a);
+  return { O: K.O, Z: K.Z, poza, T: K.T.map(k => ({ x: poza.x + (k.x * ux - k.y * uy) * w, y: poza.y + (k.x * uy + k.y * ux) * w, n: poza.a + k.n, zony: k.zony })) }; }
 // Доля обвода, занятая зоной (для расчётов: чем шире рот, тем больше берёт).
 export const dolya = (zapis, imya) => { const R = obvod_zon(zapis, { x: 0, y: 0, a: 0, tolshchina: 1 }); return R.T.filter(p => p.zony.includes(imya)).length / R.T.length; };
 // Касание: какие зоны существа А вошли в тело Б (или подошли ближе зазора) и какой зоны Б там коснулись.
