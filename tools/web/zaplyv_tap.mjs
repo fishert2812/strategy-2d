@@ -323,6 +323,13 @@ if (await tap('#mscene [data-m=mut]', 'объект «Мутации»') && awai
   await p.evaluate(() => { const w = zaplyvWorld(); w.genes.memory = true; w.genes.crispr = true; }); await land(93); await p.waitForTimeout(1500); const t1 = await toast();
   await p.evaluate(() => { const w = zaplyvWorld(); w.genes.memory = false; w.genes.crispr = false; }); await land(94); await p.waitForFunction(() => [...document.querySelectorAll('#toast.on')].some(e => /Сел вирус/.test(e.textContent)), null, { timeout: 4000 }).catch(() => {}); const t2 = await toast();
   say(!/Сел вирус/.test(t1) && /Сел вирус/.test(t2), `с памятью о вирусах совета «Сел вирус! Резко развернись» нет, без памяти есть («${t1}» / «${t2}»)`); }
+// test_L047 (кольцо зоны, холодная приёмка: «пунктирная дуга из бусин на фоне»): в людном кадре у кисти хватает запаса — ни одна точка не выпала, кольца и нити не рвутся
+{ const lost = await p.evaluate(async () => { const w = zaplyvWorld(), a = w.me[0]; w.genes.spore = true;
+    for (let i = 0; i < 9; i++) w.me.push({ ...a, id: 600 + i, x: a.x + (i % 3) * 30, y: a.y + Math.floor(i / 3) * 30, vx: 0, vy: 0 });
+    for (let i = 0; i < 8; i++) { const t = i / 8 * 6.283; w.amoebas.push({ x: a.x + Math.cos(t) * 260, y: a.y + Math.sin(t) * 260, m: 6, hunt: true, id: 800 + i, vx: 0, vy: 0, a: 0 }); }
+    const l0 = zaplyvProbe.lost || 0, f0 = zaplyvProbe.frames; await new Promise(r => { const k = () => zaplyvProbe.frames >= f0 + 20 ? r() : requestAnimationFrame(k); k(); });
+    const l1 = zaplyvProbe.lost - l0; w.amoebas.length = 0; w.me.length = 1; return l1; });
+  say(lost === 0, 'test_L047: людный кадр (10 клеток, 8 амёб с кольцами) — точек кисти выпало ' + lost); }
 say(!errs.length, 'ошибок страницы нет' + (errs.length ? ': ' + errs.join('; ') : ''));
 await b.close();
 console.log(bad ? `КАСАНИЯ: провалов ${bad}` : 'КАСАНИЯ: все кнопки отвечают пальцу');
