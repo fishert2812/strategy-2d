@@ -600,11 +600,10 @@ $('gflag').onclick = e => flag('геном', e.currentTarget);
 $('eno').onclick = e => flag('экран гибели', e.currentTarget);
 $('esend').onclick = openMarks;
 showMarks();
-function meet(k) { // первая встреча: на секунду имя у края экрана, без паузы и без нажатий
-  if (met.has(k) || !cards[k]) return;
-  met.add(k); saveMet(); cabLabel();
-  say('Новая запись в Альманахе · ' + (TEKSTY[k]?.imya || cards[k].name), 1600);
-  beep(990, 0.12, 0.03, 'sine', 1.3);
+function meet(k) { // первая встреча в заплыве: имя и что делать (книга, «значит»), у опасных — в каждом заплыве, а не только в первый раз (L043)
+  const t = TEKSTY[k] || {}, name = t.imya || cards[k]?.name, fresh = !met.has(k) && !!cards[k]; if (!name) return;
+  if (fresh) { met.add(k); saveMet(); cabLabel(); beep(990, 0.12, 0.03, 'sine', 1.3); }
+  if (fresh || t.otnoshenie === 'opasen') say(name + ': ' + (t.znachit || cards[k]?.tip || '') + (fresh ? ' · новое в Альманахе' : ''), 3200);
 }
 function say(text, ms, gene) { $('toast').textContent = text; if (gene) { const im = new Image(); im.src = icon(gene); im.className = 'ticon'; im.alt = ''; im.style.borderColor = geneColor(gene); $('toast').prepend(im); } $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => $('toast').classList.remove('on'), ms); }
 const told = new Set(); // подсказка — один раз и только в момент, когда она нужна
@@ -672,8 +671,8 @@ function events() {
     if (k === 'sprout') { beep(520, 0.3, 0.05, 'sine', 2); }
     if (k === 'gene') { beep(780, 0.3, 0.05, 'sine', 1.6); say('Ген от сородича: ' + geneName(size) + ' — ' + (geneBook(size).daet || ''), 2600, size); addMark({ kind: 'gene', x, y, who: 'gene:' + size }); } // конъюгация
     if (k === 'zap') { beep(1500, 0.05, 0.05, 'square', 0.4); } // выстрел гарпуна синегнойки
-    if (k === 'grab') { beep(240, 0.2, 0.05, 'sawtooth', 1.6); tell('grab', 'Схватили! Резко развернись — вырвешься'); }
-    if (k === 'bore') { beep(180, 0.3, 0.05, 'sawtooth', 0.7); tell('bdello', 'Прилип хищник! Резко развернись — стряхнёшь'); } // запятая вбуравливается
+    if (k === 'grab') { beep(240, 0.2, 0.05, 'sawtooth', 1.6); say('Схватили! Резко развернись — вырвешься', 2600); /* каждый раз, не один за заплыв (L043) */ }
+    if (k === 'bore') { beep(180, 0.3, 0.05, 'sawtooth', 0.7); say('Прилипла запятая! Резко развернись — стряхнёшь', 2600); } // запятая вбуравливается
     if (k === 'eat') { const n = performance.now(); if (n - lastEat > 60) { beep(300 + Math.random() * 200, 0.09, 0.04); lastEat = n; } }
     if (k === 'leave') { tell('leave', 'Дочка уплыла жить сама — мутации копятся дальше'); }
     if (k === 'meet') meet(x);
