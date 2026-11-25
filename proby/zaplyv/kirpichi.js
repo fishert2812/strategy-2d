@@ -2,6 +2,7 @@
 // Кирпич рисует кистями: glow и ink — мягкие точки, как в fx.js; tube — гладкие ленты (lenta.js) для нитей и струй. В игре и на стенде (stend/) одинаково.
 // Вызов: const kp = new Kirpichi(); kp.play('glotat', { from: клетка, to: цель, size }); в кадре kp.step(dt); kp.draw({ scr, z, glow, ink, tube }).
 // from и to — живые объекты с x, y (кирпич читает их каждый кадр); у клетки можно дать a (угол оси), r (полудлина) и w (полуширина).
+// В play можно дать dlit (секунды): навык растягивается под неё. Если у навыка есть derzhat, а у цели to.gone === false, время стоит на derzhat, пока цель не исчезнет.
 const url = new URL('./kirpichi.json', import.meta.url);
 export const K = url.protocol === 'file:' ? JSON.parse((await import('node:fs')).readFileSync(url, 'utf8')) : await (await fetch(url)).json();
 
@@ -70,10 +71,12 @@ export const BRICKS = {
 export class Kirpichi {
   constructor(data = K) { this.K = data; this.list = []; }
   // Запустить навык по имени. Возвращает false, если такого навыка нет в данных.
-  play(name, o = {}) { const N = this.K.navyki[name]; if (!N) return false;
-    this.list.push({ N, from: o.from, to: o.to || o.from, size: o.size || 1, rt: o.rt, seed: o.seed ?? Math.random() * 1000, t: 0 }); return true; }
+  play(name, o = {}) { let N = this.K.navyki[name]; if (!N) return false;
+    const k = o.dlit ? o.dlit / N.dlit : 1; if (k !== 1) N = { ...N, dlit: N.dlit * k, shagi: N.shagi.map(q => ({ ...q, ot: q.ot * k, do: q.do * k })), tyaga: N.tyaga && { ...N.tyaga, ot: N.tyaga.ot * k, do: N.tyaga.do * k } }; // dlit — растянуть навык под длительность в игре
+    this.list.push({ N, from: o.from, to: o.to || o.from, size: o.size || 1, rt: o.rt, seed: o.seed ?? Math.random() * 1000, t: 0, hold: N.derzhat != null ? N.derzhat * k : null }); return true; }
   busy() { return this.list.length; }
-  step(dt) { for (const e of this.list) e.t += dt; this.list = this.list.filter(e => e.t < e.N.dlit); }
+  step(dt) { for (const e of this.list) { e.t += dt; if (e.hold != null && e.to && e.to.gone === false && e.t > e.hold) e.t = e.hold; } // derzhat: нити держат цель, пока она не исчезла (to.gone)
+    this.list = this.list.filter(e => e.t < e.N.dlit); }
   draw(d) {
     for (const e of this.list) { const f = e.from, r = f.r || 18, c0 = { F: f, T: e.to, A: f.a || 0, r, w: f.w || r * 0.5, rt: e.rt || 6 * Math.sqrt(e.size), seed: e.seed }, Y = e.N.tyaga;
       if (Y) { const k = sm((e.t - Y.ot) / (Y.do - Y.ot)), [ex, ey] = rim(c0, Math.atan2(e.to.y - f.y, e.to.x - f.x), Y.vglub); c0.T = { x: e.to.x + (ex - e.to.x) * k, y: e.to.y + (ey - e.to.y) * k }; } // цель тянут к клетке и внутрь

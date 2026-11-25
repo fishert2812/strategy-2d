@@ -69,6 +69,18 @@
    "v_igre": false,
    "priemka": null,
    "tyaga": { "ot": 1.0, "do": 2.0, "vglub": 0.5 }
+  },
+  "est": {
+   "nazvanie": "Есть кусок (бактерия)",
+   "dlit": 2.3,
+   "obrazec": "ref_21.jpg",
+   "derzhat": 1.3,
+   "shagi": [
+    { "k": "niti", "ot": 0, "do": 1.6 },
+    { "k": "naliv", "ot": 1.45, "do": 2.3 }
+   ],
+   "v_igre": false,
+   "priemka": null
   }
  },
  "_priemka": "Навык идёт в игру (v_igre: true) только с приёмкой: ролик стенда рядом с референсом Романа посмотрела отдельная сессия по stend/PRIEMKA.md и написала «принято» (урок L047).",
