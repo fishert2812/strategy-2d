@@ -97,10 +97,12 @@ export class Bodies {
     this.spines = kind(new THREE.LatheGeometry(fp, 24), 500,
       'float u = (p.y + 1.0) * 0.5; float wv = prm.w * sin(u * 4.5 + time * 0.8 + prm.y) * u; p.x += prm.z * u * u + wv; nn.x -= prm.z * u; nn = normalize(nn); p += nn * 0.04 * sin(time * 2.0 + prm.y + p.y * 3.0);',
       { bump: 0.05, alpha0: 0.3, edgeA: 0.95, order: 1, rimK: 1.2, ridge: 0, after: 'vA.a *= smoothstep(-1.0, -0.55, position.y);' }); // раньше тела; основание тает в теле — сквозь стекло не видно срезов
+    // Нить: короткая стеклянная трубка между двумя точками экрана. Из таких звеньев внахлёст — жгутики и ворсинки сплошными, без бус (кисти точек на тонких нитях дают пунктир).
+    this.rope = kind(new THREE.CylinderGeometry(1, 1, 2, 6, 1, true), 2400, '', { bump: 0, alpha0: 0.95, edgeA: 0.35, order: 1, rimK: 0.5 });
     const head = new THREE.IcosahedronGeometry(1, 0).toNonIndexed(); head.computeVertexNormals();
     this.head = kind(head, 120, '', { bump: 0.0, order: 3, flat: true, rimK: 0.8, alpha0: 0.35 }); // голова фага — стекло: сквозь неё видна нить ДНК (fx.js), грани блестят ободком
     this.tail = kind(new THREE.CylinderGeometry(0.28, 0.28, 2, 8), 120, '', { bump: 0.1, order: 1 });
-    this.all = [this.core, this.skin, this.ball, this.knob, this.amoeba, this.spines, this.head, this.tail];
+    this.all = [this.rope, this.core, this.skin, this.ball, this.knob, this.amoeba, this.spines, this.head, this.tail];
     globalThis.zaplyvBodies ??= this; // vid.js рисует амёбу этими телами, даже если main.js не передал их явно
     for (const m of this.all) this.scene.add(m);
   }
@@ -133,6 +135,7 @@ export class Bodies {
   spike(x, y, r, col) { this.put(this.knob, x, y, -Math.PI / 2, r, r, r, [col[0], col[1], col[2], 1], [1, 1, 1], [0, 0, 0, 0]); }
   blobby(x, y, r, heading, moving, col, rim, seed, sx = 1, sy = 1, ang = -Math.PI / 2) { this.put(this.amoeba, x, y, ang, r * sx, r * sy, r * 0.5, [col[0], col[1], col[2], 1], rim, [moving, seed, -heading, 0]); }
   // Шип: от точки основания (x, y) наружу под углом ang, длина len, полуширина у основания w; bend — отход острия вбок (экранные единицы).
+  seg(x0, y0, x1, y1, r, col, a = 1) { const dx = x1 - x0, dy = y1 - y0, l = Math.hypot(dx, dy); if (l < 1e-3 || this.rope.count >= 2400) return; this.put(this.rope, (x0 + x1) / 2, (y0 + y1) / 2, Math.atan2(dy, dx), r, l / 2, r, [col[0], col[1], col[2], a], col, [0, 0, 0, 0]); } // звено нити встык: внахлёст полупрозрачные концы дают яркие узлы-бусы
   spine(x, y, ang, len, w, col, rim, seed, bend = 0, wave = 0) { const c = Math.cos(ang), sn = Math.sin(ang);
     this.put(this.spines, x + c * len / 2, y + sn * len / 2, ang, w, len / 2, w, [col[0], col[1], col[2], 1], rim, [0, seed, bend / w, wave]); }
   phage(x, y, ang, s) {

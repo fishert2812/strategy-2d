@@ -225,8 +225,10 @@ export function drawWorld({ w, scr, z, glow, ink }) {
     const gp = bodyOf(p), gq = bodyOf(q), [px, py] = gp && gp.scr === scr ? [gp.sx, gp.sy] : scr(p.x, p.y), [qx, qy] = gq && gq.scr === scr ? [gq.sx, gq.sy] : scr(q.x, q.y); // где тела нарисованы: мягкое тело отстаёт от a.x
     const ds = Math.hypot(qx - px, qy - py) || 1, ux = (qx - px) / ds, uy = (qy - py) / ds, phi = Math.atan2(uy, ux); // дальше всё в точках экрана
     const e0 = reach(w, p, gp, phi) * z, e1 = ds - reach(w, q, gq, phi + Math.PI) * z, len = Math.max(4 * z, e1 - e0 + 2 * C.inset * z), mid = (e0 + e1) / 2, rg = 1.1 * z * (1 + 0.5 * snap) + 0.35, nb = Math.max(2, Math.ceil(len / (rg * 0.35))); const far = Math.max(C.far_min, Math.min(1, 1 - ((e1 - e0) / z - C.touch) / C.fade)); // вплотную застёжка яркая, издалека — бледная нить: белок держит на касании // три зубца поперёк шва: светлые сплошные черты от оболочки до оболочки (заходят под кромку на C.inset), концы тают в тела (L047: не бусами)
-    for (let kk = -1; kk <= 1; kk++) for (let s = 0; s <= nb; s++) { const e = s / nb, f = mid + len * (e - 0.5), o = kk * spread * z, end = Math.sin(Math.PI * e) ** 0.5;
-      glow.put(px + ux * f - uy * o, py + uy * f + ux * o, rg, 0.55, 0.85, 1, Math.min(1, 0.4 * br * fl) * end * Math.max(far, snap) * 2.2 / Math.sqrt(nb)); }
+    if (far <= 0 && snap <= 0) continue; // не касаются — застёжки нет: через чужое тело черты не тянем
+    const rw = spread * z * C.seam, ns = Math.max(2, Math.ceil(len / (rw * 0.5))); // один мягкий светлый шов поперёк зазора: широкое сплошное пятно, без полос-рельсов (Роман: пунктир — халтура)
+    for (let s = 0; s <= ns; s++) { const e = s / ns, f = mid + len * (e - 0.5), end = Math.sin(Math.PI * e) ** 0.5;
+      glow.put(px + ux * f, py + uy * f, rw, 0.55, 0.85, 1, Math.min(1, 0.4 * br * fl) * end * Math.max(far, snap) * C.seam_a / Math.sqrt(ns)); }
     if (k < 1) glow.put(px + ux * mid, py + uy * mid, C.ring * z * (0.4 + 0.6 * Math.sqrt(k)), 0.75, 0.93, 1, C.ring_a * snap * snap); // мягкая вспышка у шва: одно пятно, без колец-схем
   }
   for (const [key, cl] of clasps) if (!alive.has(key) && now - cl.seen > C.forget) clasps.delete(key); // расцепились надолго — следующая сцепка снова щёлкнет (на краю застёжка не мигает щелчками)

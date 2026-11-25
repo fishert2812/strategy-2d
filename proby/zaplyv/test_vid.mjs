@@ -281,6 +281,19 @@ check('test_vid_ameba_obyom: амёба в игре — объёмное тел�
   if (got.sphere < 1 + vid.V.amoeba.vac) return 'внутри нет ядра и пузырьков'; if (dots.length > 1) return 'амёба всё ещё рисует точки: ' + dots.length;
   return '';
 });
+check('test_vid_niti_trubki: в игре жгутики и ворсинки своей клетки — сплошные стеклянные трубки встык, без точек-бус (Роман: пунктир — халтура)', () => {
+  const segs = [], B = { seg: (x0, y0, x1, y1, r) => segs.push([x0, y0, x1, y1, r]) }, fl = ',' + cfgD.flag.color.join() + ',';
+  globalThis.zaplyvBodies = B; let pts; try { pts = []; const brush = { put: (...q) => pts.push(q.map(v => Math.round(v * 100) / 100).join()) };
+    const a = { id: 1, x: 0, y: 0, m: 1, a: 0, vx: 0, vy: 0 }, lk = look({}, cfgD.look, 0);
+    for (let i = 0; i < 3; i++) vid.skin({ a, lk, x: 0, y: 0, ang: 0, ax: 1, ay: 0, half: 20, w: 9, z: 1, along: (u, o) => [u, o], arc: () => 0, body: { at: () => [0, 0] }, scr: (x, y) => [x, y],
+      time: 1 + i, pdt: 0.03, run: false, phageNear: false, foodNear: false, spacers: 0, plasmid: false, cfg: cfgD, alive: [a], glow: brush, ink: brush });
+  } finally { delete globalThis.zaplyvBodies; }
+  const whipDots = pts.filter(p => p.includes(fl)).length; if (whipDots) return 'жгутик всё ещё рисуется точками: ' + whipDots;
+  const piliDots = pts.filter(p => p.endsWith(',' + vid.V.pili.a)).length; if (piliDots) return 'ворсинки всё ещё точками: ' + piliDots;
+  if (segs.length < 16) return 'мало звеньев: ' + segs.length; if (segs.some(q => !(q[4] > 0) || q.some(Number.isNaN))) return 'пустое звено';
+  for (let i = 1; i < segs.length; i++) { const p = segs[i - 1], q = segs[i]; if (Math.hypot(p[2] - q[0], p[3] - q[1]) > 1e-6 && Math.hypot(p[2] - q[0], p[3] - q[1]) < 0.5) return 'щель между звеньями нити'; }
+  return '';
+});
 check('test_vid_lysis: клетка от фага лопается прорывом — брызги вязко гаснут, остаётся пустая оболочка с дырой', () => {
   const C = { r: 1, g: 1, b: 1 }, fx = new Fx({}, [C, C, C]); fx.reset();
   // клетка плыла здесь (vid помнит форму), потом лопнула
