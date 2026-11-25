@@ -54,7 +54,7 @@ function kind(geo, max, vertexBody, opts = {}) {
     geo.setAttribute(k, new THREE.InstancedBufferAttribute(new Float32Array(max * n), n).setUsage(THREE.DynamicDrawUsage));
   m.frustumCulled = false;
   m.count = 0;
-  m.renderOrder = opts.order ?? 0;
+  m.renderOrder = opts.order ?? 0; if (opts.top) mat.depthTest = false; // поверх тел: то, что видно сквозь клетку (нить вируса внутри, метка памяти)
   return m;
 }
 
@@ -104,11 +104,13 @@ export class Bodies {
     this.slip = kind(cap.clone(), 8, slipV, { bump: 0.04, alpha0: 0.55, edgeA: 0.8, order: 2, rimK: 1.4, ridge: 0, after: 'vA.rgb *= 1.0 - 0.7 * g; vA.a = min(1.0, vA.a * (1.0 + 0.6 * g));' }); // бороздка темнее и плотнее — видна воронка
     this.fringe = kind(cap.clone(), 8, slipV, { bump: 0.25, alpha0: 0.0, edgeA: 0.7, order: 4, rimK: 1.7, ridge: 0 }); // ворс ресничек: чуть больше тела, светится только край — мягкая сплошная бахрома
     // Нить: короткая стеклянная трубка между двумя точками экрана. Из таких звеньев внахлёст — жгутики и ворсинки сплошными, без бус (кисти точек на тонких нитях дают пунктир).
+    this.ropeTop = kind(new THREE.CylinderGeometry(1, 1, 2, 6, 1, true), 300, '', { bump: 0, alpha0: 0.95, edgeA: 0.35, order: 6, rimK: 0.5, top: true });
+    this.ballTop = kind(new THREE.IcosahedronGeometry(1, 3), 20, '', { bump: 0.3, alpha0: 0.9, order: 6, rimK: 1.2, top: true });
     this.rope = kind(new THREE.CylinderGeometry(1, 1, 2, 6, 1, true), 2400, '', { bump: 0, alpha0: 0.95, edgeA: 0.35, order: 1, rimK: 0.5 });
     const head = new THREE.IcosahedronGeometry(1, 0).toNonIndexed(); head.computeVertexNormals();
     this.head = kind(head, 120, '', { bump: 0.0, order: 3, flat: true, rimK: 0.8, alpha0: 0.35 }); // голова фага — стекло: сквозь неё видна нить ДНК (fx.js), грани блестят ободком
     this.tail = kind(new THREE.CylinderGeometry(0.28, 0.28, 2, 8), 120, '', { bump: 0.1, order: 1 });
-    this.all = [this.rope, this.core, this.skin, this.ball, this.knob, this.amoeba, this.spines, this.slip, this.fringe, this.head, this.tail];
+    this.all = [this.ropeTop, this.ballTop, this.rope, this.core, this.skin, this.ball, this.knob, this.amoeba, this.spines, this.slip, this.fringe, this.head, this.tail];
     globalThis.zaplyvBodies ??= this; // vid.js рисует амёбу этими телами, даже если main.js не передал их явно
     for (const m of this.all) this.scene.add(m);
   }
@@ -143,6 +145,8 @@ export class Bodies {
   // Шип: от точки основания (x, y) наружу под углом ang, длина len, полуширина у основания w; bend — отход острия вбок (экранные единицы).
   slipper(x, y, ang, half, w, col, rim, seed, fr = 0, fcol = rim) { this.put(this.slip, x, y, ang, w, w, w * 0.7, [col[0], col[1], col[2], 1], rim, [0, seed, 0, Math.max(half / w - 2, -0.9)]);
     if (fr) { const wf = w * (1 + fr); this.put(this.fringe, x, y, ang, wf, wf, wf * 0.7, [fcol[0], fcol[1], fcol[2], 1], fcol, [0, seed, 0, Math.max((half + w * fr) / wf - 2, -0.9)]); } }
+  segTop(x0, y0, x1, y1, r, col, a = 1) { const dx = x1 - x0, dy = y1 - y0, l = Math.hypot(dx, dy); if (l < 1e-3) return; this.put(this.ropeTop, (x0 + x1) / 2, (y0 + y1) / 2, Math.atan2(dy, dx), r, l / 2, r, [col[0], col[1], col[2], a], col, [0, 0, 0, 0]); }
+  sphereTop(x, y, r, col, rim, a = 1) { this.put(this.ballTop, x, y, -Math.PI / 2, r, r, r, [col[0], col[1], col[2], a], rim, [0, 0, 0, 0]); }
   seg(x0, y0, x1, y1, r, col, a = 1) { const dx = x1 - x0, dy = y1 - y0, l = Math.hypot(dx, dy); if (l < 1e-3 || this.rope.count >= 2400) return; this.put(this.rope, (x0 + x1) / 2, (y0 + y1) / 2, Math.atan2(dy, dx), r, l / 2, r, [col[0], col[1], col[2], a], col, [0, 0, 0, 0]); } // звено нити встык: внахлёст полупрозрачные концы дают яркие узлы-бусы
   spine(x, y, ang, len, w, col, rim, seed, bend = 0, wave = 0) { const c = Math.cos(ang), sn = Math.sin(ang);
     this.put(this.spines, x + c * len / 2, y + sn * len / 2, ang, w, len / 2, w, [col[0], col[1], col[2], 1], rim, [0, seed, bend / w, wave]); }

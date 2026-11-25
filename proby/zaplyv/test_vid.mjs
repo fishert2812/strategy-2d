@@ -319,6 +319,23 @@ check('test_vid_rost_kontur: в «Росте» контур следующего
   for (let i = 1; i < segs.length; i++) if (Math.hypot(segs[i - 1][2] - segs[i][0], segs[i - 1][3] - segs[i][1]) > 1e-6) return 'в нити контура разрыв';
   if (sph.length < 6) return 'кусочки еды не объёмные'; return '';
 });
+check('test_vid_pamyat_virusa: «Память о вирусах» внутри клетки (биолог, круг 17) — нить вируса сплошной трубкой входит от точки посадки к центру, в центре вспыхивает объёмная метка, потом метка «съедает» нить: она тает от оболочки к центру; точек-бус и штрихов нет', () => {
+  const C = { r: 1, g: 1, b: 1 }, fx = new Fx({}, [C, C, C]); fx.reset(); fx.on('recall', 100, 100, 60, 100);
+  const shot = () => { const segs = [], sph = [], dots = [], b = { put: (...q) => dots.push(q) }; globalThis.zaplyvBodies = { seg: (...q) => segs.push(q), sphere: (...q) => sph.push(q), rod: (...q) => sph.push(q) };
+    try { fx.drawOver({ scr: (x, y) => [x, y], z: 1, time: 0, glow: b, ink: b }); } finally { delete globalThis.zaplyvBodies; } return { segs, sph, dots }; };
+  const R = vid.V.recall; fx.step(R.vhod * 0.5); const a = shot(); if (!a.segs.length) return 'нить не видна';
+  const far = Math.max(...a.segs.map(q => Math.hypot(q[2] - 60, q[3] - 100))); if (!(far > 10 && far < 32)) return 'нить не входит постепенно: ' + far.toFixed(1);
+  if (a.dots.length) return 'нить рисуется точками';
+  fx.step(R.vhod * 0.5 + R.metka * 0.5); const b = shot(); if (!b.sph.length) return 'метка памяти не вспыхнула';
+  if (Math.hypot(b.sph[0][0] - 100, b.sph[0][1] - 100) > 1) return 'метка не в центре клетки';
+  if (b.dots.length > 1) return 'у метки точечные кольца: ' + b.dots.length;
+  fx.step(R.metka * 0.5 + R.raspad * 0.6); const c = shot(); if (!c.segs.length) return 'нить исчезла за один кадр';
+  for (let i = 1; i < c.segs.length; i++) if (Math.hypot(c.segs[i - 1][2] - c.segs[i][0], c.segs[i - 1][3] - c.segs[i][1]) > 0.5) return 'нить распалась на штрихи-пунктир';
+  const len = q => q.segs.reduce((s, g) => s + Math.hypot(g[2] - g[0], g[3] - g[1]), 0); if (!(len(c) < len(b) * 0.7)) return 'нить не тает к центру';
+  if (Math.min(...c.segs.map(g => Math.hypot(g[0] - 60, g[1] - 100))) < 5) return 'нить тает не от оболочки';
+  fx.step(R.raspad); if (fx.recalls.length) return 'не погасло';
+  fx.on('cut', 50, 50); fx.step(0.05); const d = shot(); if (d.dots.length) return 'разрез вируса всё ещё точками: ' + d.dots.length; return '';
+});
 check('test_vid_niti_trubki: в игре жгутики и ворсинки своей клетки — сплошные стеклянные трубки встык, без точек-бус (Роман: пунктир — халтура)', () => {
   const segs = [], B = { seg: (x0, y0, x1, y1, r) => segs.push([x0, y0, x1, y1, r]) }, fl = ',' + cfgD.flag.color.join() + ',';
   globalThis.zaplyvBodies = B; let pts; try { pts = []; const brush = { put: (...q) => pts.push(q.map(v => Math.round(v * 100) / 100).join()) };

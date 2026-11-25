@@ -38,7 +38,7 @@
  "nap": { "life": 1.2, "r": 40, "sleep": [0.6, 0.7, 0.9], "wake": [0.75, 1, 0.8] },
  "sosed": { "coccus": { "L": 0.5, "w": 4, "col": [0.6, 0.45, 0.9], "drops": 14 }, "strain": { "L": 5, "w": 4, "col": [0.85, 0.3, 0.6], "drops": 20 }, "pseudo": { "L": 6, "w": 3.5, "col": [0.4, 0.75, 0.6], "drops": 20 }, "donor": { "L": 6, "w": 4, "col": [0.95, 0.75, 0.35], "drops": 20 }, "bdello": { "L": 2, "w": 2, "col": [0.95, 0.3, 0.3], "drops": 10 } },
  "gcol": { "capsule": [0.6, 0.9, 1], "toxin": [0.95, 0.5, 0.3], "crispr": [0.7, 1, 0.6] },
- "cut": { "life": 0.6, "flash": 0.22, "size": 8, "dots": 11, "part": 5, "drift": 16, "color": [0.9, 1.0, 1.0], "shell": [0.62, 0.68, 0.8] },
+ "recall": { "vhod": 0.6, "metka": 0.4, "raspad": 1.2, "zvenya": 24, "volny": 2.5, "razmah": 1.2, "tolsh": 1.0, "cvet": [0.8, 0.7, 1], "metka_r": 4.5 }, "cut": { "life": 0.6, "flash": 0.22, "size": 8, "dots": 11, "part": 5, "drift": 16, "color": [0.9, 1.0, 1.0], "shell": [0.62, 0.68, 0.8] },
  "poison": { "dark": 1.2, "fade": 4, "rim": 0.4, "sink": 0.35, "fill": 16, "alpha": 0.7, "color": [0.78, 0.76, 0.72] },
  "learn": { "alpha": 0.85 },
  "pulse": { "life": 0.5, "reach": 70, "band": 0.9, "dots": 48, "r": 2.6, "color": [1.0, 0.78, 0.32], "on": ["shrug", "cut", "learn", "slip", "bump", "shake"] },

@@ -11,8 +11,8 @@ export class Fx {
   constructor(cfg, CELL) { this.cfg = cfg; this.CELL = CELL; this.reset(); }
   save() { const s = {}; for (const k of Object.keys(this)) if (Array.isArray(this[k])) s[k] = this[k]; return s; } // снимок значка зовёт reset — без этого гасли все идущие анимации
   load(s) { Object.assign(this, s); }
-  reset() { this.rings = []; this.zaps = []; this.drops = []; this.clouds = []; this.ghosts = []; this.melts = []; this.dead = []; this.eats = []; this.flicks = []; this.genes = []; this.naps = []; this.cuts = []; this.dashes = []; }
-  busy() { return this.rings.length + this.zaps.length + this.drops.length + this.clouds.length + this.ghosts.length + this.melts.length + this.dead.length + this.eats.length + this.flicks.length + this.genes.length + this.naps.length + this.cuts.length + this.dashes.length; }
+  reset() { this.rings = []; this.zaps = []; this.drops = []; this.clouds = []; this.ghosts = []; this.melts = []; this.dead = []; this.eats = []; this.flicks = []; this.genes = []; this.naps = []; this.cuts = []; this.dashes = []; this.recalls = []; }
+  busy() { return this.rings.length + this.zaps.length + this.drops.length + this.clouds.length + this.ghosts.length + this.melts.length + this.dead.length + this.eats.length + this.flicks.length + this.genes.length + this.naps.length + this.cuts.length + this.dashes.length + (this.recalls ? this.recalls.length : 0); }
   ring(x, y, side, r) { this.rings.push({ x, y, side, r, t: 0 }); }
   on(k, x, y, size = 1, y2) {
     const R = (s, r) => this.ring(x, y, s, r);
@@ -26,6 +26,7 @@ export class Fx {
     if (k === 'leave') R(0, 50);
     if (k === 'stick') R(1, 22); // прилип фаг
     if (k === 'shake') this.shake(x, y);
+    if (k === 'recall') (this.recalls ||= []).push({ x, y, vx: size, vy: y2, t: 0, seed: Math.random() * 9 }); // память о вирусах (биолог, круг 17): нить вируса вошла внутрь, метка памяти вспыхнула, нить распалась
     if (k === 'cut') this.cuts.push({ x, y, ang: Math.random() * Math.PI, t: 0 }); // CRISPR или обманка: вирус разрезан — светлый разрез поперёк, две половинки расходятся и гаснут
     if (k === 'learn') { const n = this.near(x, y), c = n ? n.a : { x, y }; this.naps.push({ x: c.x, y: c.y, wake: false, t: 0, col: V.gcol.crispr, a: V.learn.alpha }); this.flick(x, y, 0); } // первый вирус: переболела и запомнила — светлая волна сходится в клетку, вирус отброшен
     if (k === 'sit') R(0, 46); // коловратка присела на ногу
@@ -201,7 +202,20 @@ export class Fx {
       if (!q.kind) for (let i = 0; i < F.arc; i++) { const s = (i / (F.arc - 1) - 0.5) * F.span, [x, y] = scr(q.x + px * s - q.dx * s * s * 0.04, q.y + py * s - q.dy * s * s * 0.04); glow.put(x, y, 2.4 * z, c[0], c[1], c[2], 0.85 * (1 - f)); }
       for (const a of q.kind ? [-0.5, 0, 0.5] : [0]) { const cx = Math.cos(a), sx = Math.sin(a), ux = q.dx * cx - q.dy * sx, uy = q.dy * cx + q.dx * sx; // новая дверь — один след отлёта; стряхнула — веер из трёх
         for (let i = 0; i < F.streak; i++) { const d = F.gap + F.len * (0.15 + f) * (0.3 + i / F.streak), [x, y] = scr(q.x + ux * d, q.y + uy * d); glow.put(x, y, 2 * z, c[0], c[1], c[2], 0.75 * (1 - f) * (1 - 0.6 * i / F.streak)); } } }
+    const B3 = globalThis.zaplyvBodies;
+    for (const q of this.recalls || []) { if (!(B3 && B3.seg && B3.sphere)) break; const R = V.recall, t = q.t, n = R.zvenya, dx = q.x - q.vx, dy = q.y - q.vy, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L; // нить — сплошная трубка, метка — объёмная вспышка; точек нет
+      const inn = Math.min(1, t / R.vhod), brk = Math.max(0, (t - R.vhod - R.metka) / R.raspad), fade = 1 - brk * brk, g = seen(q.x, q.y, 40), c0 = scr(q.x, q.y), sh = g && g.scr === scr ? [g.sx - c0[0], g.sy - c0[1]] : [0, 0]; // по нарисованному телу: клетка на экране чуть отстаёт от расчётной точки
+      const P = (f, o) => { const [x, y] = scr(q.vx + dx * f - uy * o, q.vy + dy * f + ux * o); return [x + sh[0], y + sh[1]]; };
+      const lo = brk * brk * (3 - 2 * brk); // распад: метка «съедает» нить — она тает с конца у оболочки к центру, тоньше и бледнее, без кусков-штрихов
+      for (let i = 0; i < n; i++) { const f0 = lo + (inn - lo) * i / n, f1 = lo + (inn - lo) * (i + 1) / n, ws = f => Math.sin(f * R.volny * 6.283 + q.seed + t * 3) * R.razmah * (1 - f) * 2 * (1 - 0.5 * brk);
+        const [x0, y0] = P(f0, ws(f0)), [x1, y1] = P(f1, ws(f1)); (B3.segTop || B3.seg).call(B3, x0, y0, x1, y1, R.tolsh * z * (1 - 0.6 * brk), R.cvet, fade); } // поверх тела: нить внутри видна сквозь клетку
+      const mk = Math.max(0, Math.min(1, (t - R.vhod) / R.metka)), fl = mk > 0 ? Math.min(1, mk * 2) * (1 - brk) ** 0.7 : 0; // метка памяти: светлый шарик в центре клетки вспыхивает и гаснет
+      if (fl > 0.02) { const cx = c0[0] + sh[0], cy = c0[1] + sh[1]; if (B3.sphereTop) B3.sphereTop(cx, cy, R.metka_r * z * (0.6 + 0.4 * fl), V.gcol.crispr || R.cvet, [1, 1, 1], 0.9 * fl); else B3.sphere(cx, cy, R.metka_r * z * (0.6 + 0.4 * fl), V.gcol.crispr || R.cvet, [1, 1, 1], q.seed, 0.8); glow.put(cx, cy, R.metka_r * 3 * z, ...(V.gcol.crispr || R.cvet), 0.35 * fl); } }
     for (const q of this.cuts) { const C = V.cut, f = q.t / C.life, ca = Math.cos(q.ang), sa = Math.sin(q.ang), s = C.size; // разрез — светлая черта, не красная: красный только за опасностью
+      if (B3 && B3.seg && B3.rod) { const k = Math.min(1, q.t / C.flash), d = C.part * k + C.drift * q.t; // объёмно: светлая черта-разрез сплошной нитью, две половинки вируса — капсулы, расходятся и гаснут
+        if (q.t < C.flash) { const u = s * Math.min(1, k * 3), [x0, y0] = scr(q.x - ca * u, q.y - sa * u), [x1, y1] = scr(q.x + ca * u, q.y + sa * u); B3.seg(x0, y0, x1, y1, 1.2 * z, C.color, 0.95 * (1 - k)); }
+        for (const sg of [-1, 1]) { const [hx, hy] = scr(q.x - sa * d * sg, q.y + ca * d * sg), [ex, ey] = scr(q.x - sa * d * sg + ca, q.y + ca * d * sg + sa); B3.rod(hx, hy, Math.atan2(ey - hy, ex - hx), s * 0.45 * z * (1 - 0.5 * f), s * 0.22 * z * (1 - 0.5 * f), 0, C.shell, C.color, sg + 3); }
+        continue; }
       if (q.t < C.flash) { const k = q.t / C.flash; for (let i = 0; i < C.dots; i++) { const u = (i / (C.dots - 1) - 0.5) * s * 2 * Math.min(1, k * 3), [x, y] = scr(q.x + ca * u, q.y + sa * u); glow.put(x, y, 3.4 * z, ...C.color, 0.95 * (1 - k)); } const [cx, cy] = scr(q.x, q.y); glow.put(cx, cy, s * 2.2 * z, ...C.color, 0.45 * (1 - k)); }
       const d = C.part * Math.min(1, q.t / C.flash) + C.drift * q.t; // половинки разъезжаются поперёк разреза
       for (const sg of [-1, 1]) { const hx = q.x - sa * d * sg, hy = q.y + ca * d * sg;
@@ -249,7 +263,7 @@ export class Fx {
     for (const g of this.ghosts) { g.x += (Math.random() - 0.5) * j; g.y += (Math.random() - 0.5) * j; g.ang += (Math.random() - 0.5) * ja; g.t += dt; } // пустую оболочку трясёт вода, она топчется на месте
     this.ghosts = this.ghosts.filter(g => g.t < P.ghost);
     this.tt = (this.tt || 0) + dt; for (const q of this.genes) q.t += dt; this.genes = this.genes.filter(q => q.t < V.gene.life); for (const q of this.naps) q.t += dt; this.naps = this.naps.filter(q => q.t < V.nap.life);
-    for (const q of this.cuts) q.t += dt; this.cuts = this.cuts.filter(q => q.t < V.cut.life);
+    for (const q of this.cuts) q.t += dt; this.cuts = this.cuts.filter(q => q.t < V.cut.life); if (this.recalls) { for (const q of this.recalls) q.t += dt; this.recalls = this.recalls.filter(q => q.t < V.recall.vhod + V.recall.metka + V.recall.raspad); }
     for (const q of this.flicks) q.t += dt; this.flicks = this.flicks.filter(q => q.t < V.flick.life);
     for (const e of this.eats) e.t += dt; this.eats = this.eats.filter(e => e.t < e.S.life);
     for (const g of this.dead) g.t += dt; this.dead = this.dead.filter(g => g.t < (g.P || V.abort).fade); // целую не носит: замерла
