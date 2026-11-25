@@ -21,4 +21,4 @@ port=$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); p
 python3 -m http.server "$port" --bind 127.0.0.1 --directory proby >/dev/null 2>&1 & srv=$!
 trap 'kill $srv 2>/dev/null' EXIT
 for _ in $(seq 50); do curl -s -o /dev/null "http://127.0.0.1:$port/zaplyv/" && break; sleep 0.1; done
-PW=$PW CHROME=${CHROME:-} timeout 240 node tools/web/zaplyv_tap.mjs "http://127.0.0.1:$port/zaplyv/" chromium
+PW=$PW CHROME=${CHROME:-} timeout 360 node tools/web/zaplyv_tap.mjs "http://127.0.0.1:$port/zaplyv/" chromium

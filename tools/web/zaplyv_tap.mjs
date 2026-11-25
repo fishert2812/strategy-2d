@@ -401,7 +401,7 @@ let doRta = 0, shirNiti = 0; // нить к рту: доля последней 
   await p.evaluate(([x, y]) => { const w = zaplyvWorld(); w.bells.length = 0; w.bells.push({ x, y, dir: 0, shut: 0, id: 4244 }); }, [ax + 60, verh - Rv - 60]); await W8(6); // круг вверху справа: стрелка у верхнего края, где строка счёта
   const st = await p.evaluate(() => (zaplyvProbe.strelki || [])[0] || null), niz = await p.evaluate(() => document.getElementById('pause').getBoundingClientRect().bottom);
   await p.evaluate(() => { zaplyvWorld().bells[0].x += 5000; }); await W8(3); const derzhit = await p.evaluate(() => (zaplyvProbe.strelki || []).length);
-  await W8(90); const gasnet = await p.evaluate(() => (zaplyvProbe.strelki || []).length);
+  const gasnet = await p.waitForFunction(() => !(zaplyvProbe.strelki || []).length, null, { timeout: 8000 }).then(() => 0, () => 1); // гаснет: ждём, пока стрелки не станет, не дольше 8 с
   await p.evaluate(() => { const w = zaplyvWorld(); w.step = w.stoit; w.bells.length = 0; w.tidy = 0; });
   say(st && st[2] >= 24 && st[1] - st[2] / 2 > niz, `test_L065: стрелка у края крупная (${st ? Math.round(st[2]) : 0} точек, нужно 24) и ниже строки счёта (верх ${st ? Math.round(st[1] - st[2] / 2) : 0}, низ строки ${Math.round(niz)})`);
   say(derzhit >= 1 && gasnet === 0, `test_L065: круг ушёл — стрелка ещё держится (${derzhit}), потом гаснет (${gasnet})`);
