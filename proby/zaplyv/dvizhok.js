@@ -108,9 +108,9 @@ export function risuy(q, { x, y, z, time, bodies, glow }) {
      shag = hl * 2 * T.zazor, all = hl + shag * (n - 1) / 2, [fr, fg, fb] = F.cvet;
   for (let i = 0; i < n; i++) { const o = (i - (n - 1) / 2) * shag;
     bodies.rod(x + ux * o, y + uy * o, q.a, hl, wt, 0, T.cvet, T.kromka, q.id + i * 37, Math.sin(time * T.kach[0] + q.id + i) * w * T.kach[1]); }
-  const pr = F.tolshch * Math.max(z, 0.7), len = F.dlina * w, m = Math.ceil(len / pr * 1.9); // точки гуще своего размера: нить, а не бусы
+  const pr = F.tolshch * Math.max(z, 0.7), len = F.dlina * w, G = V.mera.gusto_niti, m = Math.ceil(len / pr * 1.9 * G); // точки гуще своего размера: нить, а не бусы
   const nit = (bx, by, dx, dy, ph) => { for (let k = 0; k <= m; k++) { const f = 1.5 * (1 - Math.pow(3, -k / m)), wv = Math.sin(f * F.vitkov - time * F.beg + ph) * w * F.volna * f; // шаг мельче к кончику
-    glow.put(bx + dx * f * len - dy * wv, by + dy * f * len + dx * wv, pr * (1.5 - f), fr, fg, fb, F.alpha * (0.85 - f * 0.65)); } }; // у тела толще, к кончику сходит на нет
+    glow.put(bx + dx * f * len - dy * wv, by + dy * f * len + dx * wv, pr * (1.5 - f), fr, fg, fb, F.alpha * (0.85 - f * 0.65) / G); } }; // у тела толще, к кончику сходит на нет
   if (F.gde === 'krugom') for (let j = 0, h = F.n / 2; j < F.n; j++) { const s = j < h ? 1 : -1, b = ((j % h + 0.5) / h * 2 - 1) * all, dx = -uy * s * 0.81 - ux * 0.58, dy = ux * s * 0.81 - uy * 0.58; // вбок и назад
     nit(x + ux * b - uy * s * wt * 0.9, y + uy * b + ux * s * wt * 0.9, dx, dy, j); } // корень нити у самой оболочки
   else nit(x - ux * (all - w * 0.1), y - uy * (all - w * 0.1), -ux, -uy, 0);
