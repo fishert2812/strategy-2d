@@ -24,5 +24,8 @@
  },
  "flick": { "life": 0.45, "gap": 4, "arc": 9, "span": 14, "streak": 7, "len": 40, "lock": [0.55, 0.8, 1], "shake": [0.9, 0.95, 1] },
  "torn": { "drops": 10, "speed": 120 },
- "slip": { "drops": 8, "speed": 70 }
+ "slip": { "drops": 8, "speed": 70 },
+ "inject": { "dots": 14, "color": [0.95, 0.45, 0.8] },
+ "gene": { "life": 1.6, "run": 0.7, "r": 4, "color": [1, 0.85, 0.45] },
+ "nap": { "life": 1.2, "r": 40, "sleep": [0.6, 0.7, 0.9], "wake": [0.75, 1, 0.8] }
 }

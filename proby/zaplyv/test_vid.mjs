@@ -138,5 +138,17 @@ check('test_vid_defend: отбилась — у каждой защиты сво
   for (const [n, r] of [['shrug', sh], ['shake', ph], ['slip', sl]]) if (r.fx.rings.length) miss.push(n + ': всё ещё простое кольцо');
   return miss.join('; ');
 });
+check('test_vid_tube: ген по трубочке бежит колечком в клетку; фаг тянет нить ДНК тем дальше, чем дольше сидит; сон и пробуждение — тихая волна, не вспышка', () => {
+  const C = { r: 1, g: 1, b: 1 }, miss = [], me = { x: 100, y: 0, m: 4 };
+  const pts = fx => { const p = []; const b = { put: (x, y) => p.push([x, y]) }; fx.drawOver({ scr: (u, v) => [u, v], z: 1, time: 0, glow: b, ink: b }); return p; };
+  let fx = new Fx({ inject: 2 }, [C, C, C]); fx.reset(); fx.world = { me: [me], phages: [] }; fx.on('gene', 0, 0, 1, 'caps'); fx.step(0.35);
+  const p = pts(fx), cx = p.reduce((s, q) => s + q[0], 0) / (p.length || 1); if (!fx.genes.length) miss.push('ген: нет колечка'); else if (cx < 20 || cx > 80) miss.push('колечко не бежит от сородича к клетке');
+  if (fx.rings.length) miss.push('ген: всё ещё простое кольцо');
+  { const keep = fx.save(); fx.reset(); fx.load(keep); if (!fx.genes.length) miss.push('снимок значка (reset) гасит идущую анимацию'); }
+  const len = t => { const f = new Fx({ inject: 2 }, [C, C, C]); f.reset(); f.world = { me: [me], phages: [{ x: 120, y: 0, d: 0, on: me, t }] }; return pts(f).length; };
+  if (!(len(0.2) > len(1.8) + 4)) miss.push('нить ДНК не растёт, пока фаг сидит');
+  for (const k of ['spore', 'sprout']) { const f = new Fx({}, [C, C, C]); f.reset(); f.world = { me: [me] }; f.on(k, 0, 0); if (f.rings.length || !f.naps.length) miss.push(k + ': вспышка вместо тихой волны'); }
+  return miss.join('; ');
+});
 console.log(bad ? 'ВИД: провалов ' + bad : 'ВИД: все проверки прошли');
 process.exit(bad ? 1 : 0);
