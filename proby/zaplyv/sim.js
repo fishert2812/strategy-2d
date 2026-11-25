@@ -334,7 +334,7 @@ export class World {
   // Медленное течение воды: у каждого места своё направление, меняется во времени.
   flow(x, y) { const t = hash(Math.floor(x / 500), Math.floor(y / 500), 77) * 6.283 + this.stats.time * 0.05; return [Math.cos(t) * this.cfg.flow, Math.sin(t) * this.cfg.flow]; }
 
-  grow(a, v) { a.m = Math.min(rost.cap(this), a.m + v * (this.genes.lock ? this.cfg.lock_food : 1) * mut.food(this) * (1 + this.rush)); } // сменил замок: та же пора впускает и еду — медленнее
+  grow(a, v) { const dv = v * (this.genes.lock ? this.cfg.lock_food : 1) * mut.food(this) * (1 + this.rush); if (!rost.vsos(this, a, dv)) a.m = Math.min(rost.cap(this), a.m + dv); } /* в «Росте» съеденное всасывается плавно (rost.js) */ // сменил замок: та же пора впускает и еду — медленнее
   split() { return this.genes.fast ? this.cfg.split * this.cfg.fast_split : this.cfg.split; } // быстрый рост: больше рибосом — делишься раньше
   // Съел — серия: куски подряд (не дольше cfg.rush_gap между ними) разгоняют рост, как в экспоненциальной фазе.
   gain(f) { return this.cfg.food_kinds[f.kind || 'bits'].gain; } // три вида еды: крошки, глюкоза, белковый сок
