@@ -326,7 +326,7 @@ function studio(k, it) {
 }
 function snap(k, it) {
   if (it.gene) return geneShot(it.gene, 480, 300); // ген в Альманахе — тот же снимок, что значок: часть, которую он даёт, подсвечена
-  const keep = [world, view, kids, down, moved, fx.rings, puffs, fx.zaps, paint.t];
+  const fxs = fx.save(), keep = [world, view, kids, down, moved, puffs, paint.t]; // все анимации эффектов целиком (fx.save), а не только кольца и разряды
   const out = document.createElement('canvas'); out.width = 480; out.height = 300;
   try {
     world = studio(k, it); kids = null; down = null; moved = true; fx.reset(); puffs = [];
@@ -335,7 +335,7 @@ function snap(k, it) {
     for (let i = 0; i < 4; i++) render(30 + i / 30); // пара кадров: тело и жгутики встают на место
     const sx = canvas.width / W, cw = side * sx, ch = cw * 300 / 480;
     out.getContext('2d').drawImage(canvas, (canvas.width - cw) / 2, (canvas.height - ch) / 2, cw, ch, 0, 0, 480, 300);
-  } finally { [world, view, kids, down, moved, fx.rings, puffs, fx.zaps, paint.t] = keep; }
+  } finally { [world, view, kids, down, moved, puffs, paint.t] = keep; fx.load(fxs); }
   return out.toDataURL('image/jpeg', 0.86);
 }
 // Значок гена (макет дизайнера: круг, тело приглушено, часть, которую даёт ген, подсвечена). Снимаем клетку без гена и с геном
@@ -343,14 +343,14 @@ function snap(k, it) {
 const icons = new Map();
 function geneShot(g, NW, NH, crop = 0) {
   const grab = genes => {
-    const keep = [world, view, kids, down, moved, fx.rings, puffs, fx.zaps, paint.t], c = document.createElement('canvas'); c.width = NW; c.height = NH;
+    const fxs = fx.save(), keep = [world, view, kids, down, moved, puffs, paint.t], c = document.createElement('canvas'); c.width = NW; c.height = NH;
     try {
       world = studio('me', { a: -0.5 }); world.genes = genes; kids = null; down = null; moved = true; fx.reset(); puffs = [];
       const side = Math.min(W, H) * 0.9; view = { x: 0, y: 0, z: side * 0.62 / cfg.icon_span, tint: [...TINT[0]] };
       for (let i = 0; i < 4; i++) { paint.t = 30; render(30); } // время стоит: оба снимка в одной позе, разница — только ген
       const sx = canvas.width / W, cw = side * sx * 0.62 * Math.max(1, NW / NH), ch = cw * NH / NW;
       c.getContext('2d').drawImage(canvas, (canvas.width - cw) / 2, (canvas.height - ch) / 2, cw, ch, 0, 0, NW, NH);
-    } finally { [world, view, kids, down, moved, fx.rings, puffs, fx.zaps, paint.t] = keep; }
+    } finally { [world, view, kids, down, moved, puffs, paint.t] = keep; fx.load(fxs); }
     return c.getContext('2d').getImageData(0, 0, NW, NH);
   };
   const A = grab({}), B = grab({ [g]: true }), a = A.data, b = B.data;
