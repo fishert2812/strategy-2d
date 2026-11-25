@@ -183,7 +183,7 @@ export class World {
       }
       if (want !== null && this.genes.sense) { // хемотаксис: клетка сама подруливает к ближайшей еде впереди, еда не движется
         let best = null, bd = c.sense_r;
-        for (const f of this.food) { const d = Math.hypot(f.x - a.x, f.y - a.y); if (d < bd) { bd = d; best = f; } }
+        for (const f of this.food) { const d = Math.hypot(f.x - a.x, f.y - a.y) / c.sense_like[f.kind || 'bits']; if (d < bd) { bd = d; best = f; } } // белковый сок чуется сильнее сахара (Е4)
         if (best) { const d = wrap(Math.atan2(best.y - a.y, best.x - a.x) - want); if (Math.abs(d) < 1.2) want += d * c.sense_pull; }
       }
       const a0 = a.a;
@@ -316,7 +316,7 @@ export class World {
 
   // Фаг: точка облака; v — с какой силой разлетаются новые фаги из лопнувшей клетки.
   // Лопнувшая клетка разливает своё содержимое: кольцо еды (а рядом — новые фаги).
-  spill(x, y) { for (let i = 0; i < this.cfg.spill; i++) { const t = i / this.cfg.spill * 6.283 + this.r(); this.food.push({ x: x + Math.cos(t) * 14, y: y + Math.sin(t) * 14, vx: Math.cos(t) * 50, vy: Math.sin(t) * 50 }); } }
+  spill(x, y) { for (let i = 0; i < this.cfg.spill; i++) { const t = i / this.cfg.spill * 6.283 + this.r(); this.food.push({ x: x + Math.cos(t) * 14, y: y + Math.sin(t) * 14, vx: Math.cos(t) * 50, vy: Math.sin(t) * 50, kind: 'lysate' }); } } // сок лопнувшей клетки (Е4)
 
   cloud(x, y, host, v) { const t = this.r() * 6.283; this.phages.push({ x, y, vx: Math.cos(t) * v, vy: Math.sin(t) * v, host, d: t }); }
 
@@ -326,6 +326,7 @@ export class World {
   grow(a, v) { a.m = Math.min(this.cfg.max_m, a.m + v * (this.genes.lock ? this.cfg.lock_food : 1) * mut.food(this) * (1 + this.rush)); } // сменил замок: та же пора впускает и еду — медленнее
   split() { return this.genes.fast ? this.cfg.split * this.cfg.fast_split : this.cfg.split; } // быстрый рост: больше рибосом — делишься раньше
   // Съел — серия: куски подряд (не дольше cfg.rush_gap между ними) разгоняют рост, как в экспоненциальной фазе.
+  gain(f) { return this.cfg.food_kinds[f.kind || 'bits'].gain; } // три вида еды: крошки, глюкоза, белковый сок
   fed(x, y, size) { const c = this.cfg; this.rush = Math.min(c.rush_max, this.rush + (this.stats.time - this.lastEat < c.rush_gap ? c.rush_step * size : 0)); this.lastEat = this.stats.time; this.stats.eaten++; this.events.push(['eat', x, y, size]); }
 
   // Неживое и соседи: водоросль понемногу выделяет сахар вокруг себя (фикосфера), детрит тонет,
@@ -338,7 +339,7 @@ export class World {
       p.t -= 1;
       let near = 0;
       for (const f of this.food) if (Math.abs(f.x - p.x) < 90 && Math.abs(f.y - p.y) < 90) near++;
-      if (near < c.halo_max) { const t = r() * 6.283, d = radius(p.m) * 1.6 + r() * 40; this.food.push({ x: p.x + Math.cos(t) * d, y: p.y + Math.sin(t) * d, vx: 0, vy: 0 }); }
+      if (near < c.halo_max) { const t = r() * 6.283, d = radius(p.m) * 1.6 + r() * 40; this.food.push({ x: p.x + Math.cos(t) * d, y: p.y + Math.sin(t) * d, vx: 0, vy: 0, kind: 'glucose' }); } // водоросль на свету выделяет глюкозу (Е2)
     }
     for (const k of this.crumbs) k.y += c.sink * dt;
     for (const f of this.food) if (f.vx || f.vy) { const q = Math.max(0, 1 - 4 * dt); f.vx *= q; f.vy *= q; f.x += f.vx * dt; f.y += f.vy * dt; if (Math.abs(f.vx) + Math.abs(f.vy) < 1) f.vx = f.vy = 0; }
@@ -350,7 +351,7 @@ export class World {
       const r = radius(a.m);
       for (const f of this.food) {
         const dx = a.x - f.x, dy = a.y - f.y, d = len(dx, dy);
-        if (d < r + 6 && !f.gone) { f.gone = true; const z = f.s || 1; this.grow(a, this.cfg.food * z); this.fed(f.x, f.y, z); } // кусок кормит по размеру
+        if (d < r + 6 && !f.gone) { f.gone = true; const z = f.s || 1; this.grow(a, this.cfg.food * z * this.gain(f)); this.fed(f.x, f.y, z); } // кусок кормит по размеру
       }
       // Бактерии клетки не глотают. Ген CDI (cdiA): нить с ядом на кончике бьёт при касании только родню — чужой штамм
       // кишечной палочки, он лопается облаком еды. Свои сородичи защищены противоядием CdiI, кокки — толстой стенкой (сверка биолога, Г18).
