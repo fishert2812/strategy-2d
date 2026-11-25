@@ -62,14 +62,14 @@ await p.waitForTimeout(700); { const t = await p.evaluate(() => [...document.que
   say(n === 2, `test_L043: схватили второй раз — совет «развернись» снова на экране (показан ${n} из 2)`); }
 // test_L046 (Роман 25.11 на 0.68: «Почему какая то мутнота стала? Какой то фильтр мутно стоит?»): тяж слизи — прозрачный гель с тонкой
 // кромкой, а не светлая пелена во всю ширину. Внутри тяжа вода почти той же яркости, что рядом, кромка видна.
-{ await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.slime.length = 0; w.slime.push({ x: a.x + 70, y: a.y, a: Math.PI / 2, len: 380, w: 40, id: 77 }); });
+{ await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.slime.length = 0; w.food.length = 0; w.tidy = 1e9; w.slime.push({ x: a.x + 70, y: a.y, a: Math.PI / 2, len: 380, w: 40, id: 77 }); }); // без крошек: светлая крошка в полосе замера — не пелена (еда вокруг колонии, L052)
   await p.waitForTimeout(400);
   const lum = async clip => p.evaluate(async b64 => { const im = new Image(); im.src = 'data:image/png;base64,' + b64; await im.decode(); const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
     const x = c.getContext('2d'); x.drawImage(im, 0, 0); const d = x.getImageData(0, 0, c.width, c.height).data; let s = 0; for (let i = 0; i < d.length; i += 4) s += d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11; return s / (d.length / 4); },
     (await p.screenshot({ clip })).toString('base64'));
   const [cx] = await p.evaluate(() => { const g = zaplyvWorld().slime[0]; return zaplyvScr(g.x, g.y); });
   const inside = await lum({ x: cx - 4, y: 120, width: 8, height: 120 }), aside = await lum({ x: Math.max(0, cx - 120), y: 120, width: 8, height: 120 });
-  await p.evaluate(() => { zaplyvWorld().slime.length = 0; });
+  await p.evaluate(() => { const w = zaplyvWorld(); w.slime.length = 0; w.tidy = 0; });
   say(inside - aside < 8, `test_L046: тяж слизи прозрачный, не пелена (яркость внутри ${inside.toFixed(0)}, рядом ${aside.toFixed(0)})`); }
 // test_L039 (Роман 25.11: «в процессе игры они просто уплывают куда-то, исчезают. И я не понимаю, почему»): сестра за кадром видна стрелкой у края,
 // а гибель за краем называет убийцу.
