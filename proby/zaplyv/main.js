@@ -821,15 +821,8 @@ function paint(time) {
   for (const p of world.slippers) { // туфелька: огромная клетка в ресничках, воронка-рот на боку, поток в рот виден
     const [x, y] = scr(p.x, p.y), L = cfg.slipper_len * z; if (!on(x, y, L)) continue;
     const ux = Math.cos(p.a), uy = Math.sin(p.a), w = L * 0.27;
-    bodies.rod(x, y, p.a, L / 2, w, 0, [0.72, 0.95, 0.85], [0.32, 0.6, 0.48], p.id, Math.sin(time * 1.3 + p.id) * w * 0.15);
-    for (let k = 0; k < 72; k++) { // реснички: волна бежит по краю
-      const t = k / 72 * 6.283, c = Math.cos(t), s = Math.sin(t), e = 1.12 + 0.06 * Math.sin(t * 8 - time * 9);
-      const px = x + ux * c * (L / 2) * e * 0.98 - uy * s * w * e, py = y + uy * c * (L / 2) * e * 0.98 + ux * s * w * e;
-      ink.put(px, py, 0.9 * z + 0.3, 0.8, 1, 0.9, 0.45);
-    }
-    for (let k = 0; k < 6; k++) { const t = k * 1.9 + p.id, px = x + ux * Math.sin(t + time * 0.2) * L * 0.3 - uy * Math.cos(t * 1.3) * w * 0.5, py = y + uy * Math.sin(t + time * 0.2) * L * 0.3 + ux * Math.cos(t * 1.3) * w * 0.5;
-      glow.put(px, py, w * 0.18, 1, 0.75, 0.4, 0.35); } // пищеварительные пузырьки
     const [mx, my] = scr(...world.mouth(p));
+    vid.slipper({ x, y, a: p.a, L, w, z, time, id: p.id, mx, my, bodies, glow, ink }); // туфля с бороздкой, реснички-волоски, ядро, пузырьки (vid.js)
     for (let k = 0; k < 24; k++) { // поток в воронку: крупинки по спирали к рту
       const f = (time * 0.6 + k / 24) % 1, R = cfg.funnel_r * z * (1 - f), t = k * 2.4 + f * 3;
       glow.put(mx + Math.cos(t) * R, my + Math.sin(t) * R, 1.2 * z + 0.4, 0.8, 0.95, 1, 0.35 * f);
