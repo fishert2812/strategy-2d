@@ -21,6 +21,7 @@ import { night } from './night.js';
 import * as karta from './karta.js';
 
 const cfg = await (await fetch('data.json')).json();
+const DL = cfg.delenie; // деление по физике (design/zaplyv_fizika_kak_v_zhizni.md, п. 14)
 const NJ = await (await fetch('night.json')).json(); // «Ночь рода»: числа ночи
 const cards = await (await fetch('cards.json')).json();
 const genomeData = await (await fetch('genome.json')).json();
@@ -655,21 +656,29 @@ const up = e => {
 canvas.addEventListener('pointerup', up);
 canvas.addEventListener('pointercancel', up);
 
-function ask() {
-  if ($('genes').classList.contains('on')) return;
-  const h = $('genes').querySelector('h1'), hp = $('genes').querySelector('p'); h.dataset.d ??= h.textContent; hp.dataset.d ??= hp.textContent; // в «Эволюции» выбор на росте, а не из двух дочек
-  h.textContent = evo.on(world) ? evo.E.zagolovok : h.dataset.d; hp.textContent = evo.on(world) ? evo.E.podskazka : hp.dataset.d;
-  const box = $('cards'); box.innerHTML = ''; $('genes').querySelectorAll('.kid').forEach(e => e.remove());
-  kids = world.choice.map((g, i) => ({ g, x: 0, y: 0, vx: 0, vy: 0, m: 1.7, a: -Math.PI / 2, id: 900 + i, sick: -1 })); // две дочки крупно: мутация видна на теле
-  world.choice.forEach((g, i) => {
-    const go = () => { world.pick(g); kids = null; $('genes').classList.remove('on'); fx.ring(world.center().x, world.center().y, 0, 300); beep(660, 0.4, 0.06, 'sine', 1.5); };
-    const b = document.createElement('button');
-    b.innerHTML = '<img class="gicon" alt=""><span></span><small></small>'; b.children[1].textContent = geneName(g); b.children[2].textContent = mut.daet(world, g, geneBook(g)); b.firstChild.src = icon(g); b.firstChild.style.borderColor = geneColor(g); b.onclick = go; box.appendChild(b); // имя и «что даёт» — только из книги (урок L018)
-    const k = document.createElement('button'); k.className = 'kid'; k.style.left = i ? '52%' : '2%'; k.onclick = go; k.setAttribute('aria-label', geneName(g)); $('genes').appendChild(k);
-  });
-  $('genes').classList.add('on'); $('toast').classList.remove('on'); // всплывашка не ложится на заголовок выбора
-  beep(440, 0.5, 0.05, 'sine', 2);
+// Выбор навыка на ходу (Роман 25.11: «Прерывает игру зачем то — пускай просто всплывает навыки. Игра продолжается аккуратно»):
+// мир не стоит, экран не перекрыт. Варианты всплывают полосой у нижнего края под большим пальцем; не выбрал за offer_fold с —
+// полоса сворачивается в значок у края, коснёшься — снова раскроется; ждёт offer_auto с — берётся первый вариант.
+let offerKey = '', offerT = 0; // offerT — время на часах телефона (performance.now), а не мира: полоса сворачивается за 6 настоящих секунд
+function offer(dt) {
+  const key = world.choice.join(), O = $('offer'), D = $('odot');
+  if (!world.choice.length) { if (offerKey) { O.classList.remove('on'); D.classList.remove('on'); offerKey = ''; } return; }
+  if (key !== offerKey) { // новый выбор: собрать полосу
+    offerKey = key; offerT = performance.now(); $('otitle').textContent = evo.on(world) ? evo.E.zagolovok : $('otitle').dataset.d; const box = $('obtns'); box.innerHTML = '';
+    world.choice.forEach(g => { const b = document.createElement('button'); b.innerHTML = '<img class="gicon" alt=""><span></span><small></small>';
+      b.children[1].textContent = geneName(g); b.children[2].textContent = mut.daet(world, g, geneBook(g)); b.firstChild.src = icon(g); b.firstChild.style.borderColor = geneColor(g);
+      b.onclick = e => { e.stopPropagation(); if (b.classList.contains('sel')) return take(g); // первое касание выбирает, второе берёт: случайный тап большим пальцем навык не возьмёт
+        for (const q of box.children) q.classList.remove('sel'); b.classList.add('sel'); offerT = performance.now(); $('otitle').textContent = 'Коснись ещё раз — взять «' + geneName(g) + '»'; }; box.appendChild(b); });
+    D.querySelector('img').src = icon(world.choice[0]); O.classList.add('on'); D.classList.remove('on'); beep(440, 0.3, 0.04, 'sine', 2);
+  }
+  const age = (performance.now() - offerT) / 1000;
+  if (O.classList.contains('on') && age > cfg.offer_fold) { O.classList.remove('on'); D.classList.add('on'); } // свернулась в значок
+  D.style.setProperty('--left', Math.max(0, 1 - age / cfg.offer_auto).toFixed(3)); // кольцо значка тает до автовыбора
+  if (age > cfg.offer_auto) take(world.choice[0]); // так и не выбрал — первый вариант
 }
+function take(g) { world.pick(g); offer(0); say('Взято: ' + geneName(g), 2200, g); fx.ring(world.center().x, world.center().y, 0, 300); beep(660, 0.4, 0.06, 'sine', 1.5); }
+$('odot').onclick = e => { e.stopPropagation(); offerT = performance.now(); $('offer').classList.add('on'); $('odot').classList.remove('on'); };
+$('otitle').dataset.d = $('otitle').textContent;
 
 // Твой путь за заход: время, поколения и сколько это заняло бы в природе, мутации, кто сколько отнял.
 function pathText(w) {
@@ -699,7 +708,7 @@ function events() {
     if (k === 'eat') { const n = performance.now(); if (n - lastEat > 60) { beep(300 + Math.random() * 200, 0.09, 0.04); lastEat = n; } }
     if (k === 'leave') { tell('leave', 'Дочка уплыла жить сама — мутации копятся дальше'); }
     if (k === 'meet') meet(x);
-    if (k === 'stick') { beep(520, 0.06, 0.04, 'square'); tell('stick', 'Сел вирус! Резко развернись — стряхнёшь, пока не впрыснул'); } // прилип фаг: сказать сразу, а не на экране гибели (L042)
+    if (k === 'stick') { beep(520, 0.06, 0.04, 'square'); if (!mut.calm(world)) tell('stick', 'Сел вирус! Резко развернись — стряхнёшь, пока не впрыснул'); } // прилип фаг: сказать сразу, а не на экране гибели (L042)
     if (k === 'shake') { beep(700, 0.07, 0.03); }
     if (k === 'learn') { beep(620, 0.4, 0.05, 'sine', 1.4); say('Пережила фага! Его кусок — новая полоска CRISPR: теперь T4 не страшен', 3000); }
     if (k === 'magnet') beep(392 * Math.pow(2, Math.min(size - 1, 12) / 12), 0.12, 0.05, 'sine', 1.3); // магнит: серия поглощений — восходящие ноты
@@ -718,7 +727,7 @@ function events() {
 }
 
 function tick(dt) {
-  if (world.choice.length) { ask(); return; }
+  offer(dt);
   world.step(dt, pad.value()); // джойстик: направление и сила из сдвига пальца
   { const [fx, fy] = world.flow(view.x, view.y); cur[0] += fx * dt; cur[1] += fy * dt; } // течение несёт взвесь
   events();
@@ -758,7 +767,7 @@ function tick(dt) {
   { const b = world.me.reduce((q, a) => a.m > q.m ? a : q, world.me[0] || { m: 1 }), sp = world.split(); // размер числом: длина палочки в микрометрах (260 единиц — 10 мкм)
     const um = 2 * 8.5 * Math.pow(b.m, 0.3) * (1.6 + Math.min(b.m, sp) / sp) / 26; $('count').textContent = 'клеток ' + world.me.length + ' · ' + um.toFixed(1).replace('.', ',') + ' мкм'; }
   $('eaten').textContent = world.rush > 0.05 ? 'рост ×' + (1 + world.rush).toFixed(1) : 'съедено ' + world.stats.eaten; // серия кусков подряд — рост быстрее
-  if (world.readyToSplit() && !world.me.some(a => a.grab || a.held > 0) && !$('toast').classList.contains('on')) tell('split', 'Выросла! Коснись — поделишься. Или подожди'); // подсказка ждёт, пока на экране весть: не затирает «Сестра погибла за краем…» (L039)
+  if (world.readyToSplit() && !world.choice.length && !world.me.some(a => a.grab || a.held > 0) && !$('toast').classList.contains('on')) tell('split', 'Выросла! Коснись — поделишься. Или подожди'); // подсказка ждёт, пока на экране весть: не затирает «Сестра погибла за краем…» (L039)
 }
 
 // Вид «как под микроскопом» (тёмное поле): палочки длиной в 2–3 ширины растут в длину, внутри светлое
@@ -936,26 +945,29 @@ function paint(time) {
   }
   for (const a of kids || world.me) { // палочка: мягкое тело
     if (a.spore > 0) continue; // перёд ведёт, корма и пучок жгутиков идут по его следу
-    const lk = a.g ? look({ ...world.genes, [a.g]: true }, cfg.look, world.spacers.size) : lkAll, w = 8.5 * Math.pow(a.m, rost.vid(world)) * z * (a.g ? 1.9 : 1), sp = Math.hypot(a.vx, a.vy);
+    const lk = a.g ? look({ ...world.genes, [a.g]: true }, cfg.look, world.spacers.size) : lkAll, w = (rost.on(world) ? 8.5 * Math.pow(a.m, rost.vid(world)) : DL.w) * z * (a.g ? 1.9 : 1), sp = Math.hypot(a.vx, a.vy); // толщина постоянная (физика п. 14), в «Росте» видно, что растёшь
+    const fm = Math.min(a.m, world.split()) / world.split(), gr = vid.grow(fm, DL); // доля пути к делению: 0,5 у новорождённой, 1 у созревшей
     const run = sp > 25 && !a.tumble, wob = run ? 0.035 : 0.015; // встречное вращение тела к пучку: 3 раза в секунду
-    const half = a.held > 0 ? w * (1.05 + 0.6 * a.held / cfg.bdello_kill) : w * (1.6 + 1.0 * Math.min(a.m, world.split()) / world.split()), tailW = w * 7.5 / z; // хищник внутри — клетка округляется в шарик
+    const half = a.held > 0 ? w * (1.05 + 0.6 * a.held / cfg.bdello_kill) : rost.on(world) ? w * (1.6 + 1.0 * fm) : w * gr.half, tailW = w * 7.5 / z; // хищник внутри — клетка округляется в шарик
     const body = follow(a, half / z, tailW);
     const wm = w * Math.pow(2, rost.vid(world)); // мать: вдвое тяжелее, полудлина как у созревшей (см. half)
-    const bo = vid.birth(a, time, world.me, body.ang, half / z, w / z, body.cx, body.cy, wm * 2.6 / z, wm / z); // деление: мать стягивается, дочки расходятся торец к торцу (vid.json split)
+    const bo = vid.birth(a, time, world.me, body.ang, half / z, w / z, body.cx, body.cy, rost.on(world) ? wm * 2.6 / z : half * 2 / z, rost.on(world) ? wm / z : w / z); // мать ровно вдвое длиннее дочки той же толщины // деление: мать стягивается, дочки расходятся торец к торцу (vid.json split)
     if (bo) { probe.birth = time; if (bo.hide) continue; } // обход пальцем (test_L050) видит, что рождение рисуется; вторая дочка ещё часть матери
-    const [x0, y0] = scr(bo ? bo.x : body.cx, bo ? bo.y : body.cy), sag = body.sag * z * (bo ? bo.sag : 1), hl = bo ? half * bo.fl : half, wl = bo ? w * bo.fw : w;
+    const [x0, y0] = scr(bo ? bo.x : body.cx, bo ? bo.y : body.cy), sag = Math.max(-w * DL.sag, Math.min(w * DL.sag, body.sag * z)) * (bo ? bo.sag : 1), /* стенка жёсткая: длинная палочка не гнётся бананом */ hl = bo ? half * bo.fl : half, wl = bo ? w * bo.fw : w;
     const ang = (bo ? bo.ang : body.ang) + Math.sin(time * 18.8 + a.id) * wob, ax = Math.cos(ang), ay = Math.sin(ang);
     const x = x0 - ay * sag * 0.675, y = y0 + ax * sag * 0.675; // центр модели так, чтобы концы легли на хорду
     const along = (s, o = 0) => [x + ax * s - ay * o, y + ay * s + ax * o];
     const arc = u => -sag * 0.675 + sag * (1 - Math.min(1, (u * z / half) ** 2)); // прогиб в точке u (u — в единицах мира от центра)
-    const pinch = bo ? bo.pinch : (a.m >= world.split() && !rost.on(world) ? 0.62 + 0.12 * Math.sin(time * 6) : 0); // перетяжка: вот-вот две
-    bodies.rod(x, y, ang, hl, wl, pinch, [CELL[0].r, CELL[0].g, CELL[0].b], [CORE[0].r, CORE[0].g, CORE[0].b], a.id, -sag);
+    const pinch = bo ? bo.pinch : rost.on(world) ? 0 : gr.u; // кольцо сжимается по массе и только в одну сторону, у созревшей тонкая перемычка (п. 14)
+    const dna = bo ? (bo.pinch > 0 ? 1 : 0) : rost.on(world) ? 0 : gr.dna; // две ДНК расходятся раньше кольца
+    bodies.rod(x, y, ang, hl, wl, pinch, [CELL[0].r, CELL[0].g, CELL[0].b], [CORE[0].r, CORE[0].g, CORE[0].b], a.id, -sag * (1 - pinch * 0.8));
+    if (!rost.on(world) && !a.g && !(a.held > 0)) { const N = DL.nuc, s = hl * N.apart * dna, al = N.a * (0.5 + 0.5 * dna); // светлая ДНК (нуклеоид): одна посередине, к делению вытягивается и расходится к половинкам раньше кольца
+      for (const sd of [-1, 1]) glow.put(x + ax * s * sd, y + ay * s * sd, wl * N.r, ...N.c, al); }
     rost.draw({ w: world, a, x, y, ang, half, wd: w, z, glow, time, scr }); // контур следующего роста, струйки от комка
     evo.draw({ w: world, a, x, y, z, glow, scr }); // «Эволюция»: нити глотания
     if (a.grab) glow.put(x, y, half * 1.8, 1, 0.25, 0.15, 0.22 + 0.15 * Math.sin(time * 14)); // схвачена: бьётся в пасти
     if (world.rush > 0.05) glow.put(x, y, half * (1.4 + world.rush * 0.6), 1, 0.75, 0.35, 0.08 + 0.1 * world.rush); // разгон роста: рибосомы работают на всю
-    if (pinch) for (let k = 0; k < 18; k++) { const t = k * 0.349, R = half * (1.35 + 0.08 * Math.sin(time * 5)); glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 2.2, 1, 1, 1, 0.4); }
-    vid.skin({ a, lk, x, y, ang, ax, ay, half, w, z, along, arc, body, scr, time, pdt, run, phageNear, foodNear, spacers: world.spacers.size, plasmid: world.plasmid, cfg, alive: world.me, glow, ink });
+    vid.skin({ a, lk, x, y, ang, ax, ay, half: hl, w: wl, z, along, arc, body, scr, time, pdt, run, phageNear, foodNear, spacers: world.spacers.size, plasmid: world.plasmid, cfg, alive: world.me, glow, ink });
     if (a.sick >= 0) glow.put(x, y, half, 1, 0.2, 0.3, 0.25 + 0.2 * Math.sin(time * 20));
   }
   for (const b of world.away) { // уплывшая дочка: уходит своим курсом и тает в толще

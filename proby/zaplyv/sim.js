@@ -43,7 +43,7 @@ export class World {
     this.me = [{ x: 0, y: 0, vx: 0, vy: 0, m: 1, a: -Math.PI / 2, sick: -1, id: 1 }];
     this.food = []; this.prey = []; this.amoebas = []; this.phages = []; this.plants = []; this.crumbs = []; this.bdellos = []; this.slime = []; this.slippers = []; this.bells = []; this.rotis = []; this.pseudos = []; this.donors = [];
     this.genes = {}; this.from = {}; this.spacers = new Set(); // полоски CRISPR: каких фагов пережил // откуда пришёл ген: kid — дочка, pipe — трубочка
-    this.choice = []; // три гена на выбор; пока не пусто — мир стоит
+    this.choice = []; // гены на выбор; пока не пусто — у края полоса выбора, мир плывёт дальше
     this.rush = 0; this.lastEat = -9; // разгон роста от серии
     this.stats = { eaten: 0, most: 1, path: 0, time: 0, gen: 0, lost: {}, killer: null };
     this.met = new Set(['me']); this.look = 0; this.posle = {}; this.known = new Set(); // posle и known (Альманах) ставит main.js из книги
@@ -149,7 +149,7 @@ export class World {
       c.m /= 2; c.gen = (c.gen || 0) + 1; this.stats.gen = Math.max(this.stats.gen, c.gen);
       const ax = Math.cos(c.a), ay = Math.sin(c.a), r = radius(c.m);
       const D = this.cfg.split_apart * r / 2; // дочки торец к торцу: центры на полдлины палочки от точки деления, иначе палочки наложены и колония складывает их бок о бок
-      const kid = { x: c.x - ax * D, y: c.y - ay * D, vx: c.vx - ax * 60, vy: c.vy - ay * 60, m: c.m, a: c.a, sick: -1, gen: c.gen, id: ++this.ids }; born.push(mut.kid(this, c, kid));
+      const kid = { x: c.x - ax * D, y: c.y - ay * D, vx: c.vx, vy: c.vy, m: c.m, a: c.a, sick: -1, gen: c.gen, id: ++this.ids }; born.push(mut.kid(this, c, kid));
       const spin = c.spin ?? (c.id % 2 ? 1 : -1); c.spin = kid.spin = spin; kid.drift = c.drift; // сёстры дрейфуют вместе и поворачивают в одну сторону: цепочка, а не «две таблетки» бок о бок
       c.x += ax * D; c.y += ay * D;
       this.events.push(['split', c.x, c.y, c.id, kid.id]); // вид деления знает пару: мать и дочка (vid.birth)
@@ -174,7 +174,7 @@ export class World {
 
   // Шаг мира. target — джойстик {dx, dy, p}, точка мира {x, y} или null, если палец отпущен.
   step(dt, target) {
-    if (this.choice.length || !this.me.length) return;
+    if (!this.me.length) return; // выбор навыка мир не останавливает (Роман 25.11: «Игра продолжается аккуратно»)
     const c = this.cfg, r = this.r;
     this.stats.time += dt;
     const c0 = this.center();
