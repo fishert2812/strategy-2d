@@ -64,7 +64,7 @@ check('test_evo_glotat: «Глотает целиком» — ест живых 
     res[name] = { alive: w.me.length > 0, ate: !w[list].length && (w.stats.gulped || 0) > 0, m: (w.me[0]?.m ?? 0) + (w.me[0]?.zhd || 0), m0: m };
   }
   console.log('    ', Object.entries(res).map(([k, r]) => `${k}: ${r.alive ? (r.ate ? 'проглотила, масса ' + r.m0 + '→' + r.m.toFixed(1) : 'не глотала') : 'съедена'}`).join(' | '));
-  if (!res['мелкий кокк'].ate || !(res['мелкий кокк'].m > 6.3)) return 'с умением мелкого кокка не проглотила или не выросла';
+  if (!res['мелкий кокк'].ate || !(res['мелкий кокк'].m > 6 + evo.E.glotat.syt * 0.9)) return 'с умением мелкого кокка не проглотила или не выросла';
   if (res['кокк без умения'].ate) return 'без умения глотает';
   if (res['крупная амёба'].ate) return 'проглотила того, кто крупнее';
   if (!res['амёба у выросшей'].ate) return 'выросшая не проглотила амёбу';
