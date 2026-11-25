@@ -41,8 +41,8 @@ const staroe = {
         for (const f of w.food) { const d = Math.hypot(f.x - q.x, f.y - q.y); if (d < bd) { bd = d; best = f; } }
         q.kurs = best ? Math.atan2(best.y - q.y, best.x - q.x) : q.a + (r() - 0.5) * 3; q.t = 0.25 + r() * 1.2; q.rest = 0.25;
       }
-      if (q.kurs !== undefined) { const d = Math.atan2(Math.sin(q.kurs - q.a), Math.cos(q.kurs - q.a)), m = 6 * dt; q.a += Math.abs(d) <= m ? d : Math.sign(d) * m; q.bokom = Math.max(0, Math.cos(d)); } // с 25.11 поворот плавный и в прежнем коде-образце
-      const go = q.t > q.rest ? (q.strain ? c.strain_speed : c.pseudo_speed) * (q.bokom ?? 1) : 0, k = Math.min(1, 6 * dt);
+      if (q.kurs !== undefined) { const d = Math.atan2(Math.sin(q.kurs - q.a), Math.cos(q.kurs - q.a)), m = 6 * dt; q.a += Math.abs(d) <= m ? d : Math.sign(d) * m; } // с 25.11 поворот плавный и в прежнем коде-образце
+      const go = q.t > q.rest ? (q.strain ? c.strain_speed : c.pseudo_speed) : 0, k = Math.min(1, 6 * dt);
       q.vx += (Math.cos(q.a) * go - q.vx) * k; q.vy += (Math.sin(q.a) * go - q.vy) * k; q.x += q.vx * dt; q.y += q.vy * dt;
       for (const f of w.food) if (!f.gone && Math.hypot(f.x - q.x, f.y - q.y) < 14) f.gone = true;
       for (const a of [...w.me]) {

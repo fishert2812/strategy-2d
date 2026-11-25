@@ -71,8 +71,8 @@ export function shag(w, dt, radius) {
       for (const f of w.food) { const d = Math.hypot(f.x - q.x, f.y - q.y); if (d < bd) { bd = d; best = f; } }
       q.kurs = best ? Math.atan2(best.y - q.y, best.x - q.x) : q.a + (r() - 0.5) * H.ryskanie; q.t = H.pauza[0] + r() * H.pauza[1]; q.rest = H.otdyh;
     }
-    if (q.kurs !== undefined) { const d = Math.atan2(Math.sin(q.kurs - q.a), Math.cos(q.kurs - q.a)), m = povorot(A, q) * dt; q.a += Math.abs(d) <= m ? d : Math.sign(d) * m; q.bokom = Math.max(0, Math.cos(d)); } // кувырок идёт во времени; длинное тело вода разворачивает медленнее
-    const go = q.t > q.rest ? num(c, H.skorost) * (q.bokom ?? 1) : 0, e = Math.min(1, H.plavnost * dt);
+    if (q.kurs !== undefined) { const d = Math.atan2(Math.sin(q.kurs - q.a), Math.cos(q.kurs - q.a)), m = povorot(A, q) * dt; q.a += Math.abs(d) <= m ? d : Math.sign(d) * m; } // кувырок идёт во времени; длинное тело вода разворачивает медленнее
+    const go = q.t > q.rest ? num(c, H.skorost) : 0, e = Math.min(1, H.plavnost * dt);
     q.vx += (Math.cos(q.a) * go - q.vx) * e; q.vy += (Math.sin(q.a) * go - q.vy) * e; q.x += q.vx * dt; q.y += q.vy * dt;
     for (const f of w.food) if (!f.gone && Math.hypot(f.x - q.x, f.y - q.y) < A.eda.r) f.gone = true;
     for (const a of [...w.me]) {
