@@ -226,11 +226,19 @@ await p.evaluate(() => { const w = zaplyvWorld(), c = w.center(); w.events.push(
   const zf = await cam(() => { const w = zaplyvWorld(), a = w.me[0]; for (let i = 0; i < 3; i++) w.me.push({ ...a, id: 950 + i, x: a.x - 2000, y: a.y + i * 30, vx: 0, vy: 0, stun: 1e9 }); });
   const px = await p.evaluate(() => { const w = zaplyvWorld(); return 13 * Math.sqrt(w.me[0].m) * zaplyvProbe.z >= w.cfg.cam.min_px; });
   say(zs < z1 * 0.8 && zd > z1 * 0.9 && zf > z1 * 0.9 && px, `test_L029: камера отъехала к расползшейся колонии (${z1.toFixed(2)} → ${zs.toFixed(2)}), вернулась после гибели дальних (${zd.toFixed(2)}) и не уходит к застрявшим вдали (${zf.toFixed(2)})`); }
+// test_potomki (книга ЛЗ4.1): семья полна — дочка уплывает, вверху счёт «потомков», надпись про первого потомка, на экране гибели счёт крупно
+{ await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.me.length = 1; w.rush = 0; for (let i = 1; i < w.cfg.me_max; i++) w.me.push({ ...a, id: 700 + i, x: a.x + (i % 4) * 30, y: a.y + Math.floor(i / 4) * 30, vx: 0, vy: 0, grab: null, held: 0, sick: -1 }); for (const c of w.me) c.m = w.split() * 1.05; w.choice = []; });
+  await p.evaluate(async () => { const w = zaplyvWorld(); for (const l of ['prey', 'amoebas', 'bdellos', 'phages']) w[l].length = 0; // сытая семья: держим её сытой, пока дочка не уплывёт (иначе соседи и голод сбивают созревание)
+    for (let i = 0; i < 80 && !(w.stats.potomki > 0); i++) { for (const c of w.me) c.m = Math.max(c.m, w.split() * 1.05); w.choice = []; await new Promise(q => setTimeout(q, 100)); } });
+  await p.waitForFunction(() => /потомков/.test(document.getElementById('eaten').textContent), null, { timeout: 2000 }).catch(() => {});
+  const hud = await p.textContent('#eaten'), toast = await p.textContent('#toast'), n = await p.evaluate(() => zaplyvWorld().stats.potomki);
+  say(n > 0 && hud.includes('потомков ' + n) && /потом/.test(toast), 'test_potomki: семья полна — уплыло ' + n + ', вверху «' + hud + '», надпись «' + toast + '»'); }
 await p.evaluate(() => { const w = zaplyvWorld(); w.genes.spore = false; w.stats.killer = 'amoeba'; w.me.length = 0; });
 await p.waitForTimeout(1200); await notBook(await p.evaluate(() => ['who', 'cname', 'ctext', 'cfact', 'ctip'].map(i => document.getElementById(i).textContent)), 'экран гибели');
 say(await p.evaluate(async () => { const C = await (await fetch('cards.json')).json(), T = (await (await fetch('kniga/teksty_sushchestv.json')).json()).sushchestva, st = document.getElementById('stats').textContent;
   return Object.keys(C).every(k => !T[k] || T[k].imya === C[k].name || !st.includes(C[k].name)); }), 'test_L018: в строке «кто забрал» на экране гибели имена только из книги (прогон 0.44: «Сувойка» вместо «Колокольчик»)');
 await whole(['#again', '#tomenu', '#cab', '#eno'], 'экран гибели'); // до любых касаний: экран не прокручен
+say(await p.evaluate(() => { const b = document.querySelector('#stats .potomki'); return !!b && /Потомков в капле: [1-9]/.test(b.textContent) && parseFloat(getComputedStyle(b).fontSize) >= 24; }), 'test_potomki: на экране гибели крупно «' + await p.evaluate(() => document.querySelector('#stats .potomki')?.textContent) + '»');
 say(await p.evaluate(() => ['hud', 'scalebox', 'ver'].every(i => getComputedStyle(document.getElementById(i)).visibility === 'hidden') && getComputedStyle(document.getElementById('end')).backgroundColor.startsWith('rgb(')), 'test_L031: лист гибели непрозрачный, надписи игры под ним скрыты');
 m = await marks();
 if (await tap('#eno', '«Не так» на экране гибели')) say(await noted(m), '«Не так» на экране гибели: отметка и надпись видна');
