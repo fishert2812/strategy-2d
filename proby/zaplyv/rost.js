@@ -6,7 +6,7 @@
 const url = new URL('./rost.json', import.meta.url);
 export const R = url.protocol === 'file:' ? JSON.parse((await import('node:fs')).readFileSync(url, 'utf8')) : await (await fetch(url)).json();
 
-export const on = w => w.mode === 'rost';
+export const on = w => w.mode === 'rost' || w.mode === 'evo'; // «Эволюция» растёт так же (evo.js)
 // Масса, нужная для роста номер n (с 1); дальше последнего порога каждый следующий в dalshe раз больше.
 export const porog = n => n <= R.porog.length ? R.porog[n - 1] : R.porog.at(-1) * R.dalshe ** (n - R.porog.length);
 export function level(m) { let n = 0; while (m >= porog(n + 1)) n++; return n; }

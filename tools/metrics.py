@@ -74,6 +74,10 @@ new = sum(ensure("lesson-draft", k, "Черновик урока: " + t, b + "\n
 # М9: черновик старше трёх дней. М7: самая старая правка main, которой нет в выкладке web.
 causes = ["черновик урока #%d открыт больше трёх дней" % d["number"] for d in drafts
           if d["state"] == "open" and NOW - when(d["created_at"]) > 3 * DAY]
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import glob, povtory  # урок L048: повтор просьбы Романа без хозяина, урока и защиты больше суток — остановка
+code = "\n".join(open(f, encoding="utf-8", errors="ignore").read() for f in glob.glob("tests/*.gd") + glob.glob("tools/**/*.*", recursive=True) + glob.glob("proby/**/*.mjs", recursive=True))
+causes += povtory.causes(issues("povtor", "open"), open("lessons.md", encoding="utf-8").read(), code, NOW)
 web_ok = [r for r in runs if r["name"] == "web" and r["conclusion"] == "success"]
 deployed = web_ok[0]["head_sha"] if web_ok else None
 waiting = []

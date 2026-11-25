@@ -31,8 +31,9 @@ export function names(cfg, GENY) {
 // Мутации живут только в режиме «Мутации» (Роман 24.11: «Мы тестируем разные режимы!»); обычный заплыв как был.
 // Режим «Голод» (Роман 25.11 08:47: «Да отдельным режимом давай попробуем»): клетка без еды худеет; его умения — M.golod.genes.
 const hungry = w => w.mode === 'golod';
-const own = (w, g) => M.golod.genes.includes(g) ? hungry(w) : w.mode === 'mut';
-const on = w => w.mode === 'mut' || hungry(w);
+const mutMode = w => w.mode === 'mut' || w.mode === 'evo'; // в «Эволюции» (evo.js) все умения тоже живут
+const own = (w, g) => M.golod.genes.includes(g) ? hungry(w) : mutMode(w);
+const on = w => mutMode(w) || hungry(w);
 const has = (w, g) => (own(w, g) || everywhere(g)) && !!w.genes[g];
 // Уровни (З1, З5): то же умение может прийти ещё раз, пока уровень ниже M.levels[g]. Первый приход — уровень 1.
 export const lvl = (w, g) => w.genes[g] ? Math.max(1, (w.lvl || {})[g] || 0) : 0;
