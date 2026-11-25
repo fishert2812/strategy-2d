@@ -803,6 +803,7 @@ function paint(time) {
   const pdt = Math.min(0.05, Math.max(0, time - (paint.t ?? time))); paint.t = time; // шаг для плавных состояний рисунка
   const z = view.z, big = world.biggest();
   bodies.begin();
+  const znaki = []; // знаки у края кадра для кругов, которые ещё за краем (рисуются после колец)
   const on = (x, y, pad = 80) => x > -pad && x < W + pad && y > -pad && y < H + pad;
   for (const g of world.slime) { // тяж слизи: прозрачный гель с налипшими крупинками; в нём плыть вязко
     const [x, y] = scr(g.x, g.y); if (!on(x, y, g.len * z)) continue;
@@ -820,22 +821,30 @@ function paint(time) {
       for (const sd of [-1, 1]) { const vv = v + sd * g.w * 0.5 * S.core; ink.put(x + (ca * u - sa * vv) * z, y + (sa * u + ca * vv) * z, S.rim * z + 0.3, ...(S.rim_c || [0.75, 0.92, 1]), S.rim_a * f); } }
   }
   { const Zc = cfg.zone, wn = world.warning(); // край зоны затягивания: тонкая сплошная линия (точки — язык еды, их не занимаем), еле видна всегда, ярче в полутора радиусах, разгорается только у ближайшей (L030)
-    for (const zn of world.zones()) { const [wx, wy, R] = zn, [x, y] = scr(wx, wy), Rz = R * z; if (!on(x, y, Rz)) continue;
-      const d = world.me.reduce((m, a) => Math.min(m, Math.hypot(a.x - wx, a.y - wy)), 1e9), lv = wn && wn.zone[0] === wx && wn.zone[1] === wy ? wn.level : 0;
-      const al = (d < R * 1.5 ? Zc.near : Zc.far) + (Zc.warn - Zc.near) * lv, [cr, cg, cb] = Zc.color, sz = (0.6 + 0.4 * lv) * z + 0.5, n = Math.max(90, Math.ceil(6.283 * Rz / (sz * 0.9))); // точки внахлёст: сплошная линия, не пунктир (L047, Роман 25.11 про амёбу)
+    probe.znak = 0; probe.tiho = 0; znaki.length = 0;
+    const tihie = world.bells.filter(v => v.shut > 0).map(v => [...world.bell(v), cfg.vortex_r, 'bell', true]); // сжатый колокольчик: вихрь затих на пару секунд, круг не пропадает, а тускнеет (О115)
+    for (const zn of [...world.zones(), ...tihie]) { const [wx, wy, R] = zn, [x, y] = scr(wx, wy), Rz = R * z, tiho = !!zn[4];
+      const gap = Math.hypot(Math.max(0, -x, x - W), Math.max(0, -y, y - H)) - Rz; // край круга за кадром: на сколько точек экрана
+      if (gap > 0) { if (!tiho && gap < Zc.znak * z) { znaki.push([x, y, 1 - gap / (Zc.znak * z)]); probe.znak++; } continue; } // круг ещё за краем, но близко: знак у края (О115: «вплыл из-за края кадра»)
+      if (tiho) probe.tiho++;
+      const d = world.me.reduce((m, a) => Math.min(m, Math.hypot(a.x - wx, a.y - wy)), 1e9), lv = !tiho && wn && wn.zone[0] === wx && wn.zone[1] === wy ? wn.level : 0;
+      const al = (tiho ? Zc.far * Zc.tiho : (d < R * 1.5 ? Zc.near : Zc.far) + (Zc.warn - Zc.near) * lv), [cr, cg, cb] = Zc.color, sz = (0.6 + 0.4 * lv) * z + 0.5, n = Math.max(90, Math.ceil(6.283 * Rz / (sz * 0.9))); // точки внахлёст: сплошная линия, не пунктир (L047, Роман 25.11 про амёбу)
       const [pr, pg, pb] = Zc.podlozhka, pa = Zc.podlozhka_a * Math.min(1, al / Zc.near); // тёмная подложка под кольцом: на пёстром и зелёном фоне красная линия не тонет (О112)
       for (let k = 0; k < n; k++) { const t = k / n * 6.283; ink.put(x + Math.cos(t) * Rz, y + Math.sin(t) * Rz, sz * Zc.podlozhka_w, pr, pg, pb, pa); }
       const ala = al * Math.min(1, sz * 0.9 / Zc.step); for (let k = 0; k < n; k++) { const t = k / n * 6.283; ink.put(x + Math.cos(t) * Rz, y + Math.sin(t) * Rz, sz, cr, cg, cb, ala); } // точек втрое больше — каждая бледнее, линия той же силы
       for (let k = 0; k < Zc.ticks; k++) { const t = k / Zc.ticks * 6.283 + time * 0.2; // чёрточки внутрь: куда тянет, видно, даже когда рта не видно
         const nt = Math.max(6, Math.ceil(Rz * Zc.tick / (sz * 0.8))); for (let i = 0; i <= nt; i++) { const f = i / nt, r = Rz * (1 - Zc.tick * f); ink.put(x + Math.cos(t) * r, y + Math.sin(t) * r, sz * (1 - f * 0.5), cr, cg, cb, al * (1 - f * 0.6)); } } // чёрточка сплошная, сужается внутрь
       if (lv > 0) probe.warn[zn[3]] = (probe.warn[zn[3]] || 0) + 1;
-      for (const a of world.me) { if (Math.hypot(a.x - wx, a.y - wy) > R) continue; const [ax, ay] = scr(a.x, a.y); // тебя тянет: штрихи бегут от клетки к рту
-        for (let k = 0; k < Zc.streak; k++) { const f = (time * 1.2 + k / Zc.streak) % 1;
-          for (let i = 0; i < 6; i++) { const u = (f + i * 0.015) * 0.7; ink.put(ax + (x - ax) * u, ay + (y - ay) * u, 1.1 * z + 0.5, cr, cg, cb, Zc.warn * (1 - f) * (0.4 + i * 0.12)); } } } } }
+      if (!tiho) for (const a of world.me) { if (Math.hypot(a.x - wx, a.y - wy) > R) continue; const [ax, ay] = scr(a.x, a.y); // тебя тянет: сплошная нить от клетки к рту, по ней к рту бегут волны яркости (не риски — О115)
+        const m = Zc.nit_kuskov, w0 = 0.55 * z + 0.25; let mark = 0;
+        for (let i = 0; i < m; i++) { const u0 = i / m * 0.7, u1 = (i + 1) / m * 0.7, vl = 0.5 + 0.5 * Math.sin((u0 * Zc.streak - time * 1.2) * 6.283), ali = Zc.warn * (0.35 + 0.65 * vl) * (1 - u0 * 0.6);
+          if (bodies.seg) { bodies.seg(ax + (x - ax) * u0, ay + (y - ay) * u0, ax + (x - ax) * u1, ay + (y - ay) * u1, w0, [cr, cg, cb], ali); mark++; } }
+        if (mark) probe.nit = (probe.nit || 0) + 1; } } }
   const edgeArrow = (x, y, [cr, cg, cb], al, big = 1) => { // стрелка у края экрана, острием к тому, что за кадром
     const [cx, cy] = scr(view.x, view.y), a = Math.atan2(y - cy, x - cx), ux = Math.cos(a), uy = Math.sin(a), m = 34;
     const t = Math.min((ux > 0 ? W - m - cx : m - cx) / (ux || 1e-9), (uy > 0 ? H - m - cy : m - cy) / (uy || 1e-9)), px = cx + ux * t, py = cy + uy * t;
     for (let i = 0; i < 12; i++) { const s = i * 1.6 * big; ink.put(px + ux * s * 1.4, py + uy * s * 1.4, 4 * big, cr, cg, cb, al); ink.put(px + ux * 18 * big - (ux + uy) * s * 0.75, py + uy * 18 * big - (uy - ux) * s * 0.75, 4 * big, cr, cg, cb, al); ink.put(px + ux * 18 * big - (ux - uy) * s * 0.75, py + uy * 18 * big - (uy + ux) * s * 0.75, 4 * big, cr, cg, cb, al); } };
+  for (const [x, y, k] of znaki) edgeArrow(x, y, cfg.zone.color, 0.35 + 0.45 * k); // круг за краем кадра, но рядом: красная стрелка к нему
   { const wn = world.warning(); if (wn && wn.level > 0) { const [x, y] = scr(wn.zone[0], wn.zone[1]); // источник тревоги за кадром: стрелка у края экрана, острием к нему (L030)
     if (!on(x, y, wn.zone[2] * z - 12)) { probe.edge = (probe.edge || 0) + 1; edgeArrow(x, y, cfg.zone.color, 0.45 + 0.4 * wn.level); } } }
   // Сестра за кадром (Роман 25.11: «они просто уплывают куда-то, исчезают»): камера не ждёт схваченную, заражённую и отставшую,
@@ -858,8 +867,9 @@ function paint(time) {
     const r = cfg.bell_r * z, dx = Math.cos(v.dir), dy = Math.sin(v.dir), [bx, by, open] = vid.bell({ x, y, dir: v.dir, Ls: cfg.bell_stalk * z, r, shut: v.shut || 0, time, id: v.id, z, ink }); // стебель: сжатие в спираль и развёртка — vid.js
     bodies.sphere(bx, by, r * (0.8 + 0.2 * open), [0.75, 0.9, 0.88], [0.9, 1, 1], v.id, 0.7); // свёрнутый бокал сжат в шарик
     if (v.shut > 0) continue;
-    for (let k = 0; k < 20; k++) { const t = k / 20 * 6.283 + time * 6, cx = bx + dx * r * 0.9, cy = by + dy * r * 0.9;
-      ink.put(cx + Math.cos(t) * r * 0.8, cy + Math.sin(t) * r * 0.35 * Math.abs(dx) + Math.sin(t) * r * 0.35, 0.9 * z + 0.3, 0.85, 1, 0.95, 0.6); }
+    { const cx = bx + dx * r * 0.9, cy = by + dy * r * 0.9, pt = t => [cx + Math.cos(t) * r * 0.8, cy + Math.sin(t) * r * 0.35 * Math.abs(dx) + Math.sin(t) * r * 0.35]; // венец ресничек — сплошное колечко, не бусы (О115)
+      if (bodies.seg) { probe.venec = 'trubka'; for (let k = 0; k < 24; k++) { const t0 = k / 24 * 6.283 + time * 6, t1 = (k + 1) / 24 * 6.283 + time * 6; bodies.seg(...pt(t0), ...pt(t1), 0.45 * z + 0.15, [0.85, 1, 0.95], 0.6); } }
+      else { probe.venec = 'busy'; for (let k = 0; k < 20; k++) ink.put(...pt(k / 20 * 6.283 + time * 6), 0.9 * z + 0.3, 0.85, 1, 0.95, 0.6); } }
     for (let k = 0; k < 18; k++) { const f = (time * 0.5 + k / 18) % 1, R = cfg.vortex_r * z * (1 - f), t = k * 2.1 - f * 6;
       glow.put(bx + Math.cos(t) * R, by + Math.sin(t) * R, 1.1 * z + 0.4, 0.7, 0.95, 1, 0.3 * f); } // вихрь
   }
