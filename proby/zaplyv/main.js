@@ -237,7 +237,7 @@ function menuOpen() {
   $('mknow').textContent = g ? 'Ты знаешь ' + g + ' ' + pl(g, 'ген', 'гена', 'генов') : '';
   $('mquiet').textContent = ROD.quiet ? 'Звук выкл' : 'Звук вкл'; $('mak').textContent = kab.label().replace(/^Альманах · /, '');
   const live = menuGo.back && !ended && world.me.length; $('mback').hidden = !live; // из паузы — путь назад в паузу
-  menuPick(live ? world.mode : 'swim', true); // обычный заплыв — одно касание
+  $('mscene').scrollTop = 0; menuPick(live ? world.mode : 'swim', true); // каждый раз сверху, а не там, где долистали (О78) // обычный заплыв — одно касание
 }
 function menuPick(m, quiet) {
   const M = MODES[m];
@@ -251,9 +251,9 @@ function menuPick(m, quiet) {
   $('mscene').querySelector(`.mo[data-m=${m}]`)?.scrollIntoView({ block: 'nearest' }); // выбранный режим виден целиком, даже когда сцена ниже
   $('mscene').classList.toggle('picked', !quiet);
   mSel = m; const same = menuGo.back && !ended && world.me.length && m === world.mode; // тот же режим из паузы: «Продолжить» тот же заплыв, рядом «Новый заплыв» (О45)
-  $('mgo').textContent = same ? 'Продолжить' : M.go; $('mnew').hidden = !same; $('mnew').sure = false; $('mnew').classList.remove('sure'); $('mnew').textContent = 'Новый заплыв';
+  $('mgo').textContent = same ? 'Продолжить' : M.go; $('mgo').sure = false; $('mgo').classList.remove('sure'); $('mnew').hidden = !same; $('mnew').sure = false; $('mnew').classList.remove('sure'); $('mnew').textContent = 'Новый заплыв';
 }
-function menuGo() { if (mSel === 'night') { $('menu').classList.remove('on'); openNight(); } else if (menuGo.back && !ended && world.me.length && mSel === world.mode) { $('menu').classList.remove('on'); menuGo.back = false; } else { menuGo.back = false; start(null, mSel); } } // из паузы: «Плыть» в том же режиме возвращает в тот же заплыв, другой режим — новый заплыв
+function menuGo() { if (mSel === 'night') { $('menu').classList.remove('on'); openNight(); } else if (menuGo.back && !ended && world.me.length && mSel === world.mode) { $('menu').classList.remove('on'); menuGo.back = false; } else { const g = $('mgo'); if (menuGo.back && !ended && world.me.length && !g.sure) { g.sure = true; g.classList.add('sure'); g.textContent = 'Бросить заплыв?'; return; } menuGo.back = false; start(null, mSel); } } // другой режим из паузы бросает идущий заплыв — только вторым касанием (прогон 0.81, О77) // из паузы: «Плыть» в том же режиме возвращает в тот же заплыв, другой режим — новый заплыв
 for (const o of document.querySelectorAll('#mscene .mo')) { o.onclick = () => menuPick(o.dataset.m); o.ondblclick = () => { menuPick(o.dataset.m); if (!MODES[o.dataset.m].lock) menuGo(); }; }
 $('mgo').onclick = menuGo;
 $('mquiet').onclick = () => { ROD.quiet = !ROD.quiet; saveRod(); $('mquiet').textContent = ROD.quiet ? 'Звук выкл' : 'Звук вкл'; };

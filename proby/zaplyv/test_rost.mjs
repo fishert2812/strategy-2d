@@ -5,6 +5,7 @@ import * as rost from './rost.js';
 import { readFileSync } from 'node:fs';
 const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
 const MODE = process.env.ROST_OFF ? 'swim' : 'rost';
+if (process.env.ROST_SYTOST) rost.R.sytost = +process.env.ROST_SYTOST; // самопроверка темпа: сторож краснеет и на медленном, и на быстром росте
 let bad = 0;
 const check = (name, fn) => {
   try { const r = fn(); if (r) { bad++; console.log('  ПРОВАЛ', name + ':', r); } else console.log('  ок   ', name); }
@@ -13,7 +14,7 @@ const check = (name, fn) => {
 const empty = (seed, m = 1) => {
   const w = new World(cfg, seed); w.mode = MODE;
   for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'crumbs', 'bdellos', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = [];
-  w.tidy = 1e9; w.me[0].m = m; return w;
+  w.tidy = 1e9; w.tiho = 1; w.me[0].m = m; return w; // tiho: тихую воду у старта не наводим, хищников ставит сама проверка
 };
 // Бот-новичок: плывёт к ближайшей еде, которую уже может есть (комок и нить — тоже еда, когда открыты).
 const bot = w => { const c = w.center(); let best = null, bd = 400;
@@ -21,11 +22,13 @@ const bot = w => { const c = w.center(); let best = null, bd = 400;
   return best ? { x: best.x, y: best.y } : { dx: Math.cos(w.dir), dy: Math.sin(w.dir), p: 1 }; };
 // Темп меряем без хищников (safe): иначе мерили бы, умеет ли бот уворачиваться, а не сколько еды нужно на рост.
 const SAFE = ['amoebas', 'phages', 'bdellos', 'slippers', 'bells', 'rotis', 'pseudos'];
-const play = (seed, sec, mode = MODE, safe = true) => {
-  const w = new World(cfg, seed); w.mode = mode; w.dir = seed * 1.3; const lv = [], most = { n: 1 };
+// lenivy — раз в сколько кадров бот заново смотрит на еду (медленный живой игрок, круг 10: он рос втрое медленнее ловкого бота).
+const play = (seed, sec, mode = MODE, safe = true, lenivy = 1) => {
+  const w = new World(cfg, seed); w.mode = mode; w.dir = seed * 1.3; const lv = [], most = { n: 1 }; let cel = null;
   for (let i = 0; i < 30 * sec && w.me.length; i++) {
     if (safe) for (const k of SAFE) w[k] = [];
-    const m0 = w.me[0].m; w.step(1 / 30, bot(w)); most.n = Math.max(most.n, w.me.length); if (w.me[0]) most.jump = Math.max(most.jump || 0, w.me[0].m / m0 - 1);
+    if (i % lenivy === 0) cel = bot(w);
+    const m0 = w.me[0].m; w.step(1 / 30, cel); most.n = Math.max(most.n, w.me.length); if (w.me[0]) most.jump = Math.max(most.jump || 0, w.me[0].m / m0 - 1);
     for (const e of w.events) if (e[0] === 'rost') lv[e[3]] = w.stats.time; w.events.length = 0;
     if (w.choice.length) w.pick(w.choice[0]); if (i % 300 === 0) w.dir += 0.7;
   }
@@ -41,18 +44,32 @@ check('test_rost_bez_potolka: в «Росте» клетка не делится
   if (big < 4) return `больше трёх потолков выросли ${big} из ${runs.length}`;
 });
 
-// Темп (Роман 25.11: «клетка растет и мутирует очень быстро»): рост — не чаще раза в 15 с и не реже раза в 90 с, первый не раньше 20 с.
-// Цель — около 40 с на рост на любом размере (логика «Эволюции», ЛЭ10). Порог: rost.json porog, sytost, kusok.
-check('test_rost_temp: росты идут ровно, примерно раз в 40 секунд, не чаще раза в 15 с', () => {
+// Темп с двух сторон. Роман 25.11: «клетка растет и мутирует очень быстро» — значит, не чаще раза в 8 с у ловкого бота.
+// Круг игроков 10 на 0.81: живой игрок за 70 с дорос с 1,4 до 1,7 мкм и выбора не дождался — значит, и медленный игрок
+// (смотрит на еду раз в 1,5 с) получает первый рост за полминуты. Числа: rost.json sytost, kusok, porog.
+const lenivye = [2, 3, 4, 5, 6].map(s => play(s, 120, MODE, true, 45));
+check('test_rost_temp: ловкий растёт раз в 20–30 с и не чаще раза в 8 с, медленный получает первый рост за полминуты', () => {
   const gaps = runs.map(r => r.lv.slice(1, 9).map((t, i) => t - (i ? r.lv[i] : 0)).filter(x => x !== undefined && !isNaN(x)));
-  console.log('    секунд между ростами:', gaps.map(g => g.map(x => x.toFixed(0)).join(' ')).join(' | '));
-  if (runs.some(r => !(r.lv[6] > 0))) return 'за 6 минут не дошла до шестого роста — слишком медленно';
+  const perv = lenivye.map(r => r.lv[1]);
+  console.log('    ловкий, секунд между ростами:', gaps.map(g => g.map(x => x.toFixed(0)).join(' ')).join(' | '));
+  console.log('    медленный, первый рост на секунде:', perv.map(t => t ? t.toFixed(0) : 'нет').join(' '));
+  if (runs.some(r => !(r.lv[8] > 0))) return 'ловкий за 6 минут не дошёл до восьмого роста — слишком медленно';
   const all = gaps.flat();
-  if (Math.min(...gaps.map(g => g[0])) < 20) return 'первый рост раньше 20 с — слишком быстро';
-  if (all.some(x => x < 15)) return 'рост чаще раза в 15 с — слишком быстро';
-  if (all.some(x => x > 90)) return 'пауза между ростами дольше 90 с';
+  if (all.some(x => x < 8)) return 'рост чаще раза в 8 с — слишком быстро';
+  if (all.some(x => x > 70)) return 'пауза между ростами дольше 70 с';
   const mean = all.reduce((a, b) => a + b, 0) / all.length;
-  if (mean < 30 || mean > 55) return `в среднем рост раз в ${mean.toFixed(0)} с, цель около 40`;
+  if (mean < 18 || mean > 35) return `ловкий растёт в среднем раз в ${mean.toFixed(0)} с, цель 20–30`;
+  if (perv.some(t => !(t > 0) || t > 60)) return 'медленный игрок не дождался первого роста за минуту — слишком медленно';
+  const sr = perv.reduce((a, b) => a + b, 0) / perv.length;
+  if (sr > 40) return `медленный ждёт первого роста в среднем ${sr.toFixed(0)} с — скучно`;
+});
+
+// Круг 10: «Рост» дважды начался у колокольчика. В тихой воде у старта (rost.json tiho) хищников нет.
+check('test_rost_start: у старта в тихой воде нет ни одного хищника', () => {
+  for (let seed = 1; seed <= 40; seed++) {
+    const w = new World(cfg, seed); w.mode = MODE; w.step(1 / 30, null);
+    for (const k of SAFE) for (const q of w[k]) { const d = Math.hypot(q.x, q.y); if (d < 1250) return `заплыв ${seed}: ${k} в ${d.toFixed(0)} от старта`; }
+  }
 });
 
 // Доказательство плавного роста (Роман 25.11: «Растет по чуть чуть с каждой едой. В зависимости от ценности»):
