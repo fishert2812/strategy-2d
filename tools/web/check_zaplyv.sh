@@ -14,7 +14,7 @@ const pw = require(process.env.PW || 'playwright');
 const say = t => console.log('ПАСПОРТ: ' + t);
 (async () => {
   const b = await pw[process.argv[3]].launch();
-  const p = await b.newPage({ ...pw.devices['iPhone 13'] });
+  const p = await b.newPage({ ...pw.devices['iPhone 13'], deviceScaleFactor: 1 }) // плотность 3 проверяет только обход пальцем (L038, L052); здесь 1 — шаг быстрее;
   let bad = 0;
   p.on('pageerror', e => { bad++; console.log('ошибка страницы', e.message); });
   p.on('console', m => { if (m.type() === 'error' && !/favicon|404/.test(m.text())) { bad++; console.log('консоль', m.text().slice(0, 200)); } });
