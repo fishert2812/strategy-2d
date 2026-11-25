@@ -9,6 +9,7 @@ import { mark, message } from './feedback.js';
 import { entries, shelf, page, links } from './almanah.js';
 import * as karta from './karta.js';
 import { readFileSync } from 'node:fs';
+import * as dv from './dvizhok.js';
 import { night } from './night.js';
 import { M } from './mutacii.js';
 const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
@@ -600,29 +601,29 @@ check('каждый заплыв — другой мир', () => {
 });
 
 check('простой игрок живёт дольше минуты и доходит до мутации (медиана 9 заплывов)', () => {
-  const t = [], g = [];
+  const t = [], g = []; let lost = 0;
   for (let s = 1; s <= 9; s++) {
     const w = new World(cfg, s * 101);
     for (let i = 0; i < 30 * 300 && w.me.length; i++) w.step(1 / 30, player(w));
-    t.push(w.stats.time); g.push(Object.keys(w.genes).length);
+    t.push(w.stats.time); g.push(Object.keys(w.genes).length); lost += Object.values(w.stats.lost).reduce((x, y) => x + y, 0);
   }
   t.sort((a, b) => a - b); g.sort((a, b) => a - b);
-  console.log('    паспорт: время жизни, с', t.map(Math.round).join(' '), '| мутаций', g.join(' '));
+  console.log('    паспорт: время жизни, с', t.map(Math.round).join(' '), '| мутаций', g.join(' '), '| потеряно клеток', lost);
   if (t[4] < 60) return 'медиана жизни ' + Math.round(t[4]) + ' с';
   if (g[4] < 1) return 'медианный игрок не дошёл до мутации';
-  if (t[4] >= 300 && t[0] >= 300) return 'никто не погиб за 5 минут — нет угрозы';
+  if (t[0] >= 300 && lost < 3) return 'никто не погиб за 5 минут и колония почти не теряла клеток (' + lost + ') — нет угрозы'; // колония растёт до десяти: угроза — и потери клеток, не только гибель всех
 });
 
 // Альманах (урок L019, Роман: «Кабинет… 12 из 13 что это значит… где сами изображения… где образовательный контент, где структура»; «Альманах… он так должен называться»).
 check('test_L019: Альманах — разделы, счёт словами, у каждой записи модель и тексты книги', () => {
   const J = f => JSON.parse(readFileSync(new URL(f, import.meta.url)));
-  const K = J('./almanah.json'), cards = J('./cards.json'), T = J('./kniga/teksty_sushchestv.json').sushchestva, G = J('./kniga/teksty_genov.json'), E = entries(K, G);
+  const K = J('./almanah.json'), cards = J('./cards.json'), T = J('./kniga/teksty_sushchestv.json').sushchestva, G = J('./kniga/teksty_genov.json'); dv.vitrina(K, {}, T); /* виды из анкет движка встают на полку сами */ const E = entries(K, G);
   for (const k of Object.keys(cards).filter(k => k !== '_')) { const it = E[k]; if (!it) return `«${k}» нет в Альманахе`;
     if (!K.colors[it.group]) return `у «${k}» раздел без цвета`; if (!(it.span > 0)) return `у «${k}» нет размера снимка модели`;
     if (!T[k] || !T[k].kto || !T[k].priroda) return `у «${k}» нет текста книги «кто это» и «в природе»`; }
   for (const g of Object.keys(cfg.genes)) if (!E['gene:' + g] || !(E['gene:' + g].span > 0)) return `гена «${g}» нет в Альманахе`;
   const met = new Set(['me', 'phage', 'amoeba', 'plant']), S = shelf(K, E, met);
-  if (S.count !== 'Ты знаешь 2 обитателей капли из 10 · 1 еду из 2') return 'счёт не словами: ' + S.count;
+  if (!/^Ты знаешь 2 обитателей капли из 1[0-9] · 1 еду из 2$/.test(S.count)) /* обитателей прибавляется с каждой записью движка */ return 'счёт не словами: ' + S.count;
   if (S.pills.map(p => p.s).join() !== 'life,food' || S.pills[0].label !== 'Обитатели · 2') return 'разделы: ' + S.pills.map(p => p.label).join(', ');
   met.add('gene:capsule'); const S2 = shelf(K, E, met, 'gene');
   if (!S2.pills.some(p => p.s === 'gene') || !S2.list.every(k => E[k].sec === 'gene') || !S2.count.endsWith('· 1 ген')) return 'раздел генов: ' + S2.count;
@@ -921,6 +922,42 @@ check('test_food_smell: с хемотаксисом клетку ведёт к �
   const a = go(true), b = go(false);
   console.log(`    паспорт: с хемотаксисом первым съеден ${a}, без него ${b}`);
   if (a !== 'lysate') return 'с хемотаксисом первым съеден не сок: ' + a;
+});
+
+check('test_L054 (Роман 25.11 на 0.78: «запятые… уменьшить кол-во… Просто на постоянке! Можно им тоже какой то ареал обитания»): запятые живут гнёздами у слизистой плёнки, нападают волной с передышкой, выводок не плодит рой', () => {
+  const N = cfg.bdello_nest;
+  // 1) путешественник без уклонения, 2 заплыва по 200 с: запятые есть, но роем не стоят
+  const go = (w, t) => { if (w.choice.length) w.pick(w.choice[0]); if (w.readyToSplit() && w.me.length < 6) w.divide(); const c = w.center();
+    let best = null, bd = 260; for (const f of w.food) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } }
+    if (best) return { x: best.x, y: best.y }; const a = 0.7 + Math.sin(t / 40) * 0.8; return { x: c.x + Math.cos(a) * 400, y: c.y + Math.sin(a) * 400 }; };
+  let seen = 0, peak = 0, homeless = 0, all = 0;
+  for (let s = 1; s <= 2; s++) { const w = new World(cfg, s * 77);
+    for (let i = 0; i < 30 * 200 && w.me.length; i++) { w.step(1 / 30, go(w, i / 30)); w.events.length = 0;
+      if (i % 30 === 0) { const c = w.center(), k = w.bdellos.filter(b => Math.hypot(b.x - c.x, b.y - c.y) < N.cap_r).length; seen += k; peak = Math.max(peak, k);
+        for (const b of w.bdellos) { all++; if (!b.home) homeless++; } } } }
+  console.log('    паспорт: запятых в округе всего', seen, ', пик', peak, ', бродяг', Math.round(100 * homeless / Math.max(1, all)) + '%');
+  if (!seen) return 'запятых нет вовсе — угрозы нет';
+  if (peak > N.cap + N.n[1]) return 'рой: в округе разом ' + peak + ' запятых (предел ' + (N.cap + N.n[1]) + ')';
+  if (homeless > all * 0.35) return 'бродяг ' + homeless + ' из ' + all + ' — у запятых нет ареала';
+  // 2) гнездо держит своих: без добычи запятая через минуту у своей плёнки
+  const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
+  const h = bare(5); h.me[0].x = 9000; const home = { x: 0, y: 0, ph: 0 }; h.bdellos = [{ x: 0, y: 0, vx: 0, vy: 0, a: 0, t: 0, home, id: 9 }];
+  run(h, 60, null); const off = Math.hypot(h.bdellos[0].x, h.bdellos[0].y);
+  if (off > N.leash * 1.6) return 'запятая уплыла от гнезда на ' + Math.round(off);
+  // 3) в передышку гнездо на тебя не бросается, в охоту — бросается
+  const aims = ph => { let n = 0; for (let s = 0; s < 6; s++) { const w = bare(40 + s), a = w.me[0]; w.stats.time = 0;
+    w.bdellos = [{ x: a.x + 120, y: a.y, vx: 0, vy: 0, a: 0, t: 0, home: { x: a.x + 120, y: a.y, ph }, id: 9 }];
+    for (let i = 0; i < 30 * 8; i++) { w.step(1 / 30, null); if (w.bdellos.some(b => b.aim)) { n++; break; } } } return n; };
+  const hunt = aims(0), calm = aims(N.hunt + 0.1);
+  console.log('    паспорт: бросков в охоту', hunt, 'из 6, в передышку', calm, 'из 6');
+  if (calm) return 'в передышку запятая бросилась ' + calm + ' раз';
+  if (!hunt) return 'в охоту запятая не бросилась ни разу';
+  // 4) выводок: у гнезда уже предел — из съеденной синегнойки рой не выходит
+  const br = bare(7); br.me[0].x = -9000; br.pseudos = [{ x: 0, y: 0, vx: 0, vy: 0, a: 0, t: 9, rest: 9, cool: 0, id: 7 }];
+  br.bdellos = Array.from({ length: N.cap }, (_, i) => i ? { x: 200 + i * 30, y: i * 40, vx: 0, vy: 0, a: 0, t: 50, rest: 60, id: 20 + i } : { x: -60, y: 0, vx: 0, vy: 0, a: 0, t: 5, rest: 0, id: 20 }); // остальные стоят рядом (пауза дольше рывка)
+  run(br, cfg.bdello_kill + 1, null);
+  if (br.pseudos.length) return 'запятая не взяла синегнойку';
+  if (br.bdellos.length > N.cap) return 'из синегнойки вышел рой: запятых стало ' + br.bdellos.length;
 });
 
 console.log(bad ? 'ЗАПЛЫВ: провалов ' + bad : 'ЗАПЛЫВ: все проверки прошли');

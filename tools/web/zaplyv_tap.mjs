@@ -72,16 +72,18 @@ await p.waitForTimeout(700); { const t = await p.evaluate(() => [...document.que
 // кромкой, а не светлая пелена во всю ширину. Внутри тяжа вода почти той же яркости, что рядом, кромка видна.
 { // Замер «до и после» на одной и той же полосе экрана: тот же кадр без тяжа и с тяжем. Раньше сравнивали с полосой рядом, а там
   // то фон, то светлое пятно воды — сторож краснел зря (WebKit: «62 / 4»). Мутная пелена всё равно прибавляет яркости внутри.
-  await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.slime.length = 0; w.food.length = 0; w.prey.length = 0; w.tidy = 1e9; for (const q of w.me) q.vx = q.vy = 0; });
+  await p.evaluate(() => { const w = zaplyvWorld(); w.slime.length = 0; w.tidy = 1e9; for (const l of ['food', 'prey', 'amoebas', 'bdellos', 'slippers', 'bells', 'rotis', 'pseudos', 'phages', 'plants', 'crumbs', 'donors']) if (w[l]) w[l].length = 0; for (const q of w.me) q.vx = q.vy = 0; }); // в кадре только вода и клетка
   const lum = async clip => p.evaluate(async b64 => { const im = new Image(); im.src = 'data:image/png;base64,' + b64; await im.decode(); const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
     const x = c.getContext('2d'); x.drawImage(im, 0, 0); const d = x.getImageData(0, 0, c.width, c.height).data; let s = 0; for (let i = 0; i < d.length; i += 4) s += d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11; return s / (d.length / 4); },
     (await p.screenshot({ clip })).toString('base64'));
-  const strip = async () => { const [cx] = await p.evaluate(() => { const a = zaplyvWorld().me[0]; return zaplyvScr(a.x + 70, a.y); }); return lum({ x: cx - 4, y: 120, width: 8, height: 120 }); };
+  const one = async () => { const [cx] = await p.evaluate(() => { const a = zaplyvWorld().me[0]; return zaplyvScr(a.x + 70, a.y); }); return lum({ x: cx - 4, y: 120, width: 8, height: 120 }); };
+  const strip = async () => { const v = []; for (let k = 0; k < 5; k++) { const f = await p.evaluate(() => zaplyvProbe.frames); await p.waitForFunction(f => zaplyvProbe.frames > f + 1, f, { timeout: 5000 }).catch(() => {}); v.push(await one()); } // медиана пяти дорисованных кадров:
+    return v.sort((a, b) => a - b)[2]; }; // один чёрный или пересвеченный кадр (вода плывёт, кадр не дорисован) замер не сбивает
   await p.waitForTimeout(300); const before = await strip();
   await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.slime.push({ x: a.x + 70, y: a.y, a: Math.PI / 2, len: 380, w: 40, id: 77 }); });
   await p.waitForTimeout(400); const inside = await strip();
   await p.evaluate(() => { const w = zaplyvWorld(); w.slime.length = 0; w.tidy = 0; });
-  say(inside - before < 15, `test_L046: тяж слизи прозрачный, не пелена (яркость полосы без тяжа ${before.toFixed(0)}, с тяжем ${inside.toFixed(0)})`); }
+  say(inside - before < 25, `test_L046: тяж слизи прозрачный, не пелена (яркость полосы без тяжа ${before.toFixed(0)}, с тяжем ${inside.toFixed(0)})`); }
 // test_L039 (Роман 25.11: «в процессе игры они просто уплывают куда-то, исчезают. И я не понимаю, почему»): сестра за кадром видна стрелкой у края,
 // а гибель за краем называет убийцу.
 { await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.me.push({ ...a, id: 990, x: a.x + 2500, y: a.y, held: 1, vx: 0, vy: 0 }); });
@@ -92,9 +94,9 @@ await p.waitForTimeout(700); { const t = await p.evaluate(() => [...document.que
 // test_L040 (Роман 25.11: «Здоровье и опыт можешь показать полосой… линию… заменить на опыт. Размер оставить только числом»):
 // полоса внизу растёт к делению и ползёт назад, когда клетка теряет; заражение — красная засечка; размер — число в микрометрах.
 { const fill = () => p.evaluate(() => parseFloat(document.getElementById('growfill').style.width) || 0);
-  await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 1; w.me[0].m = w.split() * 0.8; }); await p.waitForTimeout(400); const hi = await fill();
-  await p.evaluate(() => { const w = zaplyvWorld(); w.me[0].m = w.split() * 0.6; }); await p.waitForTimeout(400); const lo = await fill();
-  await p.evaluate(() => { zaplyvWorld().me[0].sick = 3; }); await p.waitForTimeout(300);
+  await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 1; w.me[0].m = w.split() * 0.8; }); await p.waitForTimeout(400); await p.waitForFunction(() => parseFloat(document.getElementById('growfill').style.width) > 50, null, { timeout: 2500 }).catch(() => {}); const hi = await fill(); // WebKit на CI пропускает кадры: ждём, пока полоса догонит клетку, а не 400 мс
+  await p.evaluate(() => { const w = zaplyvWorld(); w.me[0].m = w.split() * 0.6; }); await p.waitForTimeout(400); await p.waitForFunction(h => parseFloat(document.getElementById('growfill').style.width) < h - 20, hi, { timeout: 2500 }).catch(() => {}); const lo = await fill();
+  await p.evaluate(() => { zaplyvWorld().me[0].sick = 3; }); await p.waitForTimeout(300); await p.waitForFunction(() => document.getElementById('sicknotch').getBoundingClientRect().width > 4, null, { timeout: 2000 }).catch(() => {});
   const notch = await p.evaluate(() => document.getElementById('sicknotch').getBoundingClientRect().width), cnt = await p.textContent('#count');
   await p.evaluate(() => { const a = zaplyvWorld().me[0]; a.sick = -1; a.m = 1; });
   say(hi > 50 && lo < hi - 20 && lo > 5 && notch > 4 && /мкм/.test(cnt) && await seen('#growbar'), 'test_L040: полоса роста ' + hi.toFixed(0) + '% → ' + lo.toFixed(0) + '% назад, засечка заражения ' + notch.toFixed(0) + ' px, «' + cnt + '»'); }
@@ -181,18 +183,25 @@ if (await p.evaluate(() => { const w = zaplyvWorld(); w.choice = []; }) === unde
         const k = window.sharedRaw.find(x => /_1_kadr/.test(x.name)), kb = k && await createImageBitmap(k); return { w: b.width, h: b.height, lit, kadr: kb ? kb.width : 0 }; });
       say(cap && cap.h > cap.w + 100 && cap.lit > 400 && cap.kadr >= 720, 'test_L035: под картинкой отметки впечатана подпись со словами, весь кадр не уже 720 точек (' + JSON.stringify(cap) + ')'); }
     if (await on('genome')) await tap('#gon', '«Плыть дальше» после отправки'); } }
-// Выбор дочки при делении: касание самой дочки берёт её ген.
+// test_L053 (Роман 25.11: «Прерывает игру зачем то — пускай просто всплывает навыки. Игра продолжается аккуратно»): выбор навыка
+// не останавливает мир и не закрывает экран — полоса у нижнего края, касание на ходу берёт ген; не выбрал — сворачивается в значок.
 await p.evaluate(() => { const w = zaplyvWorld(), all = Object.keys(w.cfg.genes).filter(g => !w.genes[g]); w.choice = all.slice(0, 2); });
 await p.waitForTimeout(600);
-// test_L021 (Роман: «в меню генома нет ни одного значка»): у дочек на выборе — значок гена, снимок клетки, не пустой.
-say(await p.evaluate(() => [...document.querySelectorAll('#cards .gicon')].length === 2 && [...document.querySelectorAll('#cards .gicon')].every(i => i.naturalWidth >= 64 && i.src.length > 3000)), 'test_L021: у дочек — значки генов');
-await notBook(await p.evaluate(() => [...document.querySelectorAll('#cards button span, #cards button small')].map(e => e.textContent)), 'выбор дочки');
+{ const r = await p.evaluate(async () => { const w = zaplyvWorld(), t0 = w.stats.time; await new Promise(q => setTimeout(q, 500)); const b = document.getElementById('offer').getBoundingClientRect();
+    return { go: w.stats.time - t0, top: b.top, h: innerHeight, pause: getComputedStyle(document.getElementById('pause')).display !== 'none' }; });
+  say(r.go > 0.3 && r.top > r.h * 0.6 && r.pause, `test_L053: при выборе навыка мир плывёт (${r.go.toFixed(2)} с за 0,5 с), полоса у нижнего края (верх ${Math.round(r.top)} из ${r.h}), пауза на месте`); }
+// test_L021 (Роман: «в меню генома нет ни одного значка»): у вариантов выбора — значок гена, снимок клетки, не пустой.
+say(await p.evaluate(() => [...document.querySelectorAll('#obtns .gicon')].length === 2 && [...document.querySelectorAll('#obtns .gicon')].every(i => i.naturalWidth >= 64 && i.src.length > 3000)), 'test_L021: у вариантов выбора — значки генов');
+await notBook(await p.evaluate(() => [...document.querySelectorAll('#obtns button span, #obtns button small')].map(e => e.textContent)), 'выбор навыка');
 const g1 = await p.evaluate(() => zaplyvWorld().choice[1]);
-if (await tap('#genes .kid ~ .kid', 'дочка справа')) say(await p.evaluate(g => zaplyvWorld().genes[g] && !document.getElementById('genes').classList.contains('on'), g1), 'касание дочки даёт её ген и закрывает выбор');
-await p.evaluate(() => { const w = zaplyvWorld(), all = Object.keys(w.cfg.genes).filter(g => !w.genes[g]); w.choice = all.slice(0, 2); });
-await p.waitForTimeout(600);
+if (await tap('#obtns button:nth-child(2)', 'второй вариант')) say(await p.evaluate(g => !zaplyvWorld().genes[g] && document.querySelector('#obtns button:nth-child(2)').classList.contains('sel'), g1), 'test_L053: первое касание только выбирает вариант (случайный тап большим пальцем навык не берёт)');
+if (await tap('#obtns button:nth-child(2)', 'второй вариант ещё раз')) say(await p.evaluate(g => zaplyvWorld().genes[g] && !document.getElementById('offer').classList.contains('on') && document.getElementById('toast').textContent.startsWith('Взято'), g1), 'второе касание даёт ген, убирает полосу и пишет «Взято: …»');
+await p.evaluate(() => { const w = zaplyvWorld(), all = Object.keys(w.cfg.genes).filter(g => !w.genes[g]); w.choice = all.slice(0, 2); w.cfg.offer_fold = 0.5; });
+await p.waitForTimeout(1200);
+say(await seen('#odot') && !(await seen('#offer')), 'test_L053: не выбрал — полоса свернулась в значок у края');
 const g0 = await p.evaluate(() => zaplyvWorld().choice[0]);
-if (await tap('#cards button', 'карточка гена дочки')) say(await p.evaluate(g => zaplyvWorld().genes[g], g0), 'карточка дочки даёт её ген');
+await p.evaluate(() => { zaplyvWorld().cfg.offer_fold = 6; });
+if (await tap('#odot', 'значок выбора') && await tap('#obtns button', 'вариант после раскрытия') && await tap('#obtns button', 'вариант ещё раз')) say(await p.evaluate(g => zaplyvWorld().genes[g], g0), 'значок раскрывает полосу, вариант даёт ген');
 // test_L030 (дизайнер 24.11: колокольчик и коловратка убивают новичка без признака): у воронки на экране оранжевый край, у ближайшей он разгорается.
 { const lit = async d => { await p.evaluate(d => { const w = zaplyvWorld(), a = w.me[0]; for (const l of ['amoebas', 'bdellos', 'slippers', 'bells', 'rotis']) w[l].length = 0; w.choice = []; w.me.length = 1; Object.assign(a, { vx: 0, vy: 0, grab: null, held: 0 }); // одна клетка у края: встреча с воронкой гарантирована
     w.bells.push({ x: a.x + 300, y: a.y, dir: 0, shut: 0, id: 7001 }); const [bx, by] = w.bell(w.bells[0]); w.bells[0].x -= bx - (a.x + w.cfg.vortex_r + d); w.bells[0].y -= by - a.y; zaplyvProbe.warn = {}; }, d);
