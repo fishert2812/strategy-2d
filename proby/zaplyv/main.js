@@ -655,21 +655,29 @@ const up = e => {
 canvas.addEventListener('pointerup', up);
 canvas.addEventListener('pointercancel', up);
 
-function ask() {
-  if ($('genes').classList.contains('on')) return;
-  const h = $('genes').querySelector('h1'), hp = $('genes').querySelector('p'); h.dataset.d ??= h.textContent; hp.dataset.d ??= hp.textContent; // в «Эволюции» выбор на росте, а не из двух дочек
-  h.textContent = evo.on(world) ? evo.E.zagolovok : h.dataset.d; hp.textContent = evo.on(world) ? evo.E.podskazka : hp.dataset.d;
-  const box = $('cards'); box.innerHTML = ''; $('genes').querySelectorAll('.kid').forEach(e => e.remove());
-  kids = world.choice.map((g, i) => ({ g, x: 0, y: 0, vx: 0, vy: 0, m: 1.7, a: -Math.PI / 2, id: 900 + i, sick: -1 })); // две дочки крупно: мутация видна на теле
-  world.choice.forEach((g, i) => {
-    const go = () => { world.pick(g); kids = null; $('genes').classList.remove('on'); fx.ring(world.center().x, world.center().y, 0, 300); beep(660, 0.4, 0.06, 'sine', 1.5); };
-    const b = document.createElement('button');
-    b.innerHTML = '<img class="gicon" alt=""><span></span><small></small>'; b.children[1].textContent = geneName(g); b.children[2].textContent = mut.daet(world, g, geneBook(g)); b.firstChild.src = icon(g); b.firstChild.style.borderColor = geneColor(g); b.onclick = go; box.appendChild(b); // имя и «что даёт» — только из книги (урок L018)
-    const k = document.createElement('button'); k.className = 'kid'; k.style.left = i ? '52%' : '2%'; k.onclick = go; k.setAttribute('aria-label', geneName(g)); $('genes').appendChild(k);
-  });
-  $('genes').classList.add('on'); $('toast').classList.remove('on'); // всплывашка не ложится на заголовок выбора
-  beep(440, 0.5, 0.05, 'sine', 2);
+// Выбор навыка на ходу (Роман 25.11: «Прерывает игру зачем то — пускай просто всплывает навыки. Игра продолжается аккуратно»):
+// мир не стоит, экран не перекрыт. Варианты всплывают полосой у нижнего края под большим пальцем; не выбрал за offer_fold с —
+// полоса сворачивается в значок у края, коснёшься — снова раскроется; ждёт offer_auto с — берётся первый вариант.
+let offerKey = '', offerT = 0; // offerT — время на часах телефона (performance.now), а не мира: полоса сворачивается за 6 настоящих секунд
+function offer(dt) {
+  const key = world.choice.join(), O = $('offer'), D = $('odot');
+  if (!world.choice.length) { if (offerKey) { O.classList.remove('on'); D.classList.remove('on'); offerKey = ''; } return; }
+  if (key !== offerKey) { // новый выбор: собрать полосу
+    offerKey = key; offerT = performance.now(); $('otitle').textContent = evo.on(world) ? evo.E.zagolovok : $('otitle').dataset.d; const box = $('obtns'); box.innerHTML = '';
+    world.choice.forEach(g => { const b = document.createElement('button'); b.innerHTML = '<img class="gicon" alt=""><span></span><small></small>';
+      b.children[1].textContent = geneName(g); b.children[2].textContent = mut.daet(world, g, geneBook(g)); b.firstChild.src = icon(g); b.firstChild.style.borderColor = geneColor(g);
+      b.onclick = e => { e.stopPropagation(); if (b.classList.contains('sel')) return take(g); // первое касание выбирает, второе берёт: случайный тап большим пальцем навык не возьмёт
+        for (const q of box.children) q.classList.remove('sel'); b.classList.add('sel'); offerT = performance.now(); $('otitle').textContent = 'Коснись ещё раз — взять «' + geneName(g) + '»'; }; box.appendChild(b); });
+    D.querySelector('img').src = icon(world.choice[0]); O.classList.add('on'); D.classList.remove('on'); beep(440, 0.3, 0.04, 'sine', 2);
+  }
+  const age = (performance.now() - offerT) / 1000;
+  if (O.classList.contains('on') && age > cfg.offer_fold) { O.classList.remove('on'); D.classList.add('on'); } // свернулась в значок
+  D.style.setProperty('--left', Math.max(0, 1 - age / cfg.offer_auto).toFixed(3)); // кольцо значка тает до автовыбора
+  if (age > cfg.offer_auto) take(world.choice[0]); // так и не выбрал — первый вариант
 }
+function take(g) { world.pick(g); offer(0); say('Взято: ' + geneName(g), 2200, g); fx.ring(world.center().x, world.center().y, 0, 300); beep(660, 0.4, 0.06, 'sine', 1.5); }
+$('odot').onclick = e => { e.stopPropagation(); offerT = performance.now(); $('offer').classList.add('on'); $('odot').classList.remove('on'); };
+$('otitle').dataset.d = $('otitle').textContent;
 
 // Твой путь за заход: время, поколения и сколько это заняло бы в природе, мутации, кто сколько отнял.
 function pathText(w) {
@@ -718,7 +726,7 @@ function events() {
 }
 
 function tick(dt) {
-  if (world.choice.length) { ask(); return; }
+  offer(dt);
   world.step(dt, pad.value()); // джойстик: направление и сила из сдвига пальца
   { const [fx, fy] = world.flow(view.x, view.y); cur[0] += fx * dt; cur[1] += fy * dt; } // течение несёт взвесь
   events();
@@ -758,7 +766,7 @@ function tick(dt) {
   { const b = world.me.reduce((q, a) => a.m > q.m ? a : q, world.me[0] || { m: 1 }), sp = world.split(); // размер числом: длина палочки в микрометрах (260 единиц — 10 мкм)
     const um = 2 * 8.5 * Math.pow(b.m, 0.3) * (1.6 + Math.min(b.m, sp) / sp) / 26; $('count').textContent = 'клеток ' + world.me.length + ' · ' + um.toFixed(1).replace('.', ',') + ' мкм'; }
   $('eaten').textContent = world.rush > 0.05 ? 'рост ×' + (1 + world.rush).toFixed(1) : 'съедено ' + world.stats.eaten; // серия кусков подряд — рост быстрее
-  if (world.readyToSplit() && !world.me.some(a => a.grab || a.held > 0) && !$('toast').classList.contains('on')) tell('split', 'Выросла! Коснись — поделишься. Или подожди'); // подсказка ждёт, пока на экране весть: не затирает «Сестра погибла за краем…» (L039)
+  if (world.readyToSplit() && !world.choice.length && !world.me.some(a => a.grab || a.held > 0) && !$('toast').classList.contains('on')) tell('split', 'Выросла! Коснись — поделишься. Или подожди'); // подсказка ждёт, пока на экране весть: не затирает «Сестра погибла за краем…» (L039)
 }
 
 // Вид «как под микроскопом» (тёмное поле): палочки длиной в 2–3 ширины растут в длину, внутри светлое

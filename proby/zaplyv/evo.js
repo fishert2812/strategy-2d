@@ -6,6 +6,10 @@
 //          Кто «мельче» — решает масса, поэтому выросшая ест и тех, кто ел её в начале (амёба, колокольчик, коловратка, туфелька).
 //   еда крупнеет вместе с клеткой (логика режима, ЛЭ10): с роста s новые кокки рождаются крупнее, в k раз на каждый
 //          следующий рост, — иначе корма на следующий рост почти нет и рост встаёт.
+//   худеет без еды (ЛЭ13, Роман 25.11 17:24 «окей»): большое тело всё время тратит — каждую секунду теряет hudeet долю массы
+//          (не меньше min); от голода не гибнет, но может похудеть обратно на рост, и прежние пасти снова её берут.
+//   ты то, что ты ешь (ЛЭ21, Роман 25.11 «точно»): у существ капли своё умение (evo.json dobycha); проглотил n таких —
+//          на следующем росте оно приходит третьей карточкой. Первое: от кокка — kislota «Не боится кислоты» (кокк не щиплет).
 //   igla — Г55 «Нить-игла» (шестой путь выделения, T6SS; биолог, круги 15–16): коснулась носом бактерии-соперницы —
 //          уколотая замирает, раздувается шариком (яд режет стенку изнутри) и через t секунд растекается соком. Кокков не берёт.
 // Свой файл; sim.js зовёт отсюда step(), main.js — draw(). Числа и слова — evo.json, имена генов — только книга.
@@ -15,7 +19,10 @@ export const E = url.protocol === 'file:' ? JSON.parse((await import('node:fs'))
 export const on = w => w.mode === 'evo';
 const has = (w, g) => on(w) && !!w.genes[g];
 // Что можно предложить: все гены мира и свои умения режима, которых у клетки ещё нет, кроме умений семьи.
-export const pool = w => [...Object.keys(w.cfg.genes), ...E.svoi].filter(g => !w.genes[g] && !E.bez.includes(g));
+export const pool = w => [...Object.keys(w.cfg.genes), ...E.svoi].filter(g => !w.genes[g] && !E.bez.includes(g) && !ot(g));
+// Умение от добычи: заработано ли (съедено n тех, у кого оно есть).
+const ot = g => Object.values(E.dobycha).some(d => d.gene === g);
+export const earned = w => Object.entries(E.dobycha).filter(([who, d]) => (w.syel?.[who] || 0) >= d.n && !w.genes[d.gene]).map(([, d]) => d.gene);
 
 // Кого можно проглотить: список мира, ключ карточки (кто), масса.
 const PREY = [['prey', 'coccus'], ['pseudos', 'pseudo'], ['bdellos', 'bdello'], ['amoebas', 'amoeba'], ['bells', 'bell'], ['rotis', 'roti'], ['slippers', 'slipper']];
@@ -25,12 +32,18 @@ const mass = (q, who) => q.m || E.glotat.razmer[who] || 1;
 export function step(w, dt, radius) {
   if (!on(w)) return;
   gulp(w, dt, radius); igla(w, radius); krupneet(w);
+  for (const a of w.me) if (!(a.spore > 0)) a.m = Math.max(E.hudeet.min, a.m * (1 - E.hudeet.v * dt)); // тело тратит
+  if (w.me.some(a => has(w, 'kislota'))) for (const q of w.prey) { // не боится кислоты: шарик рядом не жжёт (sim.js pinch_t), но насос тратит силы
+    for (const a of w.me) if (q.touch > 0) a.m = Math.max(E.hudeet.min, a.m * (1 - E.kislota.plata * dt));
+    q.touch = 0;
+  }
   if (w.choice.length || !w.events.some(e => e[0] === 'rost')) return;
   const left = pool(w);
   for (let i = left.length - 1; i > 0; i--) { const j = Math.floor(w.r() * (i + 1)); [left[i], left[j]] = [left[j], left[i]]; }
   const n = w.events.find(e => e[0] === 'rost')[3];
   if (n >= E.glotat.k && left.includes('gulp')) { w.choice = ['gulp']; return; } // «Глотать» — событие, а не одна из карт: одна карточка (логика режима, ЛЭ14)
-  w.choice = left.filter(g => g !== 'gulp').slice(0, E.vybor);
+  const own = left.filter(g => g !== 'gulp'), pink = earned(w).slice(0, 1); // третья карточка — от добычи, если заработана, иначе ещё одно своё
+  w.choice = [...own.slice(0, E.vybor - pink.length), ...pink];
 }
 
 // Г51: касание добычи — она уходит из мира и тает внутри клетки (w.gulps), за t секунд её масса переходит в рост.
@@ -52,7 +65,7 @@ function gulp(w, dt, radius) {
       w[list] = w[list].filter(q => !eat.includes(q));
       for (const q of eat) {
         w.gulps.push({ a, x: q.x, y: q.y, x0: q.x, y0: q.y, m: mass(q, who), who, t: 0 });
-        w.stats.gulped = (w.stats.gulped || 0) + 1; w.events.push(['gulp', q.x, q.y, mass(q, who), who]);
+        w.stats.gulped = (w.stats.gulped || 0) + 1; w.syel = w.syel || {}; w.syel[who] = (w.syel[who] || 0) + 1; w.events.push(['gulp', q.x, q.y, mass(q, who), who]);
       }
     }
   }
