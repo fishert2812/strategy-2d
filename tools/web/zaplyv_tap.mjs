@@ -70,15 +70,18 @@ await p.waitForTimeout(700); { const t = await p.evaluate(() => [...document.que
   say(d.dpr >= 3 && d.d0 === 3 && (d.avg > d.slow ? d.drop && d.d === 2.5 : d.d === 3), `test_L052: кадр в полную плотность 3, на тяжёлом кадре откат до 2,5 (было ${d.d0}, сейчас ${d.d}, откат на кадре ${d.drop || '—'}, средний кадр ${Math.round(d.avg)} мс)`); }
 // test_L046 (Роман 25.11 на 0.68: «Почему какая то мутнота стала? Какой то фильтр мутно стоит?»): тяж слизи — прозрачный гель с тонкой
 // кромкой, а не светлая пелена во всю ширину. Внутри тяжа вода почти той же яркости, что рядом, кромка видна.
-{ await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.slime.length = 0; w.slime.push({ x: a.x + 70, y: a.y, a: Math.PI / 2, len: 380, w: 40, id: 77 }); });
-  await p.waitForTimeout(400);
+{ // Замер «до и после» на одной и той же полосе экрана: тот же кадр без тяжа и с тяжем. Раньше сравнивали с полосой рядом, а там
+  // то фон, то светлое пятно воды — сторож краснел зря (WebKit: «62 / 4»). Мутная пелена всё равно прибавляет яркости внутри.
+  await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.slime.length = 0; w.food.length = 0; w.prey.length = 0; w.tidy = 1e9; for (const q of w.me) q.vx = q.vy = 0; });
   const lum = async clip => p.evaluate(async b64 => { const im = new Image(); im.src = 'data:image/png;base64,' + b64; await im.decode(); const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
     const x = c.getContext('2d'); x.drawImage(im, 0, 0); const d = x.getImageData(0, 0, c.width, c.height).data; let s = 0; for (let i = 0; i < d.length; i += 4) s += d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11; return s / (d.length / 4); },
     (await p.screenshot({ clip })).toString('base64'));
-  const [cx] = await p.evaluate(() => { const g = zaplyvWorld().slime[0]; return zaplyvScr(g.x, g.y); });
-  const inside = await lum({ x: cx - 4, y: 120, width: 8, height: 120 }), aside = await lum({ x: Math.max(0, cx - 120), y: 120, width: 8, height: 120 });
-  await p.evaluate(() => { zaplyvWorld().slime.length = 0; });
-  say(inside - aside < 8, `test_L046: тяж слизи прозрачный, не пелена (яркость внутри ${inside.toFixed(0)}, рядом ${aside.toFixed(0)})`); }
+  const strip = async () => { const [cx] = await p.evaluate(() => { const a = zaplyvWorld().me[0]; return zaplyvScr(a.x + 70, a.y); }); return lum({ x: cx - 4, y: 120, width: 8, height: 120 }); };
+  await p.waitForTimeout(300); const before = await strip();
+  await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.slime.push({ x: a.x + 70, y: a.y, a: Math.PI / 2, len: 380, w: 40, id: 77 }); });
+  await p.waitForTimeout(400); const inside = await strip();
+  await p.evaluate(() => { const w = zaplyvWorld(); w.slime.length = 0; w.tidy = 0; });
+  say(inside - before < 15, `test_L046: тяж слизи прозрачный, не пелена (яркость полосы без тяжа ${before.toFixed(0)}, с тяжем ${inside.toFixed(0)})`); }
 // test_L039 (Роман 25.11: «в процессе игры они просто уплывают куда-то, исчезают. И я не понимаю, почему»): сестра за кадром видна стрелкой у края,
 // а гибель за краем называет убийцу.
 { await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.me.push({ ...a, id: 990, x: a.x + 2500, y: a.y, held: 1, vx: 0, vy: 0 }); });
