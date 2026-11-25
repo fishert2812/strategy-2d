@@ -1035,6 +1035,7 @@ function render(t, after) {
 }
 // Замер для проверки: кадры, худший и средний кадр за последние 5 с, число клеток и точек.
 window.zaplyvWorld = () => world; // для проверок и кадров
+if (new URLSearchParams(location.search).has('pesochnica')) import('./pesochnica.js'); // песочница движка: пустая вода, умения касанием (pesochnica.js)
 window.zaplyvScr = (x, y) => { const [sx, sy] = scr(x, y); return [sx * innerWidth / W, sy * innerHeight / H]; }; // для проверок: где на экране точка мира (в точках CSS)
 const probe = window.zaplyvProbe = { dpr0: dprNow, warn: {}, frames: 0, worst: 0, avg: 0, js: 0, jsWorst: 0, cells: 0, dots: 0, errors: 0 };
 addEventListener('error', () => probe.errors++);
