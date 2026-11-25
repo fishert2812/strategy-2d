@@ -5,6 +5,8 @@
 import { VC, mutaciya } from './vid_chasti.js';
 import { schitay, velichiny } from './zakony.js';
 import { obvod_zon, kasanie, zony } from './zony.js';
+import { telo as telo_rosta } from './delenie.js';
+import { razvesti, SK } from './stolknovenie.js';
 const url = new URL('./mir.json', import.meta.url);
 export const MR = url.protocol === 'file:' ? JSON.parse((await import('node:fs')).readFileSync(url, 'utf8')) : await (await fetch(url)).json();
 
@@ -21,10 +23,13 @@ export function pole_setka(W, H, P, rnd) { const nx = Math.ceil(W / P.shag), ny 
 // Паспорт записи для жизни: законы тела и размер. Считается один раз на запись (у мутанта запись новая — паспорт новый).
 const PASP = new WeakMap();
 export function pasport(zapis) { let p = PASP.get(zapis); if (p) return p; const h = schitay(zapis), v = velichiny(zapis), Z = zony(zapis), rz = zapis.zhizn?.razmer ?? 1;
-  p = { h, rz, cena1: h.k_cena / (v.obem / velichiny(VC.vidy.nasha).obem), telo: v.obem * rz * rz * rz / velichiny(VC.vidy.nasha).obem, L: v.L, Z, ohotnik: zapis.zhizn?.est === 'dobycha', oruzhie: ['rot', 'udar'].filter(k => Z[k]) }; PASP.set(zapis, p); return p; }
+  p = { h, rz, cena1: h.k_cena / (v.obem / velichiny(VC.vidy.nasha).obem), telo: v.obem * rz * rz * rz / velichiny(VC.vidy.nasha).obem, L: v.L, Z, ohotnik: zapis.zhizn?.est === 'dobycha', oruzhie: ['rot', 'udar'].filter(k => Z[k]) }; const O = obvod_zon(zapis, { x: 0, y: 0, a: 0, tolshchina: 1 }).O; p.kr = O.poperechnik / 2 * 1.15; p.kh = Math.max(0, O.dlina / 2 - O.poperechnik / 2); PASP.set(zapis, p); return p; }
+// Грубый отбор пары: расстояние между осями тел (отрезки) меньше суммы толщин — только тогда считается настоящее касание обводов.
+function blizko(q, p, w, o, po, wo) { const ax = Math.cos(q.a) * p.kh * w, ay = Math.sin(q.a) * p.kh * w, bx = Math.cos(o.a) * po.kh * wo, by = Math.sin(o.a) * po.kh * wo, R = p.kr * w + po.kr * wo; let best = 1e18;
+  for (let i = 0; i <= 4; i++) for (let j = 0; j <= 4; j++) { const dx = q.x + ax * (i / 2 - 1) - o.x - bx * (j / 2 - 1), dy = q.y + ay * (i / 2 - 1) - o.y - by * (j / 2 - 1), d = dx * dx + dy * dy; if (d < best) best = d; } return best < R * R; }
 
 export function sozdat(imya = 'kaplya', seed = 1, M0 = MR) { const R = M0.miry[imya], [W, H] = R.razmer; let s = seed * 2654435761 % 2147483647 || 1; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
-  const M = { t: 0, W, H, K: M0, rnd, pole: pole_setka(W, H, M0.pole, rnd), sv: [], id: 1, schet: { rodilos: 0, golod: 0, syel: 0, proboy: 0, mutantov: 0, zaneslo: 0 }, sobytiya: [], mir: R, zanos_t: 0 };
+  const M = { t: 0, W, H, K: M0, rnd, pole: pole_setka(W, H, M0.pole, rnd), sv: [], id: 1, schet: { rodilos: 0, golod: 0, syel: 0, proboy: 0, mutantov: 0, zaneslo: 0 }, sobytiya: [], mir: R, zanos_t: 0, SK: { ...SK, iteracii: M0.zhizn.razvodit ?? SK.iteracii } };
   if (typeof process !== 'undefined' && process.env?.MIR_LOMAT) M.K = { ...M0, pravila: [] };
   for (const [vid, n] of Object.entries(R.naselenie)) for (let i = 0; i < n; i++) rodit(M, vid, { ...VC.vidy[vid], gruppa: undefined }, rnd() * W, rnd() * H, 1 + rnd() * 0.8);
   return M; }
@@ -51,12 +56,14 @@ export function shag(M, dt) { const Z = M.K.zhizn, S = M.sv, kl = 120, G = new M
     let prihod = 0; if (!p.ohotnik) prihod = M.pole.vzyat(q.x, q.y, Z.eda * p.h.k_eda * p.rz * M.pole.tut(q.x, q.y) * dt) * Z.kpd;
     q.m += (prihod - Z.cena * p.cena1 * Math.pow(B, Z.stepen_ceny) * dt) / p.telo; // крупное тело тратит на единицу веса меньше (закон Клайбера)
     // теснота: тела расталкиваются
-    ryadom(q, w * (p.L + 2), o => { const wo = tolshchina(M, o), R = (w * Math.sqrt(p.L) + wo * Math.sqrt(pasport(o.zapis).L)) * 0.8, dx = q.x - o.x, dy = q.y - o.y, d = Math.hypot(dx, dy) || 0.01; if (d < R) { const k = (R - d) / d * 0.25 * (wo * wo / (w * w + wo * wo)) * 2; q.x += dx * k; q.y += dy * k; } });
+    // чужие расходятся по настоящим обводам (stolknovenie.js: оболочка ↔ оболочка, лёгкий уходит дальше); круг — только грубый отбор пар
+    ryadom(q, w * (p.L + 2), o => { if (o.id < q.id) return; const wo = tolshchina(M, o), po = pasport(o.zapis); if (!blizko(q, p, w, o, po, wo)) return;
+      const r = razvesti(q.zapis, { x: q.x, y: q.y, a: q.a, tolshchina: w }, o.zapis, { x: o.x, y: o.y, a: o.a, tolshchina: wo }, M.SK); if (!r.pary) return; q.x += r.A.dx; q.y += r.A.dy; q.a += r.A.da; o.x += r.B.dx; o.y += r.B.dy; o.a += r.B.da; });
     // встречи: у кого есть рот или удар, тот проверяет касание зон с соседями другого вида
     if (p.oruzhie.length && !q.syt) ryadom(q, w * (p.L + 1) + kl * 0.5, o => { if (q.mertv || o.mertv || o.vid === q.vid) return; const wo = tolshchina(M, o), po = pasport(o.zapis); if (Math.hypot(q.x - o.x, q.y - o.y) > w * (p.L / 2 + 1) + wo * (po.L / 2 + 1)) return;
       const K = kasanie(obvod_zon(q.zapis, { x: q.x, y: q.y, a: q.a, tolshchina: w }, 32), obvod_zon(o.zapis, { x: o.x, y: o.y, a: o.a, tolshchina: wo }, 32), w * 0.15);
       for (const pr of M.K.pravila) if (K.some(k => k.a === pr.a && k.b === pr.b) && po_pravilu(M, pr, q, o)) { const Bo = massa(o); o.mertv = pr.ishod; M.schet[pr.ishod]++; M.sobytiya.push({ chto: pr.ishod, kto: q.id, kogo: o.id, x: o.x, y: o.y });
-        const dob = pr.ishod === 'syel' ? 1 : pr.dolya; q.syt = (pr.perevarivaet ?? Z.perevarivaet) * Math.max(0.002, Math.min(1, Bo / B)); q.m += Bo * dob * Z.kpd / p.telo; if (dob < 1) M.pole.prolit(o.x, o.y, Bo * (1 - dob) * Z.ostatki); break; } }); }
+        const dob = pr.ishod === 'syel' ? 1 : pr.dolya; q.syt = (pr.perevarivaet ?? Z.perevarivaet) * Math.max(Z.pol_perevarivaniya, Math.min(1, Bo / B)); q.m += Bo * dob * Z.kpd / p.telo; if (dob < 1) M.pole.prolit(o.x, o.y, Bo * (1 - dob) * Z.ostatki); break; } }); }
   // гибель от голода, деление, уборка
   const novye = []; for (const q of S) { if (q.mertv) continue; const p = pasport(q.zapis);
     if (q.m < Z.smert) { q.mertv = 'golod'; M.schet.golod++; M.pole.prolit(q.x, q.y, massa(q) * Z.ostatki); M.sobytiya.push({ chto: 'golod', kogo: q.id, x: q.x, y: q.y }); continue; }
@@ -70,5 +77,10 @@ export function shag(M, dt) { const Z = M.K.zhizn, S = M.sv, kl = 120, G = new M
 // Может ли охотник взять эту добычу своим оружием (то же условие, что в правилах): рот — по размеру, удар — по прочности оболочки.
 export function po_pravilu(M, pr, q, o) { const p = pasport(q.zapis), po = pasport(o.zapis); if (pr.ishod === 'syel') return massa(o) <= p.Z.rot.do * massa(q); if (pr.ishod === 'proboy') return p.Z.udar.sila * p.rz > po.Z.obolochka.prochnost * po.h.k_prochnost * po.rz * 0.999 && !po.Z.udar; return false; }
 const po_zubam = (M, q, o) => M.K.pravila.some(pr => pasport(q.zapis).Z[pr.a] && po_pravilu(M, pr, q, o));
+// Облик для рисования: тело растёт в длину и стягивается перетяжкой перед делением (delenie.js), запись с такой формой запоминается по ступеням роста.
+const OBL = new WeakMap();
+export function oblik(M, q) { const st = Math.round(Math.max(0, Math.min(1, q.m - 1)) * 16); let m = OBL.get(q.zapis); if (!m) OBL.set(q.zapis, m = []);
+  if (!m[st]) m[st] = st && q.zapis.forma?.tochki ? { ...q.zapis, forma: { ...q.zapis.forma, tochki: telo_rosta({ ...q.zapis, rost: st / 16 }) } } : q.zapis;
+  return { zapis: m[st], tolshchina: M.K.zhizn.tolshchina * pasport(q.zapis).rz * Math.cbrt(Math.min(1, q.m)) }; }
 export const perepis = M => { const n = {}; for (const q of M.sv) n[q.vid] = (n[q.vid] || 0) + 1; return n; };
 export const zhivogo = M => M.sv.reduce((s, q) => s + massa(q), 0);

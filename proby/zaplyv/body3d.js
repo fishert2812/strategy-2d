@@ -171,7 +171,7 @@ export class Bodies {
     for (const q of kolca) for (let k = 0; k <= G; k++) { const t = k / G * 6.2832, c = Math.cos(t), sn = Math.sin(t), nx = -q.ty * c, ny = q.tx * c; // радиус кольца: в плоскости экрана по нормали оси, из экрана по z
       p[i * 3] = q.x + nx * q.r; p[i * 3 + 1] = -(q.y + ny * q.r); p[i * 3 + 2] = sn * q.r + z0;
       const l = Math.hypot(1, q.dr); nr[i * 3] = (nx - q.tx * q.dr) / l; nr[i * 3 + 1] = -(ny - q.ty * q.dr) / l; nr[i * 3 + 2] = sn / l; uv[i * 2] = c; uv[i * 2 + 1] = q.a; i++; }
-    A.position.needsUpdate = A.normal.needsUpdate = A.uv.needsUpdate = true; m.count = 1; m.renderOrder = order ?? (plotno ? 1 : 3);
+    A.position.needsUpdate = A.normal.needsUpdate = A.uv.needsUpdate = true; m.count = 1; m.renderOrder = order ?? (plotno ? 1 : 3); m.material.transparent = m.renderOrder > 3 || !plotno;
     m.geometry.attributes.cA.array.set([col[0], col[1], col[2], alfa]); m.geometry.attributes.cB.array.set(rim); m.geometry.attributes.prm.array.set([0, seed, 0, 0]);
   }
   // Нить: pts — точки экрана [x0, y0, x1, y1, …] вдоль нити; толщина и прозрачность плавно от корня (r, a) к кончику (r1, a1).
