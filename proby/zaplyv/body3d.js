@@ -89,14 +89,14 @@ export class Bodies {
        float r = 1.0 + 0.22 * (vn(dir * 2.2 + vec3(time * 0.35 + prm.y)) - 0.5) * 2.0;
        float lobe = max(0.0, dot(dir.xy, vec2(cos(prm.z), sin(prm.z))));
        r += 0.45 * pow(lobe, 4.0) * prm.x + 0.3 * pow(max(0.0, vn(dir * 1.3 + vec3(prm.y, time * 0.2, 0.0)) - 0.45) * 2.0, 2.0);
-       p = dir * r; nn = dir;`, { bump: 0.55, alpha0: 0.38, order: 2, rimK: 1.1, ridge: 1.3 }); // амёба: зовёт vid.js (amoeba3d)
+       p = dir * r; nn = dir;`, { bump: 0.55, alpha0: 0.28, order: 2, rimK: 1.1, ridge: 1.3 }); // амёба: зовёт vid.js (amoeba3d)
     // Шип акантамёбы (акантоподия): стеклянный конус, остриём наружу; гнётся дугой к острию (prm.z), чуть дышит.
     // Ложноножка-палец акантамёбы (образец Романа): сужается к круглому кончику, гнётся дугой (prm.z) и волной (prm.w), медленно шевелится.
-    const fp = []; for (let i = 0; i <= 16; i++) { const u = i / 16; fp.push(new THREE.Vector2(0.55 + 0.75 * (1 - u) ** 3 + 0.45 * (1 - u), -1 + 2 * u)); } // у корня расширяется — палец вырастает из массы тела
-    for (let i = 1; i <= 8; i++) { const a = i / 8 * Math.PI / 2; fp.push(new THREE.Vector2(Math.max(0.55 * Math.cos(a), 1e-4), 1 + 0.55 * Math.sin(a) * 0.6)); } // круглый толстый кончик
+    const fp = []; for (let i = 0; i <= 16; i++) { const u = i / 16; fp.push(new THREE.Vector2(0.7 + 0.6 * (1 - u) ** 3 + 0.3 * (1 - u), -1 + 2 * u)); } // у корня расширяется — палец вырастает из массы тела
+    for (let i = 1; i <= 8; i++) { const a = i / 8 * Math.PI / 2; fp.push(new THREE.Vector2(Math.max(0.7 * Math.cos(a), 1e-4), 1 + 0.7 * Math.sin(a) * 0.7)); } // тупой круглый кончик: трубка, не игла
     this.spines = kind(new THREE.LatheGeometry(fp, 24), 500,
       'float u = (p.y + 1.0) * 0.5; float wv = prm.w * sin(u * 4.5 + time * 0.8 + prm.y) * u; p.x += prm.z * u * u + wv; nn.x -= prm.z * u; nn = normalize(nn); p += nn * 0.04 * sin(time * 2.0 + prm.y + p.y * 3.0);',
-      { bump: 0.05, alpha0: 0.75, order: 1, rimK: 0.9, after: 'vA.a *= smoothstep(-1.0, -0.55, position.y);' }); // раньше тела; основание тает в теле — сквозь стекло не видно срезов
+      { bump: 0.05, alpha0: 0.6, order: 1, rimK: 1.0, ridge: 0.25, after: 'vA.a *= smoothstep(-1.0, -0.55, position.y);' }); // раньше тела; основание тает в теле — сквозь стекло не видно срезов
     const head = new THREE.IcosahedronGeometry(1, 0).toNonIndexed(); head.computeVertexNormals();
     this.head = kind(head, 120, '', { bump: 0.0, order: 3, flat: true, rimK: 0.8, alpha0: 0.35 }); // голова фага — стекло: сквозь неё видна нить ДНК (fx.js), грани блестят ободком
     this.tail = kind(new THREE.CylinderGeometry(0.28, 0.28, 2, 8), 120, '', { bump: 0.1, order: 1 });
