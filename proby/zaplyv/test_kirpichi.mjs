@@ -102,6 +102,12 @@ check('test_kirpichi_vspyshka: волна света идёт по самой о
   console.log('    паспорт: 12 случайных существ × 5 зон, волна обходит зону за долю ' + P.beg + ' шага');
   return why.slice(0, 4).join('; ');
 });
+check('test_kirpichi_vypuklost: пока растёт вырост, тело выгибает оболочку под ним, до и после — нет', () => {
+  const zap = sushchestvo(4), poza = { x: 0, y: 0, a: 0, tolshchina: 10 }, kp = new Kirpichi(); kp.play({ shagi: [{ k: 'vyrost', zona: 'posadka', ot: 0.2, do: 1.2 }] }, { zapis: zap, poza, seed: 2 });
+  const v0 = kp.vypuklosti(zap).length; kp.step(0.7); const v = kp.vypuklosti(zap), Zt = zona(zap, 'posadka', poza).flatMap(k => k.T.map(q => q.t)); kp.step(0.6);
+  if (v0) return 'бугор до начала выроста'; if (v.length !== 2 || v.some(b => !(b.vysota > 0) || !Zt.includes(b.t))) return 'бугры не на зоне: ' + JSON.stringify(v);
+  return kp.vypuklosti(zap).length ? 'бугор остался после выроста' : '';
+});
 check('test_L047: анимации навыков без пунктира и точечных цепочек, образец — картинка Романа, в игру только с приёмкой', () => {
   const why = [];
   for (const nm of Object.keys(K.navyki)) { const N = K.navyki[nm];
