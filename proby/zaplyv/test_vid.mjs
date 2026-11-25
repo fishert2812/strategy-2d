@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { Fx } from './fx.js';
 import * as vid from './vid.js';
 import { sobrat, VC, KLYUCHI } from './vid_chasti.js';
+import * as rost from './rost.js';
 import { look } from './look.js';
 const sim = readFileSync(new URL('./sim.js', import.meta.url), 'utf8');
 const kinds = [...new Set([...sim.matchAll(/events\.push\(\[['"](\w+)/g)].map(m => m[1]))];
@@ -309,6 +310,14 @@ check('test_vid_chasti: существа собираются из частей 
     if (!(calls > 200)) return tip + ': части почти не рисуют тела (' + calls + ')';
   }
   return '';
+});
+check('test_vid_rost_kontur: в «Росте» контур следующего роста — сплошная нить, а не кольцо бус; кусочки еды — объёмные крошки (отзыв 25.11: «кольцо бусин вокруг клетки»)', () => {
+  const segs = [], dots = [], sph = []; globalThis.zaplyvBodies = { seg: (...q) => segs.push(q), sphere: (...q) => sph.push(q) };
+  try { rost.draw({ w: { mode: 'rost', stats: { time: 5 } }, a: { m: 1.3, chew: { x: 30, y: 0 } }, x: 0, y: 0, ang: 0, half: 20, wd: 9, z: 1, time: 1, glow: { put: (...q) => dots.push(q) }, scr: (x, y) => [x, y] }); }
+  finally { delete globalThis.zaplyvBodies; }
+  if (dots.length) return 'контур или кусочки всё ещё точками: ' + dots.length; if (segs.length < 30) return 'контур не нарисован нитью: ' + segs.length;
+  for (let i = 1; i < segs.length; i++) if (Math.hypot(segs[i - 1][2] - segs[i][0], segs[i - 1][3] - segs[i][1]) > 1e-6) return 'в нити контура разрыв';
+  if (sph.length < 6) return 'кусочки еды не объёмные'; return '';
 });
 check('test_vid_niti_trubki: в игре жгутики и ворсинки своей клетки — сплошные стеклянные трубки встык, без точек-бус (Роман: пунктир — халтура)', () => {
   const segs = [], B = { seg: (x0, y0, x1, y1, r) => segs.push([x0, y0, x1, y1, r]) }, fl = ',' + cfgD.flag.color.join() + ',';

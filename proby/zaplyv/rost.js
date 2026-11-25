@@ -61,14 +61,15 @@ export function draw({ w, a, x, y, ang, half, wd, z, glow, time, scr }) {
   if (!on(w)) return;
   const n = level(a.m), m0 = n ? porog(n) : 0, m1 = porog(n + 1), k = Math.max(0, Math.min(1, (a.m - m0) / (m1 - m0)));
   const grow = (m1 / a.m) ** R.vid, H = half * grow * 1.06, Wd = wd * grow * 1.15, ax = Math.cos(ang), ay = Math.sin(ang);
-  const N = 40, lit = Math.round(k * N), flash = Math.max(0, 1 - (w.stats.time - (w.rostT ?? -9)) * 1.5);
-  for (let i = 0; i < N; i++) { // контур идёт от носа по кругу: заполненная часть ярче — сколько ещё до роста
-    const t = i / N * 6.283, e = Math.cos(t) * H, s = Math.sin(t) * Wd;
-    glow.put(x + ax * e - ay * s, y + ay * e + ax * s, 2 + z, 0.75, 1, 0.9, (i < lit ? 0.75 : 0.22) + flash * 0.5);
-  }
+  const N = globalThis.zaplyvBodies ? 120 : 40, lit = Math.round(k * N), flash = Math.max(0, 1 - (w.stats.time - (w.rostT ?? -9)) * 1.5);
+  const B = globalThis.zaplyvBodies, P = i => { const t = i / N * 6.283, e = Math.cos(t) * H, s = Math.sin(t) * Wd; return [x + ax * e - ay * s, y + ay * e + ax * s]; };
+  if (B && B.seg) for (let i = 0; i < N; i++) { const [x0, y0] = P(i), [x1, y1] = P(i + 1); // контур сплошной стеклянной нитью, без бус: пройденная часть ярче и толще — сколько ещё до роста
+    B.seg(x0, y0, x1, y1, (i < lit ? 0.9 : 0.5) * z + 0.4, [0.75, 1, 0.9], Math.min(1, (i < lit ? 1 : 0.3) + flash * 0.5)); }
+  else for (let i = 0; i < N; i++) { const [px, py] = P(i); glow.put(px, py, 2 + z, 0.75, 1, 0.9, (i < lit ? 0.75 : 0.22) + flash * 0.5); }
   if (a.spit > 1) glow.put(x, y, H * 1.5, 1, 0.9, 0.6, 0.25 * (a.spit - 1) * 2); // пасть выпустила: вспышка у клетки
   const c = a.chew; if (!c) return;
   const [cx, cy] = scr(c.x, c.y);
   for (let j = 0; j < 6; j++) { const u = (time * 1.3 + j / 6) % 1, wv = Math.sin(u * 9 + j) * 4 * z; // кусочки текут от комка в клетку (книга Е1)
-    glow.put(cx + (x - cx) * u - ay * wv, cy + (y - cy) * u + ax * wv, (2.4 - u) * z + 1, 1, 0.85, 0.55, 0.45 * (1 - u * 0.6)); }
+    const px = cx + (x - cx) * u - ay * wv, py = cy + (y - cy) * u + ax * wv;
+    if (B && B.sphere) B.sphere(px, py, ((2.4 - u) * z + 1) * 0.6, [1, 0.85, 0.55], [1, 0.95, 0.8], j, 0.8); else glow.put(px, py, (2.4 - u) * z + 1, 1, 0.85, 0.55, 0.45 * (1 - u * 0.6)); } // кусочки — объёмные крошки
 }
