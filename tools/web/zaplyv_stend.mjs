@@ -9,10 +9,11 @@ const url = process.argv[2], selftest = process.argv.includes('--selftest'), ki 
 const S = JSON.parse(fs.readFileSync(new URL('../../proby/zaplyv/stend.json', import.meta.url), 'utf8'));
 const opts = process.env.CHROME ? { executablePath: process.env.CHROME, args: ['--no-sandbox'] } : {};
 const b = await pw.chromium.launch(opts);
+const IM = pw.devices['iPhone 16'] ? 'iPhone 16' : 'iPhone 15', DEV = pw.devices[IM]; // в старом playwright (CI) iPhone 16 нет: тот же экран 393 у iPhone 15
 const PROG = 250; // перепадов в квадрате существа меньше — половина пустая (пустая вода даёт десятки)
 
 async function prohod(lomat) {
-  const p = await (await b.newContext({ ...pw.devices['iPhone 16'], deviceScaleFactor: 1 })).newPage();
+  const p = await (await b.newContext({ ...DEV, hasTouch: true, isMobile: true, deviceScaleFactor: 1 })).newPage();
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   let bad = 0, pust = 0; const say = (ok, t) => { console.log((lomat ? '    [сломано: ' + lomat + '] ' : '') + (ok ? '  ок   ' : '  ПРОВАЛ ') + t); if (!ok) bad++; };
   await p.goto(url + '?stend' + (lomat ? '&lomat=' + lomat : ''), { timeout: 60000 });
@@ -41,7 +42,7 @@ async function prohod(lomat) {
 }
 
 let code = 0;
-if (!selftest) { const bad = await prohod(''); console.log(`  паспорт: экран iPhone 16 393×852, пар ${S.pary.length} (${S.pary.map(p => p.kto).join(', ')}), провалов ${bad}`); code = bad ? 1 : 0; }
+if (!selftest) { const bad = await prohod(''); console.log(`  паспорт: экран ${IM} ${DEV.viewport.width}×${DEV.viewport.height}, пар ${S.pary.length} (${S.pary.map(p => p.kto).join(', ')}), провалов ${bad}`); code = bad ? 1 : 0; }
 else for (const l of ['levo', 'pravo']) { const pust = await prohod(l); // каждая пара обязана покраснеть
   if (pust === S.pary.length) console.log(`  самопроверка: без ${l === 'levo' ? 'левой' : 'правой'} половины test_stend_obe_poloviny красный (так и должно быть)`);
   else { console.log(`  САМОПРОВЕРКА: ${l === 'levo' ? 'левой' : 'правой'} половины нет, а проверка зелёная — она ничего не доказывает`); code = 1; } }
