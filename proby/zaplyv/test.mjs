@@ -539,6 +539,21 @@ check('test_L012: потолка мутаций нет — долгий бот �
   if (res.some(r => r[2] > cfg.me_max)) return 'колония выросла больше me_max';
 });
 
+check('test_potomki (книга ЛЗ4.1, Роман 25.11: «Чтобы была цель»): каждая дочка, уплывшая от полной семьи, — единица счёта «Потомков в капле»; пока семья не полна, счёт стоит', () => {
+  const w = new World(cfg, 41); w.tidy = 1e9; let leave = 0, pot0 = -1, lastLeave = 0;
+  for (let i = 0; i < 30 * 150 && w.me.length; i++) {
+    if (w.choice.length) w.pick(w.choice[0]);
+    w.amoebas = []; w.bdellos = []; w.slippers = []; w.bells = []; w.rotis = []; w.pseudos = []; w.phages = [];
+    if (pot0 < 0 && w.me.length >= cfg.me_max) pot0 = w.stats.potomki - lastLeave; // дочки, уплывшие в тот же шаг, когда семья стала полной, — уже от полной
+    const c = w.center(); let best = null, bd = 1e9; for (const f of w.food) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } }
+    w.step(1 / 30, best ? { x: best.x, y: best.y } : { x: c.x + 100, y: c.y }); lastLeave = w.events.filter(e => e[0] === 'leave').length; leave += lastLeave; w.events.length = 0;
+  }
+  console.log('    паспорт: за 2,5 минуты потомков', w.stats.potomki, '· событий «уплыла»', leave, '· до полной семьи', pot0);
+  if (pot0 !== 0) return 'счёт потомков пошёл до полной семьи: ' + pot0;
+  if (!(w.stats.potomki > 0)) return 'семья полна, а потомков 0';
+  if (w.stats.potomki !== leave) return 'потомков ' + w.stats.potomki + ', а уплыло дочек ' + leave;
+});
+
 check('test_L013: новичок без касаний и уворотов не встречает первую опасность раньше 8 с (сувойка на 3-й секунде — ошибка 24.11)', () => {
   const novice = w => { const c = w.center(); let best = null, bd = 260; for (const f of w.food) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } }
     return best ? { x: best.x, y: best.y } : { dx: Math.cos(w.dir), dy: Math.sin(w.dir), p: 1 }; };

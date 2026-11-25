@@ -44,7 +44,7 @@ export class World {
     this.genes = {}; this.from = {}; this.spacers = new Set(); // полоски CRISPR: каких фагов пережил // откуда пришёл ген: kid — дочка, pipe — трубочка
     this.choice = []; // гены на выбор; пока не пусто — у края полоса выбора, мир плывёт дальше
     this.rush = 0; this.lastEat = -9; // разгон роста от серии
-    this.stats = { eaten: 0, most: 1, path: 0, time: 0, gen: 0, lost: {}, killer: null };
+    this.stats = { eaten: 0, potomki: 0, most: 1, path: 0, time: 0, gen: 0, lost: {}, killer: null };
     this.met = new Set(['me']); this.look = 0; this.posle = {}; this.known = new Set(); // posle и known (Альманах) ставит main.js из книги
     this.splits = 0; this.away = []; // уплывшие дочки: видны пару секунд, потом теряются вдали // делений за заплыв: каждое gene_every-е даёт выбор из двух дочек, пока есть гены
     this.chunks = new Set(); this.seen = new Set();
@@ -154,7 +154,7 @@ export class World {
       this.events.push(['split', c.x, c.y, c.id, kid.id]); // вид деления знает пару: мать и дочка (vid.birth)
     }
     const room = leave ? 0 : Math.max(0, this.cfg.me_max - this.me.length);
-    for (const b of born.slice(room)) { this.away.push({ ...b, t: 0 }); this.events.push(['leave', b.x, b.y]); }
+    for (const b of born.slice(room)) { this.away.push({ ...b, t: 0 }); this.stats.potomki++; this.events.push(['leave', b.x, b.y]); } // «Потомков в капле» (книга ЛЗ4.1): каждая дочка от полной семьи — единица счёта
     this.me.push(...born.slice(0, room));
     this.stats.most = Math.max(this.stats.most, this.me.length);
     this.splits += born.length;

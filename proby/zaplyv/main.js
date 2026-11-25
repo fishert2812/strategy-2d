@@ -230,6 +230,7 @@ function menuOpen() {
   const mo = $('menu'); mo.classList.add('on');
   const shoot = () => { for (const i of mo.querySelectorAll('img[data-k]')) if (!i.src) try { i.src = snap(i.dataset.k, KAB.items[i.dataset.k]); } catch (_) {} };
   requestAnimationFrame(() => requestAnimationFrame(shoot)); // снимки живых моделей — когда сцена уже рисуется
+  { const t = document.querySelector('.mo[data-m=swim]'); let sm = t.querySelector('small.pot'); if (ROD.potomki) { if (!sm) { sm = document.createElement('small'); sm.className = 'pot'; t.appendChild(sm); } sm.textContent = 'потомков: ' + ROD.potomki; } } // рекорд «Потомков в капле» на плитке режима (ЛЗ4.1)
   const nb = ROD.branches || 1, w10 = nb % 10, w100 = nb % 100; $('mstate').textContent = ROD.deaths ? 'род: ' + nb + ' ' + (w10 === 1 && w100 !== 11 ? 'ветка' : w10 >= 2 && w10 <= 4 && (w100 < 12 || w100 > 14) ? 'ветки' : 'веток') + (ROD.gens ? ' · ' + ROD.gens + ' поколений' : '') : 'капля пруда, 10 мкм'; // пустые счётчики не показываем
   const g = [...met].filter(k => k.startsWith('gene:')).length; // обитателей считает строка Альманаха ниже, второй счёт спорил с ней (прогон 0.74: «12 обитателей» рядом с «10 из 10»)
   const pl = (k, a, b, c) => k % 10 === 1 && k % 100 !== 11 ? a : k % 10 >= 2 && k % 10 <= 4 && (k % 100 < 12 || k % 100 > 14) ? b : c;
@@ -686,7 +687,7 @@ function pathText(w) {
   const nature = mm < 60 ? mm + ' мин' : Math.floor(mm / 60) + ' ч' + (mm % 60 ? ' ' + (mm % 60) + ' мин' : '');
   const genes = Object.keys(w.genes).map(geneName).join(', ') || 'пока нет';
   const lost = Object.entries(s.lost).map(([k, n]) => (TEKSTY[k]?.imya || (cards[k] ? cards[k].name : k)) + ' — ' + n).join(', ');
-  return `Плыл ${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}, проплыл ${Math.round(s.path / 26)} мкм<br>`
+  return `<b class="potomki">Потомков в капле: ${s.potomki}</b>${s.potomki ? '' : '<small>Вырасти семью до десяти — дальше каждая дочка уплывает жить сама и считается</small>'}<br>Плыл ${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}, проплыл ${Math.round(s.path / 26)} мкм<br>`
     + `Поколений: ${s.gen} — в природе это ≈ ${nature}<br>Клеток было до ${s.most}, съедено ${s.eaten}<br>`
     + `Мутации: ${genes}` + (lost ? `<br>Отняли клеток: ${lost}` : '');
 }
@@ -706,7 +707,7 @@ function events() {
     if (k === 'grab') { beep(240, 0.2, 0.05, 'sawtooth', 1.6); say('Схватили! Резко развернись — вырвешься', 2600); /* каждый раз, не один за заплыв (L043) */ }
     if (k === 'bore') { beep(180, 0.3, 0.05, 'sawtooth', 0.7); say('Прилипла запятая! Резко развернись — стряхнёшь', 2600); } // запятая вбуравливается
     if (k === 'eat') { const n = performance.now(); if (n - lastEat > 60) { beep(300 + Math.random() * 200, 0.09, 0.04); lastEat = n; } }
-    if (k === 'leave') { tell('leave', 'Дочка уплыла жить сама — мутации копятся дальше'); }
+    if (k === 'leave') { const n = world.stats.potomki; if (n === 1 || (n % 5 === 0 && n !== world.saidPot)) { world.saidPot = n; say(n === 1 ? 'Дочка уплыла жить сама — это твой первый потомок в капле' : 'Потомков в капле: ' + n, 2400); beep(880, 0.25, 0.04, 'sine', 1.5); } } // счёт вверху; надпись на первом и на каждом пятом, чтобы не заслонять подсказки
     if (k === 'meet') meet(x);
     if (k === 'stick') { beep(520, 0.06, 0.04, 'square'); if (!mut.calm(world)) tell('stick', 'Сел вирус! Резко развернись — стряхнёшь, пока не впрыснул'); } // прилип фаг: сказать сразу, а не на экране гибели (L042)
     if (k === 'shake') { beep(700, 0.07, 0.03); }
@@ -741,7 +742,7 @@ function tick(dt) {
       if (kk && KAB.items[kk] && kk !== 'me') $('cab').textContent = 'Кто это · ' + (t.imya || k.name) + ' в Альманахе'; else cabLabel(); // прогон 0.68: «Альманах» с гибели вёл в общий список, а не к убийце
       $('ckill').src = KAB.items[kk] ? snap(kk, KAB.items[kk]) : ''; $('ckill').hidden = !KAB.items[kk];
       $('stats').innerHTML = pathText(world);
-      ROD.deaths = (ROD.deaths || 0) + 1; ROD.genes = Object.keys(world.genes).filter(g => world.genes[g]); ROD.most = world.stats.most; ROD.seed = world.seed; // род для ночи и меню
+      ROD.deaths = (ROD.deaths || 0) + 1; ROD.genes = Object.keys(world.genes).filter(g => world.genes[g]); ROD.most = world.stats.most; ROD.potomki = Math.max(ROD.potomki || 0, world.stats.potomki); ROD.seed = world.seed; // род для ночи и меню
       const kl = world.stats.killer || 'me'; ROD.killers = ROD.killers || {}; ROD.killers[kl] = (ROD.killers[kl] || 0) + 1; saveRod();
       setTimeout(() => { $('end').classList.add('on'); $('end').scrollTop = 0; $('toast').classList.remove('on'); }, 700); // лист гибели всегда с начала: убийца сверху (L031) // подсказка заплыва не ложится на экран гибели
     }
@@ -766,7 +767,7 @@ function tick(dt) {
   for (let i = 0; i < 3; i++) view.tint[i] += (t[i] - view.tint[i]) * Math.min(1, dt * 0.8);
   { const b = world.me.reduce((q, a) => a.m > q.m ? a : q, world.me[0] || { m: 1 }), sp = world.split(); // размер числом: длина палочки в микрометрах (260 единиц — 10 мкм)
     const um = 2 * 8.5 * Math.pow(b.m, 0.3) * (1.6 + Math.min(b.m, sp) / sp) / 26; $('count').textContent = 'клеток ' + world.me.length + ' · ' + um.toFixed(1).replace('.', ',') + ' мкм'; }
-  $('eaten').textContent = world.rush > 0.05 ? 'рост ×' + (1 + world.rush).toFixed(1) : 'съедено ' + world.stats.eaten; // серия кусков подряд — рост быстрее
+  $('eaten').textContent = world.rush > 0.05 ? 'рост ×' + (1 + world.rush).toFixed(1) : world.stats.potomki ? 'потомков ' + world.stats.potomki : 'съедено ' + world.stats.eaten; // семья полна — счёт потомков вместо съеденного (ЛЗ4.1) // серия кусков подряд — рост быстрее
   if (world.readyToSplit() && !world.choice.length && !world.me.some(a => a.grab || a.held > 0) && !$('toast').classList.contains('on')) tell('split', 'Выросла! Коснись — поделишься. Или подожди'); // подсказка ждёт, пока на экране весть: не затирает «Сестра погибла за краем…» (L039)
 }
 
@@ -972,8 +973,9 @@ function paint(time) {
   }
   for (const b of world.away) { // уплывшая дочка: уходит своим курсом и тает в толще
     const [x, y] = scr(b.x, b.y), w = 8.5 * Math.pow(b.m, 0.3) * z, f = b.t / cfg.away_time; if (!on(x, y)) continue;
-    if (f < 0.7) bodies.rod(x, y, b.a, w * 2.2, w, 0, [CELL[0].r, CELL[0].g, CELL[0].b], [CORE[0].r, CORE[0].g, CORE[0].b], b.id, 0);
-    glow.put(x, y, w * 3, 0.6, 0.85, 1, 0.25 * (1 - f));
+    const G = cfg.potomok; // потомок: уплывает золотистой палочкой в золотой искре (книга ЛЗ4.1) — цвет соседок-сородичей, их в капле и встретишь
+    if (f < 0.7) bodies.rod(x, y, b.a, w * 2.2, w, 0, G.body, G.core, b.id, 0);
+    glow.put(x, y, w * G.spark_r * (0.6 + 0.4 * f), ...G.spark, G.spark_a * (1 - f));
   }
   for (const a of world.me) { // след: клетка расталкивает взвесь, частицы расходятся и гаснут — вязкость видна
     const sp = Math.hypot(a.vx, a.vy); if (sp < 40 || puffs.length > 230) continue;
