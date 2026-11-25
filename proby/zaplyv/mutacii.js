@@ -68,7 +68,7 @@ export const tumbleAngle = (w, base) => has(w, 'steady') ? Math.min(Math.PI * 0.
 export const tumbleTime = (w, base) => has(w, 'steady') ? base * M.steady.time : base;
 export const tumbleKeep = (w, a) => a.tumble && has(w, 'steady') ? M.steady.keep : 1;
 // Пока идёт щелчок: скорость поворота и разгон — щелчка, тяга почти полная.
-export const turnRate = (w, a, base) => a.snap > 0 ? M.snap.turn : base * (raft(w) ? M.flu.turn : 1) * (!a.tumble && has(w, 'steady') ? M.steady.turn : 1) * (a.casc > 0 ? M.magnet.lazy : 1); // каскад магнита: поворот ленивый; плот поворачивает лениво; тугой жгут доворачивает на ходу
+export const turnRate = (w, a, base) => a.snap > 0 ? M.snap.turn : base * (raft(w) ? M.flu.turn : 1) * (!a.tumble && has(w, 'steady') ? M.steady.turn : 1) * (a.mag && a.pulled && a.pulled.length ? M.magnet.lvl[a.mag - 1].turn : 1); // пока еда плывёт к клетке, поворот медленнее (цена магнита); плот поворачивает лениво; тугой жгут доворачивает на ходу
 export const acc = (a, base) => a.snap > 0 ? M.snap.acc : base;
 // Множитель тяги: газовые пузырьки занимают место — клетка плывёт чуть тяжелее.
 export const thrust = (w, a) => (has(w, 'gas') ? M.gas.drag : 1) * (a.snap > 0 ? M.snap.keep : 1) * tumbleKeep(w, a);

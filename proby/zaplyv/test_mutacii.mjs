@@ -122,7 +122,7 @@ const magnetAt = L => { const w = mw(9, L ? ['magnet'] : []), a = w.me[0]; if (L
   for (let i = 0; i < 10; i++) { const t = Math.PI + (i - 4.5) * 0.2; heap.push({ x: a.x + Math.cos(t) * 75, y: a.y + Math.sin(t) * 75, vx: 0, vy: 0, s: 0.7 }); }
   w.food.push(near, mid, far, ...heap); let most = 0, ev = 0, lazy = 0;
   for (let t = 0; t < 5; t += 1 / 30) { w.step(1 / 30, null); most = Math.max(most, (a.pulled || []).length); ev += w.events.filter(e => e[0] === 'magnet').length; if (a.casc > 0) lazy++; w.events.length = 0; }
-  return { near: !!near.gone, mid: !!mid.gone, far: !!far.gone, heap: heap.filter(f => f.gone).length, most, ev, cascade: w.stats.cascade || 0, lazy, turn: mut.turnRate(w, { casc: 1 }, 1) }; };
+  return { near: !!near.gone, mid: !!mid.gone, far: !!far.gone, heap: heap.filter(f => f.gone).length, most, ev, cascade: w.stats.cascade || 0, lazy, turn: mut.turnRate(w, { mag: L, pulled: [{}] }, 1), still: mut.turnRate(w, { mag: L, pulled: [] }, 1) }; };
 check('[magnet] пищевой магнит: еда рядом сама плывёт к клетке; с каждым уровнем — дальше и больше крупинок разом', () => {
   const r = [0, 1, 2, 3].map(magnetAt), [o, a, b, c] = r;
   console.log('    паспорт: уровень → ближняя/средняя/дальняя, из россыпи 10, крупинок разом, нот, каскадов:', r.map((x, i) => `${i}: ${+x.near}${+x.mid}${+x.far} ${x.heap} ×${x.most} ♪${x.ev} ${x.cascade}`).join(' | '));
@@ -131,7 +131,8 @@ check('[magnet] пищевой магнит: еда рядом сама плыв
   if (a.most !== 1) return 'уровень 1 тянет не по одной крупинке';
   if (!b.near || !b.mid || b.far || b.most < 2) return 'уровень 2 должен брать дальше и по несколько';
   if (!c.far || c.heap < 10) return 'уровень 3 должен втянуть и дальнюю, и всю россыпь';
-  if (!c.cascade || b.cascade || !(c.turn < 1)) return 'каскад (волна, ленивый поворот) — только у уровня 3';
+  if (!c.cascade || b.cascade) return 'каскад (вся россыпь разом, волна) — только у уровня 3';
+  if (!(a.turn < 1 && b.turn < a.turn && c.turn < b.turn) || a.still !== 1) return 'цена: пока еда плывёт, поворот медленнее, и тем медленнее, чем выше уровень';
   if (!(c.ev > b.ev && b.ev > a.ev)) return 'нот серии с уровнем не больше';
   const w = mw(9, ['magnet']); w.lvl = { magnet: 1 }; const ok = w.offer('magnet'); w.pick('magnet'); w.pick('magnet'); const top = !w.offer('magnet');
   if (!ok || w.lvl.magnet !== 3 || !top) return 'дочка не поднимает уровень магнита до 3 (уровень ' + w.lvl.magnet + ')';
