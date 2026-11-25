@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Заплыв · наша клетка: руками и из частей</title>
+<style>html, body { margin: 0; height: 100%; background: #04101a; overflow: hidden; font-family: -apple-system, system-ui, sans-serif; color: #fff; }
+canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
+.p { position: fixed; left: 0; right: 0; text-align: center; font-size: 17px; opacity: 0.85; }</style></head>
+<body><canvas id="c"></canvas><div class="p" id="p1"></div><div class="p" id="p2"></div>
+<script type="module">
+// Рабочий стенд движка: сверху клетка ручного кода (main.js: bodies.rod + vid.skin), снизу та же поза, собранная из частей (vid_chasti.js sobrat).
+// ?beg=1 — на ходу (пучок за кормой), ?beg=0 — покой; ?odna=ruchnaya|sobrannaya — только одна, крупно; ?z=масштаб.
+import * as THREE from '../three.module.min.js';
+import { Bodies } from '../body3d.js';
+import * as vid from '../vid.js';
+import { look } from '../look.js';
+import { sobrat, VC } from '../vid_chasti.js';
+const cfg = await (await fetch('../data.json')).json();
+const q = new URLSearchParams(location.search), beg = +(q.get('beg') ?? 1), odna = q.get('odna'), z = +(q.get('z') || 1.6);
+const W = 720, gl = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true });
+gl.setPixelRatio(Math.min(devicePixelRatio, 2.5)); gl.autoClear = false;
+let H = W * innerHeight / innerWidth; gl.setSize(innerWidth, innerHeight, false);
+const cam = new THREE.OrthographicCamera(0, W, 0, H, -1, 1), scene = new THREE.Scene(), back = new THREE.Scene(), bodies = new Bodies(); bodies.resize(W, H); globalThis.zaplyvBodies = bodies;
+const bg = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.ShaderMaterial({ depthTest: false, side: THREE.DoubleSide, uniforms: { res: { value: new THREE.Vector2(W, H) } },
+  vertexShader: 'varying vec2 v; void main(){ v = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: 'varying vec2 v; void main(){ vec3 c = mix(vec3(0.01, 0.05, 0.08), vec3(0.04, 0.16, 0.2), v.y); float d = length(v - 0.5); gl_FragColor = vec4(c * (1.0 - 0.5 * smoothstep(0.3, 0.8, d)), 1.0); }' }));
+bg.position.set(W / 2, H / 2, 0); bg.scale.y = -1; back.add(bg);
+
+class Dots {
+  constructor(max, add, hard = add ? 0.6 : 0.8) { const g = new THREE.InstancedBufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute([-1, -1, 0, 1, -1, 0, 1, 1, 0, -1, 1, 0], 3)); g.setIndex([0, 1, 2, 0, 2, 3]);
+    this.a = new Float32Array(max * 3); this.c = new Float32Array(max * 4); this.max = max; this.n = 0; this.g = g;
+    g.setAttribute('pr', new THREE.InstancedBufferAttribute(this.a, 3).setUsage(THREE.DynamicDrawUsage)); g.setAttribute('col', new THREE.InstancedBufferAttribute(this.c, 4).setUsage(THREE.DynamicDrawUsage));
+    const m = new THREE.Mesh(g, new THREE.ShaderMaterial({ uniforms: { hard: { value: hard } }, transparent: true, depthTest: false, depthWrite: false, side: THREE.DoubleSide, blending: add ? THREE.AdditiveBlending : THREE.NormalBlending,
+      vertexShader: 'attribute vec3 pr; attribute vec4 col; varying vec2 v; varying vec4 vc; void main(){ v = position.xy; vc = col; gl_Position = projectionMatrix * vec4(pr.xy + position.xy * pr.z, 0.0, 1.0); }',
+      fragmentShader: 'uniform float hard; varying vec2 v; varying vec4 vc; void main(){ float d = length(v); if (d > 1.0) discard; float a = mix(1.0 - d, 1.0 - smoothstep(0.75, 1.0, d), hard); gl_FragColor = vec4(vc.rgb, vc.a * a * a); }' }));
+    m.frustumCulled = false; m.renderOrder = add ? 3 : 4; scene.add(m); }
+  put(x, y, r, cr, cg, cb, ca = 1) { if (this.n >= this.max) return; const i = this.n++; this.a.set([x, y, r], i * 3); this.c.set([cr, cg, cb, ca], i * 4); }
+  done() { this.g.instanceCount = this.n; this.g.attributes.pr.needsUpdate = this.g.attributes.col.needsUpdate = true; this.n = 0; }
+}
+
+const glow = new Dots(9000, true), ink = new Dots(9000, false);
+import { sluchaynaya, sobrat_gruppu } from '../vid_chasti.js';
+let seed = +(q.get('seed') || 11); const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const KOL = q.get('vidy') ? q.get('vidy').split(',').length : +(q.get('n') || 16), stolb = +(q.get('stolb') || 4), ryad = Math.ceil(KOL / stolb), zap = q.get('vidy') ? q.get('vidy').split(',').map(k => VC.vidy[k]) : Array.from({ length: KOL }, () => sluchaynaya(VC.vidy.nasha, rnd)), ugly = zap.map(() => (rnd() - 0.5) * 1.4);
+let time = 0;
+window.stend = dt => { time += dt; bodies.begin();
+  zap.forEach((zp, i) => sobrat_gruppu(zp, { x: W * (i % stolb + 0.55) / stolb, y: H * (Math.floor(i / stolb) + 0.5) / ryad, a: q.get('vidy') ? -0.35 : ugly[i] - 0.3, tolshchina: 8.5 * z, z, time, id: i + 3, beg: +(q.get('beg') ?? (i % 3 === 0 ? 1 : 0)) }, bodies));
+  bodies.end(time); glow.done(); ink.done(); gl.clear(); gl.render(back, cam); gl.render(bodies.scene, bodies.cam); gl.render(scene, cam); };
+window.zapisi = zap;
+if (!q.get('zapis')) { let last = performance.now(); const go = now => { window.stend(Math.min(0.05, (now - last) / 1000)); last = now; requestAnimationFrame(go); }; requestAnimationFrame(go); }
+window.stendReady = true;
+</script></body></html>
