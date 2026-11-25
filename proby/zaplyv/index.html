@@ -91,14 +91,14 @@ button.round { width: 44px; height: 44px; min-height: 44px; padding: 0; border-r
 #kbar i { display: block; height: 100%; border-radius: 2px; background: #3ee0a8; }
 /* Разделы — переключатель одной полосой (фильтр одной полки, урок L037), не россыпь чипов */
 #kpills { display: flex; margin: 0 0 14px; padding: 3px; border-radius: 14px; background: rgba(255, 255, 255, 0.07); }
-#kpills button { flex: 1; width: auto; min-height: 44px; height: 44px; padding: 0 6px; border-radius: 11px; border: none; font-size: 16px; background: transparent; color: rgba(255, 255, 255, 0.75); }
+#kpills button { flex: 1; width: auto; min-width: 0; min-height: 44px; height: 44px; padding: 0 4px; border-radius: 11px; border: none; font-size: 15px; white-space: nowrap; background: transparent; color: rgba(255, 255, 255, 0.75); }
 #kpills button.on { background: rgba(62, 224, 168, 0.22); color: #fff; font-weight: 600; }
 /* Связи на карточке: строки «кто ест / кого ест» ведут на карточку того, о ком речь; «‹ имя» внизу возвращает */
 #klinks h3 { margin: 14px 4px 6px; font-size: 12.5px; letter-spacing: 2px; font-weight: 600; opacity: 0.75; text-align: left; }
 .kl { width: 100%; min-height: 64px; display: flex; align-items: center; gap: 12px; margin-bottom: 8px; padding: 6px 12px 6px 6px; border-radius: 16px; text-align: left; font-size: 16px; background: rgba(255, 255, 255, 0.04); border-color: rgba(255, 255, 255, 0.18); }
 .kl img { width: 64px; height: 48px; border-radius: 10px; object-fit: cover; flex-shrink: 0; background: #061018; } .kl span { flex: 1; } .kl b { display: block; font-size: 16px; }
 .kl small { font-size: 13.5px; line-height: 1.3; margin: 2px 0 0; } .kl > i { font-style: normal; font-size: 24px; opacity: 0.5; } .kl.no img { filter: grayscale(1) blur(3px) brightness(0.55); } .kl.no { border-style: dashed; }
-#kbot { position: sticky; bottom: 0; display: flex; gap: 10px; padding-top: 10px; background: linear-gradient(transparent, #02040a 14px); margin-top: auto; }
+#kbot { position: sticky; bottom: calc(-1 * env(safe-area-inset-bottom) - 20px); display: flex; gap: 10px; padding: 12px 0 calc(env(safe-area-inset-bottom) + 20px); margin-bottom: calc(-1 * env(safe-area-inset-bottom) - 20px); background: #02040a; box-shadow: 0 -14px 14px #02040a; margin-top: auto; }
 #kbot #kswim { flex: 1; width: auto; } #cabinet.inpause #kbot, #cabinet.inpause .khead { display: none; }
 #shelf { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .kc { position: relative; width: auto; min-height: 0; padding: 8px 8px 12px; border-radius: 20px; text-align: left; font-size: 16px; display: flex; flex-direction: column; gap: 4px;
@@ -292,7 +292,7 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
 <div class="layer" id="cabinet">
   <div id="kshelf"><div class="khead"><h1>Альманах</h1></div>
     <p id="kcount"></p><div id="kbar"><i></i></div><div id="kpills"></div><div id="shelf"></div></div>
-  <div id="kcard" hidden><div id="kframe"><img id="kimg" alt=""><div id="ksize"></div></div><h2 id="kname"></h2><div id="ktag"></div><div id="kblocks"></div>
+  <div id="kcard" hidden><div class="khead"><h1>Альманах</h1></div><div id="kframe"><img id="kimg" alt=""><div id="ksize"></div></div><h2 id="kname"></h2><div id="ktag"></div><div id="kblocks"></div>
     <div id="klinks"></div></div>
   <div id="kbot"><button id="back" class="ghost">‹ Назад</button><button id="kswim">Плыть</button></div>
 </div>
