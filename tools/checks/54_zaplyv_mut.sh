@@ -3,4 +3,8 @@
 # живёт только в режиме «Мутации», бот встречает, где она важна.
 set -u
 command -v node >/dev/null || { echo "  нет node — мутации проверить нечем"; exit 1; }
-timeout 180 node proby/zaplyv/test_mutacii.mjs
+# две половины параллельно (PART=a|b в test_mutacii.mjs), чтобы шаг не упирался во время
+d=$(mktemp -d); PART=a timeout 400 node proby/zaplyv/test_mutacii.mjs > "$d/a" 2>&1 & pa=$!
+PART=b timeout 400 node proby/zaplyv/test_mutacii.mjs > "$d/b" 2>&1 & pb=$!
+wait $pa; ra=$?; wait $pb; rb=$?; cat "$d/a" "$d/b"; rm -rf "$d"
+[ $ra -eq 0 ] && [ $rb -eq 0 ]
