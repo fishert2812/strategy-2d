@@ -36,7 +36,7 @@ check('test_vid_skin: клетка со всеми умениями и спящ�
 // (своими точками, не только числом), спящая клетка замирает (биолог: крупинки перестают дрожать), капсула прогибается от удара.
 const cfgD = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
 const paint = (genes, opt = {}) => { const pts = [], brush = { put: (x, y, r, cr, cg, cb, ca) => pts.push([x, y, r, cr, cg, cb, ca].map(v => Math.round(v * 100) / 100).join()) };
-  const a = { id: 1, m: 1, a: 0, vx: 0, vy: 0, stuck: !!opt.stuck }, lk = look(genes, cfgD.look, opt.spacers || 0);
+  const a = { id: 1, x: 0, y: 0, m: 1, a: 0, vx: 0, vy: 0, stuck: !!opt.stuck }, lk = look(genes, cfgD.look, opt.spacers || 0);
   vid.skin({ a, lk, x: 0, y: 0, ang: 0, ax: 1, ay: 0, half: 20, w: 9, z: 1, along: (u, o) => [u, o], arc: () => 0, body: { at: () => [0, 0] }, scr: (x, y) => [x, y],
     time: opt.time ?? 1, pdt: opt.pdt ?? 0, run: false, phageNear: false, foodNear: !!opt.food, spacers: opt.spacers || 0, plasmid: false, cfg: cfgD, alive: [a], glow: brush, ink: brush });
   const fl = ',' + cfgD.flag.color.join() + ','; return pts.filter(p => !p.includes(fl)); }; // жгутики живут своим ходом между кадрами (whip.js)
@@ -111,6 +111,17 @@ check('test_vid_shchit_vspyshka: щит срабатывает видимо — 
   const ring = shot(learn).filter(p => Math.abs(Math.hypot(p.x, p.y) - 40) < 40 && p.a > 0.4); if (ring.length < 20) return 'первый вирус: волны к клетке не видно';
   const ab = new Fx({}, [C, C, C]); ab.reset(); ab.on('abort', 0, 0, 0, 1); ab.step(0.5);
   if (!shot(ab).some(p => p.a > 0.25 && p.cr > 0.5)) return 'сестра гаснет без светлого контура — на тёмной воде не видно';
+  return '';
+});
+check('test_vid_impuls: навык сработал — по телу своей клетки за V.pulse.life пробегает золотой импульс от точки срабатывания к другому концу; на опасности его нет', () => {
+  const C = { r: 1, g: 1, b: 1 }, fx = new Fx({}, [C, C, C]); fx.reset(); fx.world = { me: [{ id: 1, x: 0, y: 0, a: 0 }] };
+  const gold = () => paint({}).map(p => p.split(',').map(Number)).filter(([x, y, r, cr, cg, cb, a]) => cr > 0.9 && cg > 0.6 && cg < 0.9 && cb < 0.5 && a > 0.05);
+  const mid = ps => ps.reduce((s, p) => s + p[0] * p[6], 0) / ps.reduce((s, p) => s + p[6], 0);
+  if (gold().length) return 'золото на теле без срабатывания';
+  fx.on('shrug', 30, 0); fx.step(0.12); const p1 = gold(); if (p1.length < 3) return 'золотого импульса на теле не видно';
+  fx.step(0.25); const p2 = gold(); if (!(mid(p1) > 3 && mid(p2) < mid(p1) - 6)) return 'импульс не бежит от точки срабатывания: ' + mid(p1).toFixed(1) + ' → ' + mid(p2).toFixed(1);
+  fx.step(0.3); if (gold().length) return 'импульс не погас за V.pulse.life';
+  fx.on('stick', 30, 0); fx.step(0.1); if (gold().length) return 'импульс на опасности: золотой только у навыка';
   return '';
 });
 check('test_vid_capsule_dent: капсула прогибается от удара хищника и пружинит обратно', () => {

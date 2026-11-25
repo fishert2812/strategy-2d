@@ -1,7 +1,7 @@
 // Анимации взаимодействий: что видно, когда мир сообщает событие (съела, поделилась, схватили, лопнула, прилип фаг…).
 // Файл слоя «вид и анимации» (свой строитель). main.js зовёт fx.on() на каждое событие мира, fx.draw() в кадре, fx.step(dt).
 // Звук и подписи остаются в main.js. Список событий — sim.js, world.events: [вид, x, y, size, y2].
-import { poke, stepVid, seen, rim, V, splitAt } from './vid.js';
+import { poke, stepVid, seen, rim, V, splitAt, pulse } from './vid.js';
 export class Fx {
   constructor(cfg, CELL) { this.cfg = cfg; this.CELL = CELL; this.reset(); }
   save() { const s = {}; for (const k of Object.keys(this)) if (Array.isArray(this[k])) s[k] = this[k]; return s; } // снимок значка зовёт reset — без этого гасли все идущие анимации
@@ -11,6 +11,7 @@ export class Fx {
   ring(x, y, side, r) { this.rings.push({ x, y, side, r, t: 0 }); }
   on(k, x, y, size = 1, y2) {
     const R = (s, r) => this.ring(x, y, s, r);
+    if (V.pulse.on.includes(k)) this.pulse(x, y);
     if (k === 'spore' || k === 'sprout') this.naps.push({ x, y, wake: k === 'sprout', t: 0 }); // засыпание — тихая волна сходится к клетке, пробуждение — расходится
     if (k === 'gene') { const n = this.near(x, y); this.genes.push({ x, y, to: n ? n.a : null, t: 0 }); } // конъюгация: колечко ДНК бежит по мостику в клетку
     if (k === 'zap') this.zaps.push({ x, y, x2: size, y2, t: 0 }); // выстрел гарпуна синегнойки
@@ -40,6 +41,8 @@ export class Fx {
     if (k === 'poisoned') { const N = V.sosed[size] || V.sosed.strain; this.dead.push({ x, y, ang: typeof y2 === 'number' ? y2 : Math.random() * 6.283, L: N.L, w: N.w, t: 0, P: V.poison, col: N.col }); } // от яда (CDI) не лопается: замирает целой, бледнеет и тонет (биолог, круг 13)
     if (k === 'abort') { const g = seen(x, y); this.dead.push({ x, y, ang: g ? g.ang : size, L: g ? g.L : 8, w: g ? g.w : 6, t: 0 }); } // умерла за своих: целая, без прорыва
   }
+  // Навык сработал: по телу своей клетки за полсекунды пробегает золотой импульс (эстетика, «Вид 6»). Тёплый цвет — только у сигнала и еды.
+  pulse(x, y) { const n = this.near(x, y); if (n && n.d < V.pulse.reach) pulse(n.a.id, Math.sign((x - n.a.x) * Math.cos(n.a.a || 0) + (y - n.a.y) * Math.sin(n.a.a || 0)) || 1); } // рисует vid.skin по живому телу
   near(x, y) { let b = null, bd = 1e9; for (const a of (this.world && this.world.me) || []) { const d = Math.hypot(a.x - x, a.y - y); if (d < bd) { bd = d; b = a; } } return b ? { a: b, d: bd } : null; }
   // Отбилась (биолог, «Защиты»): у борта, где ткнулся враг, вспыхивает дуга — видно, что сработала оболочка; враг уходит кувырком, за ним черта.
   flick(x, y, kind) { const n = this.near(x, y), dx = n ? x - n.a.x : 1, dy = n ? y - n.a.y : 0, l = Math.hypot(dx, dy) || 1, F = V.flick;
