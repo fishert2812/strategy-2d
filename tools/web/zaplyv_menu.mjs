@@ -99,7 +99,7 @@ async function walk(css) {
   } else say(false, 'test_L037: кнопки паузы не видно');
   // С экрана гибели «Кто это · … в Альманахе» — сразу карточка убийцы, «‹ Альманах» внизу ведёт на полку (прогон 0.68: вела в общий список)
   await p.setViewportSize({ width: 393, height: 659 }); // видимая часть Safari на iPhone 16 (О80)
-  await p.evaluate(() => { const w = zaplyvWorld(); w.genes.spore = false; w.stats.killer = 'amoeba'; w.me.length = 0; }); await p.waitForTimeout(1500);
+  await p.evaluate(() => { const w = zaplyvWorld(); w.genes.spore = false; w.stats.killer = 'amoeba'; w.me.length = 0; }); await p.waitForSelector('#end.on', { timeout: 6000 }).catch(() => {}); await p.waitForTimeout(300); // после амёбы лист ждёт обволакивания (L058)
   say(await p.evaluate(() => { const s = document.getElementById('path').getBoundingClientRect(), b = document.getElementById('ebtns').getBoundingClientRect(); return s.bottom <= b.top + 2; }), 'test_L037: на экране гибели «Твой путь» виден целиком над кнопками на 393×659, без прокрутки (прогоны 0.76, 0.81)');
   if (await tap('#cab')) { await p.waitForTimeout(500); say(await p.evaluate(() => !/Запись |в книге игры/.test(document.getElementById('kcard').textContent)), 'test_L037: на карточке Альманаха нет служебных меток книги («Запись С3 в книге игры», прогон 0.74)'); say(await p.evaluate(() => !document.getElementById('kcard').hidden && document.getElementById('kname').textContent === 'Амёба') && (await box('#back'))?.text === '‹ Альманах', 'test_L037: с экрана гибели Альманах открывает карточку того, кто съел, «‹ Альманах» — на полку'); }
   else say(false, 'test_L037: на экране гибели нет кнопки Альманаха');
