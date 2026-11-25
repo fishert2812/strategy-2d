@@ -48,6 +48,9 @@ await whole(['#pause', '#flag'], 'заплыв');
 // test_L038 (Роман 25.11: «даже еда стала чуть-чуть размытая. И как будто сама бактерия стала чуть-чуть размытая»): на телефоне с плотностью 3
 // кадр считается в 2,5 точки на точку экрана, а не растягивается из двойной (3 — кадр тяжелее в полтора раза, L015).
 say(await p.evaluate(() => { const c = document.getElementById('c'); return devicePixelRatio >= 3 && c.width >= Math.round(innerWidth * 2.5) - 1; }), 'test_L038: кадр плотнее двойной на экране iPhone (холст ' + await p.evaluate(() => document.getElementById('c').width + ' на ширину ' + innerWidth) + ')');
+// test_L041 (Роман 25.11: шипастый кокк «похож на вирус… подплываю, никакого взаимодействия»): прижалась к кокку — вокруг него облачко яда.
+{ await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; zaplyvProbe.poison = 0; w.prey.push({ x: a.x + 6, y: a.y, vx: 0, vy: 0, m: 0.6, a: 0, id: 4 }); });
+  await p.waitForTimeout(500); say(await p.evaluate(() => zaplyvProbe.poison > 0), 'test_L041: у кокка, к которому прижалась клетка, видно облачко яда'); }
 if (await tap('#flag', 'флажок в игре')) say(await seen('#note') && await marks() === m + 1, 'флажок в игре: отметка записана и надпись видна');
 if (await tap('#pause', 'пауза')) say(await on('genome') && (await p.textContent('#gtitle')) === 'Пауза', 'пауза открывает меню «Пауза»');
 if (await tap('#phub [data-t=genome]', 'строка «Геном» в паузе')) say(await seen('#ring'), 'строка «Геном» открывает кольцо');
