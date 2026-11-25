@@ -3,7 +3,10 @@
 // нос — последняя точка). Палочка, шар, запятая, груша — просто разные положения точек. Отсюда берут своё место все части
 // (vid_chasti.js: край, нормаль, нутро), объёмное тело (body3d.js loft) и физика (объём, длина, поперечник). Чистая математика.
 const cr = (a, b, c, d, t) => 0.5 * (2 * b + (c - a) * t + (2 * a - 5 * b + 4 * c - d) * t * t + (3 * b - a - 3 * c + d) * t * t * t);
-export function os(tochki, N = 28, r_min = 0.2, glubzhe = 0) { // glubzhe: то же тело, но тоньше на эту глубину по всему обводу (внутренний слой оболочки): ось та же самая
+// Тело из одних и тех же точек считается один раз: os() помнит ответ по самому массиву точек (новая форма — новый массив, см. mutaciya и конструктор).
+const PAMYAT = new WeakMap();
+export function os(tochki, N = 28, r_min = 0.2, glubzhe = 0) { let m = PAMYAT.get(tochki); if (!m) PAMYAT.set(tochki, m = new Map()); const k = N + ' ' + r_min + ' ' + glubzhe; let o = m.get(k); if (!o) m.set(k, o = os_schitat(tochki, N, r_min, glubzhe)); return o; }
+function os_schitat(tochki, N = 28, r_min = 0.2, glubzhe = 0) { // glubzhe: то же тело, но тоньше на эту глубину по всему обводу (внутренний слой оболочки): ось та же самая
   const T = tochki.length > 1 ? tochki : [[tochki[0][0] - 0.01, tochki[0][1], tochki[0][2]], [tochki[0][0] + 0.01, tochki[0][1], tochki[0][2]]], K = T.length - 1, S = [];
   for (let i = 0; i <= N; i++) { const f = i / N * K, k = Math.min(K - 1, Math.floor(f)), t = f - k, p = j => T[Math.max(0, Math.min(K, k + j))];
     S.push({ x: cr(p(-1)[0], p(0)[0], p(1)[0], p(2)[0], t), y: cr(p(-1)[1], p(0)[1], p(1)[1], p(2)[1], t), r: Math.max(r_min, cr(p(-1)[2], p(0)[2], p(1)[2], p(2)[2], t)), s: 0 }); }
