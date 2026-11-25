@@ -5,6 +5,7 @@ import { Fx } from './fx.js';
 import * as vid from './vid.js';
 import { sobrat, VC, KLYUCHI } from './vid_chasti.js';
 import * as rost from './rost.js';
+import * as mutac from './mutacii.js';
 import { look } from './look.js';
 const sim = readFileSync(new URL('./sim.js', import.meta.url), 'utf8');
 const kinds = [...new Set([...sim.matchAll(/events\.push\(\[['"](\w+)/g)].map(m => m[1]))];
@@ -353,6 +354,21 @@ check('test_vid_kolovratka: венец коловратки — стеклянн
   const a = run(1), R = vid.V.roti; if (sp.bad) return 'пустая ресничка'; if (sp.length < 2 * R.cilia + 2 * R.teeth + 2) return 'ресничек, зубцов и челюстей меньше, чем в данных: ' + sp.length;
   if (sg.length < R.gut - 1) return 'кишка не трубкой'; if (dots.length > 3) return 'венец всё ещё точками: ' + dots.length;
   const b = run(1.05); if (!a.slice(0, R.cilia).some((v, i) => Math.abs(v - b[i]) > 0.3)) return 'по венцу не бежит волна';
+  return '';
+});
+check('test_vid_ameba_tyanetsya: амёба охотится — отростки, что смотрят на добычу, плавно тянутся к ней и длиннеют (Роман 25.11, отметка 3: «щупальца к тебе начинают тянуться… обволакивать»)', () => {
+  const reach = (hunt, t0) => { let best = 0; const m = { id: 41, m: 6, hunt }; for (let t = t0; t < t0 + 2; t += 0.05) { const sp = []; const B = { spines: {}, amoeba: {}, ball: {}, put: () => 0, sphere: () => 0, spine: (x, y, a, len) => sp.push([x, y, a, len]) };
+      vid.amoeba({ m, x: 0, y: 0, r: 40, head: 0, sp: 0, side: 1, time: t, z: 2, glow: { put() {} }, ink: { put() {} }, bodies: B }); best = Math.max(...sp.map(q => q[0] + Math.cos(q[2]) * q[3])); } return best; };
+  const calm = reach(false, 10), hunt = reach(true, 20); if (!(hunt > calm * 1.2)) return 'отростки не тянутся к добыче: ' + calm.toFixed(0) + ' → ' + hunt.toFixed(0);
+  return '';
+});
+check('test_vid_matriks: плот сестёр в одной прозрачной массе слизи — матрикс вокруг каждой сестры, без штрихов-лесенок между ними (Роман 25.11, отметка 4: «связь условная пунктиром… раньше мы проникали друг в друга»)', () => {
+  const mk = [], segs = [], dots = []; globalThis.zaplyvBodies = { matriks: (t, r) => mk.push([t.length, r]), seg: (...q) => segs.push(q) };
+  try { const me = [0, 1, 2, 3].map(i => ({ id: 70 + i, x: i * 20, y: (i % 2) * 15, m: 1, a: 0, vx: 0, vy: 0 }));
+    const w = new Proxy({ mode: 'mut', genes: { flu: true }, me, stats: { time: 3 }, center: () => ({ x: 30, y: 7 }), split: () => 2, r: () => 0.5 }, { get: (t, k) => k in t ? t[k] : [] });
+    mutac.drawWorld({ w, scr: (x, y) => [x, y], z: 1, glow: { put: (...q) => dots.push(q) }, ink: { put: (...q) => dots.push(q) } }); }
+  finally { delete globalThis.zaplyvBodies; }
+  if (mk.length !== 1 || mk[0][0] !== 4 || !(mk[0][1] > 13)) return 'нет общей массы слизи вокруг всех сестёр: ' + JSON.stringify(mk);
   return '';
 });
 check('test_vid_niti_trubki: в игре жгутики и ворсинки своей клетки — сплошные стеклянные трубки встык, без точек-бус (Роман: пунктир — халтура)', () => {

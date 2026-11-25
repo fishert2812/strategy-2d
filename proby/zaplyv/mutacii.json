@@ -54,7 +54,7 @@
   "flu"
  ],
  "flu": {
-  "clasp": { "t": 0.6, "flash": 3, "open": 0.8, "ring": 11, "ring_a": 0.8, "forget": 1, "inset": 2, "touch": 6, "fade": 30, "far_min": 0, "seam": 1.4, "seam_a": 1.6 },
+  "matriks": 1.9, "matriks_cvet": [0.55, 0.85, 0.95], "clasp": { "t": 0.6, "flash": 3, "open": 0.8, "ring": 11, "ring_a": 0.8, "forget": 1, "inset": 2, "touch": 6, "fade": 30, "far_min": 0, "seam": 1.4, "seam_a": 1.6 },
   "k": 4,
   "r": 30,
   "turn": 0.7,

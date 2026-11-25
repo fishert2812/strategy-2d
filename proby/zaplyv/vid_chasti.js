@@ -54,8 +54,9 @@ const RIS = {
   otrostki(st, F, P, B, at) { const w = P.tolshchina; // ложноножки амёбы: широкие лопасти у края и пальцы — толстые у корня, вливаются в тело, гнутся волной; часть ветвится
     const one = (k, n, tl, dl, root, vr = 0.8) => { const t = (k + 1.7 * (hash(P.id, k) - 0.5)) / n * 6.283, e = F.kray(t), [bx, by] = at(e.u * root, e.o * root), an = P.a + e.n;
       let L = w * (dl[0] + (dl[1] - dl[0]) * hash(P.id, k + 40)) * (0.9 + 0.1 * Math.sin(P.time * 1.3 + k * 2.1)) * (1 + 0.4 * (P.hod || 0) * Math.max(0, Math.cos(an - (P.kurs || 0))));
-      if (P.est) { const c = Math.max(0, Math.cos(an - P.est.ang)); L *= 1 - P.est.k * c * c; if (L < w * 0.05) return null; } // этим краем обтекает добычу — втянуты
-      const bend = ((hash(P.id, k + 70) - 0.5) * st.izgib + 0.15 * Math.sin(P.time * 0.9 + k)) * L * 0.5, rl = Math.hypot(...at(e.u, e.o).map((v, i) => v - [bx, by][i]));
+      if (P.est) { const c = Math.max(0, Math.cos(an - P.est.ang)); L *= 1 - 0.35 * P.est.k * c * c; } // этим краем обтекает добычу: отростки не прячутся, а обнимают её (ниже — обхват)
+      let lv = 0; const lk = Math.max(P.lovit || 0, P.est ? P.est.k : 0); if (lk) { const d = Math.atan2(Math.sin(an - P.kurs), Math.cos(an - P.kurs)); lv = lk * Math.max(0, 1 - Math.abs(d) / st.lov_ugol); L *= 1 + st.lov_dlina * lv * (P.est ? 0.4 : 1); } // тянутся к добыче: те, что смотрят на неё, длиннее
+      const bend = ((hash(P.id, k + 70) - 0.5) * st.izgib * (1 - lv) + 0.15 * Math.sin(P.time * 0.9 + k)) * L * 0.5 - (lk ? Math.sign(Math.sin(an - P.kurs)) * lv * st.lov_obhvat * (P.est ? 2.2 : 1) * L : 0), rl = Math.hypot(...at(e.u, e.o).map((v, i) => v - [bx, by][i]));
       B.spine(bx, by, an, L + rl, w * tl * (1 - vr / 2 + vr * hash(P.id, k + 90)), st.cvet, st.kromka, P.id + k, bend, st.volna * (hash(P.id, k + 80) - 0.3)); return { bx, by, an, L, bend, k }; };
     for (let k = 0; k < st.lopasti; k++) one(k + 300, st.lopasti, st.lop_tolsh, st.lop_dlina, st.koren, 0.2);
     if (st.pered) { const t = (P.kurs ?? P.a) - P.a, e = F.kray(t), [bx, by] = at(e.u * st.koren, e.o * st.koren), an = P.a + e.n, L = w * st.pered_dlina * (0.85 + 0.15 * Math.sin(P.time * 0.8)) * (1 + 0.5 * (P.hod || 0)); // передняя широкая прозрачная лопасть (лобоподия акантамёбы): тупая, ведёт тело

@@ -263,12 +263,14 @@ export function amoeba(c) {
 }
 // Амёба телами со светом (body3d.js): стеклянное тело с кромкой и бликом, сквозь него ядро и пузырьки; шипы — стеклянные
 // сужающиеся конусы с кромкой, медленно гнутся. Точками рисуем только мягкую тень под телом. Числа — vid.json amoeba (b3d_*).
+const lov = new Map(); // сколько амёба уже потянулась к добыче (0..1), по её номеру
 function amoeba3d(c, B, R, body, edge, eat) { // собрана из частей движка (vid_chasti.js, вид «ameba»): мягкое тело, лопасти и пальцы, ядро, зёрна, пузырьки
   const { m, x, y, r, head, sp, time, z, ink, col } = c, D = V.amoeba.b3d, id = m.id || 0, zap = VC.vidy.ameba;
   ink.put(x + r * 0.08, y + r * 0.1, r * D.shade_r, 0, 0, 0, D.shade_a); // мягкая тень: тело отделено от воды
   const rec = col ? { ...zap, chasti: { ...zap.chasti, telo: { ...zap.chasti.telo, cvet: col.map(v => v * D.lit) }, otrostki: { cvet: col.map(v => Math.min(1, v * 0.6 + 0.45)) } } } : zap; // съедобная мелкая амёба — своим цветом
   const phi = hash(id, 99) * 3.14, ea = r * D.body * (1 + D.stretch), eb = r * D.body * (1 - D.stretch * 0.5);
-  return sobrat(rec, { x, y, a: phi, dlina: 2 * ea, tolshchina: eb, z, time, id, hod: eat ? Math.max(sp > 3 ? 1 : 0, eat.k) : sp > 3 ? 1 : 0, kurs: eat ? eat.ang : head, est: eat }, B); // ест — край тела вспухает губой к добыче, как на раскадровке Wellcome B0005786
+  const L0 = lov.get(id) || { k: 0, t: time }, lk = Math.max(0, Math.min(1, L0.k + (m.hunt ? 1 : -1) * Math.min(0.1, Math.max(0, time - L0.t)) / D.lov_t)); lov.set(id, { k: lk, t: time }); if (lov.size > 64) lov.clear(); // охотится — отростки плавно тянутся к тебе (Роман 25.11, отметка 3)
+  return sobrat(rec, { x, y, a: phi, dlina: 2 * ea, tolshchina: eb, z, time, id, lovit: lk * lk * (3 - 2 * lk), hod: eat ? Math.max(sp > 3 ? 1 : 0, eat.k) : sp > 3 ? 1 : 0, kurs: eat ? eat.ang : head, est: eat }, B); // ест — край тела вспухает губой к добыче, как на раскадровке Wellcome B0005786
 }
 // Коловратка как в жизни (биолог, «Вид существ» №2): на голове венец — два мерцающих полукруга ресничек, по ним бежит волна, и кажется,
 // что колёса крутятся; по переднему краю панциря зубцы; сквозь прозрачное тело видны тёмная кишка и челюсти-мастакс, которые щёлкают.

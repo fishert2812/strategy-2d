@@ -217,6 +217,7 @@ export function drawWorld({ w, scr, z, glow, ink }) {
   const safe = w.me.length >= Math.min(...Object.values(M.flu.min)), br = safe ? 1 : 0.45; // застёжки загораются, когда семья уже не по зубам мелкому рту (книга: порог виден)
   if (!claspsOf.has(w)) claspsOf.set(w, new Map()); const clasps = claspsOf.get(w);
   const C = M.flu.clasp, now = w.stats.time, alive = new Set(); // щелчок застёжки (дизайнер): сёстры встали бок о бок — застёжки вспыхивают и сходятся зубцами, у шва мягкая вспышка
+  const BM = globalThis.zaplyvBodies; if (raft(w) && BM && BM.matriks) BM.matriks(w.me.map(a => { const g = bodyOf(a); return g && g.scr === scr ? [g.sx, g.sy] : scr(a.x, a.y); }), 13 * M.flu.matriks * z, M.flu.matriks_cvet, br); // общая слизь плота: сёстры в одной прозрачной массе (Роман 25.11, отметка 4)
   if (raft(w)) for (let i = 0; i < w.me.length; i++) for (let j = i + 1; j < w.me.length; j++) { // застёжки между соседками: три светлые черты поперёк шва
     const p = w.me[i], q = w.me[j], d = Math.hypot(p.x - q.x, p.y - q.y), ri = 13 * Math.sqrt(p.m), rj = 13 * Math.sqrt(q.m);
     if (d > ri + rj + M.flu.r * 0.6) continue;
