@@ -336,6 +336,17 @@ check('test_vid_pamyat_virusa: «Память о вирусах» внутри �
   fx.step(R.raspad); if (fx.recalls.length) return 'не погасло';
   fx.on('cut', 50, 50); fx.step(0.05); const d = shot(); if (d.dots.length) return 'разрез вируса всё ещё точками: ' + d.dots.length; return '';
 });
+check('test_vid_plavno: сторож движения — амёба от кадра к кадру не прыгает формой, проглоченная добыча видна внутри всё время и движется плавно, без исчезновения за кадр (отзыв ролика 0.83: «пролетает сквозь тело и пропадает за один кадр, форма прыгает»)', () => {
+  const pose = time => { const sp = []; const B = { spines: {}, amoeba: {}, ball: {}, put: () => 0, spine: (x, y) => sp.push([x, y]), sphere: () => 0 }; vid.amoeba({ m: { id: 5, m: 6 }, x: 0, y: 0, r: 40, head: 0.3, sp: 5, side: 1, time, z: 2, glow: { put() {} }, ink: { put() {} }, bodies: B }); return sp; };
+  for (let t = 1; t < 4; t += 0.5) { const a = pose(t), b = pose(t + 1 / 30); if (a.length !== b.length) return 'число отростков меняется скачком'; const jump = Math.max(...a.map((p, i) => Math.hypot(p[0] - b[i][0], p[1] - b[i][1]))); if (jump > 40 * 0.08) return 'форма амёбы прыгает: ' + jump.toFixed(1); }
+  const C = { r: 1, g: 1, b: 1 }, fx = new Fx({}, [C, C, C]); fx.reset(); const am = { x: 0, y: 0, id: 9 }; fx.world = { amoebas: [am], me: [] };
+  fx.eats.push({ who: 'amoeba', by: am, ox: 40, oy: 0, x: 40, y: 0, ang: 0.4, L: 8, w: 5, t: 0, S: vid.V.eaten.amoeba, col: null, seed: 1 });
+  let last = null; const life = vid.V.eaten.amoeba.life;
+  for (let t = 0; t < life - 1; t += 1 / 30) { const rods = []; globalThis.zaplyvBodies = { rod: (x, y) => rods.push([x, y]), seg() {}, shell() {} };
+    try { fx.drawOver({ scr: (x, y) => [x, y], z: 1, time: t, glow: { put() {} }, ink: { put() {} } }); } finally { delete globalThis.zaplyvBodies; }
+    if (rods.length !== 1) return 'добыча не видна на ' + t.toFixed(2) + ' с'; if (last && Math.hypot(rods[0][0] - last[0], rods[0][1] - last[1]) > 3) return 'добыча прыгает за кадр на ' + t.toFixed(2) + ' с'; last = rods[0]; fx.step(1 / 30); }
+  return '';
+});
 check('test_vid_niti_trubki: в игре жгутики и ворсинки своей клетки — сплошные стеклянные трубки встык, без точек-бус (Роман: пунктир — халтура)', () => {
   const segs = [], B = { seg: (x0, y0, x1, y1, r) => segs.push([x0, y0, x1, y1, r]) }, fl = ',' + cfgD.flag.color.join() + ',';
   globalThis.zaplyvBodies = B; let pts; try { pts = []; const brush = { put: (...q) => pts.push(q.map(v => Math.round(v * 100) / 100).join()) };
