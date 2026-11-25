@@ -1,7 +1,7 @@
 // Проверки поведения существ без игрока (povedenie.js, числа povedenie.json): node proby/zaplyv/test_povedenie.mjs. Провал — код 1.
-// POV_LOMAT=1 портит анкету (страх и охота без силы): доказательства test_pov_ubegaet и test_pov_ohota обязаны покраснеть (самопроверка шага 65_povedenie).
+// POV_LOMAT=1 портит анкету (страх, охота, разъезд и нос без силы): доказательства test_pov_ubegaet, test_pov_ohota, test_pov_razezd и test_pov_nos обязаны покраснеть (самопроверка шага 65_povedenie).
 import { P, anketa, hochet, oshibki } from './povedenie.js';
-if (process.env.POV_LOMAT) { P.obshchee.vesa.strah = 0; P.obshchee.panika = 1e9; P.obshchee.vesa.ohota = 0; for (const v of Object.values(P.vidy)) if (v.vesa) delete v.vesa.strah; }
+if (process.env.POV_LOMAT) { P.obshchee.vesa.strah = 0; P.obshchee.panika = 1e9; P.obshchee.vesa.ohota = 0; P.obshchee.vesa.razezd = 0; P.obshchee.vesa.nos = 0; for (const v of Object.values(P.vidy)) if (v.vesa) delete v.vesa.strah; }
 let bad = 0;
 const check = (name, fn) => { try { const r = fn(); if (r) { bad++; console.log('  ПРОВАЛ', name + ':', r); } else console.log('  ок   ', name); } catch (e) { bad++; console.log('  ПРОВАЛ', name + ':', e.stack); } };
 const ya = (vid, m = 1, x = 0, y = 0, a = 0) => ({ x, y, m, a, vid });
@@ -75,6 +75,37 @@ check('test_pov_zhivet: с правилами жертва уходит от о�
   const [s, g] = [zhizn(true), zhizn(false)];
   console.log(`    поймана на секунде: с правилами ${s.toFixed(1)}, прямо ${g.toFixed(1)}`);
   if (!(s > g * 2)) return 'правила не спасают';
+});
+
+// Г36 «Уйти от своих» (книга: «десять сестёр с умением за 15 секунд занимают площадь больше, чем без него»).
+// Без умения сёстры тянутся друг к другу; с умением в тесноте при скудной еде — расплываются.
+check('test_pov_razezd: десять сестёр с разъездом за 15 с занимают площадь больше, чем без него', () => {
+  const ploshchad = vkl => { const A = { ...anketa('palochka'), razezd: { ...anketa('palochka').razezd, vkl } }, V = 12, dt = 0.1;
+    const s = Array.from({ length: 10 }, (_, i) => ({ x: Math.cos(i * 2.4) * (3 + i), y: Math.sin(i * 2.4) * (3 + i), m: 1, a: i, vid: 'palochka' }));
+    const pl = () => { const cx = s.reduce((q, o) => q + o.x, 0) / 10, cy = s.reduce((q, o) => q + o.y, 0) / 10; return Math.PI * (s.reduce((q, o) => q + Math.hypot(o.x - cx, o.y - cy), 0) / 10) ** 2; }, nachalo = pl();
+    for (let t = 0; t < 15; t += dt) { const h = s.map((ya, i) => hochet(ya, s.filter((_, j) => j !== i).map(o => ({ ...o, tip: 'zhivoe' })), A, {}, (i * 0.37 + t) % 1));
+      s.forEach((ya, i) => { ya.x += h[i].ux * h[i].skorost * V * dt; ya.y += h[i].uy * h[i].skorost * V * dt; ya.a = Math.atan2(h[i].uy, h[i].ux) || ya.a; }); }
+    return [pl(), nachalo]; };
+  const [[da, n0], [net]] = [ploshchad(true), ploshchad(false)];
+  console.log(`    площадь семьи: в начале ${n0.toFixed(0)} мкм², через 15 с с разъездом ${da.toFixed(0)}, без ${net.toFixed(0)}`);
+  if (!(da > net * 2 && da > n0 * 4)) return 'с разъездом семья не расплылась';
+  const A = { ...anketa('palochka'), razezd: { ...anketa('palochka').razezd, vkl: true } }, tolpa = [1, 2, 3, 4].map(i => zh(i * 3, 5, 1, 'palochka'));
+  if (hochet(ya('palochka'), [...tolpa, eda(1, 1), eda(2, 2), eda(3, 3)], A, { sytost: 0.95 }).zanyatie === 'razezd') return 'разъезжаются, когда еды вдоволь';
+});
+
+// Г44 «Новый нос» (книга: «без пальца приходит к далёкому бурому комку, без умения нет; палец в другую сторону пересиливает»).
+check('test_pov_nos: с носом без пальца доплывает до далёкого комка, без носа нет; палец главнее', () => {
+  const doplyl = (vkl, palec) => { const A = { ...anketa('palochka'), nos: { ...anketa('palochka').nos, vkl } }, me = ya('palochka', 1, 0, 0, Math.PI / 2), kom = { x: 300, y: 0, m: 1, tip: 'eda', vid: 'komok' };
+    for (let t = 0; t < 120; t += 0.1) { const h = hochet(me, [kom], A, palec ? { palec } : {}, (t * 0.618) % 1);
+      me.x += h.ux * h.skorost * 12 * 0.1; me.y += h.uy * h.skorost * 12 * 0.1; me.a = Math.atan2(h.uy, h.ux);
+      if (Math.hypot(kom.x - me.x, kom.y - me.y) < 5) return t; } return null; };
+  const [s, b] = [doplyl(true), doplyl(false)];
+  console.log(`    до комка в 300 мкм: с носом ${s == null ? 'не доплыл' : s.toFixed(1) + ' с'}, без носа ${b == null ? 'не доплыл' : b.toFixed(1) + ' с'}`);
+  if (s == null) return 'с носом не доплыл до комка';
+  if (b != null) return 'без носа доплыл, нос ничего не даёт';
+  if (doplyl(true, { ux: -1, uy: 0 }) != null) return 'палец в другую сторону не пересилил нос';
+  const r = hochet(ya('palochka'), [{ x: 300, y: 0, m: 1, tip: 'eda', vid: 'komok' }], { ...anketa('palochka'), nos: { ...anketa('palochka').nos, vkl: true } }, { palec: { ux: 0, uy: -1 } });
+  if (!(r.uy < -0.9) || r.zanyatie !== 'palec') return 'палец не главнее: ' + JSON.stringify(r);
 });
 
 console.log(bad ? `ПОВЕДЕНИЕ: провалов ${bad}` : 'ПОВЕДЕНИЕ: все проверки прошли');
