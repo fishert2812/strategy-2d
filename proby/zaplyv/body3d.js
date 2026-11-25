@@ -87,9 +87,9 @@ export class Bodies {
     this.knob = kind(new THREE.IcosahedronGeometry(1, 1), 1500, '', { bump: 0.2, order: 1 });
     this.amoeba = kind(new THREE.IcosahedronGeometry(1, 6), 12, // дробно: край гладкий, без граней (Роман: «не профессионально»)
       `vec3 dir = normalize(position);
-       float r = 1.0 + 0.22 * (vn(dir * 2.2 + vec3(time * 0.35 + prm.y)) - 0.5) * 2.0;
+       float r = 1.0 + 0.22 * (vn(dir * 2.2 + vec3(time * 0.18 + prm.y)) - 0.5) * 2.0;
        float lobe = max(0.0, dot(dir.xy, vec2(cos(prm.z), sin(prm.z))));
-       r += 0.45 * pow(lobe, 4.0) * prm.x + 0.3 * pow(max(0.0, vn(dir * 1.3 + vec3(prm.y, time * 0.2, 0.0)) - 0.45) * 2.0, 2.0);
+       r += 0.45 * pow(lobe, 4.0) * prm.x + 0.3 * pow(max(0.0, vn(dir * 1.3 + vec3(prm.y, time * 0.1, 0.0)) - 0.45) * 2.0, 2.0);
        p = dir * r; nn = dir;`, { bump: 0.35, alpha0: 0.3, order: 2, rimK: 0.9, ridge: 0.4, edgeA: 0.7 }); // амёба: зовёт vid.js (amoeba3d)
     // Шип акантамёбы (акантоподия): стеклянный конус, остриём наружу; гнётся дугой к острию (prm.z), чуть дышит.
     // Ложноножка-палец акантамёбы (образец Романа): сужается к круглому кончику, гнётся дугой (prm.z) и волной (prm.w), медленно шевелится.

@@ -22,7 +22,7 @@
  "zap": { "sheath": 0.08, "flash": 0.12, "len": 9 },
  "abort": { "dark": 1, "fade": 2.5, "rim": 0.4, "fill": 16, "alpha": 0.6, "color": [0.16, 0.12, 0.22] },
  "eaten": {
-  "amoeba": { "touch": 0.2, "cup": 1.6, "seam": 0.3, "th": 3, "gap": 0.8, "rim": 26, "hug": 0.5, "sink": 1, "down": 1.5, "deep": 0.3, "wall": 40, "fight": 3, "warm": 4, "life": 8, "shrink": 0.55, "acid": [0.85, 0.62, 0.2], "acid_a": 0.22, "prey": [0.85, 0.22, 0.62], "sleeve": 1.2, "sleeve_a": 0.9, "dark": [0.25, 0.18, 0.08] },
+  "amoeba": { "touch": 0.2, "cup": 1.6, "seam": 0.9, "th": 3, "gap": 0.8, "rim": 26, "hug": 0.5, "sink": 2.2, "down": 1.5, "deep": 0.3, "wall": 40, "fight": 3, "warm": 4, "life": 8, "shrink": 0.55, "acid": [0.85, 0.62, 0.2], "acid_a": 0.22, "prey": [0.85, 0.22, 0.62], "sleeve": 1.5, "sleeve_a": 0.55, "dark": [0.25, 0.18, 0.08] },
   "slipper": { "bubble": true, "fight": 1.5, "life": 4, "pull": 3, "shrink": 0.6 },
   "bell": { "bubble": true, "fight": 0.6, "life": 2.5, "pull": 0.5, "spin": 6, "shrink": 0.7 },
   "roti": { "chew": 2, "fight": 0.6, "life": 3, "pull": 0.6, "shrink": 0.8 },

@@ -150,7 +150,7 @@ export class Fx {
       const [px, py] = P3(0, 0), [qx, qy] = P3(1, 0), sa3 = Math.atan2(qy - py, qx - px);
       B.rod(px, py, sa3, (L + w) * z, w * z, 0, col, col.map(v => v * 0.8), e.seed || 0); // добыча: та же палочка, темнеет и сжимается
       if (mant > 0.01) { const reach = 0.03 * sm(t / S.touch) + 0.47 * cf, n = S.rim * 2;
-        for (const sd of [-1, 1]) { let l = null; for (let i = 0; i <= n; i++) { const f = i / n, [u, o, nu, no] = rim(pc + sd * reach * f, e.L, e.w), q = P3(u + nu * off, o + no * off); if (l) B.seg(l[0], l[1], q[0], q[1], th * S.sleeve * z * (1 - 0.5 * f * f), A.b3d.spine, S.sleeve_a * mant); l = q; } } } // рукав облегает добычу, тоньше к губе
+        for (const sd of [-1, 1]) { let l = null; for (let i = 0; i <= n; i++) { const f = i / n, [u, o, nu, no] = rim(pc + sd * reach * f, e.L, e.w), q = P3(u + nu * off, o + no * off); if (l) B.seg(l[0], l[1], q[0], q[1], th * S.sleeve * z * (1 - 0.5 * f * f), A.b3d.col.map(v => Math.min(1, v * 0.8)), S.sleeve_a * mant); l = q; } } } // рукав облегает добычу, тоньше к губе
       const wa = sm((cf - 0.85) / 0.15) * end, hug = 1 - sm(tin / S.hug), wo = S.gap + th * 0.7 * hug;
       if (wa > 0) B.shell(px, py, sa3, (L + w + wo) * z, (w + wo) * z, dig > 0 ? S.acid : A.edge, (e.seed || 0) + 1); // пузырёк обжимает добычу, теплеет
       return; }
