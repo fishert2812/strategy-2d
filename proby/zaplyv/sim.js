@@ -145,7 +145,7 @@ export class World {
       c.m /= 2; c.gen = (c.gen || 0) + 1; this.stats.gen = Math.max(this.stats.gen, c.gen);
       const ax = Math.cos(c.a), ay = Math.sin(c.a), r = radius(c.m);
       const D = this.cfg.split_apart * r / 2; // дочки торец к торцу: центры на полдлины палочки от точки деления, иначе палочки наложены и колония складывает их бок о бок
-      const kid = { x: c.x - ax * D, y: c.y - ay * D, vx: c.vx - ax * 60, vy: c.vy - ay * 60, m: c.m, a: c.a, sick: -1, gen: c.gen, id: ++this.ids }; born.push(kid);
+      const kid = { x: c.x - ax * D, y: c.y - ay * D, vx: c.vx - ax * 60, vy: c.vy - ay * 60, m: c.m, a: c.a, sick: -1, gen: c.gen, id: ++this.ids }; born.push(mut.kid(this, c, kid));
       const spin = c.spin ?? (c.id % 2 ? 1 : -1); c.spin = kid.spin = spin; kid.drift = c.drift; // сёстры дрейфуют вместе и поворачивают в одну сторону: цепочка, а не «две таблетки» бок о бок
       c.x += ax * D; c.y += ay * D;
       this.events.push(['split', c.x, c.y, c.id, kid.id]); // вид деления знает пару: мать и дочка (vid.birth)
@@ -165,8 +165,8 @@ export class World {
   }
 
   inherit(genes) { for (const g of genes) if (this.cfg.genes[g]) { this.genes[g] = true; this.from[g] = 'kid'; } } // «Ночь рода»: заплыв начинается веткой рода
-  offer(g) { return !this.genes[g] && (this.posle[g] || []).every(k => this.met.has(k) || this.known.has(k)); } // умение дочке — только после встречи с тем, от кого оно (книга, поле posle)
-  pick(g) { this.genes[g] = true; this.from[g] = 'kid'; this.choice = []; }
+  offer(g) { return (!this.genes[g] || mut.more(this, g)) && (this.posle[g] || []).every(k => this.met.has(k) || this.known.has(k)); } // умение дочке — только после встречи с тем, от кого оно (книга, поле posle)
+  pick(g) { mut.up(this, g); this.genes[g] = true; this.from[g] = 'kid'; this.choice = []; }
 
   // Шаг мира. target — джойстик {dx, dy, p}, точка мира {x, y} или null, если палец отпущен.
   step(dt, target) {
@@ -408,7 +408,7 @@ export class World {
 
   rodNear(p, reach) { // ближайшая палочка любого рода: ты, синегнойка, сородич (кокки — не его добыча)
     let best = null, bd = reach;
-    for (const a of [...this.me, ...this.pseudos, ...this.donors]) { if (a.held > 0) continue; const d = Math.hypot(a.x - p.x, a.y - p.y); if (d < bd) { bd = d; best = a; } }
+    for (const a of [...this.me, ...this.pseudos, ...this.donors]) { if (a.held > 0) continue; const d = Math.hypot(a.x - p.x, a.y - p.y) / (this.me.includes(a) ? mut.loud(this) : 1); if (d < bd) { bd = d; best = a; } } // сильный хвост шумит: тебя замечают дальше
     return best;
   }
   nearest(p, reach) {
@@ -543,7 +543,7 @@ export class World {
     }
     this.food = this.food.filter(f => !f.gone);
     for (const m of this.amoebas) { // амёба ползёт только по дну и нитям; в открытой воде почти стоит
-      const a = this.nearest(m, 340);
+      const a = this.nearest(m, 340 * mut.loud(this)); // сильный хвост шумит: амёба слышит дальше
       let wx = 0, wy = 0;
       m.hunt = !!(a && a.m < m.m * 0.8 && !(m.syt > 0) && !this.genes.capsule && !(a.spore > 0)); // охотится: видна её зона захвата (L030); спящую не ловит
       if (a && a.spore > 0) { const d = dist(a, m) || 1; wx = (m.x - a.x) / d * c.amoeba * c.spore_shy; wy = (m.y - a.y) / d * c.amoeba * c.spore_shy; } // спящую не берут: обнюхала и уползает (L032)
@@ -570,6 +570,7 @@ export class World {
         if (g.t <= 0) {
           g.gone = true;
           // CRISPR — память: знакомого фага режет без вреда. Незнакомого клетка переживает ценой сил и вписывает его кусок новой полоской (упрощение: в природе так выживают немногие).
+          if (mut.immune(this, h, g)) continue; // память о вирусах: помнит та клетка, что пережила
           if (g.host === 'me' && this.genes.crispr) { if (this.spacers.has('T4')) this.events.push(['cut', g.x, g.y]); else { this.spacers.add('T4'); h.m = Math.max(0.6, h.m * c.crispr_cost); this.events.push(['learn', g.x, g.y]); } continue; }
           if (h.sick === undefined || h.sick < 0) { h.sick = c.sick; if (g.host === 'me') { this.events.push(['sick', h.x, h.y]); mut.landed(this, h); } } // сцепка: в плоту заболевает и соседняя
         }
@@ -579,7 +580,7 @@ export class World {
       g.vx += (r() - 0.5) * c.phage_jitter * 6 * dt + (fx - g.vx) * Math.min(1, 1.5 * dt);
       g.vy += (r() - 0.5) * c.phage_jitter * 6 * dt + (fy - g.vy) * Math.min(1, 1.5 * dt);
       g.d += (r() - 0.5) * 3 * dt;
-      g.x += g.vx * dt; g.y += g.vy * dt;
+      mut.steer(this, g, dt); g.x += g.vx * dt; g.y += g.vy * dt;
       if (g.cool > 0) { g.cool -= dt; continue; } // стряхнутый отплывает и не липнет сразу
       if (g.host === 'me') {
         if (mut.decoy(this, g)) continue; // обманки: вирус сел на пузырёк оболочки
@@ -587,7 +588,7 @@ export class World {
         if (!a) continue;
         const d = dist(a, g);
         if (d < radius(a.m) + 2 && !(a.spore > 0) && !this.genes.lock) { g.on = a; /* сменил замок — фагу T4 не за что зацепиться */ g.t = c.inject; g.off = Math.atan2(g.y - a.y, g.x - a.x) - a.a; this.events.push(['stick', g.x, g.y]); }
-        else if (d < radius(a.m) + 2 && this.genes.lock && !g.shrug) { g.shrug = 1; const k = 80 / (d || 1); g.vx = (g.vx || 0) + (g.x - a.x) * k; g.vy = (g.vy || 0) + (g.y - a.y) * k; this.events.push(['shrug', g.x, g.y]); } // новая дверь сработала: вирус не сел — видно
+        else if (d < radius(a.m) + 2 && this.genes.lock && !g.shrug) { g.shrug = 1; const k = 80 / (d || 1); g.vx = (g.vx || 0) + (g.x - a.x) * k; g.vy = (g.vy || 0) + (g.y - a.y) * k; this.events.push(['shrug', g.x, g.y]); mut.shrug(this, g); } // новая дверь сработала: вирус не сел — видно
       } else for (const q of this.prey) if (dist(q, g) < radius(q.m) * 0.5 + 2) { g.on = q; g.t = c.inject; g.off = Math.atan2(g.y - q.y, g.x - q.x) - q.a; break; }
     }
     for (const q of this.prey) if (q.sick >= 0 && (q.sick -= dt) < 0) { // заражённый кокк лопается своим облаком
