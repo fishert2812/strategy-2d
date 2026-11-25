@@ -43,14 +43,6 @@
     {
      "id": "steady",
      "gene": "steady"
-    },
-    {
-     "id": "tail",
-     "gene": "flhDC+"
-    },
-    {
-     "id": "magnet",
-     "gene": "tar"
     }
    ]
   },
@@ -92,14 +84,6 @@
    "name": "Защита",
    "color": "#c9a2ff",
    "slots": [
-    {
-     "id": "memory",
-     "gene": "cas+"
-    },
-    {
-     "id": "shield",
-     "gene": "ompC+"
-    },
     {
      "id": "lock",
      "gene": "ompC",
@@ -152,6 +136,28 @@
    "name": "Чужой ген",
    "color": "#7dffb0",
    "soon": "здесь встанет плазмида от сородича или вставка фага"
+  }
+ ],
+ "skills": [
+  {
+   "id": "magnet",
+   "gene": "tar",
+   "color": "#62c8ff"
+  },
+  {
+   "id": "shield",
+   "gene": "ompC+",
+   "color": "#c9a2ff"
+  },
+  {
+   "id": "tail",
+   "gene": "flhDC+",
+   "color": "#62c8ff"
+  },
+  {
+   "id": "memory",
+   "gene": "cas+",
+   "color": "#c9a2ff"
   }
  ],
  "from": {

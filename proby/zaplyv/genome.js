@@ -13,6 +13,7 @@ export function layout(G) {
     out.push({ slot, arc: k, color: arc.color, a0: a0 + gap, a1: a0 + step - gap, plasmid: false });
   }));
   G.plasmids.forEach((slot, i) => out.push({ slot, arc: -1, color: slot.color, x: 205, y: 70 + i * 66, plasmid: true }));
+  (G.skills || []).forEach((slot, i) => out.push({ slot, arc: -2, color: slot.color, x: -205, y: -6 + i * 56, plasmid: true, skill: true })); // навыки с уровнями (З1, З5) — колечками слева: на кольце им уже нет места в 15°
   return out;
 }
 
@@ -63,7 +64,7 @@ export function genomeScreen({ G, cfg, world, icon = () => '', onOpen, onClose, 
       }
       const t = el('text', { x: tx, y: src ? ty + (p.plasmid ? 38 : 0) : ty + 5, 'text-anchor': 'middle', 'font-size': 14, 'font-style': 'italic', 'font-weight': have ? 700 : 400,
         fill: have && !p.plasmid ? '#02040a' : p.color, opacity: have ? 1 : 0.75, 'font-family': 'ui-monospace, Menlo, monospace' }, s);
-      t.textContent = src && !p.plasmid ? '' : p.slot.gene; // на кольце у живого гена — значок, латинское имя в карточке
+      t.textContent = src && (!p.plasmid || p.skill) ? '' : p.slot.gene; // на кольце у живого гена — значок, латинское имя в карточке
       el('circle', { cx: tx, cy: ty, r: 36, fill: 'transparent' }, s); // касание: не меньше 44 pt и в Safari, где кольцо мельче (урок L017); соседние места не налезают: между центрами 67
       s.onclick = e => { e.stopPropagation(); select(p.slot, p.arc); };
     }
@@ -72,16 +73,17 @@ export function genomeScreen({ G, cfg, world, icon = () => '', onOpen, onClose, 
       el('text', { x: r * Math.cos(m) + (k === 0 ? 8 : k === 2 ? -8 : 0), y: r * Math.sin(m) + 5, 'text-anchor': k === 0 ? 'start' : k === 2 ? 'end' : 'middle', fill: arc.color, 'font-size': 12, 'letter-spacing': 2 }, svg).textContent = arc.name.toUpperCase();
     });
     el('text', { x: 205, y: 28, 'text-anchor': 'middle', fill: '#7dffb0', 'font-size': 12, 'letter-spacing': 2 }, svg).textContent = 'ЧУЖИЕ';
+    if ((G.skills || []).length) el('text', { x: -205, y: -40, 'text-anchor': 'middle', fill: '#ffc850', 'font-size': 12, 'letter-spacing': 2 }, svg).textContent = 'НАВЫКИ';
     el('line', { x1: 0, y1: -R1 - 8, x2: 0, y2: -R0 + 4, stroke: '#fff', 'stroke-width': 2, opacity: 0.8 }, svg); // ori
     el('text', { x: 0, y: -R1 - 13, 'text-anchor': 'middle', fill: '#fff', 'font-size': 12, opacity: 0.6 }, svg).textContent = 'ori';
-    const own = all.filter(p => !p.plasmid), n = own.filter(p => w.genes[p.slot.id]).length, np = all.filter(p => p.plasmid && w.genes[p.slot.id]).length;
+    const own = all.filter(p => !p.plasmid), n = own.filter(p => w.genes[p.slot.id]).length, np = all.filter(p => p.plasmid && !p.skill && w.genes[p.slot.id]).length;
     $('gchips').innerHTML = `<span>включено ${n} из ${own.length}</span><span>чужих ${np}</span>`;
     const send = document.createElement('button'); send.id = 'gsend'; send.className = 'flag'; send.style.display = 'none'; send.onclick = onSend; $('gchips').appendChild(send); onDraw();
     $('gsub').textContent = `поколение ${w.stats.gen} · кишечная палочка`;
   }
 
   function select(slot, arc) {
-    pick = slot; const w = world(), c = card(slot, w.genes, w.from || {}, G.book || {}, G, arc >= 0 ? G.arcs[arc].name : '');
+    pick = slot; const w = world(), c = card(slot, w.genes, w.from || {}, G.book || {}, G, arc >= 0 ? G.arcs[arc].name : arc === -2 ? 'Навык' : '');
     S.blink = slot.id && cfg.genes[slot.id] ? slot.id : null; // на клетке мигает то, что меняет ген (спящий — показывает, каким станешь)
     box.innerHTML = '';
     if (slot.id && cfg.genes[slot.id] && icon(slot.id)) { const im = document.createElement('img'); im.className = 'gicon big'; im.alt = ''; im.src = icon(slot.id); im.style.borderColor = arc >= 0 ? G.arcs[arc].color : slot.color; box.appendChild(im); }
