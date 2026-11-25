@@ -79,6 +79,18 @@ check('test_vid_split: при делении мать и дочка выходя
   if (e.d[0] || e.d[1] || e.pinch) return 'разъезд не кончился за V.split.slide';
   return '';
 });
+check('test_vid_cut: CRISPR и обманка срабатывают видимо — светлый разрез на вирусе, половинки расходятся, за V.cut.life всё гаснет; не красный', () => {
+  const C = { r: 1, g: 0.2, b: 0.2 }, fx = new Fx({}, [C, C, C]); fx.reset(); fx.on('cut', 50, 50);
+  if (!fx.cuts.length) return 'разрез не появился';
+  const shot = () => { const pts = []; const b = { put: (x, y, r, cr, cg, cb, a) => pts.push({ x, y, cr, cg, cb, a }) }; fx.drawOver({ scr: (x, y) => [x, y], z: 1, time: 0, glow: b, ink: b }); return pts; };
+  fx.step(0.06); const p1 = shot();
+  if (!p1.length) return 'разреза не видно';
+  if (p1.some(p => p.cr > p.cg + 0.15)) return 'разрез красный: красный только за опасностью';
+  const span = ps => Math.max(...ps.map(p => Math.hypot(p.x - 50, p.y - 50)));
+  fx.step(0.2); const p2 = shot(); if (span(p2) <= span(p1) - 2) return 'половинки не расходятся';
+  for (let i = 0; i < 20 && fx.cuts.length; i++) fx.step(0.05); if (fx.cuts.length) return 'разрез не погас за V.cut.life';
+  return '';
+});
 check('test_vid_capsule_dent: капсула прогибается от удара хищника и пружинит обратно', () => {
   vid.stepVid(5); const was = paint({ capsule: true }).join('|'); vid.poke(-15, 13); const hit = paint({ capsule: true }).join('|');
   vid.stepVid(5); const after = paint({ capsule: true }).join('|');
