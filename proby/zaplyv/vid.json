@@ -34,5 +34,6 @@
  "poison": { "dark": 1.2, "fade": 4, "rim": 0.4, "sink": 0.35, "fill": 16, "alpha": 0.7, "color": [0.78, 0.76, 0.72] },
  "learn": { "alpha": 0.85 },
  "pulse": { "life": 0.5, "reach": 70, "band": 0.9, "dots": 48, "r": 2.6, "color": [1.0, 0.78, 0.32], "on": ["shrug", "cut", "learn", "slip", "bump", "shake"] },
+ "virus": { "len": 0.5, "wid": 0.38, "dot": 0.45, "coil": 18, "turn": 1.1, "gold": [1.0, 0.78, 0.3] },
  "split": { "slide": 0.7, "pinch": 0.85 }
 }

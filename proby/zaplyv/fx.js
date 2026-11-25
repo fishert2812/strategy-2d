@@ -145,6 +145,11 @@ export class Fx {
     for (const p of this.drops) { const [x, y] = scr(p.x, p.y), f = p.t / V.lysis.life, c = p.c === 0 ? [0.75, 0.93, 1] : [0.95, 0.35, 0.7]; glow.put(x, y, (2.2 * p.r * (1 - f * 0.5)) * z + 0.5, c[0], c[1], c[2], 0.75 * (1 - f)); } // брызги сока (розовые) и искры рывка деления (голубые)
     for (const m of this.melts) { const [x, y] = scr(m.x, m.y), f = m.t / V.eat.melt, k = Math.sqrt(m.s || 1) * (1 - f) * (1 - f); // зерно тает на месте: меньше и тусклее, ореол растекается
       glow.put(x, y, 4 * z * k + 0.5, 1, 0.93, 0.65, 0.95 * (1 - f)); glow.put(x, y, 10 * z * Math.sqrt(m.s || 1) * (1 + 1.5 * f), 1, 0.8, 0.35, 0.22 * (1 - f)); }
+    for (const g of (this.world && this.world.phages) || []) { // вирус (эстетика, «Вид 7»): в гранёной голове (body3d) светится свёрнутая золотая нить ДНК
+      const H = V.virus, s = 6 + 1 / z, ca = Math.cos(g.d), sa = Math.sin(g.d), hx = g.x - ca * 2.1 * s, hy = g.y - sa * 2.1 * s, P = (u, o) => scr(hx + ca * u - sa * o, hy + sa * u + ca * o);
+      const left = g.on && g.on.m ? Math.min(1, Math.max(0, g.t / (this.cfg.inject || 2))) : 1; // впрыснул — нить ушла в клетку, голова пустеет
+      const n = Math.round(H.coil * left); for (let i = 0; i < n; i++) { const u = (i / H.coil - 0.5) * 2 * s * H.len, ph = i * H.turn + (this.tt || 0) * 2, [x, y] = P(u, Math.sin(ph) * s * H.wid);
+        ink.put(x, y, H.dot * z + 0.3, ...H.gold, 0.95); glow.put(x, y, H.dot * 1.5 * z + 0.3, ...H.gold, 0.3); } }
     for (const g of (this.world && this.world.phages) || []) { if (!g.on || !g.on.m) continue; // посадка фага: из головки по хвосту в клетку тянется нить ДНК, головка пустеет
       const I = V.inject, p = Math.min(1, Math.max(0, 1 - g.t / (this.cfg.inject || 2))), s = 6 + 1 / z, hx = g.x - Math.cos(g.d) * 2.1 * s, hy = g.y - Math.sin(g.d) * 2.1 * s;
       const ex = g.on.x + (g.x - g.on.x) * 0.35, ey = g.on.y + (g.y - g.on.y) * 0.35;

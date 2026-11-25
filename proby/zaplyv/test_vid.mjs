@@ -124,6 +124,13 @@ check('test_vid_impuls: навык сработал — по телу своей
   fx.on('stick', 30, 0); fx.step(0.1); if (gold().length) return 'импульс на опасности: золотой только у навыка';
   return '';
 });
+check('test_vid_virus: вирус — в гранёной голове светится золотая нить ДНК; впрыснул — голова пустеет', () => {
+  const C = { r: 1, g: 1, b: 1 }, me = { id: 7, x: 0, y: 0, m: 1 };
+  const gold = (g) => { const f = new Fx({ inject: 2 }, [C, C, C]); f.reset(); f.world = { me: [me], phages: [g] }; let n = 0; const b = { put: (x, y, r, cr, cg, cb) => { if (cr === 1 && cg === vid.V.virus.gold[1]) n++; } }; f.drawOver({ scr: (u, v) => [u, v], z: 1, time: 0, glow: b, ink: b }); return [n]; };
+  const [free] = gold({ x: 120, y: 0, d: 0 }); if (free < 20) return 'нет золотой нити в голове: ' + free;
+  const [late] = gold({ x: 120, y: 0, d: 0, on: me, t: 0.1 }); if (!(late < free / 3)) return 'впрыснул, а голова полна: ' + late;
+  return '';
+});
 check('test_vid_capsule_dent: капсула прогибается от удара хищника и пружинит обратно', () => {
   vid.stepVid(5); const was = paint({ capsule: true }).join('|'); vid.poke(-15, 13); const hit = paint({ capsule: true }).join('|');
   vid.stepVid(5); const after = paint({ capsule: true }).join('|');
@@ -211,7 +218,7 @@ check('test_vid_tube: ген по трубочке бежит колечком �
   const p = pts(fx), cx = p.reduce((s, q) => s + q[0], 0) / (p.length || 1); if (!fx.genes.length) miss.push('ген: нет колечка'); else if (cx < 20 || cx > 80) miss.push('колечко не бежит от сородича к клетке');
   if (fx.rings.length) miss.push('ген: всё ещё простое кольцо');
   { const keep = fx.save(); fx.reset(); fx.load(keep); if (!fx.genes.length) miss.push('снимок значка (reset) гасит идущую анимацию'); }
-  const len = t => { const f = new Fx({ inject: 2 }, [C, C, C]); f.reset(); f.world = { me: [me], phages: [{ x: 120, y: 0, d: 0, on: me, t }] }; return pts(f).length; };
+  const len = t => { const f = new Fx({ inject: 2 }, [C, C, C]); f.reset(); f.world = { me: [me], phages: [{ x: 120, y: 0, d: 0, on: me, t }] }; const p = []; const br = { put: (x, y, r, cr, cg, cb) => { if (![vid.V.virus.gold].some(c => c[0] === cr && c[1] === cg && c[2] === cb)) p.push([x, y]); } }; f.drawOver({ scr: (u, v) => [u, v], z: 1, time: 0, glow: br, ink: br }); return p.length; }; // только нить, без головы вируса
   if (!(len(0.2) > len(1.8) + 4)) miss.push('нить ДНК не растёт, пока фаг сидит');
   for (const k of ['spore', 'sprout']) { const f = new Fx({}, [C, C, C]); f.reset(); f.world = { me: [me] }; f.on(k, 0, 0); if (f.rings.length || !f.naps.length) miss.push(k + ': вспышка вместо тихой волны'); }
   return miss.join('; ');
