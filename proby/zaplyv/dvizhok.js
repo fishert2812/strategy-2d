@@ -4,6 +4,8 @@
 // что остаётся после гибели) и собирает карточку Альманаха. Вариация — запись с ot и только отличиями: кода не требует.
 // Первый шаг: палочки-соседи (гарпунщица, серая соперница и их вариации), они живут в списке мира pseudos.
 // sim.js зовёт poyavlenie() и shag(); main.js рисует по telo(); слова карточек — только книга.
+import { sobrat, VC } from './vid_chasti.js';
+import { os, iz_formy } from './telo_os.js';
 const url = new URL('./vidy.json', import.meta.url);
 export const V = url.protocol === 'file:' ? JSON.parse((await import('node:fs')).readFileSync(url, 'utf8')) : await (await fetch(url)).json();
 
@@ -28,14 +30,16 @@ export const klyuch = q => q.vid || (q.strain ? 'strain' : 'pseudo');
 export const svoi = (w, k) => w.pseudos.filter(q => klyuch(q) === k);
 export const beret = (kto, q) => !q.vid || anketa(q.vid).edyat.includes(kto); // ест ли его этот охотник
 
+export const FORMY = ['palochka', 'shar', 'zapyataya', 'grozd']; // формы тела, которые умеет рисунок
 // Чего в анкете не хватает или что в ней не так — словами, для теста и для того, кто пишет запись.
 export function oshibki(k, c) {
   let a; try { a = anketa(k); } catch (e) { return [e.message]; }
   const bad = [], n = (v, name) => { const x = num(c, v); if (!(typeof x === 'number' && x >= 0)) bad.push(k + ': ' + name + ' не число (' + JSON.stringify(v) + ')'); };
   const T = a.telo || {}, H = a.hod || {}, M = a.mir || {};
-  for (const [v, name] of [[T.dlina, 'telo.dlina'], [T.tolshchina, 'telo.tolshchina'], [T.zazor, 'telo.zazor'], [T.r, 'telo.r'], [H.skorost, 'hod.skorost'], [H.chuet, 'hod.chuet'], [H.otdyh, 'hod.otdyh'], [H.plavnost, 'hod.plavnost'], [a.eda?.r, 'eda.r'], [M.s_rosta, 'mir.s_rosta']]) n(v, name);
+  for (const [v, name] of [[T.dlina, 'telo.dlina'], [T.tolshchina, 'telo.tolshchina'], [T.zazor, 'telo.zazor'], [T.izgib, 'telo.izgib'], [T.r, 'telo.r'], [H.skorost, 'hod.skorost'], [H.chuet, 'hod.chuet'], [H.otdyh, 'hod.otdyh'], [H.povorot, 'hod.povorot'], [H.povorot_dlina, 'hod.povorot_dlina'], [H.povorot_stepen, 'hod.povorot_stepen'], [H.plavnost, 'hod.plavnost'], [a.eda?.r, 'eda.r'], [M.s_rosta, 'mir.s_rosta']]) n(v, name);
   if (![T.cepochka].flat().every(v => v >= 1)) bad.push(k + ': telo.cepochka — целое от 1 или [от, до]');
   for (const [v, name] of [[T.cvet, 'telo.cvet'], [T.kromka, 'telo.kromka'], [T.zhgutiki?.cvet, 'telo.zhgutiki.cvet'], [num(c, M.shans), 'mir.shans']]) if (!(Array.isArray(v) && v.length === 3)) bad.push(k + ': ' + name + ' — три числа');
+  if (!FORMY.includes(T.forma)) bad.push(k + ': telo.forma — одна из ' + FORMY.join(', '));
   if (!['korma', 'krugom'].includes(T.zhgutiki?.gde)) bad.push(k + ': telo.zhgutiki.gde — korma или krugom');
   for (const f of ['dlina', 'volna', 'vitkov', 'beg', 'tolshch', 'alpha']) n(T.zhgutiki?.[f], 'telo.zhgutiki.' + f);
   if (T.zhgutiki?.gde === 'krugom' && !(T.zhgutiki.n >= 2 && T.zhgutiki.n % 2 === 0)) bad.push(k + ': telo.zhgutiki.n — чётное от 2');
@@ -54,6 +58,10 @@ export function poyavlenie(w, b, far, safe, pt, mesto) { // mesto(u, v) — то
       w.pseudos.push({ ...(o ? pt() : mesto(sv(), sv())), vx: 0, vy: 0, a: rr() * 6.283, t: 0, cool: 0, ...(k === 'strain' ? { strain: true } : {}), vid: k, id: ++w.ids }); } }
 }
 
+// Сколько клеток в цепочке у этой особи (запись [от, до] — у каждой своя длина).
+export const kletok = (A, q) => { const C = A.telo.cepochka; return Array.isArray(C) ? C[0] + q.id % (C[1] - C[0] + 1) : C; };
+// Скорость разворота тела, рад/с: вращать длинное тело в воде труднее (сопротивление вращению растёт с длиной быстрее, чем тяга).
+export const povorot = (A, q) => { const L = A.telo.dlina * kletok(A, q) * A.telo.zazor; return A.hod.povorot * Math.min(1, Math.pow(A.hod.povorot_dlina / L, A.hod.povorot_stepen)); };
 // Шаг всех палочек из анкет: рывок к ближней еде, пауза, новый курс; еду у носа съедает. Столкнулась с тобой — толчок;
 // если у вида есть гарпун и налетел ты, бьёт в ответ («око за око»).
 export function shag(w, dt, radius) {
@@ -65,9 +73,10 @@ export function shag(w, dt, radius) {
     if (q.t <= 0) {
       let best = null, bd = num(c, H.chuet);
       for (const f of w.food) { const d = Math.hypot(f.x - q.x, f.y - q.y); if (d < bd) { bd = d; best = f; } }
-      q.a = best ? Math.atan2(best.y - q.y, best.x - q.x) : q.a + (r() - 0.5) * H.ryskanie; q.t = H.pauza[0] + r() * H.pauza[1]; q.rest = H.otdyh;
+      q.kurs = best ? Math.atan2(best.y - q.y, best.x - q.x) : q.a + (r() - 0.5) * H.ryskanie; q.t = H.pauza[0] + r() * H.pauza[1]; q.rest = H.otdyh;
     }
-    const go = q.t > q.rest ? num(c, H.skorost) : 0, e = Math.min(1, H.plavnost * dt);
+    if (q.kurs !== undefined) { const d = Math.atan2(Math.sin(q.kurs - q.a), Math.cos(q.kurs - q.a)), m = povorot(A, q) * dt; q.a += Math.abs(d) <= m ? d : Math.sign(d) * m; q.bokom = Math.max(0, Math.cos(d)); } // кувырок идёт во времени; длинное тело вода разворачивает медленнее
+    const go = q.t > q.rest ? num(c, H.skorost) * (q.bokom ?? 1) : 0, e = Math.min(1, H.plavnost * dt);
     q.vx += (Math.cos(q.a) * go - q.vx) * e; q.vy += (Math.sin(q.a) * go - q.vy) * e; q.x += q.vx * dt; q.y += q.vy * dt;
     for (const f of w.food) if (!f.gone && Math.hypot(f.x - q.x, f.y - q.y) < A.eda.r) f.gone = true;
     for (const a of [...w.me]) {
@@ -99,15 +108,31 @@ export function vitrina(K, cards, T) {
     cards[k] ??= { name: t.imya || k, who: t.imya || k, text: t.kto || '', fact: t.priroda || '', tip: t.sovet || '' }; }
 }
 
+// Существо целиком из частей (vid_chasti.js): на каждую клетку тела — запись частей и поза. Части одни на все формы:
+// запись частей вида + поправки из анкеты; форма, размеры, изгиб и место клетки в цепочке или грозди — из анкеты.
+export function sborka(q, { x, y, z, time }) {
+  const A = anketa(klyuch(q)), T = A.telo, S = A.sborka, Z = VC.vidy[S.vid], w = V.mera.tolshchina * z, wt = w * T.tolshchina, ux = Math.cos(q.a), uy = Math.sin(q.a);
+  const fm = T.forma || 'palochka', n = kletok(A, q), tochki = T.tochki || iz_formy(fm, T.dlina / T.tolshchina, 1, (T.izgib || 0) / T.tolshchina), O = os(tochki), shag = O.dlina * wt * T.zazor; // тело — свободная форма: опорные точки в толщинах тела
+  const dolya = O.ploshchad / os(iz_formy('palochka', V.vidy.strain.telo.dlina / V.vidy.strain.telo.tolshchina, 1)).ploshchad, po = (k, v, i) => k === 'zhgutiki' ? { ...v, n: Math.floor(v.n / n) + (i < v.n % n ? 1 : 0) } : k === 'vorsinki' || k === 'ribosomy' ? { ...v, n: Math.round(v.n * dolya) } : v; // жгутики делятся между клетками; ворса и зёрен столько, сколько поверхности
+  const idet = q.t > (q.rest ?? 0) && fm !== 'grozd' ? 1 : 0, dt = Math.min(0.1, Math.max(0, time - (q.vt ?? time))); q.vt = time; q.beg = (q.beg ?? idet) + (idet - (q.beg ?? idet)) * Math.min(1, dt * S.sbor);
+  return Array.from({ length: n }, (_, i) => { const o = (i - (n - 1) / 2) * shag, t = i * 2.4 + q.id, d = shag * 0.66 * Math.sqrt(i), [cx, cy] = fm === 'grozd' ? [x + Math.cos(t + q.a) * d, y + Math.sin(t + q.a) * d] : [x + ux * o, y + uy * o];
+    return [{ forma: { tip: 'os', tochki }, chasti: Object.fromEntries(Object.entries(Z.chasti).map(([k, v]) => [k, po(k, { ...VC.chasti[k], ...v, ...(S.chasti?.[k] || {}) }, i)])) },
+      { x: cx, y: cy, a: q.a, tolshchina: wt, z, time, id: q.id + i * 37, beg: q.beg, hvost: fm === 'grozd' ? 0 : o + (n - 1) / 2 * shag }]; });
+}
 // Рисунок палочки по анкете: тело (одна клетка или цепочка концами), цвет-метка, жгутики. Кисти даёт main.js (и песочница).
 // Нить жгутика сплошная: шаг точек не больше их размера (урок L047: пунктир и бусы — брак).
 export function risuy(q, { x, y, z, time, bodies, glow }) {
   const A = anketa(klyuch(q)), T = A.telo, F = T.zhgutiki, w = V.mera.tolshchina * z, ux = Math.cos(q.a), uy = Math.sin(q.a), wt = w * T.tolshchina;
   if (q.held > 0) { bodies.sphere(x, y, w * 1.5, T.cvet, [1, 0.5, 0.3], q.id); glow.put(x, y, w * 3, 1, 0.3, 0.1, 0.15); return; } // в ней хищник: шарик
-  const hl = w * T.dlina, C = T.cepochka, n = Array.isArray(C) ? C[0] + q.id % (C[1] - C[0] + 1) : C, // [от, до]: у каждой цепочки своя длина
-     shag = hl * 2 * T.zazor, all = hl + shag * (n - 1) / 2, [fr, fg, fb] = F.cvet;
-  for (let i = 0; i < n; i++) { const o = (i - (n - 1) / 2) * shag;
-    bodies.rod(x + ux * o, y + uy * o, q.a, hl, wt, 0, T.cvet, T.kromka, q.id + i * 37, Math.sin(time * T.kach[0] + q.id + i) * w * T.kach[1]); }
+  if (A.sborka && bodies.seg) { for (const [zap, poza] of sborka(q, { x, y, z, time })) sobrat(zap, poza, bodies); return; } // существо целиком из частей
+  const hl = w * T.dlina, C = T.cepochka, n = kletok(A, q), // [от, до]: у каждой цепочки своя длина
+     shag = (T.forma === 'shar' ? wt : hl) * 2 * T.zazor, all = hl + shag * (n - 1) / 2, [fr, fg, fb] = F.cvet;
+  const fm = T.forma || 'palochka', kach = i => Math.sin(time * T.kach[0] + q.id + i) * w * T.kach[1];
+  if (fm === 'grozd') for (let i = 0; i < n; i++) { const t = i * 2.4 + q.id, d = wt * 1.15 * Math.sqrt(i); // гроздь: шары по спирали, как у стафилококка
+    bodies.sphere(x + Math.cos(t + q.a) * d, y + Math.sin(t + q.a) * d, wt, T.cvet, T.kromka, q.id + i * 37); }
+  else for (let i = 0; i < n; i++) { const o = (i - (n - 1) / 2) * shag;
+    if (fm === 'shar') bodies.sphere(x + ux * o, y + uy * o, wt, T.cvet, T.kromka, q.id + i * 37); // кокк: настоящий шар
+    else bodies.rod(x + ux * o, y + uy * o, q.a, hl, wt, 0, T.cvet, T.kromka, q.id + i * 37, kach(i) + (fm === 'zapyataya' ? w * T.izgib : 0)); }
   const pr = F.tolshch * Math.max(z, 0.7), len = F.dlina * w, G = V.mera.gusto_niti, m = Math.ceil(len / pr * 1.9 * G); // точки гуще своего размера: нить, а не бусы
   const nit = (bx, by, dx, dy, ph) => { for (let k = 0; k <= m; k++) { const f = 1.5 * (1 - Math.pow(3, -k / m)), wv = Math.sin(f * F.vitkov - time * F.beg + ph) * w * F.volna * f; // шаг мельче к кончику
     glow.put(bx + dx * f * len - dy * wv, by + dy * f * len + dx * wv, pr * (1.5 - f), fr, fg, fb, F.alpha * (0.85 - f * 0.65) / G); } }; // у тела толще, к кончику сходит на нет
