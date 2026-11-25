@@ -73,10 +73,11 @@ const RIS = {
       let lx = x0, ly = y0; for (let i = 1; i <= st.zvenya; i++) { const s = i / st.zvenya * L, grow = Math.min(1, s / (r * 3)), o = -Math.sin(s / sh * 6.283 + ph) * r * grow; // минус — левая спираль
         const nx = x0 + ca * s - sa * o, ny = y0 + sa * s + ca * o; B.seg(lx, ly, nx, ny, w * st.tolsh * (1 - 0.4 * s / L), st.cvet, st.a); lx = nx; ly = ny; } } },
   // Слои оболочки (биолог: наружная мембрана, стенка, внутренняя мембрана): стеклянные оболочки одна в другой, каждая своей толщины и цвета.
+  // porog_stekla — мельче этой толщины (точки экрана) стеклянные слои не рисуются: издали они дают двойной светлый контур вместо стекла
   obolochka(st, F, P, B) { const w = P.tolshchina, sv = c => [c[0] * 0.5 + 0.5, c[1] * 0.5 + 0.5, c[2] * 0.5 + 0.5], ux = Math.cos(P.a), uy = Math.sin(P.a);
     if (!B.loft || !F.O) return;
     // каждый слой это то же тело, только тоньше на свою глубину: та же осевая линия, радиусы меньше. Слои лежат ровно один в другом у любой формы, шапки тоже
-    st.sloi.forEach(s => { if (s.razrez && !P.razrez) return; const g = (1 - s.r) * F.O.poperechnik / 2, O = g > 0 ? os(F.tochki, 28, 0.2, g) : F.O;
+    st.sloi.forEach(s => { if (s.razrez && !P.razrez) return; if (!s.plotno && st.sloi.some(q => q.plotno) && w < (st.porog_stekla ?? 0)) return; const g = (1 - s.r) * F.O.poperechnik / 2, O = g > 0 ? os(F.tochki, 28, 0.2, g) : F.O;
       // выпуклости (P.vypuklosti: [{ t — место на обводе, shirina, vysota } в толщинах тела]): оболочка сама выгибается в этом месте, все слои вместе;
       // кольцо рядом с местом сдвигается наружу на полвысоты и на столько же толстеет: дальний бок стоит, ближний вырастает бугром, кайма тела переходит в отросток
       const vp = (P.vypuklosti || []).map(v => { const e = F.O.kray(v.t); return { x: e.x, y: e.y, nx: Math.cos(e.n), ny: Math.sin(e.n), sh: v.shirina || 0.5, h: (v.vysota || 0) / 2 }; });
