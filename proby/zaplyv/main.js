@@ -399,7 +399,7 @@ function icon(g) {
 }
 const idle = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 2000 }) : setTimeout(f, 300));
 setTimeout(function warm(i = 0) { const g = Object.keys(cfg.genes)[i]; if (!g) return; idle(() => { if (!paused && !ended) icon(g); setTimeout(() => warm(i + 1), 400); }); }, 6000); // значки заранее, по одному в свободную минуту: без рывка при первом гене и под пальцем
-const geneBook = g => Object.values(GENY.geny || {}).find(q => q.klyuch === g) || {}, geneName = g => geneBook(g).imya || g; // имя и тексты гена — только из книги
+const geneBook = g => Object.values(GENY.geny || {}).find(q => q.klyuch === g) || Object.values(GENY.geny || {}).find(q => q.plan === g) || {}, /* plan — умение ещё строится (скрытый режим «Эволюция») */ geneName = g => geneBook(g).imya || g; // имя и тексты гена — только из книги
 genomeData.book = GENY.geny || {};
 GENY.gruppa = Object.fromEntries([...genomeData.arcs.flatMap(a => a.slots.map(x => [x.id, a.name])), ...genomeData.plasmids.map(x => [x.id, 'Чужие'])].filter(x => x[0])); // группа гена — дуга кольца
 const kab = almanahScreen({ K: KAB, cards, T: TEKSTY, P: PODPISI, G: GENY, S: SVYAZI, met, snap, onNav: () => { if (curTab === 'alm') $('gback').textContent = '‹ ' + (kab.where() || 'Пауза'); }, onSwim: () => { if (ended || $('menu').classList.contains('on')) start(); else if (paused) genome.close(); } });
