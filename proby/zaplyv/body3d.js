@@ -195,12 +195,14 @@ export class Bodies {
     let cg = -1;
     for (const q of kolca) for (let k = 0; k <= G; k++) { if (!k && slit && !slit.svet && !slit.telo) { const Tc = slit(q.x, q.y); cg = Tc ? Tc.g ?? -1 : -1; } const t = k / G * 6.2832, c = Math.cos(t), sn = Math.sin(t), nx = -q.ty * c, ny = q.tx * c; // радиус кольца: в плоскости экрана по нормали оси, из экрана по z
       p[i * 3] = q.x + nx * q.r; p[i * 3 + 1] = -(q.y + ny * q.r); p[i * 3 + 2] = sn * q.r + z0;
-      const l = Math.hypot(1, q.dr); nr[i * 3] = (nx - q.tx * q.dr) / l; nr[i * 3 + 1] = -(ny - q.ty * q.dr) / l; nr[i * 3 + 2] = sn / l; uv[i * 2] = c; uv[i * 2 + 1] = q.a;
+      const l = Math.hypot(1, q.dr); nr[i * 3] = (nx - q.tx * q.dr) / l; nr[i * 3 + 1] = -(ny - q.ty * q.dr) / l; nr[i * 3 + 2] = sn / l; uv[i * 2] = slit && slit.rt ? c * q.r / slit.rt : c; uv[i * 2 + 1] = q.a;
       const T = slit && slit(q.x + nx * q.r, q.y + ny * q.r);
       // галтель в плане: у края тела ветка расходится вширь (высота та же), угол между боком тела и веткой скруглён
       // снаружи профиль расширения это дуга окружности: у самого края тела она касается края (без острого клина), к концу сходит на нет
-      if (T && slit.shir) { const em = Math.min(slit.shir, q.r * slit.shir_ot), u = Math.min(1, -T.g * (slit.kray || 1) / (em || 1)); let e = em * (T.g > 0 ? Math.max(0, 1 - T.g / 0.06) ** 2 : 1 - Math.sqrt(2 * u - u * u));
-        p[i * 3] += nx * e; p[i * 3 + 1] -= ny * e; }
+      if (T && slit.shir) { const em = Math.min(slit.shir, q.r * slit.shir_ot), u = Math.min(1, -T.g * slit.w / (em || 1)), e = em * (T.g > 0 ? Math.max(0, 1 - T.g / 0.06) ** 2 : 1 - Math.sqrt(2 * u - u * u));
+        // точка у самого края тела после расширения ложится на край, а не торчит за него шипом (тело под веткой бывает вогнутым)
+        const X = q.x + nx * (q.r + e), Y = q.y + ny * (q.r + e), T2 = e > 0 && T.g > -0.08 ? slit(X, Y) : null, vn = T2 && T2.g < 0 ? -T2.g * slit.w * Math.max(0, 1 + Math.min(0, T.g) / 0.08) : 0;
+        p[i * 3] += nx * e - (vn ? T2.nx * vn : 0); p[i * 3 + 1] -= ny * e - (vn ? T2.ny * vn : 0); }
       // у носа тело круглое, а корень ветки широкий: кольцо, чья середина ещё в теле, не выступает за край тела дальше своей середины (иначе уступ-воротник)
       if (T && slit.kray && T.g < 0 && cg > -0.35) { const lish = -T.g - Math.max(0, -cg); if (lish > 0) { const m = Math.min(1, (cg + 0.35) / 0.35) * lish * slit.kray; p[i * 3] -= T.nx * m; p[i * 3 + 1] += T.ny * m; } }
       // плавный максимум двух поверхностей: внутри тела ветка идёт по самому телу, у выхода поднимается галтелью
