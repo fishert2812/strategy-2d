@@ -268,7 +268,7 @@ function amoeba3d(c, B, R, body, edge, eat) { // собрана из часте�
   ink.put(x + r * 0.08, y + r * 0.1, r * D.shade_r, 0, 0, 0, D.shade_a); // мягкая тень: тело отделено от воды
   const rec = col ? { ...zap, chasti: { ...zap.chasti, telo: { ...zap.chasti.telo, cvet: col.map(v => v * D.lit) }, otrostki: { cvet: col.map(v => Math.min(1, v * 0.6 + 0.45)) } } } : zap; // съедобная мелкая амёба — своим цветом
   const phi = hash(id, 99) * 3.14, ea = r * D.body * (1 + D.stretch), eb = r * D.body * (1 - D.stretch * 0.5);
-  return sobrat(rec, { x, y, a: phi, dlina: 2 * ea, tolshchina: eb, z, time, id, hod: sp > 3 ? 1 : 0, kurs: head, est: eat }, B);
+  return sobrat(rec, { x, y, a: phi, dlina: 2 * ea, tolshchina: eb, z, time, id, hod: eat ? Math.max(sp > 3 ? 1 : 0, eat.k) : sp > 3 ? 1 : 0, kurs: eat ? eat.ang : head, est: eat }, B); // ест — край тела вспухает губой к добыче, как на раскадровке Wellcome B0005786
 }
 // Коловратка как в жизни (биолог, «Вид существ» №2): на голове венец — два мерцающих полукруга ресничек, по ним бежит волна, и кажется,
 // что колёса крутятся; по переднему краю панциря зубцы; сквозь прозрачное тело видны тёмная кишка и челюсти-мастакс, которые щёлкают.
