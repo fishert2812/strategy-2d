@@ -58,6 +58,14 @@ check('test_vid_sleep_still: спящая клетка замирает, бод�
   if (run(0.5, 1) === run(0.5, 2.3)) return 'перед пробуждением всё ещё неподвижна';
   return '';
 });
+check('test_vid_sleep_shape: спящая — короткий овал той же палочки (О28): короче бодрой, но не круглая и не толще', () => {
+  const rod = spore => { let r = null; vid.sleeper({ a: { id: 1, m: 1, a: 0, spore }, x: 0, y: 0, z: 1, time: 0, cfg: cfgD, bodies: { rod: (x, y, a, h, w) => { r = [h, w]; } }, glow: { put() {} }, ink: { put() {} } }); return r; };
+  const [h0, w0] = rod(cfgD.spore), [h, w] = rod(cfgD.spore - vid.V.sleep.fall - 0.3);
+  if (h > h0 / 1.5) return 'спящая не короче бодрой: ' + (h0 / h).toFixed(2) + ' раза';
+  if (h / w < 1.2) return 'спящая круглая, как спора';
+  if (w > w0) return 'спящая толще бодрой';
+  return '';
+});
 check('test_vid_capsule_dent: капсула прогибается от удара хищника и пружинит обратно', () => {
   vid.stepVid(5); const was = paint({ capsule: true }).join('|'); vid.poke(-15, 13); const hit = paint({ capsule: true }).join('|');
   vid.stepVid(5); const after = paint({ capsule: true }).join('|');
