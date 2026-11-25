@@ -90,7 +90,7 @@ export const BRICKS = {
         const sl = c.sloi || [], vn = sl[0] || { cvet: skin }, sr = sl.find(q => q.plotno), al = Math.min(1, g * 3);
         c.bodies.loft(kolca, false, vn.cvet, vn.kromka || core, seed + j, (vn.a ?? 0.6) * al);
         const sk = q => P.serdce + (1 - P.serdce) * (1 - sm(q.a / P.sheyka)); // у основания сердцевина во всю ширину: закрывает кайму тела, отросток течёт из тела без шва
-        if (sr) c.bodies.loft(kolca.map(q => ({ ...q, r: q.r * sk(q), dr: q.dr * sk(q) })), true, sr.cvet, sr.kromka || core, seed + j, al, P.poverh); // сердцевина поверх каймы тела: без шва у основания
+        if (sr) c.bodies.loft(kolca.map(q => ({ ...q, r: q.r * sk(q), dr: q.dr * sk(q) })), true, sr.cvet, sr.kromka || core, seed + j, al * P.prozr, P.poverh); // сердцевина поверх каймы тела: без шва у основания
       } else tube.put(pts, ws, skin, core, P.a * Math.min(1, g * 3), P.halo);
     });
   },
