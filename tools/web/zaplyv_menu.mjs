@@ -27,7 +27,7 @@ const BROKEN = {
   'Альманах в режимах чипом': '#malm { width: 120px !important; min-height: 44px !important; border-radius: 22px !important; }',
 };
 async function walk(css) {
-  const p = await (await b.newContext({ ...pw.devices['iPhone 13'] })).newPage();
+  const p = await (await b.newContext({ ...pw.devices['iPhone 13'], deviceScaleFactor: 1 })).newPage(); // плотность 3 проверяет обход пальцем (L038, L052), здесь 1 — шаг быстрее
   await p.addInitScript(() => { try { localStorage.setItem('zaplyv.met', JSON.stringify(['me', 'bdello', 'phage', 'amoeba'])); } catch (_) {} }); // игрок уже встречал красную запятую: у карточки «Ты» всегда есть связь «кто ест», по которой можно перейти (без этого проверка зависела от случайной встречи в начале заплыва)
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   let bad = 0; const say = (ok, t) => { if (!css) console.log((ok ? '  ок   ' : '  ПРОВАЛ ') + t); if (!ok) bad++; };
