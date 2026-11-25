@@ -172,6 +172,22 @@ check('[tail] сильный хвост: с каждым уровнем — ро
   if (hear(0) || !hear(1) || !hear(3)) return 'цена: хищники должны замечать клетку с хвостом дальше, на каждом уровне';
 });
 
+// Память о вирусах (З5, книга Г50): 1 — пережила первый вирус, второй такой же режет; 2 — дочки рождаются с памятью матери; 3 — знакомый вирус становится едой.
+check('[memory] память о вирусах: первый вирус не убивает, второй режется; дочки помнят; знакомый вирус становится едой', () => {
+  const shot = (w, a) => { w.phages.push({ x: a.x, y: a.y, vx: 0, vy: 0, host: 'me', d: 0, on: a, t: 0.01, off: 0 }); const m0 = a.m; w.step(1 / 30, null); w.step(1 / 30, null); return { sick: a.sick >= 0, dm: a.m - m0 }; };
+  const go = L => { const w = mw(14); for (let i = 0; i < L; i++) w.pick('memory'); const a = w.me[0]; a.m = 2; run(w, 0.1, null);
+    const first = shot(w, a), second = shot(w, a); a.m = 9; w.divide(); w.choice = []; const kid = w.me.find(b => b !== a); const k = kid ? shot(w, kid) : null; return { first, second, kid: k }; };
+  const r = [0, 1, 2, 3].map(go), f = x => `${+x.sick}/${x.dm.toFixed(2)}`;
+  console.log('    паспорт: уровень → первый вирус (болеет/сила), второй, вирус на дочке:', r.map((x, i) => `${i}: ${f(x.first)} ${f(x.second)} ${x.kid ? f(x.kid) : '—'}`).join(' | '));
+  const [o, a, b, c] = r;
+  if (!o.first.sick) return 'без умения вирус заражает';
+  if (a.first.sick || !(a.first.dm < 0)) return 'уровень 1: первый вирус не убивает, но клетка худеет';
+  if (a.second.sick || a.second.dm < 0) return 'уровень 1: второй такой же вирус клетку не трогает';
+  if (!a.kid || !(a.kid.dm < 0)) return 'уровень 1: дочка ещё не помнит вирус матери';
+  if (!b.kid || b.kid.sick || b.kid.dm < 0) return 'уровень 2: дочка рождается с памятью матери';
+  if (!(c.second.dm > 0) || b.second.dm > 0) return 'уровень 3: знакомый вирус становится едой';
+});
+
 // Режим «Голод» (Роман 25.11 08:47: «Да отдельным режимом давай попробуем»): без еды клетка худеет и гибнет.
 const starveT = (genes, m0 = 1, mode = 'golod') => { const w = mw(4, genes, mode), a = w.me[0]; a.m = m0; let t = 0; for (; t < 200 && w.me.length; t += 1 / 30) w.step(1 / 30, null); return { t, w, a }; };
 check('режим «Голод»: в пустой воде клетка худеет и гибнет от голода, в обычном заплыве — нет', () => {
@@ -284,12 +300,12 @@ const bot = w => {
 };
 // Для каждой мутации — 6 заплывов бота, у которого с начала только она: встречает ли он то, где она важна.
 check('бот в режиме «Мутации» встречает каждую мутацию в деле: щелчок, тихая гибель, всплытие, кокк у закрытой двери, вирус на пузырьке', () => {
-  const meet = { snap: 0, abort: 0, gas: 0, door: 0, decoy: 0, flu: 0, steady: 0, citrate: 0, lean: 0, store: 0, magnet: 0, shield: 0, tail: 0 };
+  const meet = { snap: 0, abort: 0, gas: 0, door: 0, decoy: 0, flu: 0, steady: 0, citrate: 0, lean: 0, store: 0, magnet: 0, shield: 0, tail: 0, memory: 0 };
   for (const g of Object.keys(meet)) for (const seed of [1, 2, 3, 4, 5, 6]) {
     const w = new World(cfg, seed); w.mode = M.golod.genes.includes(g) ? 'golod' : 'mut'; if (g in M.levels) w.pick(g); else w.genes[g] = true; // умение с уровнями приходит, как от дочки
-    if (g === 'abort' || g === 'decoy' || g === 'shield') { const P = cfg.pond; w.me[0].y = (P.film * 0.6 - P.y0) * P.h; w.tidy = 0; virusy(w); } // вирусы живут в сладкой воде под плёнкой; бот заплывает в их облако
+    if (g === 'abort' || g === 'decoy' || g === 'shield' || g === 'memory') { const P = cfg.pond; w.me[0].y = (P.film * 0.6 - P.y0) * P.h; w.tidy = 0; virusy(w); } // вирусы живут в сладкой воде под плёнкой; бот заплывает в их облако
     for (let t = 0; t < 120 && w.me.length; t += 1 / 30) {
-      const near = g === 'abort' || g === 'decoy' || g === 'shield'; // против вирусов бот палец не отпускает: в живой капле стоящего съедают раньше вируса
+      const near = g === 'abort' || g === 'decoy' || g === 'shield' || g === 'memory'; // против вирусов бот палец не отпускает: в живой капле стоящего съедают раньше вируса
       const aim = !near && (t % 6) < 1 ? null : bot(w), a0 = w.me[0];
       const sharp = g === 'steady' && aim && a0 && !a0.tumble && Math.abs(wrap(Math.atan2(aim.y - a0.y, aim.x - a0.x) - a0.a)) > cfg.swim.tumble_angle; // поворот, на котором без умения был бы кувырок
       w.step(1 / 30, aim); // иногда отпускает палец
@@ -303,11 +319,12 @@ check('бот в режиме «Мутации» встречает каждую
     if (g === 'decoy') meet.decoy += w.stats.decoy || 0;
     if (g === 'flu') meet.flu += w.stats.raft || 0;
     if (g === 'citrate') meet.citrate += w.stats.citrate || 0;
+    if (g === 'memory') meet.memory += (w.stats.learned || 0) + (w.stats.cutKnown || 0); // пережила вирус или разрезала знакомый
     if (g === 'tail') meet.tail += Math.round(w.stats.boost || 0) + (w.stats.corridor || 0); // разгон на прямой и коридор в слизи
     if (g === 'magnet') meet.magnet += w.stats.magnet || 0; // крупинка сама приплыла и съедена
     if (g === 'store') meet.store += w.stats.melted || 0; // крупинка растаяла, когда еды не было рядом
   }
-  console.log('    паспорт: за 6 заплывов по 120 с — щелчков', meet.snap, '| тихих гибелей', meet.abort, '| кадров всплытия', meet.gas, '| кадров у кокка с закрытой дверью', meet.door, '| вирусов на пузырьках', meet.decoy, '| ровно на крутом повороте', meet.steady, '| голубых точек съедено', meet.citrate, '| кадров голода мелкой', meet.lean, '| растаяло крупинок', meet.store, '| приплыло магнитом', meet.magnet, '| вирус отскочил от защиты', meet.shield, '| хвост: секунд разгона и точек коридора', meet.tail, '| пасть сорвалась с плота', meet.flu);
+  console.log('    паспорт: за 6 заплывов по 120 с — щелчков', meet.snap, '| тихих гибелей', meet.abort, '| кадров всплытия', meet.gas, '| кадров у кокка с закрытой дверью', meet.door, '| вирусов на пузырьках', meet.decoy, '| ровно на крутом повороте', meet.steady, '| голубых точек съедено', meet.citrate, '| кадров голода мелкой', meet.lean, '| растаяло крупинок', meet.store, '| приплыло магнитом', meet.magnet, '| вирус отскочил от защиты', meet.shield, '| хвост: секунд разгона и точек коридора', meet.tail, '| память: пережито и разрезано вирусов', meet.memory, '| пасть сорвалась с плота', meet.flu);
   const miss = Object.keys(meet).filter(g => !meet[g]);
   if (miss.length) return 'бот не встретил, где важно: ' + miss.join(', ');
 });

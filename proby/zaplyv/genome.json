@@ -93,6 +93,10 @@
    "color": "#c9a2ff",
    "slots": [
     {
+     "id": "memory",
+     "gene": "cas+"
+    },
+    {
      "id": "shield",
      "gene": "ompC+"
     },

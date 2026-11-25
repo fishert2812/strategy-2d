@@ -150,6 +150,16 @@ function tail(w, a, dt, th) {
 // Цена хвоста: толстый жгут шумит — хищники замечают клетку дальше (sim.js: амёба и запятая ищут добычу).
 export const loud = w => has(w, 'tail') ? M.tail.loud : 1;
 
+// Память о вирусах (sim.js, вирус впрыснул): true — память сработала, обычного заражения нет.
+export function immune(w, h, g) {
+  if (g.host !== 'me' || !has(w, 'memory')) return false;
+  if (h.knows) { w.events.push(['cut', g.x, g.y]); w.stats.cutKnown = (w.stats.cutKnown || 0) + 1;
+    if (lvl(w, 'memory') >= 3) { w.grow(h, M.memory.food); w.fed(g.x, g.y, 1); w.stats.virusFood = (w.stats.virusFood || 0) + 1; } return true; } // знакомый: нить рвётся, на третьем уровне — еда
+  h.knows = true; h.m = Math.max(0.6, h.m * w.cfg.crispr_cost); w.events.push(['learn', g.x, g.y]); w.stats.learned = (w.stats.learned || 0) + 1; return true; // первая встреча: выжила, похудела, запомнила
+}
+// Дочка при делении (sim.js divide): на втором уровне памяти рождается, уже зная вирус матери.
+export function kid(w, c, b) { if (c.knows && has(w, 'memory') && lvl(w, 'memory') >= 2) b.knows = true; return b; }
+
 // Защита, уровень 3 (sim.js, вирус отскочил от оболочки): летит к ближайшему кокку и садится на него.
 export function shrug(w, g) {
   if (!has(w, 'shield') || lvl(w, 'shield') < 3) return;
@@ -257,7 +267,7 @@ export const food = w => has(w, 'door') ? M.door.food : 1;
 
 // Что рисовать на теле (дополнение к look.js).
 export function mutLook(genes) {
-  return { ...(genes.snap ? { flagella: M.snap.look } : {}), snap: !!genes.snap, gas: genes.gas ? M.gas.n : 0, abort: !!genes.abort, door: !!genes.door, decoy: !!genes.decoy, flu: genes.flu ? M.flu.pins : 0, steady: genes.steady ? M.steady.look : 0, citrate: !!genes.citrate, store: !!genes.store, lean: !!genes.lean, magnet: !!genes.magnet, shield: genes.shield ? M.shield.look : 0, tail: genes.tail ? M.tail.look : 0 };
+  return { ...(genes.snap ? { flagella: M.snap.look } : {}), snap: !!genes.snap, gas: genes.gas ? M.gas.n : 0, abort: !!genes.abort, door: !!genes.door, decoy: !!genes.decoy, flu: genes.flu ? M.flu.pins : 0, steady: genes.steady ? M.steady.look : 0, citrate: !!genes.citrate, store: !!genes.store, lean: !!genes.lean, magnet: !!genes.magnet, shield: genes.shield ? M.shield.look : 0, tail: genes.tail ? M.tail.look : 0, memory: !!genes.memory };
 }
 
 // Вид мутаций на теле плывущей клетки (зовёт vid.js skin()). Цвет — из палитры клетки, без чистого белого (урок L020).
@@ -292,6 +302,10 @@ export function mutSkin({ a, lk, ink, glow, at, w, L, time }) {
       for (let j = 1; j <= 4; j++) { const [px, py] = at(L + w * (0.2 + j * 0.14) - Math.abs(o) * 0.5, o * (1 + j * 0.12)); ink.put(px, py, w * 0.035, 0.1, 0.18, 0.26, 0.5); }
       const [px, py] = at(L + w * 0.9 - Math.abs(o) * 0.5, o * 1.6); glow.put(px, py, w * (lit ? 0.2 : 0.11), r, g, b, lit ? 0.95 : 0.7); }
     if (a.warm > 0) for (let k = -2; k <= 2; k++) { const [cx, cy] = at(k * L * 0.25, 0); glow.put(cx, cy, w * (0.5 - Math.abs(k) * 0.08), 1, 0.6, 0.18, 0.35 * a.warm / M.magnet.warm); } } // ref_21: съеденное тепло светится вдоль ядра
+  if (lk.memory && a.knows) { const [hx, hy] = at(L * 0.1, w * 1.05); // память (Вид 7, ref_06, ref_28): на боку пустая скорлупа вируса — гранёная стеклянная головка без нити, трофей
+    for (let k = 0; k < 6; k++) { const t = k / 6 * 6.283, [px, py] = at(L * 0.1 + Math.cos(t) * w * 0.22, w * 1.05 + Math.sin(t) * w * 0.22); ink.put(px, py, w * 0.06, 0.12, 0.18, 0.28, 0.7); glow.put(px, py, w * 0.05, 0.7, 0.9, 1, 0.5); }
+    glow.put(hx, hy, w * 0.12, 0.6, 0.85, 1, 0.25); }
+  if (lk.memory) for (let k = 0; k < 4; k++) { const [px, py] = at((k / 3 - 0.5) * L * 0.9, -w * 0.3); ink.put(px, py, w * 0.12, 0.1, 0.16, 0.26, 0.55); glow.put(px, py, w * 0.05, 0.6, 0.85, 1, 0.3); } // зарубки памяти внутри: короткие тёмные полоски вдоль оси
   if (lk.tail) for (let k = 0; k < lk.tail; k++) { const u = -L - w * (0.3 + k * 0.28), o = Math.sin(time * 9 + k * 1.3) * w * 0.12 * (1 + (a.boost || 0)); // сильный хвост (Вид 4): за кормой толстый жгут из сплетённых нитей; на разгоне бьёт шире
     const [px, py] = at(u, o); ink.put(px, py, w * (0.17 - k * 0.02), 0.08, 0.14, 0.22, 0.7); glow.put(px, py, w * 0.07, 0.55, 0.85, 1, 0.3 + 0.4 * (a.boost || 0)); }
   if (lk.shield) for (let k = 0; k < lk.shield * 2; k++) { const t = k / (lk.shield * 2) * 6.283, [px, py] = at(Math.cos(t) * (L + w * 0.75), Math.sin(t) * w * 1.12); // защита (Вид 2, 7): стеклянная кромка поверх оболочки — холодные блики по кругу

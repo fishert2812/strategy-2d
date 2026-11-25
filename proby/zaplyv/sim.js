@@ -141,7 +141,7 @@ export class World {
       if (c.m < this.split() || c.sick >= 0 || c.held > 0 || c.grab || c.spore > 0) continue;
       c.m /= 2; c.gen = (c.gen || 0) + 1; this.stats.gen = Math.max(this.stats.gen, c.gen);
       const ax = Math.cos(c.a), ay = Math.sin(c.a), r = radius(c.m);
-      born.push({ x: c.x - ax * r * 1.2, y: c.y - ay * r * 1.2, vx: c.vx - ax * 60, vy: c.vy - ay * 60, m: c.m, a: c.a, sick: -1, gen: c.gen, id: ++this.ids });
+      born.push(mut.kid(this, c, { x: c.x - ax * r * 1.2, y: c.y - ay * r * 1.2, vx: c.vx - ax * 60, vy: c.vy - ay * 60, m: c.m, a: c.a, sick: -1, gen: c.gen, id: ++this.ids }));
       c.x += ax * r * 0.6; c.y += ay * r * 0.6;
       this.events.push(['split', c.x, c.y]);
     }
@@ -582,6 +582,7 @@ export class World {
         if (g.t <= 0) {
           g.gone = true;
           // CRISPR — память: знакомого фага режет без вреда. Незнакомого клетка переживает ценой сил и вписывает его кусок новой полоской (упрощение: в природе так выживают немногие).
+          if (mut.immune(this, h, g)) continue; // память о вирусах: помнит та клетка, что пережила
           if (g.host === 'me' && this.genes.crispr) { if (this.spacers.has('T4')) this.events.push(['cut', g.x, g.y]); else { this.spacers.add('T4'); h.m = Math.max(0.6, h.m * c.crispr_cost); this.events.push(['learn', g.x, g.y]); } continue; }
           if (h.sick === undefined || h.sick < 0) { h.sick = c.sick; if (g.host === 'me') { this.events.push(['sick', h.x, h.y]); mut.landed(this, h); } } // сцепка: в плоту заболевает и соседняя
         }
