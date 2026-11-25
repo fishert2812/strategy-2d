@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # guards: сторожа без запуска игры (справочник, раздел 3).
 set -u
+. "$(dirname "${BASH_SOURCE[0]}")/../check_mode.sh"; run_in fast kniga || exit 0
 fail=0
 bad() { echo "  СТОРОЖ: $1"; fail=1; }
 
@@ -40,6 +41,22 @@ if git rev-parse -q --verify "$base" >/dev/null && [[ "${PR_LABELS:-}" != *big* 
   [ "$lines" -gt 300 ] && bad "в PR $lines строк кода, больше 300"
   echo "  строк кода против ${base#origin/}: $lines"
 fi
+
+# 7. Полная проверка со всеми защитами не пропала: full.yml раз в час гонит check.sh с CHECK_FULL=1.
+fy=.github/workflows/full.yml
+if [ ! -f $fy ]; then bad "нет $fy — полная проверка не идёт"; else
+  grep -qE "^\s*- cron: '[^']+'" $fy || bad "в $fy нет расписания cron"
+  grep -qE '^\s*CHECK_FULL: "1"' $fy || bad "в $fy нет CHECK_FULL: \"1\""
+  grep -qE '^\s*(- )?run: bash tools/check.sh\s*$' $fy || bad "$fy не запускает bash tools/check.sh"
+fi
+# 8. Книжный режим не глотает игру: правка кода или текстов игры — всегда fast.
+. ./tools/check_mode.sh
+mo() { printf '%s\n' "$@" | mode_of_files; }
+[ "$(mo proby/zaplyv/kniga/geny.md docs/spravochnik.md)" = kniga ] || bad "книжная правка не в режиме kniga"
+[ "$(mo proby/zaplyv/kniga/geny.md proby/zaplyv/main.js)" = fast ] || bad "правка игры попала в режим kniga"
+[ "$(mo proby/zaplyv/kniga/teksty_genov.json)" = fast ] || bad "тексты игры попали в режим kniga"
+[ "$(mo tools/checks/55_kniga.sh)" = fast ] || bad "правка проверки попала в режим kniga"
+[ "$(mo)" = fast ] || bad "пустой PR не в режиме fast"
 
 [ $fail -eq 0 ] && echo "  сторожа: все чисто"
 exit $fail

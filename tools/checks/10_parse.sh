@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # parse: проект импортируется, и каждый .gd разбирается без ошибок.
 set -u
+. "$(dirname "${BASH_SOURCE[0]}")/../check_mode.sh"; run_in fast || exit 0
 "$GODOT" --headless --path . --import >out/import.log 2>&1
 bad=0; n=0
 while IFS= read -r f; do

@@ -2,6 +2,7 @@
 # selftest (М10): каждому сторожу подаём нарочно сломанный пример и ждём красного,
 # а исправный пример обязан пройти. Сторож, который перестал ловить, делает этот шаг красным.
 set -u
+. "$(dirname "${BASH_SOURCE[0]}")/../check_mode.sh"; run_in || exit 0
 ROOT=$(pwd); fail=0
 WT=$(mktemp -d)/wt
 git worktree add -q --detach "$WT" HEAD 2>/dev/null || { echo "  selftest: не создать копию"; exit 1; }
@@ -21,6 +22,8 @@ case_() {
 NUM='python3 -c "import json;print(json.load(open(\"data/version.json\"))[\"number\"])"'
 BUMP='n=$('"$NUM"'); m=${n%.*}.$(( ${n#*.} + 1 )); printf "{\n\t\"number\": \"%s\"\n}\n" "$m" > data/version.json'
 case_ "вторая команда в check.yml" 20_guards.sh red 'echo "      - run: echo второй" >> .github/workflows/check.yml'
+case_ "полная проверка без расписания" 20_guards.sh red "sed -i '/- cron:/d' .github/workflows/full.yml"
+case_ "книжный режим глотает игру" 20_guards.sh red "sed -i 's/proby\/zaplyv\/kniga\/teksty_\*.json) return 1/nothing) return 1/' tools/check_mode.sh"
 case_ "урок без защиты" 20_guards.sh red 'echo "| L999 | проба | проба | нет |" >> lessons.md'
 case_ "номер не сходится с CHANGELOG" 25_changelog.sh red 'printf "{\"number\": \"9.99\"}\n" > data/version.json'
 case_ "test_L004: видимое без строки в CHANGELOG" 25_changelog.sh red 'echo "# проба" >> scripts/main.gd'
