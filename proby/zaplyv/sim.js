@@ -353,9 +353,10 @@ export class World {
     const T = this.cfg.tverd, k = Math.min(1, T.sila * dt);
     for (const a of this.me) { if (a.grab || a.held > 0) continue; const ra = radius(a.m);
       const out = (x, y, need) => { const dx = a.x - x, dy = a.y - y, d = Math.hypot(dx, dy) || 0.01; if (d >= need) return; const ux = dx / d, uy = dy / d, vn = a.vx * ux + a.vy * uy;
-        a.x += ux * (need - d) * k; a.y += uy * (need - d) * k; if (vn < 0) { a.vx -= vn * ux; a.vy -= vn * uy; } this.stats.bump = (this.stats.bump || 0) + 1; };
-      for (const m of this.amoebas) if (!(a.m < m.m * 0.8 && !(m.syt > 0) && !this.genes.capsule && !(a.spore > 0))) out(m.x, m.y, radius(m.m) * T.ameba + ra * T.ameba_kray);
-      for (const p of this.plants) { const r = radius(p.m); if (Math.abs(p.x - a.x) > r * 2 + ra || Math.abs(p.y - a.y) > r * 2 + ra) continue; // грызть нить можно и упёршись в неё
+        a.x += ux * (need - d) * k; a.y += uy * (need - d) * k; if (vn < 0) { const tx = -uy, ty = ux, s = a.vx * tx + a.vy * ty >= 0 ? 1 : -1; a.vx += -vn * ux - vn * T.skolz * s * tx; a.vy += -vn * uy - vn * T.skolz * s * ty; } /* упёрлась — скользит вбок вдоль препятствия, как в воде, а не стоит лбом */ this.stats.bump = (this.stats.bump || 0) + 1; };
+      if (!rost.on(this)) /* в «Росте» и «Эволюции» крупная клетка сама охотница: амёбу она глотает, а не упирается */ for (const m of this.amoebas) if (!(a.m < m.m * 0.8 && !(m.syt > 0) && !this.genes.capsule && !(a.spore > 0))) out(m.x, m.y, radius(m.m) * T.ameba + ra * T.ameba_kray);
+      const gryzet = rost.on(this); // в «Росте» и «Эволюции» клетка растёт выше нитей и грызёт их: нить ей не стена
+      if (!gryzet) for (const p of this.plants) { const r = radius(p.m); if (ra > r * T.nit_bolshe || Math.abs(p.x - a.x) > r * 2 + ra || Math.abs(p.y - a.y) > r * 2 + ra) continue; // грызть нить можно и упёршись в неё; клетка крупнее нити («Рост») накрывает её, а не упирается
         const ux = Math.cos(p.id * 1.7), uy = Math.sin(p.id * 1.7); for (let i = -2; i <= 2; i++) out(p.x + ux * i * r * 0.72, p.y + uy * i * r * 0.72, r * T.nit + ra * T.nit_kray); } // нить из пяти клеток, как рисуется
     }
   }
@@ -367,7 +368,7 @@ export class World {
       p.t -= 1;
       let near = 0;
       for (const f of this.food) if (Math.abs(f.x - p.x) < 90 && Math.abs(f.y - p.y) < 90) near++;
-      if (near < c.halo_max) { const t = r() * 6.283, d = radius(p.m) * 1.6 + r() * 40; this.food.push({ x: p.x + Math.cos(t) * d, y: p.y + Math.sin(t) * d, vx: 0, vy: 0, kind: 'glucose' }); } // водоросль на свету выделяет глюкозу (Е2)
+      if (near < c.halo_max) { const t = r() * 6.283, d = radius(p.m) * c.halo_ot + r() * 40; /* сахар ложится снаружи нити: нить твёрдая (L059), внутри его не достать */ this.food.push({ x: p.x + Math.cos(t) * d, y: p.y + Math.sin(t) * d, vx: 0, vy: 0, kind: 'glucose' }); } // водоросль на свету выделяет глюкозу (Е2)
     }
     for (const k of this.crumbs) k.y += c.sink * dt;
     for (const f of this.food) if (f.vx || f.vy) { const q = Math.max(0, 1 - 4 * dt); f.vx *= q; f.vy *= q; f.x += f.vx * dt; f.y += f.vy * dt; if (Math.abs(f.vx) + Math.abs(f.vy) < 1) f.vx = f.vy = 0; }
