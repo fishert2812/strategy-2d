@@ -99,7 +99,6 @@ ONLY=L055 case_ "test_L055: дочка с толчком" 53_zaplyv_vid.sh red "
 ONLY=L055 case_ "test_L055: палочка толстеет, а не длиннеет" 53_zaplyv_vid.sh red "sed -i 's/half: D.half0 \\* 2 \\* fm/half: D.half0 * (1 + fm)/' $Z/vid.js"
 # L051: дочки снова складываются бок о бок
 ONLY=L051 case_ "test_L051: дочки снова на месте матери" 50_zaplyv.sh red "sed -i 's/const D = this.cfg.split_apart \\* r \\/ 2;/const D = 0;/' $Z/sim.js"
-# L051: поломку и тест переписывает тред игры вместе с делением без «паровозиков» (Роман 25.11 21:17); прежняя поломка (общий дрейф) больше не краснела
 # L049: колония снова застревает на четырёх
 ONLY=L049 case_ "test_L049: само-деление снова отпускает дочек с четырёх" 50_zaplyv.sh red "sed -i 's/\"auto_max\": 10/\"auto_max\": 4/' $Z/data.json"
 case_ "test_L029: камера тянется к отставшим вдали" 52_zaplyv_tap.sh red "sed -i 's/const flock = live.filter(a => Math.hypot(a.x - lead.x, a.y - lead.y) < C.group)/const flock = world.me/' $Z/main.js"
