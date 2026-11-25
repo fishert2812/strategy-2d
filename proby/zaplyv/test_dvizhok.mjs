@@ -39,9 +39,10 @@ const staroe = {
       if (q.t <= 0) {
         let best = null, bd = c.pseudo_sense;
         for (const f of w.food) { const d = Math.hypot(f.x - q.x, f.y - q.y); if (d < bd) { bd = d; best = f; } }
-        q.a = best ? Math.atan2(best.y - q.y, best.x - q.x) : q.a + (r() - 0.5) * 3; q.t = 0.25 + r() * 1.2; q.rest = 0.25;
+        q.kurs = best ? Math.atan2(best.y - q.y, best.x - q.x) : q.a + (r() - 0.5) * 3; q.t = 0.25 + r() * 1.2; q.rest = 0.25;
       }
-      const go = q.t > q.rest ? (q.strain ? c.strain_speed : c.pseudo_speed) : 0, k = Math.min(1, 6 * dt);
+      if (q.kurs !== undefined) { const d = Math.atan2(Math.sin(q.kurs - q.a), Math.cos(q.kurs - q.a)), m = 6 * dt; q.a += Math.abs(d) <= m ? d : Math.sign(d) * m; q.bokom = Math.max(0, Math.cos(d)); } // с 25.11 поворот плавный и в прежнем коде-образце
+      const go = q.t > q.rest ? (q.strain ? c.strain_speed : c.pseudo_speed) * (q.bokom ?? 1) : 0, k = Math.min(1, 6 * dt);
       q.vx += (Math.cos(q.a) * go - q.vx) * k; q.vy += (Math.sin(q.a) * go - q.vy) * k; q.x += q.vx * dt; q.y += q.vy * dt;
       for (const f of w.food) if (!f.gone && Math.hypot(f.x - q.x, f.y - q.y) < 14) f.gone = true;
       for (const a of [...w.me]) {
@@ -102,6 +103,23 @@ check('test_dvizhok_variaciya: новый сосед одной записью �
     if (K.items.pseudo.group !== 'danger') return 'вид с гарпуном не в опасных';
     console.log('    паспорт: запись «proba» (от серой соперницы, цепочка 3) — появилось до', born, 'за заплыв · за 2 с прошла', Math.round(a.x), 'против', Math.round(b.x), '· едят:', dv.anketa('proba').edyat.join(', '), '· карточка «' + cards.proba.name + '»');
   } finally { delete dv.V.vidy.proba; }
+});
+check('test_dvizhok_povorot: ни одно существо движка не поворачивается скачком — за кадр не больше, чем разрешает его запись (приёмка роликов 25.11: кувырок сенной палочки выглядел склейкой)', () => {
+  const PRED = 0.35, out = []; // радиан за кадр при 30 кадрах в секунду: больше глаз видит как скачок
+  for (const vid of Object.keys(dv.V.vidy)) { const H = dv.anketa(vid).hod, pov = process.env.DVIZHOK_SKACHOK ? 999 : H.povorot;
+    const w = new World(cfg, 3); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = [];
+    const me = w.me[0]; for (let i = 0; i < 8; i++) w.pseudos.push({ x: me.x + 800 + i * 200, y: me.y + 800, vx: 0, vy: 0, a: i, t: 0, cool: 0, vid, strain: vid === 'strain', id: 500 + i });
+    for (let i = 0; i < 20; i++) w.food.push({ x: me.x + 700 + i * 90, y: me.y + 700 + (i % 5) * 60, vx: 0, vy: 0, s: 1 });
+    const zap = dv.V.vidy[vid]; if (process.env.DVIZHOK_SKACHOK) dv.V.vidy[vid] = { ...zap, hod: { ...zap.hod, povorot: pov } };
+    let mx = 0, kuv = 0;
+    try { for (let s = 0; s < 30 * 30; s++) { const do_ = w.pseudos.map(q => q.a); dv.shag(w, 1 / 30, radius);
+      w.pseudos.forEach((q, i) => { const d = Math.abs(Math.atan2(Math.sin(q.a - do_[i]), Math.cos(q.a - do_[i]))); if (d > mx) mx = d; if (d > 0.01) kuv++; }); } }
+    finally { dv.V.vidy[vid] = zap; }
+    out.push(vid + ' ' + mx.toFixed(2)); if (!kuv) return vid + ': за 30 секунд ни разу не повернула — проверка ничего не доказывает';
+    if (mx > PRED) return vid + ': поворот ' + mx.toFixed(2) + ' радиан за кадр, предел ' + PRED;
+    if (vid === 'seno' && !(mx < dv.anketa('strain').hod.povorot / 30 * 0.6) && !process.env.DVIZHOK_SKACHOK) return 'цепочка сенной палочки разворачивается так же резко, как одиночная клетка: ' + mx.toFixed(3) + ' за кадр';
+    if (mx > H.povorot / 30 + 1e-6 && !process.env.DVIZHOK_SKACHOK) return vid + ': поворот ' + mx.toFixed(3) + ' за кадр больше записи hod.povorot ' + H.povorot + ' в секунду'; }
+  console.log('    паспорт: самый резкий поворот за кадр, радиан ·', out.join(' · '), '· предел', PRED);
 });
 check('test_dvizhok_niti: у соседок из анкет жгутики — сплошные нити, а не цепочки точек (L047, Роман про пунктир: «халтура»); тело и цепочка — по записи', () => {
   dv.V.vidy.cep = { ot: 'strain', telo: { cepochka: 3 } };
