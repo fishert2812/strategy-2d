@@ -28,6 +28,7 @@ const BROKEN = {
 };
 async function walk(css) {
   const p = await (await b.newContext({ ...pw.devices['iPhone 13'] })).newPage();
+  await p.addInitScript(() => { try { localStorage.setItem('zaplyv.met', JSON.stringify(['me', 'bdello', 'phage', 'amoeba'])); } catch (_) {} }); // игрок уже встречал красную запятую: у карточки «Ты» всегда есть связь «кто ест», по которой можно перейти (без этого проверка зависела от случайной встречи в начале заплыва)
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   let bad = 0; const say = (ok, t) => { if (!css) console.log((ok ? '  ок   ' : '  ПРОВАЛ ') + t); if (!ok) bad++; };
   await p.goto(url, { timeout: 60000 });
