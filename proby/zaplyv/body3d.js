@@ -112,9 +112,16 @@ export class Bodies {
     globalThis.zaplyvBodies ??= this; // vid.js рисует амёбу этими телами, даже если main.js не передал их явно
     for (const m of this.all) this.scene.add(m);
     this.loftC = { m: [], n: 0 }; this.loftS = { m: [], n: 0 }; // тела свободной формы (loft): заводятся по мере надобности
+    // Нити (жгутики, ворс): все нити кадра — одна сетка в общем буфере, каждая нить — одна гладкая трубка вдоль ломаной (без стыков-рисок у звеньев seg).
+    { const N = 48000, G = 6, geo = new THREE.BufferGeometry(), idx = new Uint32Array(N * G * 6);
+      for (const [k, n] of [['position', 3], ['normal', 3]]) geo.setAttribute(k, new THREE.BufferAttribute(new Float32Array(N * G * n), n).setUsage(THREE.DynamicDrawUsage));
+      geo.setIndex(new THREE.BufferAttribute(idx, 1).setUsage(THREE.DynamicDrawUsage));
+      const m = kind(geo, 1, '', { bump: 0, alpha0: 0.95, edgeA: 0.45, order: 1, rimK: 0.6 }); // свет как у seg
+      for (const [k, n] of [['cA', 4], ['cB', 3], ['prm', 4]]) geo.setAttribute(k, new THREE.BufferAttribute(new Float32Array(N * G * n), n).setUsage(THREE.DynamicDrawUsage)); // цвет у каждой вершины: у каждой нити свой
+      m.setMatrixAt(0, new THREE.Matrix4()); this.nit = { m, N, G, v: 0, i: 0 }; this.scene.add(m); this.all.push(m); }
   }
   resize(W, H) { this.cam.right = W; this.cam.bottom = -H; this.cam.updateProjectionMatrix(); }
-  begin() { for (const m of this.all) m.count = 0; this.loftC.n = this.loftS.n = 0; }
+  begin() { for (const m of this.all) m.count = 0; this.loftC.n = this.loftS.n = 0; this.nit.v = this.nit.i = 0; }
   // Одно тело: экранная точка (x, y вниз), угол оси (в экранных координатах), масштабы, цвета, параметры.
   put(m, x, y, ang, sx, sy, sz, ca, cb, prm) {
     if (m.count >= m.instanceMatrix.count) return;
@@ -167,7 +174,26 @@ export class Bodies {
     A.position.needsUpdate = A.normal.needsUpdate = A.uv.needsUpdate = true; m.count = 1;
     m.geometry.attributes.cA.array.set([col[0], col[1], col[2], alfa]); m.geometry.attributes.cB.array.set(rim); m.geometry.attributes.prm.array.set([0, seed, 0, 0]);
   }
+  // Нить: pts — точки экрана [x0, y0, x1, y1, …] вдоль нити; толщина и прозрачность плавно от корня (r, a) к кончику (r1, a1).
+  niti(pts, r, col, a = 1, r1 = r, a1 = a, rim = col, z = this.vyshe || 0, col1 = col) { // col1 — цвет кончика (светлые кончики ворса) // z — высота нити над плоскостью (к зрителю)
+    if (pts.length < 4) return; if (pts.length < 24) { const q = [], m = pts.length >> 1, X = j => pts[Math.max(0, Math.min(m - 1, j)) * 2], Y = j => pts[Math.max(0, Math.min(m - 1, j)) * 2 + 1]; // мало точек — сглаживаю (Катмулл — Ром): ворсинка гнётся дугой, а не ломаной
+      for (let j = 0; j < m - 1; j++) for (let u = 0; u < 3; u++) { const t = u / 3, t2 = t * t, t3 = t2 * t, c = (p0, p1, p2, p3) => 0.5 * (2 * p1 + (p2 - p0) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 + (3 * p1 - p0 - 3 * p2 + p3) * t3);
+        q.push(c(X(j - 1), X(j), X(j + 1), X(j + 2)), c(Y(j - 1), Y(j), Y(j + 1), Y(j + 2))); }
+      q.push(X(m - 1), Y(m - 1)); pts = q; }
+    { const m = pts.length >> 1, d0 = Math.hypot(pts[2] - pts[0], pts[3] - pts[1]) || 1, d1 = Math.hypot(pts[m * 2 - 2] - pts[m * 2 - 4], pts[m * 2 - 1] - pts[m * 2 - 3]) || 1; // концы скруглены: кольцо-точка чуть дальше конца, торца нет
+      pts = [pts[0] - (pts[2] - pts[0]) / d0 * r * 0.7, pts[1] - (pts[3] - pts[1]) / d0 * r * 0.7, ...pts, pts[m * 2 - 2] + (pts[m * 2 - 2] - pts[m * 2 - 4]) / d1 * r1 * 0.7, pts[m * 2 - 1] + (pts[m * 2 - 1] - pts[m * 2 - 3]) / d1 * r1 * 0.7]; }
+    const T = this.nit, n = pts.length >> 1, G = T.G; if (T.v + n * G > T.N * G) return;
+    const A = T.m.geometry.attributes, P = A.position.array, Nr = A.normal.array, cA = A.cA.array, cB = A.cB.array, ix = T.m.geometry.index.array, v0 = T.v, z0 = z;
+    for (let j = 0; j < n; j++) { const a0 = Math.max(0, j - 1), b0 = Math.min(n - 1, j + 1), dx = pts[b0 * 2] - pts[a0 * 2], dy = pts[b0 * 2 + 1] - pts[a0 * 2 + 1], l = Math.hypot(dx, dy) || 1, tx = dx / l, ty = dy / l, f = Math.min(1, Math.max(0, (j - 1) / (n - 3))), rr = (r + (r1 - r) * f) * (j === 0 || j === n - 1 ? 0.25 : 1), al = a + (a1 - a) * f;
+      for (let k = 0; k < G; k++) { const t = k / G * 6.2832, c = Math.cos(t), sn = Math.sin(t), nx = -ty * c, ny = tx * c, v = T.v++;
+        P[v * 3] = pts[j * 2] + nx * rr; P[v * 3 + 1] = -(pts[j * 2 + 1] + ny * rr); P[v * 3 + 2] = sn * rr + z0; Nr[v * 3] = nx; Nr[v * 3 + 1] = -ny; Nr[v * 3 + 2] = sn;
+        cA[v * 4] = col[0] + (col1[0] - col[0]) * f; cA[v * 4 + 1] = col[1] + (col1[1] - col[1]) * f; cA[v * 4 + 2] = col[2] + (col1[2] - col[2]) * f; cA[v * 4 + 3] = al; cB[v * 3] = rim[0]; cB[v * 3 + 1] = rim[1]; cB[v * 3 + 2] = rim[2]; } }
+    for (let j = 0; j < n - 1; j++) for (let k = 0; k < G; k++) { const a0 = v0 + j * G + k, b0 = v0 + j * G + (k + 1) % G; ix.set([a0, a0 + G, b0, b0, a0 + G, b0 + G], T.i); T.i += 6; }
+  }
   end(time) {
+    { const T = this.nit, g = T.m.geometry; g.setDrawRange(0, T.i); T.m.count = T.i ? 1 : 0; // нити: загрузить только занятую часть буфера
+      for (const [k, n] of [['position', 3], ['normal', 3], ['cA', 4], ['cB', 3]]) { const at = g.attributes[k]; at.clearUpdateRanges(); at.addUpdateRange(0, T.v * n); at.needsUpdate = true; }
+      g.index.clearUpdateRanges(); g.index.addUpdateRange(0, T.i); g.index.needsUpdate = true; g.attributes.prm.clearUpdateRanges(); g.attributes.prm.addUpdateRange(0, 4); } // prm у нитей не пишется: не гонять его в видеокарту
     for (const m of this.all) {
       m.material.uniforms.time.value = time;
       m.instanceMatrix.needsUpdate = true;

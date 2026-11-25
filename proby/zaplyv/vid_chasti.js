@@ -8,6 +8,9 @@ export const VC = url.protocol === 'file:' ? JSON.parse((await import('node:fs')
 
 const hash = (i, k) => { const v = Math.sin(i * 127.1 + k * 311.7) * 43758.5453; return v - Math.floor(v); };
 const sm = (a0, a1, v) => { const q = Math.max(0, Math.min(1, (v - a0) / (a1 - a0))); return q * q * (3 - 2 * q); };
+// Нить вдоль ломаной pts [x0, y0, x1, y1, …]: одной гладкой трубкой (B.niti), где её нет — звеньями seg. Толщина и прозрачность плавно от корня к кончику.
+const nit = (B, pts, r, col, a, r1 = r, a1 = a, z, col1 = col, rim = col) => { if (B.niti) return B.niti(pts, r, col, a, r1, a1, rim, z, col1); const n = pts.length >> 1;
+  for (let j = 1; j < n; j++) { const f = (j - 0.5) / (n - 1); B.seg(pts[j * 2 - 2], pts[j * 2 - 1], pts[j * 2], pts[j * 2 + 1], r + (r1 - r) * f, col, a + (a1 - a) * f); } };
 
 // Форма тела: контур (точка края и нормаль по углу t) и «внутри» (u, o от -1 до 1 → точка в толще). Те же формулы, что в шейдерах body3d.
 const FORMY = {
@@ -51,9 +54,10 @@ const RIS = {
       const cl = w * st.kanal * (1.25 - fill);
       for (let k = 0; k < st.kanaly; k++) { const t = k / st.kanaly * 6.283 + P.id, d = w * st.r * 0.3; B.spine(cx + Math.cos(t) * d, cy + Math.sin(t) * d, t, cl, w * st.kanal_tolsh, st.cvet, [1, 1, 1], P.id * 7 + k); } }); },
   vorsinki(st, F, P, B, at) { const w = P.tolshchina; // пили: тонкие сплошные трубочки по всему краю, разной длины и наклона, слегка гнутые
-    for (let k = 0; k < st.n; k++) { const t = (k + hash(P.id, k + 602) * 0.8) / st.n * 6.283 + P.id, e = F.kray(t), l = w * st.dlina * (1 + 0.25 * Math.sin(P.time * 3 + k * 1.7)) * (1 - (st.razbros || 0) * hash(P.id, k + 600));
-      let an = P.a + e.n + (hash(P.id, k + 601) - 0.5) * (st.vraznoboy || 0), [lx, ly] = at(e.u, e.o); const gn = (hash(P.id, k + 603) - 0.5) * (st.izgib || 0) + Math.sin(P.time * 1.3 + k) * 0.06, Z = st.zvenya || (st.izgib || st.a_konec ? 3 : 1);
-      for (let i = 0; i < Z; i++) { const nx = lx + Math.cos(an) * l / Z, ny = ly + Math.sin(an) * l / Z; B.seg(lx, ly, nx, ny, w * st.tolsh, st.cvet, st.a * (1 - (1 - (st.a_konec ?? 0.75)) * (i + 0.5) / Z)); lx = nx; ly = ny; an += gn + (st.volna || 0) * Math.sin(i * 2.1 + k + P.time * 1.1); } } }, // volna — волосок вьётся; толщина ровная, к кончику гаснет только прозрачность (биолог 25.11)
+    for (let k = 0; k < st.n; k++) { const t = (k + hash(P.id, k + 602) * 0.8) / st.n * 6.283 + P.id, e = F.kray(t), l = w * st.dlina * (1 + 0.25 * Math.sin(P.time * 3 + k * 1.7)) * (1 - (st.razbros || 0) * hash(P.id, k + 600)) * (hash(P.id, k + 604) < (st.na_tele || 0) ? 0.55 : 1); // на лицевой стороне волосок смотрит на зрителя: виден короче
+      let an = P.a + e.n + (hash(P.id, k + 601) - 0.5) * (st.vraznoboy || 0), lic = hash(P.id, k + 604) < (st.na_tele || 0), q = lic ? 0.3 + 0.62 * hash(P.id, k + 605) : 1, [lx, ly] = at(e.u * q, e.o * q); const gn = (hash(P.id, k + 603) - 0.5) * (st.izgib || 0) + Math.sin(P.time * 1.3 + k) * 0.06, Z = st.zvenya || (st.izgib || st.a_konec ? 3 : 1);
+      const pts = [lx, ly]; for (let i = 0; i < Z; i++) { lx += Math.cos(an) * l / Z; ly += Math.sin(an) * l / Z; pts.push(lx, ly); an += gn + (st.volna || 0) * Math.sin(i * 2.1 + k + P.time * 1.1); }
+      nit(B, pts, w * st.tolsh, st.cvet, st.a, w * st.tolsh, st.a * (st.a_konec ?? 0.75), lic ? (P.nad ?? w * 0.8) * Math.sqrt(1 - q * q) : undefined, st.konchik || st.cvet); } }, // konchik — цвет кончика // волосок на лицевой стороне лежит на поверхности тела, а не под ним; // na_tele — доля волосков на лицевой стороне: шерсть по всему телу, как на образцах // volna — волосок вьётся; толщина ровная, к кончику гаснет только прозрачность (биолог 25.11)
   zhgutik_vint(st, F, P, B, at) { const w = P.tolshchina, hl = P.dlina / 2; // левый винт (биолог: шаг 2–2,5 мкм, размах 0,4–0,6), крутится и ввинчивается вперёд; цепочка трубок встык
     for (let f = 0; f < st.n; f++) { const t = Math.PI + (f - (st.n - 1) / 2) * st.razlet, e = F.kray(t), [x0, y0] = at(e.u, e.o), an = P.a + Math.PI + (f - (st.n - 1) / 2) * st.razlet * 0.3;
       const ca = Math.cos(an), sa = Math.sin(an), L = w * st.dlina, sh = w * st.shag, r = w * st.razmah, ph = P.time * st.oboroty * 6.283 + f;
@@ -83,7 +87,7 @@ const RIS = {
     for (let f = 0; f < st.n; f++) { const t = st.gde === 'korma' && F.O ? F.O.korma_t + (f - (st.n - 1) / 2) * (st.razlet ?? 0.1) : (f + 0.5) / st.n * 6.283 + P.id, e = F.kray(t), [x0, y0] = at(e.u * 0.97, e.o * 0.97), na = P.a + e.n, nx0 = Math.cos(na), ny0 = Math.sin(na), L = (st.dlina_tela ? P.dlina * st.dlina_tela : w * st.dlina) * (0.8 + 0.4 * hash(P.id, f + 61)); // длина по цветным образцам: 1–1,5 длины тела (Роман 25.11: «зачем нам такие длинные жгуты?»)
       let rx = nx0 * 0.75 + bx * 0.65, ry = ny0 * 0.75 + by * 0.65; const rl = Math.hypot(rx, ry) || 1, pv = (hash(P.id, f + 60) - 0.5) * 0.7, cp = Math.cos(pv), sp = Math.sin(pv); [rx, ry] = [(rx * cp - ry * sp) / rl, (rx * sp + ry * cp) / rl]; // покой: от оболочки наружу и назад
       const slow = P.time * 0.6 + f * 1.7, faza = f / st.n * 6.283, tk = F.O ? F.O.korma_t : Math.PI, ob = (F.O ? F.O.obvod : 6.283) * w, tn = ((t % 6.283) + 6.283) % 6.283; let dt = tk - tn; if (dt > 3.1416) dt -= 6.283; if (dt < -3.1416) dt += 6.283; // до кончика кормы по обводу, короткой дорогой
-      const D0 = Math.abs(dt) / 6.283 * ob + hv, kriv = (hash(P.id, f + 62) - 0.5) * 2.6 + Math.sign(rx * by - ry * bx || 1) * -0.5; let lx, ly, pxr = x0, pyr = y0;
+      const D0 = Math.abs(dt) / 6.283 * ob + hv, kriv = (hash(P.id, f + 62) - 0.5) * (st.zagib ?? 2.6) + Math.sign(rx * by - ry * bx || 1) * -0.5; let pxr = x0, pyr = y0; const pts = [];
       for (let i = 0; i <= Z; i++) { const s = i / Z, d = s * L, grow = Math.min(1, s * 5);
         // покой: нить плавно загибается назад дугой (у каждой свой загиб) и по ней идёт вялая волна
         const zg = kriv * s * (1 - 0.35 * s) + 0.25 * Math.sin(s * 2.4 + slow), cz = Math.cos(zg), sz = Math.sin(zg), dx = rx * cz - ry * sz, dy = rx * sz + ry * cz; if (i) { pxr += dx * L / Z * 0.85; pyr += dy * L / Z * 0.85; }
@@ -92,8 +96,8 @@ const RIS = {
         let xb, yb; if (d < D0 - hv) { const e = F.kray(tn + dt * d / ((D0 - hv) || 1)), [ex, ey] = at(e.u, e.o), pod = w * 0.07 * Math.min(1, d / (w * 0.5)), en = P.a + e.n; xb = ex + Math.cos(en) * pod; yb = ey + Math.sin(en) * pod; }
         else { const za = d - (D0 - hv), k = sm(0, w * st.sbor, za), obk = k * w * (st.razmah * Math.sin(za / (w * st.shag) * 6.283 - ph) + st.puchok * Math.sin(za / (w * st.shag) * 3.1416 - ph * 0.5 + faza)) * (1 - 0.3 * s); xb = kx + bx * za - by * obk; yb = ky + by * za + bx * obk; }
         const nx = xr + (xb - xr) * beg, ny = yr + (yb - yr) * beg;
-        // к кончику тоньше не больше чем на suzh (биолог: не больше 30 %)
-        if (i) B.seg(lx, ly, nx, ny, w * st.tolsh * (1 - (st.suzh ?? 0.75) * s), st.cvet, st.a * (1 - 0.85 * sm(0.45, 1, s))); lx = nx; ly = ny; } } },
+        pts.push(nx, ny); }
+      nit(B, pts, w * st.tolsh, st.cvet, st.a, w * st.tolsh * (1 - (st.suzh ?? 0.75)), st.a * 0.15, undefined, st.cvet, st.blik || st.cvet); } }, // к кончику тоньше не больше чем на suzh (биолог: не больше 30 %) и гаснет // blik — цвет блика по краю нити
   // Гранулы запаса (включения): несколько плотных шариков у полюсов, в стороне от клубка ДНК.
   vklyucheniya(st, F, P, B, at) { B.vyshe = P.nad; const w = P.tolshchina;
     for (let k = 0; k < st.n; k++) { const [px, py] = at((k % 2 ? 1 : -1) * (0.5 + 0.2 * hash(P.id, k + 300)) * (1 - w / (P.dlina / 2) * 0.35), (hash(P.id, k + 301) - 0.5) * 0.6); B.sphere(px, py, w * st.r * (0.8 + 0.4 * hash(P.id, k + 302)), st.cvet, st.kromka, P.id + k + 20, 0.9); } },

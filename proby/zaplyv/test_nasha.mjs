@@ -18,9 +18,10 @@ const rovno_vnutri = (nar, vn) => { let mn = 1e9, mx = -1e9; const kr = z => nar
   const ot = (x, y, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / (dx * dx + dy * dy || 1))); return Math.hypot(x - a[0] - dx * t, y - a[1] - dy * t); };
   for (const q of vn) for (const zn of [1, -1]) { const x = q.x - q.ty * q.r * zn, y = q.y + q.tx * q.r * zn; let g = 1e9; for (const L of K) for (let i = 1; i < L.length; i++) g = Math.min(g, ot(x, y, L[i - 1], L[i])); mn = Math.min(mn, g); mx = Math.max(mx, g); }
   return mn <= 0.01 ? 'касается наружного или вылез' : mx > mn * 1.8 + 0.5 ? 'лежит неровно: зазор от ' + mn.toFixed(1) + ' до ' + mx.toFixed(1) : ''; };
-const tela = () => { const L = { seg: [], sphere: [], put: [] }, lom = process.env.NASHA_LOMAT; let n = 0;
+const tela = () => { const L = { seg: [], sphere: [], put: [], niti: 0 }, lom = process.env.NASHA_LOMAT; let n = 0;
   return { L, skin: 'skin', core: 'core', ball: 'ball', vyshe: 0,
     seg(x0, y0, x1, y1, r, c, a) { if (lom && n++ % 2) return; L.seg.push({ x0, y0, x1, y1, r, a, v: this.vyshe }); },
+    niti(pts, r, c, a, r1 = r, a1 = a) { const m = pts.length >> 1; L.niti += m < 8 ? (m - 1) * 3 + 1 : m; for (let j = 1; j < m; j++) { if (lom && n++ % 2) continue; L.seg.push({ x0: pts[j * 2 - 2], y0: pts[j * 2 - 1], x1: pts[j * 2], y1: pts[j * 2 + 1], r: r + (r1 - r) * j / (m - 1), a, v: this.vyshe, nit: true }); } }, // нити: те же звенья для проверок формы, а запас считается по точкам общего буфера
     sphere(x, y, r) { L.sphere.push({ x, y, r, v: this.vyshe }); },
     put(m, x, y, ang, sx, sy, sz, ca, cb, prm) { L.put.push({ m, x, y, r: sx, seed: prm[1], E: prm[3] }); }, rod() { L.put.push({ m: 'rod' }); },
     loft(kolca, plotno, col, rim, seed) { L.put.push({ kolca, plotno, seed, col }); } }; };
@@ -35,8 +36,9 @@ check('test_nasha_chasti: запись нашей клетки собирает�
   const B = tela(), n = sobrat(Z, P(), B), nado = ['zhgutiki', 'vorsinki', 'obolochka', 'nukleoid', 'ribosomy', 'vklyucheniya'];
   const net = nado.filter(k => !(k in Z.chasti)); if (net.length) return 'в записи нет частей: ' + net.join(', ');
   if (n !== Object.keys(Z.chasti).length) return 'нарисовано частей ' + n + ' из ' + Object.keys(Z.chasti).length;
-  console.log('    паспорт: частей', n, '| трубок', B.L.seg.length, '| шариков', B.L.sphere.length, '| оболочек', B.L.put.length);
-  if (B.L.seg.length > 1200) return 'трубок ' + B.L.seg.length + ': две клетки не влезут в запас тел (2400)';
+  const tr = B.L.seg.filter(q => !q.nit).length; console.log('    паспорт: частей', n, '| трубок', tr, '| точек нитей', B.L.niti, '| шариков', B.L.sphere.length, '| оболочек', B.L.put.length);
+  if (tr > 1200) return 'трубок ' + tr + ': две клетки не влезут в запас тел (2400)';
+  if (B.L.niti > 8000) return 'точек нитей ' + B.L.niti + ': шесть клеток не влезут в общий буфер нитей (48000)';
 });
 
 check('test_nasha_niti: жгутики и клубок ДНК сплошные и в покое, и на ходу, и на всём пути между ними — звенья встык, без разрывов (L047)', () => {
@@ -102,7 +104,7 @@ check('test_nasha_svoboda: тело свободной формы (Роман 25
     for (const ch of chasti) { const B = tela(); sobrat({ forma: zap.forma, chasti: { [ch]: Z.chasti[ch] } }, process.env.NASHA_OTORVAT && ch === 'zhgutiki' ? { ...poza, x: poza.x + w } : poza, B); const L = B.L;
       if (!(L.seg.length + L.sphere.length + L.put.length)) hud = imya + ': пусто у части ' + ch;
       if (ch === 'zhgutiki') for (let i = 0; i < L.seg.length; i += VC.chasti.zhgutiki.zvenya) zazor = Math.max(zazor, do_kraya(M, L.seg[i].x0, L.seg[i].y0) / w - 0.03);
-      if (ch === 'vorsinki') { const Zv = Z.chasti.vorsinki.zvenya || (Z.chasti.vorsinki.izgib ? 3 : 1); for (let i = 0; i < L.seg.length; i += Zv) if (do_kraya(M, L.seg[i].x0, L.seg[i].y0) > w * 0.05) hud = imya + ': ворсинка растёт не из края'; }
+      if (ch === 'vorsinki') { const Zv = Z.chasti.vorsinki.zvenya || (Z.chasti.vorsinki.izgib ? 3 : 1); for (let i = 0; i < L.seg.length; i += Zv) if (!vnutri(M, L.seg[i].x0, L.seg[i].y0) && do_kraya(M, L.seg[i].x0, L.seg[i].y0) > w * 0.05) hud = imya + ': ворсинка растёт снаружи тела'; } // корень на краю или на лицевой стороне (na_tele), но не в воде
       if (['ribosomy', 'vklyucheniya'].includes(ch) && L.sphere.some(s => !vnutri(M, s.x, s.y))) hud = imya + ': зёрна части ' + ch + ' вылезли за тело';
       if (ch === 'nukleoid' && L.seg.some(s => !vnutri(M, s.x0, s.y0))) hud = imya + ': ДНК вылезла за тело';
       if (ch === 'obolochka') for (let i = 1; i < L.put.length; i++) { const e = rovno_vnutri(L.put[i - 1].kolca, L.put[i].kolca); if (e) hud = imya + ': слой ' + i + ' ' + e; } } }
