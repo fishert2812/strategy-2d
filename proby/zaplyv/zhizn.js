@@ -6,6 +6,7 @@
 // События для экрана: ['eaten_other', x, y, кто съел, кого], ['pop', x, y, кто лопнул], ['divide_other', x, y, кто].
 const url = new URL('./zhizn.json', import.meta.url);
 export const Z = url.protocol === 'file:' ? JSON.parse((await import('node:fs')).readFileSync(url, 'utf8')) : await (await fetch(url)).json();
+import * as dv from './dvizhok.js';
 
 // Где в мире живёт каждое существо: ключ паспорта → список мира (и отбор внутри списка).
 const LIST = {
@@ -14,11 +15,14 @@ const LIST = {
   slipper: w => w.slippers, bell: w => w.bells.filter(v => !(v.shut > 0)), roti: w => w.rotis, amoeba: w => w.amoebas,
 };
 const HOME = { coccus: 'prey', strain: 'pseudos', pseudo: 'pseudos', donor: 'donors', bdello: 'bdellos' };
+const uchteny = new Set(), uchest = () => { for (const k of dv.zhivut()) if (!uchteny.has(k) || !Z.pasport[k]) { uchteny.add(k); LIST[k] = w => dv.svoi(w, k); HOME[k] = 'pseudos'; dv.pasport(Z.pasport, k); } }; // виды из анкет (vidy.json): паспорт выводится из записи
+uchest();
 const ROT = { mouth: (w, e) => w.mouth(e), bell: (w, e) => w.bell(e), head: (w, e) => w.head(e), body: (w, e) => [e.x, e.y] };
 const num = (c, k) => typeof k === 'number' ? k : c[k];
 
 export function zhizn(w, dt, radius) {
   if (w.zhizn === false) return; // выключатель для самопроверки
+  uchest();
   const c = w.cfg, P = Z.pasport, size = o => o.m ? radius(o.m) * 0.6 : 10;
   const alive = (kind, o) => !o.gone && !(o.held > 0) && !(o.sick >= 0);
   const safe = (v, who) => v.genes && Object.keys(v.genes).some(g => (Z.geny[g]?.ne_berut || []).includes(who)); // ген от соседки защищает и соперницу
@@ -95,7 +99,7 @@ export function zhizn(w, dt, radius) {
   }
 
   // 3. Гибель оставляет еду: заражённая лопается соком и новыми вирусами, съеденная изнутри запятой — соком.
-  for (const kind of ['strain', 'pseudo', 'donor']) for (const h of LIST[kind](w)) {
+  for (const kind of [...new Set(['strain', 'pseudo', ...dv.zhivut(), 'donor'])]) for (const h of LIST[kind](w)) {
     const bored = h.gone && h.held !== undefined && h.held <= 0 && !h.spilt;
     if (h.sick >= 0 && !h.gone && (h.sick -= dt) < 0) {
       h.gone = true;

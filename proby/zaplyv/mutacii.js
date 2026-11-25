@@ -57,7 +57,7 @@ export function snap(w, a) {
   // Рассыпать плот кувырком (книга Г24) пока не делаем: кувырок идёт на каждом крутом повороте пальца, и плот рвался бы при каждом зигзаге.
   if (!has(w, 'snap') || (a.snapCool || 0) > w.stats.time) return false;
   a.snap = M.snap.time; a.snapCool = w.stats.time + M.snap.time + M.snap.cool;
-  w.events.push(['snap', a.x, a.y, a.a]); return true;
+  w.events.push(['snap', a.x, a.y, a.a, 'turn']); return true; // 'turn' — это разворот клетки, а не сувойка: fx рисует знак рывка
 }
 // Крепче жгут (sim.js, крутой поворот): порог кувырка выше, сам кувырок короче, ход в нём теряется меньше.
 export const tumbleAngle = (w, base) => has(w, 'steady') ? Math.min(Math.PI * 0.95, base * M.steady.angle) : base;
