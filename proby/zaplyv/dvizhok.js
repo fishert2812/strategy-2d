@@ -34,7 +34,7 @@ export function oshibki(k, c) {
   const bad = [], n = (v, name) => { const x = num(c, v); if (!(typeof x === 'number' && x >= 0)) bad.push(k + ': ' + name + ' не число (' + JSON.stringify(v) + ')'); };
   const T = a.telo || {}, H = a.hod || {}, M = a.mir || {};
   for (const [v, name] of [[T.dlina, 'telo.dlina'], [T.tolshchina, 'telo.tolshchina'], [T.zazor, 'telo.zazor'], [T.r, 'telo.r'], [H.skorost, 'hod.skorost'], [H.chuet, 'hod.chuet'], [H.otdyh, 'hod.otdyh'], [H.plavnost, 'hod.plavnost'], [a.eda?.r, 'eda.r'], [M.s_rosta, 'mir.s_rosta']]) n(v, name);
-  if (!(T.cepochka >= 1)) bad.push(k + ': telo.cepochka — целое от 1');
+  if (![T.cepochka].flat().every(v => v >= 1)) bad.push(k + ': telo.cepochka — целое от 1 или [от, до]');
   for (const [v, name] of [[T.cvet, 'telo.cvet'], [T.kromka, 'telo.kromka'], [T.zhgutiki?.cvet, 'telo.zhgutiki.cvet'], [num(c, M.shans), 'mir.shans']]) if (!(Array.isArray(v) && v.length === 3)) bad.push(k + ': ' + name + ' — три числа');
   if (!['korma', 'krugom'].includes(T.zhgutiki?.gde)) bad.push(k + ': telo.zhgutiki.gde — korma или krugom');
   for (const f of ['dlina', 'volna', 'vitkov', 'beg', 'tolshch', 'alpha']) n(T.zhgutiki?.[f], 'telo.zhgutiki.' + f);
@@ -45,10 +45,13 @@ export function oshibki(k, c) {
 }
 
 // Появление в новом квадрате мира: по порядку записей, каждый вид по своему шансу для этой воды (b) и удалению от старта.
-export function poyavlenie(w, b, far, safe, pt) {
+export function poyavlenie(w, b, far, safe, pt, mesto) { // mesto(u, v) — точка квадрата по двум долям, без общего жребия
   const c = w.cfg, r = w.r;
-  for (const k of zhivut()) { const M = anketa(k).mir;
-    if (!safe && far > num(c, M.s_rosta) && r() < num(c, M.shans)[b]) w.pseudos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: 0, cool: 0, ...(k === 'strain' ? { strain: true } : {}), vid: k, id: ++w.ids }); }
+  for (const k of zhivut()) { const M = anketa(k).mir, o = M.zhrebiy === 'obshchiy'; // у нового вида свой жребий: запись не перетасовывает остальной мир
+    let h = 2166136261; for (const ch of k + '|' + far + '|' + w.ids) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+    const sv = () => { h = Math.imul(h ^ h >>> 15, 2246822507); h = Math.imul(h ^ h >>> 13, 3266489909); return ((h ^= h >>> 16) >>> 0) / 4294967296; }, rr = o ? r : sv;
+    if (!safe && far > num(c, M.s_rosta) && rr() < num(c, M.shans)[b]) {
+      w.pseudos.push({ ...(o ? pt() : mesto(sv(), sv())), vx: 0, vy: 0, a: rr() * 6.283, t: 0, cool: 0, ...(k === 'strain' ? { strain: true } : {}), vid: k, id: ++w.ids }); } }
 }
 
 // Шаг всех палочек из анкет: рывок к ближней еде, пауза, новый курс; еду у носа съедает. Столкнулась с тобой — толчок;
@@ -92,7 +95,7 @@ export function pasport(P, k) {
 // Витрина: строка полки Альманаха и запасная карточка — из анкеты и слов книги (T). То, что уже записано руками, не трогаем.
 export function vitrina(K, cards, T) {
   for (const k of zhivut()) { const A = anketa(k), t = T[k] || {}, al = A.almanah || {};
-    K.items[k] ??= { group: A.garpun ? 'danger' : 'near', line: t.korotko || '', size: al.size || '', hint: al.hint || '', span: al.span || 20 * A.telo.dlina * A.telo.cepochka, a: -0.35 };
+    K.items[k] ??= { group: A.garpun ? 'danger' : 'near', line: t.korotko || '', size: al.size || '', hint: al.hint || '', span: al.span || 20 * A.telo.dlina * [A.telo.cepochka].flat().pop(), a: -0.35 };
     cards[k] ??= { name: t.imya || k, who: t.imya || k, text: t.kto || '', fact: t.priroda || '', tip: t.sovet || '' }; }
 }
 
@@ -101,7 +104,8 @@ export function vitrina(K, cards, T) {
 export function risuy(q, { x, y, z, time, bodies, glow }) {
   const A = anketa(klyuch(q)), T = A.telo, F = T.zhgutiki, w = V.mera.tolshchina * z, ux = Math.cos(q.a), uy = Math.sin(q.a), wt = w * T.tolshchina;
   if (q.held > 0) { bodies.sphere(x, y, w * 1.5, T.cvet, [1, 0.5, 0.3], q.id); glow.put(x, y, w * 3, 1, 0.3, 0.1, 0.15); return; } // в ней хищник: шарик
-  const hl = w * T.dlina, n = T.cepochka, shag = hl * 2 * T.zazor, all = hl + shag * (n - 1) / 2, [fr, fg, fb] = F.cvet;
+  const hl = w * T.dlina, C = T.cepochka, n = Array.isArray(C) ? C[0] + q.id % (C[1] - C[0] + 1) : C, // [от, до]: у каждой цепочки своя длина
+     shag = hl * 2 * T.zazor, all = hl + shag * (n - 1) / 2, [fr, fg, fb] = F.cvet;
   for (let i = 0; i < n; i++) { const o = (i - (n - 1) / 2) * shag;
     bodies.rod(x + ux * o, y + uy * o, q.a, hl, wt, 0, T.cvet, T.kromka, q.id + i * 37, Math.sin(time * T.kach[0] + q.id + i) * w * T.kach[1]); }
   const pr = F.tolshch * Math.max(z, 0.7), len = F.dlina * w, m = Math.ceil(len / pr * 1.9); // точки гуще своего размера: нить, а не бусы
