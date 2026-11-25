@@ -63,7 +63,7 @@ const RIS = {
   obolochka(st, F, P, B) { const w = P.tolshchina, sv = c => [c[0] * 0.5 + 0.5, c[1] * 0.5 + 0.5, c[2] * 0.5 + 0.5], ux = Math.cos(P.a), uy = Math.sin(P.a);
     if (!B.loft || !F.O) return;
     // каждый слой это то же тело, только тоньше на свою глубину: та же осевая линия, радиусы меньше. Слои лежат ровно один в другом у любой формы, шапки тоже
-    st.sloi.forEach(s => { const g = (1 - s.r) * F.O.poperechnik / 2, O = g > 0 ? os(F.tochki, 28, 0.2, g) : F.O;
+    st.sloi.forEach(s => { if (s.razrez && !P.razrez) return; const g = (1 - s.r) * F.O.poperechnik / 2, O = g > 0 ? os(F.tochki, 28, 0.2, g) : F.O;
       B.loft(O.kolca().map(q => ({ x: P.x + (q.x * ux - q.y * uy) * w, y: P.y + (q.x * uy + q.y * ux) * w, tx: q.tx * ux - q.ty * uy, ty: q.tx * uy + q.ty * ux, r: q.r * w, dr: q.dr, a: q.a })), !!s.plotno, s.cvet, s.kromka || sv(s.cvet), P.id, s.a ?? 1); }); },
   // Нуклеоид: одна длинная нить ДНК, уложенная клубком в середине клетки; медленно шевелится.
   nukleoid(st, F, P, B, at) { B.vyshe = P.nad; const w = P.tolshchina, Hh = F.O ? F.O.H : P.dlina / 2 / w, p = Math.max(2, Math.round(st.petli)), vit = p * 4, N = Math.max(st.zvenya, vit * 22), T = P.time * st.temp, h = k => hash(P.id, k + 900) * 6.283;
@@ -79,7 +79,7 @@ const RIS = {
   // Ход (P.beg = 1): каждая нить огибает тело и уходит в общий пучок-штопор за кормой, по пучку бежит винтовая волна.
   zhgutiki(st, F, P, B, at) { const w = P.tolshchina, beg = P.beg ?? 0, ph = P.time * st.oboroty * 6.283, Z = st.zvenya;
     const [kx, ky] = at(-1, 0), [k2x, k2y] = at(-0.9, 0), kl = Math.hypot(kx - k2x, ky - k2y) || 1, bx = (kx - k2x) / kl, by = (ky - k2y) / kl, hv = P.hvost || 0; // кончик кормы и куда она смотрит: там собирается пучок
-    for (let f = 0; f < st.n; f++) { const t = (f + 0.5) / st.n * 6.283 + P.id, e = F.kray(t), [x0, y0] = at(e.u * 0.97, e.o * 0.97), na = P.a + e.n, nx0 = Math.cos(na), ny0 = Math.sin(na), L = w * st.dlina * (0.8 + 0.4 * hash(P.id, f + 61));
+    for (let f = 0; f < st.n; f++) { const t = (f + 0.5) / st.n * 6.283 + P.id, e = F.kray(t), [x0, y0] = at(e.u * 0.97, e.o * 0.97), na = P.a + e.n, nx0 = Math.cos(na), ny0 = Math.sin(na), L = (st.dlina_tel ? st.dlina_tel * P.dlina : w * st.dlina) * (0.8 + 0.4 * hash(P.id, f + 61)); // dlina_tel: длина в длинах тела (по образцам 0,8–1,5), иначе в толщинах
       let rx = nx0 * 0.75 + bx * 0.65, ry = ny0 * 0.75 + by * 0.65; const rl = Math.hypot(rx, ry) || 1, pv = (hash(P.id, f + 60) - 0.5) * 0.7, cp = Math.cos(pv), sp = Math.sin(pv); [rx, ry] = [(rx * cp - ry * sp) / rl, (rx * sp + ry * cp) / rl]; // покой: от оболочки наружу и назад
       const slow = P.time * 0.6 + f * 1.7, faza = f / st.n * 6.283, tk = F.O ? F.O.korma_t : Math.PI, ob = (F.O ? F.O.obvod : 6.283) * w, tn = ((t % 6.283) + 6.283) % 6.283; let dt = tk - tn; if (dt > 3.1416) dt -= 6.283; if (dt < -3.1416) dt += 6.283; // до кончика кормы по обводу, короткой дорогой
       const D0 = Math.abs(dt) / 6.283 * ob + hv, kriv = (hash(P.id, f + 62) - 0.5) * 2.6 + Math.sign(rx * by - ry * bx || 1) * -0.5; let lx, ly, pxr = x0, pyr = y0;
@@ -114,13 +114,17 @@ export const KLYUCHI = Object.keys(RIS);
 // Случайная запись существа в допустимых пределах (VC.predely): мутация тела и всех частей разом. Движку — чтобы быстро собирать
 // обитателей и проверять, что части держатся на любом теле; игре — будущие мутации. rnd — жребий 0…1, osnova — запись вида.
 const hsv = (h, s, v) => { const f = n => { const k = (n + h * 6) % 6; return v - v * s * Math.max(0, Math.min(k, 4 - k, 1)); }; return [f(5), f(3), f(1)]; };
+// Перекрасить существо одним тоном: сердцевина в тон, оболочка тем же тоном светлее, части своим сдвигом от него (PR.cvet). Цвет — такой же параметр записи, как длина.
+export function perekrasit(chasti, ton, nas, ton2 = ton, PR = VC.predely) { const C = PR.cvet, sl = chasti.obolochka?.sloi || VC.chasti.obolochka.sloi, N = {};
+  N.obolochka = { ...chasti.obolochka, sloi: sl.map(s => ({ ...s, cvet: s.plotno ? hsv(ton2, nas, 1) : hsv(ton, nas * (C.obolochka_nasyshch ?? 0.6), 1), ...(s.kromka ? { kromka: hsv(ton, nas * 0.4, 0.95) } : {}) })) };
+  for (const [k, kak] of Object.entries(C.chasti)) if (chasti[k]) N[k] = { ...chasti[k], cvet: hsv((ton + kak[0]) % 1, nas * kak[1], 1) };
+  return N; }
 export function sluchaynaya(osnova, rnd, PR = VC.predely) {
   const mezhdu = ([a, b], cel) => { const v = a + (b - a) * rnd(); return cel ? Math.round(v) : +v.toFixed(3); }, T = PR.telo, n = mezhdu(T.tochek, true), tochki = []; let x = 0, y = 0;
   const r0 = mezhdu(T.tolshchina); for (let i = 0; i < n; i++) { tochki.push([x, y, Math.max(T.tolshchina[0], r0 * (1 + (rnd() - 0.5) * 2 * T.nerovno))]); const dx = mezhdu(T.shag); x += dx; y += (rnd() - 0.5) * 2 * dx * T.izlom; }
-  const ton = rnd(), ton2 = (ton + mezhdu(PR.cvet.sdvig)) % 1, nas = mezhdu(PR.cvet.nasyshch), chasti = {};
+  const ton = mezhdu(PR.cvet.ton || [0, 1]), ton2 = (ton + mezhdu(PR.cvet.sdvig) + 1) % 1, nas = mezhdu(PR.cvet.nasyshch), chasti = {};
   for (const [k, svoi] of Object.entries(osnova.chasti)) { chasti[k] = { ...svoi }; for (const [p, pr] of Object.entries(PR.chasti[k] || {})) chasti[k][p] = mezhdu(pr, Number.isInteger(pr[0]) && Number.isInteger(pr[1]) && p === 'n'); }
   if (n === 1 && T.shar_bez_zhgutikov && chasti.zhgutiki) chasti.zhgutiki.n = 0; // биолог 25.11: у кокков жгутиков нет
-  const sl = (osnova.chasti.obolochka?.sloi || VC.chasti.obolochka.sloi); chasti.obolochka = { sloi: sl.map((s, i) => ({ ...s, cvet: s.plotno ? hsv(ton2, nas, 1) : hsv(ton, nas * (i ? 0.45 : 0.7), 1), ...(s.kromka ? { kromka: hsv(ton, nas * 0.4, 0.95) } : {}) })) };
-  for (const [k, kak] of Object.entries(PR.cvet.chasti)) if (chasti[k]) chasti[k].cvet = hsv((ton + kak[0]) % 1, nas * kak[1], 1);
+  Object.assign(chasti, perekrasit(chasti, ton, nas, ton2, PR));
   return { forma: { tip: 'os', tochki }, chasti };
 }

@@ -72,7 +72,7 @@ body.kon #c{transform:scale(${KN.K.scena.masshtab});transform-origin:50% 0}body.
   for (const [t, im] of Object.entries(KN.K.formy)) { fk[t] = el('button', '', im, fr); fk[t].onclick = () => formu(t); }
   const setka = el('div', 'setka', '', kon);
   for (const [k, Z] of Object.entries(KN.K.polzunki)) { const r = polya[k] = el('label', 'polz', '', setka), im = el('span', '', '', r), inp = el('input', '', '', r); inp.type = 'range';
-    const zn = Z.znacheniya, pishi = () => { im.textContent = Z.imya + ' ' + (Z.mkm ? (forma[k] * KN.K.priroda.mkm).toFixed(2).replace('.', ',') + ' ' + KN.K.slova.mkm : Number.isInteger(Z.shag ?? 1) ? forma[k] : forma[k].toFixed(1).replace('.', ',')); };
+    const zn = Z.znacheniya, pishi = () => { im.textContent = Z.imya + ' ' + (Z.mkm ? (forma[k] * KN.K.priroda.mkm).toFixed(2).replace('.', ',') + ' ' + KN.K.slova.mkm : Number.isInteger(Z.shag ?? 1) ? forma[k] : forma[k].toFixed(Z.znakov ?? 1).replace('.', ',')); };
     Object.assign(inp, zn ? { min: 0, max: zn.length - 1, step: 1, value: zn.indexOf(forma[k]) } : { min: Z.ot, max: Z.do, step: Z.shag, value: forma[k] });
     inp.oninput = () => { forma[k] = zn ? zn[+inp.value] : +inp.value; pishi(); pereschet(); }; pishi(); }
   for (let i = 0; i < Object.keys(KN.K.formuly).length; i++) { const z = el('div', 'zak', '', kon); el('b', '', '', z); el('span', '', '', z); el('i', '', '', z); zak.push(z); }

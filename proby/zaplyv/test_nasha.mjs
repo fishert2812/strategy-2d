@@ -23,7 +23,7 @@ const tela = () => { const L = { seg: [], sphere: [], put: [] }, lom = process.e
     seg(x0, y0, x1, y1, r, c, a) { if (lom && n++ % 2) return; L.seg.push({ x0, y0, x1, y1, r, a, v: this.vyshe }); },
     sphere(x, y, r) { L.sphere.push({ x, y, r, v: this.vyshe }); },
     put(m, x, y, ang, sx, sy, sz, ca, cb, prm) { L.put.push({ m, x, y, r: sx, seed: prm[1], E: prm[3] }); }, rod() { L.put.push({ m: 'rod' }); },
-    loft(kolca, plotno, col, rim, seed) { L.put.push({ kolca, plotno, seed }); } }; };
+    loft(kolca, plotno, col, rim, seed) { L.put.push({ kolca, plotno, seed, col }); } }; };
 // Обвод тела на экране (многоугольник) по записи и позе; расстояние точки до него в толщинах тела; внутри ли точка.
 const obvod = (zap, poza) => { const O = os(zap.forma.tochki), ux = Math.cos(poza.a), uy = Math.sin(poza.a), w = poza.tolshchina; return Array.from({ length: 360 }, (_, i) => { const k = O.kray(i / 360 * 6.2832); return [poza.x + (k.x * ux - k.y * uy) * w, poza.y + (k.x * uy + k.y * ux) * w]; }); };
 const do_kraya = (M, x, y) => Math.min(...M.map(p => Math.hypot(p[0] - x, p[1] - y)));
@@ -53,7 +53,8 @@ check('test_nasha_niti: жгутики и клубок ДНК сплошные �
 const sobrat_tolstoe = () => { const B = tela(); sobrat({ forma: { tochki: [[-1, 0, 1.25], [1, 0, 1.25]] }, chasti: Z.chasti }, P(), B); const serd = B.L.put.find(s => s.plotno), top = Math.max(...serd.kolca.map(q => q.r));
   return [...B.L.sphere, ...B.L.seg.filter(s => s.v > 0)].some(s => s.v < top) ? 'у толстого тела нутро утонуло в сердцевине: ДНК видна обрывками' : ''; };
 check('test_nasha_sloi: слои оболочки лежат ровно один в другом (одна осевая линия, один узор), нутро внутри тела и перед сердцевиной', () => {
-  const B = tela(), p = P(); sobrat(Z, p, B); const S = B.L.put;
+  const B = tela(), p = P({ razrez: true }); sobrat(Z, p, B); const S = B.L.put; // в разрезе (Альманах) видны все слои записи, в игре стенка не рисуется
+  { const B2 = tela(); sobrat(Z, P(), B2); if (B2.L.put.length !== S.length - 1) return 'в игре слой стенки должен быть спрятан: слоёв ' + B2.L.put.length + ' из ' + S.length; }
   if (S.length < 3) return 'слоёв ' + S.length + ', нужно не меньше трёх (наружная мембрана, стенка, цитоплазма)';
   if (S.some(s => s.seed !== S[0].seed)) return 'слои съехали: разные узоры';
   for (let i = 1; i < S.length; i++) { const e = rovno_vnutri(S[i - 1].kolca, S[i].kolca); if (e) return 'слой ' + i + ': ' + e; }
@@ -68,11 +69,16 @@ check('test_nasha_konstruktor: в конструкторе образец — н
   const E = { ...kn.K.etalon }; if (E.sborka !== 'nasha') return 'образец конструктора не наша клетка';
   const schet = f => { dv.V.vidy.svoya = kn.anketa(f, cfg); const err = dv.oshibki('svoya', cfg); if (err.length) throw new Error(err.join('; '));
     const B = tela(), zh = VC.chasti.zhgutiki.zvenya; dv.risuy({ x: 0, y: 0, a: 0, t: 1, rest: 2, vid: 'svoya', id: 5 }, { x: 300, y: 400, z: 4, time: 1, bodies: B, glow: { put() {} } });
-    return { seg: B.L.seg.length, zh }; };
+    return { seg: B.L.seg.length, zh, B }; };
   const a = schet({ ...E, zhgutiki: 2, vorsinki: 0 }), b = schet({ ...E, zhgutiki: 8, vorsinki: 0 }), c = schet({ ...E, zhgutiki: 2, vorsinki: 160 });
   console.log('    паспорт: трубок при 2 жгутиках', a.seg, '| при 8', b.seg, '| при 2 и 160 ворсинках', c.seg);
   if (b.seg - a.seg !== 6 * a.zh) return 'шесть лишних жгутиков дали ' + (b.seg - a.seg) + ' звеньев, а не ' + 6 * a.zh;
   if (c.seg <= a.seg) return 'ворсинки не появились';
+  // Роман 25.11 22:45: «универсальный ворс чтобы длину можно было редактировать» — ползунок правит параметр части, цвет один на всё существо
+  const dl = f => schet({ ...E, zhgutiki: 2, ...f }).B.L.seg.reduce((m, q) => m + Math.hypot(q.x1 - q.x0, q.y1 - q.y0), 0), bez = dl({ vorsinki: 0 }), k1 = dl({ vors_dlina: 0.1 }) - bez, k2 = dl({ vors_dlina: 0.5 }) - bez;
+  if (!(k2 > k1 * 3)) return 'ползунок «Длина ворса» не действует: звено ' + k1.toFixed(2) + ' → ' + k2.toFixed(2);
+  const cv = f => schet({ ...E, ...f }).B.L.put.map(q => q.col.map(v => v.toFixed(2)).join()).join('|'); if (cv({ ton: 0.9 }) === cv({ ton: 0.6 })) return 'ползунок «Цвет» не меняет цвет тела';
+  for (const [kl, p] of Object.entries(kn.K.polzunki)) if (p.chast && !(p.chast[1] in { ...VC.chasti[p.chast[0]], ...VC.vidy.nasha.chasti[p.chast[0]] })) return 'ползунок ' + kl + ' правит параметр, которого нет у части: ' + p.chast.join('.');
 });
 
 check('test_nasha_matrica: каждая часть ложится на каждую форму тела (палочка, шар, цепочка, запятая, гроздь) — рисуется, непустая, жгутик растёт из оболочки (Роман 25.11: «почему ножки отдельно от тела?», «почему движок конструктора не универсальный?»)', () => {

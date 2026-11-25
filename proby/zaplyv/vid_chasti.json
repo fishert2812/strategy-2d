@@ -22,19 +22,19 @@
   },
   "zony": {
     "tochek": 96,
-    "obolochka": { "mesto": "vsyo", "shirina": 1 },
-    "rot": { "mesto": "nos", "shirina": 0.14 },
-    "udar": { "mesto": "nos", "shirina": 0.05 },
-    "scepka": { "mesto": "korma", "shirina": 0.1 },
-    "posadka": { "mesto": "boka", "shirina": 0.2 }
+    "obolochka": { "mesto": "vsyo", "shirina": 1, "prochnost": 1 },
+    "rot": { "mesto": "nos", "shirina": 0.14, "do": 0.5 },
+    "udar": { "mesto": "nos", "shirina": 0.05, "sila": 1 },
+    "scepka": { "mesto": "korma", "shirina": 0.1, "rod": "mir" },
+    "posadka": { "mesto": "boka", "shirina": 0.2, "vid": "" }
   },
   "predely": {
     "_": "Допустимые пределы случайной записи (sluchaynaya): тело — число опорных точек, толщина, неровность толщины (доля), шаг между точками и излом оси (доля шага); части — [от, до] на параметр; цвет — тон оболочки случайный, тон нутра сдвинут на sdvig, частям тон и насыщенность относительно оболочки.",
     "telo": { "tochek": [1, 6], "tolshchina": [0.7, 1.25], "nerovno": 0.12, "shar_bez_zhgutikov": true, "shag": [0.7, 1.6], "izlom": 0.3 },
-    "cvet": { "sdvig": [0.25, 0.6], "nasyshch": [0.55, 0.85], "chasti": { "zhgutiki": [0, 0.3], "vorsinki": [0, 0.3], "nukleoid": [0.5, 0.75], "ribosomy": [0.55, 0.5], "vklyucheniya": [0.45, 0.5] } },
+    "cvet": { "ton": [0.6, 0.97], "sdvig": [-0.05, 0.05], "nasyshch": [0.55, 0.85], "obolochka_nasyshch": 0.4, "chasti": { "zhgutiki": [0, 0.3], "vorsinki": [0, 0.3], "nukleoid": [0.5, 0.75], "ribosomy": [0.55, 0.5], "vklyucheniya": [0.45, 0.5] } },
     "chasti": {
-      "zhgutiki": { "n": [0, 9], "dlina": [3.5, 11], "razmah": [0.15, 0.4], "shag": [1.6, 3.2] },
-      "vorsinki": { "n": [60, 220], "dlina": [0.2, 0.7], "izgib": [0, 0.7] },
+      "zhgutiki": { "n": [0, 9], "dlina_tel": [0.8, 1.5], "razmah": [0.15, 0.4], "shag": [1.6, 3.2] },
+      "vorsinki": { "n": [60, 220], "dlina": [0.15, 0.5], "razbros": [0.4, 0.8], "vraznoboy": [0.7, 1.2], "izgib": [0, 0.7] },
       "nukleoid": { "dlina": [0.3, 0.8], "shirina": [0.2, 0.5], "petli": [2, 5], "tolsh": [0.035, 0.07] },
       "ribosomy": { "n": [30, 140], "r": [0.035, 0.065] },
       "vklyucheniya": { "n": [0, 8], "r": [0.07, 0.15] }
@@ -45,7 +45,7 @@
       "_": "Наша клетка (кишечная палочка) целиком из частей: жгутики кругом, ворсинки, тело с цитоплазмой, слои оболочки, клубок ДНК, рибосомы, гранулы запаса.",
       "forma": { "tip": "palochka" },
       "chasti": { "zhgutiki": {}, "vorsinki": { "n": 110, "dlina": 0.34, "tolsh": 0.018, "razbros": 0.7, "vraznoboy": 0.9, "izgib": 0.5, "cvet": [0.7, 0.93, 1.0], "a": 0.75 },
-        "obolochka": { "sloi": [ { "r": 1.0, "cvet": [0.35, 0.85, 1.0] }, { "r": 0.87, "cvet": [0.6, 0.9, 1.0], "kromka": [0.5, 0.75, 0.9], "a": 0.5 }, { "r": 0.76, "cvet": [1.0, 0.25, 0.7], "plotno": true } ] }, "nukleoid": {}, "ribosomy": {}, "vklyucheniya": {} }
+        "obolochka": { "sloi": [ { "r": 1.0, "cvet": [1.0, 0.72, 0.88], "a": 0.55 }, { "r": 0.95, "cvet": [0.6, 0.9, 1.0], "kromka": [0.5, 0.75, 0.9], "a": 0.5, "razrez": true }, { "r": 0.9, "cvet": [1.0, 0.25, 0.7], "plotno": true } ] }, "nukleoid": {}, "ribosomy": {}, "vklyucheniya": {} }
     },
     "tuflya": {
       "forma": { "tip": "tuflya" },

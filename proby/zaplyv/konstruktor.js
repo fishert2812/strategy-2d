@@ -2,6 +2,7 @@
 // Чистая часть: по форме тела считает поведение формулами книги (kniga/fizika.json: Л2 скорость, Л3 дрожь, Л6 еда)
 // и собирает запись-анкету для движка существ (dvizhok.js). Числа и слова — konstruktor.json. Экран — pesochnica.js.
 import { os, iz_formy } from './telo_os.js';
+import { VC, perekrasit } from './vid_chasti.js';
 const url = new URL('./konstruktor.json', import.meta.url);
 export const K = url.protocol === 'file:' ? JSON.parse((await import('node:fs')).readFileSync(url, 'utf8')) : await (await fetch(url)).json();
 
@@ -21,12 +22,18 @@ export function fizika(f, cfg, k = K) {
   return { tyaga, soprot: R / R0, skorost: v * P.ed_v_mkm, ryskanie: E.ryskanie * Math.pow(a, -1.5), eda_r: E.eda_r * a,
     mkm: z, F_pN: F * 1e12, R_nN: R * 1e9, v_mkm: v, t_kurs: kurs(z), t_kurs0: kurs(z0), J: a, Jv: 1 / (a * a) };
 }
+// Части образца из ползунков. Ползунок с полем chast правит один параметр одной части записи («vorsinki», «dlina»): новая ручка — это строка в konstruktor.json, не код.
+// Цвет — один тон на всё существо (perekrasit): оболочка, сердцевина и части красятся от него.
+export function chasti_obrazca(f, k = K) { const Z = VC.vidy[f.sborka].chasti, ch = { zhgutiki: { n: f.zhgutiki, dlina: f.zh_dlina * k.sborka.zh_dlina / f.tolshchina }, vorsinki: { n: f.vorsinki } };
+  for (const [kl, p] of Object.entries(k.polzunki)) if (p.chast && f[kl] != null) (ch[p.chast[0]] ??= {})[p.chast[1]] = f[kl];
+  if (f.ton != null) for (const [c, v] of Object.entries(perekrasit(Z, f.ton, k.sborka.nasyshch))) ch[c] = { ...v, ...ch[c] };
+  return ch; }
 // Запись для движка существ: вариация серой соперницы с этой формой и посчитанным поведением.
 export function anketa(f, cfg, k = K) {
   const F = fizika(f, cfg, k);
   return { ot: 'strain', telo: { forma: f.forma, izgib: f.izgib, ...(f.tochki ? { tochki: f.tochki } : {}), dlina: f.dlina, tolshchina: f.tolshchina, cepochka: f.cepochka, zazor: 0.86, cvet: k.cvet, kromka: k.kromka.map(x => x * f.yarkost),
       zhgutiki: f.zhgutiki === 1 ? { gde: 'korma', dlina: f.zh_dlina * 1.6, vitkov: 10, ...k.zhgutik } : { gde: 'krugom', n: f.zhgutiki, dlina: f.zh_dlina, ...k.zhgutik } },
-    ...(f.sborka ? { sborka: { vid: f.sborka, sbor: k.sborka.sbor, chasti: { zhgutiki: { n: f.zhgutiki, dlina: f.zh_dlina * k.sborka.zh_dlina / f.tolshchina }, vorsinki: { n: f.vorsinki } } } } : {}),
+    ...(f.sborka ? { sborka: { vid: f.sborka, sbor: k.sborka.sbor, chasti: chasti_obrazca(f, k) } } : {}),
     hod: { skorost: F.skorost, ryskanie: F.ryskanie }, eda: { r: F.eda_r }, rodnya: false, mir: { shans: [0, 0, 0], s_rosta: 0, zhrebiy: 'svoy' } };
 }
 // Строки под ползунками: имя, процент от серой соперницы, слова и формула закона с подставленными числами.
