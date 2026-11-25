@@ -60,7 +60,7 @@ async function walk(css) {
   // Из игры: пауза → каждый раздел → назад → продолжить. Глубина не больше двух касаний до игры.
   if (await tap('#pause')) {
     const hub = SCREENS[0]; say(await title() === 'Пауза', 'test_L037: пауза всегда открывается первым уровнем «Пауза»'); await check(hub);
-    await p.waitForTimeout(600); const ic = await p.evaluate(() => [...document.querySelectorAll('#phub .prow')].map(b => { const i = b.querySelector('.pico'); return [b.dataset.t, i && i.naturalWidth >= 52 && i.src.length > 2000]; }));
+    await p.waitForTimeout(600); const ic = await p.evaluate(() => [...document.querySelectorAll('#phub .prow')].map(b => { const i = b.querySelector('.pico'); return [b.dataset.t, i && i.getBoundingClientRect().width >= 40 && i.naturalWidth >= 52 && i.src.length > 2000]; }));
     say(ic.length && ic.every(x => x[1]), 'test_L037: у каждой строки справочника — значок-снимок раздела (кольцо ДНК, встреченный, разрез пруда)' + (ic.every(x => x[1]) ? '' : ': пусто у ' + ic.filter(x => !x[1]).map(x => x[0]).join(', ')));
     for (const [s, name] of Object.entries(hub.nav)) {
       if (!(await tap(s))) { say(false, `test_L037: раздела «${name}» не видно`); continue; } if (name === 'Альманах') await p.waitForTimeout(800);
