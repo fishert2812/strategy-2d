@@ -112,6 +112,26 @@ export class Bodies {
     globalThis.zaplyvBodies ??= this; // vid.js рисует амёбу этими телами, даже если main.js не передал их явно
     for (const m of this.all) this.scene.add(m);
     this.loftC = { m: [], n: 0 }; this.loftS = { m: [], n: 0 }; // тела свободной формы (loft): заводятся по мере надобности
+    // Мех слоем (B.meh): густой короткий ворс по поверхности тела — несколько полупрозрачных оболочек над телом, в каждой шейдер оставляет
+    // только срезы волосков (ячейка шума = волосок, у каждого своя длина). Все меха кадра — одна сетка в общем буфере. Свой материал, общий свет не трогает.
+    { const N = 160000, geo = new THREE.BufferGeometry();
+      for (const [k, n] of [['position', 3], ['normal', 3], ['uv', 2], ['sloy', 1], ['cA', 4], ['cB', 3]]) geo.setAttribute(k, new THREE.BufferAttribute(new Float32Array(N * n), n).setUsage(THREE.DynamicDrawUsage));
+      geo.setIndex(new THREE.BufferAttribute(new Uint32Array(N * 6), 1).setUsage(THREE.DynamicDrawUsage));
+      const mat = new THREE.ShaderMaterial({ uniforms: { time: { value: 0 } }, transparent: true, depthWrite: false,
+        vertexShader: `attribute float sloy; attribute vec4 cA; attribute vec3 cB; varying vec2 vU; varying float vS; varying vec4 vA; varying vec3 vB; varying vec3 vN;
+          void main(){ vU = uv; vS = sloy; vA = cA; vB = cB; vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+        fragmentShader: `uniform float time; varying vec2 vU; varying float vS; varying vec4 vA; varying vec3 vB; varying vec3 vN;
+          float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+          void main(){
+            float fres = 1.0 - abs(normalize(vN).z), kray = smoothstep(0.15, 0.75, fres); // у силуэта мех виден волосками, на лице тела — мягким ворсистым налётом
+            vec2 g = vU; g.x += h2(vec2(floor(g.y), 5.0)) * 7.0 + sin(vU.y * 0.35 + time * 1.3) * 0.3 * vS; g.y += h2(vec2(floor(g.x), 9.0)) * 0.8; // ряды вразбежку: не гребёнка // волоски качаются: чем выше слой, тем дальше
+            vec2 c = floor(g), f = fract(g) - 0.5; float len = 0.2 + 0.8 * h2(c) * h2(c + 1.7); if (vS > len) discard; // у каждого волоска своя длина, коротких больше: не щётка одной длины
+            f.x -= (h2(c + 11.3) - 0.5) * 0.9 * vS; // каждый волосок наклонён по-своему
+            vec2 o = (vec2(h2(c + 3.1), h2(c + 7.7)) - 0.5) * 0.45; float t = vS / len, d = length(f - o), th = 0.3 * (1.0 - 0.55 * t);
+            float vol = 1.0 - smoothstep(th * 0.4, th, d); if (vol <= 0.0) discard; // край волоска мягкий, не кружок
+            vec3 col = mix(vA.rgb * 0.75, vB, t) * (0.8 + 0.5 * fres); // корень тёмный (глубина меха), кончик светлый
+            gl_FragColor = vec4(col, vA.a * vol * (1.0 - 0.5 * t) * mix(0.05, 1.0, kray)); }` });
+      const m = new THREE.Mesh(geo, mat); m.frustumCulled = false; m.renderOrder = 4; this.scene.add(m); this.mehM = { m, N, v: 0, i: 0 }; }
     // Нити (жгутики, ворс): все нити кадра — одна сетка в общем буфере, каждая нить — одна гладкая трубка вдоль ломаной (без стыков-рисок у звеньев seg).
     { const N = 48000, G = 6, geo = new THREE.BufferGeometry(), idx = new Uint32Array(N * G * 6);
       for (const [k, n] of [['position', 3], ['normal', 3]]) geo.setAttribute(k, new THREE.BufferAttribute(new Float32Array(N * G * n), n).setUsage(THREE.DynamicDrawUsage));
@@ -121,7 +141,7 @@ export class Bodies {
       m.setMatrixAt(0, new THREE.Matrix4()); this.nit = { m, N, G, v: 0, i: 0 }; this.scene.add(m); this.all.push(m); }
   }
   resize(W, H) { this.cam.right = W; this.cam.bottom = -H; this.cam.updateProjectionMatrix(); }
-  begin() { for (const m of this.all) m.count = 0; this.loftC.n = this.loftS.n = 0; this.nit.v = this.nit.i = 0; }
+  begin() { for (const m of this.all) m.count = 0; this.loftC.n = this.loftS.n = 0; this.nit.v = this.nit.i = 0; this.mehM.v = this.mehM.i = 0; }
   // Одно тело: экранная точка (x, y вниз), угол оси (в экранных координатах), масштабы, цвета, параметры.
   put(m, x, y, ang, sx, sy, sz, ca, cb, prm) {
     if (m.count >= m.instanceMatrix.count) return;
@@ -174,6 +194,20 @@ export class Bodies {
     A.position.needsUpdate = A.normal.needsUpdate = A.uv.needsUpdate = true; m.count = 1; m.renderOrder = order ?? (plotno ? 1 : 3); m.material.transparent = m.renderOrder > 3 || !plotno;
     m.geometry.attributes.cA.array.set([col[0], col[1], col[2], alfa]); m.geometry.attributes.cB.array.set(rim); m.geometry.attributes.prm.array.set([0, seed, 0, 0]);
   }
+  // Мех слоем: kolca — кольца тела в точках экрана, как у loft; dlina — высота меха, gustota — волосков на точку экрана, sloi — сколько оболочек.
+  // Сетка только по видимой (верхней) половине тела и по краю: снизу меха не видно.
+  meh(kolca, { dlina, gustota = 0.25, sloi = 6, krug = 12, cvet, konchik = cvet, a = 1, z0 = 0 }) {
+    const T = this.mehM, R = kolca.length, G = krug, t0 = -0.15 * Math.PI, t1 = 1.15 * Math.PI; if (R < 2 || T.v + sloi * R * (G + 1) > T.N) return;
+    const A = T.m.geometry.attributes, P = A.position.array, Nr = A.normal.array, U = A.uv.array, Sl = A.sloy.array, cA = A.cA.array, cB = A.cB.array, ix = T.m.geometry.index.array;
+    const dl = [0]; for (let j = 1; j < R; j++) dl.push(dl[j - 1] + Math.hypot(kolca[j].x - kolca[j - 1].x, kolca[j].y - kolca[j - 1].y)); const rm = Math.max(...kolca.map(q => q.r));
+    for (let s = 1; s <= sloi; s++) { const h = s / sloi, v0 = T.v;
+      for (let j = 0; j < R; j++) { const q = kolca[j], rr = q.r + h * dlina * Math.min(1, q.r / (rm * 0.35));
+        for (let k = 0; k <= G; k++) { const t = t0 + (t1 - t0) * k / G, c = Math.cos(t), sn = Math.sin(t), nx = -q.ty * c, ny = q.tx * c, v = T.v++;
+          P[v * 3] = q.x + nx * rr; P[v * 3 + 1] = -(q.y + ny * rr); P[v * 3 + 2] = sn * rr + z0; Nr[v * 3] = nx; Nr[v * 3 + 1] = -ny; Nr[v * 3 + 2] = sn;
+          U[v * 2] = (t - t0) * rm * gustota; U[v * 2 + 1] = dl[j] * gustota; Sl[v] = h;
+          cA[v * 4] = cvet[0]; cA[v * 4 + 1] = cvet[1]; cA[v * 4 + 2] = cvet[2]; cA[v * 4 + 3] = a; cB[v * 3] = konchik[0]; cB[v * 3 + 1] = konchik[1]; cB[v * 3 + 2] = konchik[2]; } }
+      for (let j = 0; j < R - 1; j++) for (let k = 0; k < G; k++) { const a0 = v0 + j * (G + 1) + k, b0 = a0 + G + 1; ix.set([a0, b0, a0 + 1, a0 + 1, b0, b0 + 1], T.i); T.i += 6; } }
+  }
   // Нить: pts — точки экрана [x0, y0, x1, y1, …] вдоль нити; толщина и прозрачность плавно от корня (r, a) к кончику (r1, a1).
   niti(pts, r, col, a = 1, r1 = r, a1 = a, rim = col, z = this.vyshe || 0, col1 = col) { // col1 — цвет кончика (светлые кончики ворса) // z — высота нити над плоскостью (к зрителю)
     if (pts.length < 4) return; if (pts.length < 24) { const q = [], m = pts.length >> 1, X = j => pts[Math.max(0, Math.min(m - 1, j)) * 2], Y = j => pts[Math.max(0, Math.min(m - 1, j)) * 2 + 1]; // мало точек — сглаживаю (Катмулл — Ром): ворсинка гнётся дугой, а не ломаной
@@ -191,6 +225,9 @@ export class Bodies {
     for (let j = 0; j < n - 1; j++) for (let k = 0; k < G; k++) { const a0 = v0 + j * G + k, b0 = v0 + j * G + (k + 1) % G; ix.set([a0, a0 + G, b0, b0, a0 + G, b0 + G], T.i); T.i += 6; }
   }
   end(time) {
+    { const T = this.mehM, g = T.m.geometry; g.setDrawRange(0, T.i); T.m.visible = T.i > 0; T.m.material.uniforms.time.value = time; // мех: загрузить только занятую часть
+      for (const [k, n] of [['position', 3], ['normal', 3], ['uv', 2], ['sloy', 1], ['cA', 4], ['cB', 3]]) { const at = g.attributes[k]; at.clearUpdateRanges(); at.addUpdateRange(0, T.v * n); at.needsUpdate = true; }
+      g.index.clearUpdateRanges(); g.index.addUpdateRange(0, T.i); g.index.needsUpdate = true; }
     { const T = this.nit, g = T.m.geometry; g.setDrawRange(0, T.i); T.m.count = T.i ? 1 : 0; // нити: загрузить только занятую часть буфера
       for (const [k, n] of [['position', 3], ['normal', 3], ['cA', 4], ['cB', 3]]) { const at = g.attributes[k]; at.clearUpdateRanges(); at.addUpdateRange(0, T.v * n); at.needsUpdate = true; }
       g.index.clearUpdateRanges(); g.index.addUpdateRange(0, T.i); g.index.needsUpdate = true; g.attributes.prm.clearUpdateRanges(); g.attributes.prm.addUpdateRange(0, 4); } // prm у нитей не пишется: не гонять его в видеокарту

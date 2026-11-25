@@ -9,7 +9,7 @@ export const VC = url.protocol === 'file:' ? JSON.parse((await import('node:fs')
 const hash = (i, k) => { const v = Math.sin(i * 127.1 + k * 311.7) * 43758.5453; return v - Math.floor(v); };
 const sm = (a0, a1, v) => { const q = Math.max(0, Math.min(1, (v - a0) / (a1 - a0))); return q * q * (3 - 2 * q); };
 // Нить вдоль ломаной pts [x0, y0, x1, y1, …]: одной гладкой трубкой (B.niti), где её нет — звеньями seg. Толщина и прозрачность плавно от корня к кончику.
-const nit = (B, pts, r, col, a, r1 = r, a1 = a, z, col1 = col, rim = col) => { if (B.niti) return B.niti(pts, r, col, a, r1, a1, rim, z, col1); const n = pts.length >> 1;
+const nit = (B, pts, r, col, a, r1 = r, a1 = a, z, col1 = col, rim = col, rmin = 0) => { if (r < rmin) { r1 *= rmin / r; r = rmin; } if (B.niti) return B.niti(pts, r, col, a, r1, a1, rim, z, col1); const n = pts.length >> 1; // rmin — не тоньше этого на экране: издали нить не тает в линию-схему
   for (let j = 1; j < n; j++) { const f = (j - 0.5) / (n - 1); B.seg(pts[j * 2 - 2], pts[j * 2 - 1], pts[j * 2], pts[j * 2 + 1], r + (r1 - r) * f, col, a + (a1 - a) * f); } };
 
 // Форма тела: контур (точка края и нормаль по углу t) и «внутри» (u, o от -1 до 1 → точка в толще). Те же формулы, что в шейдерах body3d.
@@ -53,13 +53,19 @@ const RIS = {
       B.sphere(cx, cy, w * st.r * (0.5 + 0.5 * fill), st.cvet, [1, 1, 1], P.id + i, 0.7);
       const cl = w * st.kanal * (1.25 - fill);
       for (let k = 0; k < st.kanaly; k++) { const t = k / st.kanaly * 6.283 + P.id, d = w * st.r * 0.3; B.spine(cx + Math.cos(t) * d, cy + Math.sin(t) * d, t, cl, w * st.kanal_tolsh, st.cvet, [1, 1, 1], P.id * 7 + k); } }); },
-  vorsinki(st, F, P, B, at) { const w = P.tolshchina, rd = (VC.dalnost?.vors || []).find(d => w < d[0])?.[1] || 1, tl = Math.sqrt(rd);
-    // ступень дальности: мелкое на экране существо рисует каждый rd-й волосок чуть толще, те же самые волоски (номер не меняется), поэтому мех не мигает
-    // пили: тонкие сплошные трубочки по всему краю, разной длины и наклона, слегка гнутые
-    for (let k = 0; k < st.n; k += rd) { const t = (k + hash(P.id, k + 602) * 0.8) / st.n * 6.283 + P.id, e = F.kray(t), l = w * st.dlina * (1 + 0.25 * Math.sin(P.time * 3 + k * 1.7)) * (1 - (st.razbros || 0) * hash(P.id, k + 600)) * (hash(P.id, k + 604) < (st.na_tele || 0) ? 0.55 : 1); // на лицевой стороне волосок смотрит на зрителя: виден короче
+  vorsinki(st, F, P, B, at) { const w = P.tolshchina; // пили: тонкие сплошные трубочки по всему краю, разной длины и наклона, слегка гнутые
+    // Ступень дальности (тред движка 25.11: 40 существ на экране): крупное — мех слоем и волоски трубками, среднее — только мех слоем, мелкое — без ворса.
+    // Без B.meh (моки тестов, старый рисунок) — волоски трубками всегда, как раньше.
+    let n = st.n, rmin = 0; // издали волосков меньше, но они не тоньше ~1 точки экрана: силуэт остаётся пушистым
+    if (B.meh) { if (w < (st.porog_melko ?? 0)) { n = st.n_izdali ?? 0; rmin = 0.5; } else { // пороги — в точках экрана по толщине тела (поза уже в экранных точках, z в ней учтён)
+      if (st.meh_sloi && F.O) { const ux = Math.cos(P.a), uy = Math.sin(P.a);
+        B.meh(F.O.kolca().map(q => ({ x: P.x + (q.x * ux - q.y * uy) * w, y: P.y + (q.x * uy + q.y * ux) * w, tx: q.tx * ux - q.ty * uy, ty: q.tx * uy + q.ty * ux, r: q.r * w })),
+          { dlina: w * st.meh_dlina, gustota: st.meh_gustota / w * 10, sloi: w < (st.porog_krupno ?? 0) ? Math.ceil(st.meh_sloi / 2) : st.meh_sloi, krug: w < (st.porog_krupno ?? 0) ? 8 : 12, cvet: st.cvet, konchik: st.konchik || st.cvet, a: st.meh_a ?? 0.9 }); } // среднее — вдвое реже слои и грани: издали не видно
+      if (w < (st.porog_krupno ?? 0)) { n = st.n_izdali ?? 0; rmin = 0.5; } } }
+    for (let j = 0; j < n; j++) { const k = n < st.n ? Math.floor(j * st.n / n) : j, t = (k + hash(P.id, k + 602) * 0.8) / st.n * 6.283 + P.id, e = F.kray(t), l = w * st.dlina * (1 + 0.25 * Math.sin(P.time * 3 + k * 1.7)) * (1 - (st.razbros || 0) * hash(P.id, k + 600)) * (hash(P.id, k + 604) < (st.na_tele || 0) ? 0.55 : 1); // на лицевой стороне волосок смотрит на зрителя: виден короче
       let an = P.a + e.n + (hash(P.id, k + 601) - 0.5) * (st.vraznoboy || 0), lic = hash(P.id, k + 604) < (st.na_tele || 0), q = lic ? 0.3 + 0.62 * hash(P.id, k + 605) : 1, [lx, ly] = at(e.u * q, e.o * q); const gn = (hash(P.id, k + 603) - 0.5) * (st.izgib || 0) + Math.sin(P.time * 1.3 + k) * 0.06, Z = st.zvenya || (st.izgib || st.a_konec ? 3 : 1);
       const pts = [lx, ly]; for (let i = 0; i < Z; i++) { lx += Math.cos(an) * l / Z; ly += Math.sin(an) * l / Z; pts.push(lx, ly); an += (gn + (st.volna || 0) * Math.sin(i * 8.4 / Z + k + P.time * 1.1)) * 4 / Z; } // изгиб на всю длину один и тот же при любом числе звеньев: больше звеньев — плавнее дуга
-      nit(B, pts, w * st.tolsh * tl, st.cvet, st.a, w * st.tolsh * tl, st.a * (st.a_konec ?? 0.75), lic ? (P.nad ?? w * 0.8) * Math.sqrt(1 - q * q) : undefined, st.konchik || st.cvet); } }, // konchik — цвет кончика // волосок на лицевой стороне лежит на поверхности тела, а не под ним; // na_tele — доля волосков на лицевой стороне: шерсть по всему телу, как на образцах // volna — волосок вьётся; толщина ровная, к кончику гаснет только прозрачность (биолог 25.11)
+      nit(B, pts, w * st.tolsh, st.cvet, st.a, w * st.tolsh, st.a * (st.a_konec ?? 0.75), lic ? (P.nad ?? w * 0.8) * Math.sqrt(1 - q * q) : undefined, st.konchik || st.cvet, undefined, rmin); } }, // издали — каждый st.n/n-й волосок той же записи // konchik — цвет кончика // волосок на лицевой стороне лежит на поверхности тела, а не под ним; // na_tele — доля волосков на лицевой стороне: шерсть по всему телу, как на образцах // volna — волосок вьётся; толщина ровная, к кончику гаснет только прозрачность (биолог 25.11)
   zhgutik_vint(st, F, P, B, at) { const w = P.tolshchina, hl = P.dlina / 2; // левый винт (биолог: шаг 2–2,5 мкм, размах 0,4–0,6), крутится и ввинчивается вперёд; цепочка трубок встык
     for (let f = 0; f < st.n; f++) { const t = Math.PI + (f - (st.n - 1) / 2) * st.razlet, e = F.kray(t), [x0, y0] = at(e.u, e.o), an = P.a + Math.PI + (f - (st.n - 1) / 2) * st.razlet * 0.3;
       const ca = Math.cos(an), sa = Math.sin(an), L = w * st.dlina, sh = w * st.shag, r = w * st.razmah, ph = P.time * st.oboroty * 6.283 + f;
@@ -77,13 +83,13 @@ const RIS = {
       if (vp.length) for (let i = 1; i < kol.length - 1; i++) if (Math.abs(kol[i].dr) < 100) kol[i] = { ...kol[i], dr: (kol[i + 1].r - kol[i - 1].r) / ((kol[i + 1].a - kol[i - 1].a) || 1) }; // наклон стенки для света заново: бугор освещается как бугор
       B.loft(kol.map(q => ({ x: P.x + (q.x * ux - q.y * uy) * w, y: P.y + (q.x * uy + q.y * ux) * w, tx: q.tx * ux - q.ty * uy, ty: q.tx * uy + q.ty * ux, r: q.r * w, dr: q.dr, a: q.a })), !!s.plotno, s.cvet, s.kromka || sv(s.cvet), P.id, s.a ?? 1); }); },
   // Нуклеоид: одна длинная нить ДНК, уложенная клубком в середине клетки; медленно шевелится.
-  nukleoid(st, F, P, B, at) { B.vyshe = P.nad; const w = P.tolshchina, Hh = F.O ? F.O.H : P.dlina / 2 / w, p = Math.max(2, Math.round(st.petli)), vit = p * 4, N = Math.max(st.zvenya, vit * 22), T = P.time * st.temp, h = k => hash(P.id, k + 900) * 6.283;
+  nukleoid(st, F, P, B, at) { if (P.tolshchina < (st.porog ?? 0)) return; B.vyshe = P.nad; const w = P.tolshchina, Hh = F.O ? F.O.H : P.dlina / 2 / w, p = Math.max(2, Math.round(st.petli)), vit = p * 4, N = Math.max(st.zvenya, vit * 22), T = P.time * st.temp, h = k => hash(P.id, k + 900) * 6.283; // porog — мельче этой толщины (точки экрана) нутро не рисуется: издали оно только шумит
     // нить идёт вдоль клетки туда и обратно и всё время вьётся круглыми петлями; петли круглые в настоящих размерах (не растянуты длиной тела), обратный ход ложится поверх прямого со сдвигом: клубок
     const ru = st.shirina * 0.5 / Hh, hod = Math.max(0, st.dlina - ru); let lx, ly;
     for (let i = 0; i <= N; i++) { const t = i / N * 6.283, f = t * vit + 1.3 * Math.sin(t * 3 + h(3)) + h(1), k = 0.55 + 0.45 * Math.sin(t * 5 + h(2) + T), u = hod * Math.sin(t + h(6)) + ru * k * Math.cos(f) + ru * 0.35 * Math.sin(t * (vit * 0.37 + 2) + T + h(4)), o = 0.3 * st.shirina * Math.sin(t * 2 + h(5) + T * 0.7) + st.shirina * k * Math.sin(f);
       const [px, py] = at(u, o); if (i) B.seg(lx, ly, px, py, w * st.tolsh, st.cvet, st.a); lx = px; ly = py; } },
   // Рибосомы: мелкие зёрна по всей цитоплазме, дрожат (броуновское движение).
-  ribosomy(st, F, P, B, at) { B.vyshe = P.nad; const w = P.tolshchina, hl = P.dlina / 2, kx = 1 - w / hl * 0.45;
+  ribosomy(st, F, P, B, at) { if (P.tolshchina < (st.porog ?? 0)) return; B.vyshe = P.nad; const w = P.tolshchina, hl = P.dlina / 2, kx = 1 - w / hl * 0.45; // porog — мельче этой толщины (точки экрана) нутро не рисуется: издали оно только шумит
     for (let k = 0; k < st.n; k++) { const t = hash(P.id, k + 800) * 6.283, r = Math.sqrt(hash(P.id, k + 801)), j = st.drozh, [px, py] = at(Math.cos(t) * r * kx + Math.sin(P.time * 31 + k * 7.1) * j, Math.sin(t) * r * 0.62 + Math.sin(P.time * 27 + k * 3.3) * j);
       B.sphere(px, py, w * st.r * (0.7 + 0.6 * hash(P.id, k + 802)), st.cvet, st.kromka, P.id + k + 90, 0.8); } },
   // Жгутики по всему телу (перитрих): моторы на боках. Покой (P.beg = 0): нити расходятся вбок и назад, вяло колышутся.
@@ -104,9 +110,9 @@ const RIS = {
         else { const za = d - (D0 - hv), k = sm(0, w * st.sbor, za), obk = k * w * (st.razmah * Math.sin(za / (w * st.shag) * 6.283 - ph) + st.puchok * Math.sin(za / (w * st.shag) * 3.1416 - ph * 0.5 + faza)) * (1 - 0.3 * s); xb = kx + bx * za - by * obk; yb = ky + by * za + bx * obk; }
         const nx = xr + (xb - xr) * beg, ny = yr + (yb - yr) * beg;
         pts.push(nx, ny); }
-      nit(B, pts, w * st.tolsh, st.cvet, st.a, w * st.tolsh * (1 - (st.suzh ?? 0.75)), st.a * 0.15, undefined, st.cvet, st.blik || st.cvet); } }, // к кончику тоньше не больше чем на suzh (биолог: не больше 30 %) и гаснет // blik — цвет блика по краю нити
+      nit(B, pts, w * st.tolsh, st.cvet, st.a, w * st.tolsh * (1 - (st.suzh ?? 0.75)), st.a * 0.15, undefined, st.cvet, st.blik || st.cvet, st.min_tolsh ?? 0); } }, // к кончику тоньше не больше чем на suzh (биолог: не больше 30 %) и гаснет // blik — цвет блика по краю нити
   // Гранулы запаса (включения): несколько плотных шариков у полюсов, в стороне от клубка ДНК.
-  vklyucheniya(st, F, P, B, at) { B.vyshe = P.nad; const w = P.tolshchina;
+  vklyucheniya(st, F, P, B, at) { if (P.tolshchina < (st.porog ?? 0)) return; B.vyshe = P.nad; const w = P.tolshchina; // porog — мельче этой толщины (точки экрана) нутро не рисуется: издали оно только шумит
     for (let k = 0; k < st.n; k++) { const [px, py] = at((k % 2 ? 1 : -1) * (0.5 + 0.2 * hash(P.id, k + 300)) * (1 - w / (P.dlina / 2) * 0.35), (hash(P.id, k + 301) - 0.5) * 0.6); B.sphere(px, py, w * st.r * (0.8 + 0.4 * hash(P.id, k + 302)), st.cvet, st.kromka, P.id + k + 20, 0.9); } },
 };
 
@@ -116,7 +122,9 @@ export function sobrat(zapis, poza, B) {
   if (tip === 'tuflya') { const hl = P.dlina / 2; F = FORMY.tuflya({ ...VC.formy.tuflya, ...forma, dl: P.dlina, tol: w }); at = (u, o) => [P.x + ux * u * hl - uy * o * w, P.y + uy * u * hl + ux * o * w]; }
   else { // тело свободной формы: осевая линия через опорные точки (telo_os.js); палочка и шар — её частные случаи. Части берут край, нормаль и нутро отсюда
     const tochki = forma.tochki || iz_formy(tip, P.dlina ? P.dlina / 2 / w : forma.dlina || 2.14, 1, (P.izgib || 0) / w), O = os(tochki); P.dlina = O.dlina * w; P.nad = O.poperechnik / 2 * w * 1.05; // нутро рисуется перед сердцевиной: выше самой толстой её точки
-    F = { O, tochki, kray: t => { const k = O.kray(t); return { u: k.u, o: k.o, n: k.n, g: 0 }; }, vnutri: (u, o) => [u * 0.7, o * 0.6] };
+    // выпуклости позы (см. obolochka): край тела в этом месте тоже выходит наружу, поэтому ворс, жгутики и всё, что сидит на краю, едет на бугре
+    const vp = (P.vypuklosti || []).map(v => { const e = O.kray(v.t); return { x: e.x, y: e.y, nx: Math.cos(e.n), ny: Math.sin(e.n), sh: v.shirina || 0.5, h: (v.vysota || 0) / 2 }; });
+    F = { O, tochki, kray: t => { const k = O.kray(t); let o = k.o; for (const v of vp) { const d = Math.hypot(k.x - v.x, k.y - v.y) / v.sh; o += Math.sign(k.o || 1) * v.h * Math.exp(-d * d) * (1 + Math.cos(k.n) * v.nx + Math.sin(k.n) * v.ny); } return { u: k.u, o, n: k.n, g: 0 }; }, vnutri: (u, o) => [u * 0.7, o * 0.6] };
     at = (u, o) => { const [x, y] = O.at(u, o); return [P.x + (x * ux - y * uy) * w, P.y + (x * uy + y * ux) * w]; }; }
   P.nad ??= w * 0.8; let n = 0;
   for (const [kl, svoi] of Object.entries(zapis.chasti || {})) { const r = RIS[kl]; if (!r) continue; r({ ...VC.chasti[kl], ...svoi }, F, P, B, at); B.vyshe = 0; n++; }
