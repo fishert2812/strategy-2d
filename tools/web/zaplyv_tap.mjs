@@ -45,25 +45,28 @@ const whole = async (sels, where) => { const out = await p.evaluate(ss => ss.map
 say(!(await on('menu')), 'самый первый запуск — сразу заплыв, без меню (дизайнер)');
 let m = await marks();
 await whole(['#pause', '#flag'], 'заплыв');
+// test_L038 (Роман 25.11: «даже еда стала чуть-чуть размытая. И как будто сама бактерия стала чуть-чуть размытая»): на телефоне с плотностью 3
+// кадр считается в 2,5 точки на точку экрана, а не растягивается из двойной (3 — кадр тяжелее в полтора раза, L015).
+say(await p.evaluate(() => { const c = document.getElementById('c'); return devicePixelRatio >= 3 && c.width >= Math.round(innerWidth * 2.5) - 1; }), 'test_L038: кадр плотнее двойной на экране iPhone (холст ' + await p.evaluate(() => document.getElementById('c').width + ' на ширину ' + innerWidth) + ')');
 if (await tap('#flag', 'флажок в игре')) say(await seen('#note') && await marks() === m + 1, 'флажок в игре: отметка записана и надпись видна');
-if (await tap('#pause', 'пауза')) say(await on('genome'), 'пауза открывает геном');
+if (await tap('#pause', 'пауза')) say(await on('genome') && (await p.textContent('#gtitle')) === 'Пауза', 'пауза открывает меню «Пауза»');
+if (await tap('#phub [data-t=genome]', 'строка «Геном» в паузе')) say(await seen('#ring'), 'строка «Геном» открывает кольцо');
 if (await tap('#ring .slot', 'ген на кольце')) say(await p.evaluate(() => !!document.querySelector('#gcard h2')), 'касание гена открывает карточку');
 m = await marks();
 if (await tap('#gflag', 'флажок в геноме')) say(await seen('#note') && await marks() === m + 1, 'флажок в геноме: отметка и надпись видна');
-m = await marks();
-if (await tap('#gno', '«Не так» в геноме')) say(await seen('#note') && await marks() === m + 1, '«Не так» в геноме: отметка и надпись видна');
-if (await tap('#ptabs [data-t=alm]', 'вкладка «Альманах»')) say(await on('cabinet'), 'Альманах открылся вкладкой паузы');
+if (await tap('#gback', '«‹ Пауза» из генома') && await tap('#phub [data-t=alm]', 'строка «Альманах»')) say(await on('cabinet'), 'Альманах открылся из паузы');
 // test_L019: у каждой карточки полки — снимок живой модели (картинка не пустая), разделы и карточка отвечают пальцу
-await p.waitForTimeout(1500);
+await p.waitForFunction(() => { const a = [...document.querySelectorAll('#shelf .kc img')]; return a.length && a.every(i => i.naturalWidth > 100 && i.src.length > 5000); }, null, { timeout: 6000 }).catch(() => {}); // снимки встают по одному: ждём их, а не время
 say(await p.evaluate(() => [...document.querySelectorAll('#shelf .kc img')].every(i => i.naturalWidth > 100 && i.src.length > 5000)), 'test_L019: у каждой записи Альманаха — снимок модели из игры');
 if (await tap('#kpills button:nth-child(2)', 'раздел «Еда»')) say(await p.evaluate(() => document.querySelectorAll('#shelf .kc').length > 0 && document.querySelector('#kpills .on').dataset.g === 'food'), 'раздел «Еда» открылся');
 if (await tap('#kpills button:nth-child(1)', 'раздел «Обитатели»')) say(await p.evaluate(() => !!document.querySelector('#shelf .kc[data-k=me]')), 'раздел «Обитатели» открылся');
 if (await tap('#shelf .kc[data-k=me]', 'карточка «Ты»')) say(await seen('#kcard') && await p.evaluate(() => document.querySelectorAll('#kblocks .kb').length >= 2 && document.getElementById('kimg').naturalWidth > 100), 'карточка открылась: модель и блоки текста');
-if (await tap('#knext', 'следующая карточка')) say(await p.evaluate(() => document.getElementById('kname').textContent !== 'Ты, кишечная палочка'), 'листается к следующей');
-if (await tap('#kback', 'назад к полке')) say(await seen('#kshelf'), 'полка снова видна');
-if (await tap('#ptabs [data-t=genome]', 'вкладка «Геном»')) say(!(await on('cabinet')) && await on('genome') && await seen('#ring'), 'вкладка «Геном»: Альманах закрылся, кольцо на месте');
+if (await tap('#klinks .kl:not(.no)', 'связь «кто ест» на карточке')) say(await seen('#kcard') && await p.evaluate(() => document.getElementById('kname').textContent !== 'Ты, кишечная палочка'), 'связь открывает карточку того, о ком речь');
+if (await tap('#gback', '«‹ Ты» назад по связи')) say(await p.evaluate(() => document.getElementById('kname').textContent === 'Ты, кишечная палочка'), '«назад» возвращает на карточку, с которой пришёл');
+if (await tap('#gback', '«‹ Альманах» к полке')) say(await seen('#kshelf'), 'полка снова видна');
+if (await tap('#gback', '«‹ Пауза» из Альманаха') && await tap('#phub [data-t=genome]', 'снова «Геном»')) say(!(await on('cabinet')) && await on('genome') && await seen('#ring'), '«Геном»: Альманах закрылся, кольцо на месте');
 // Карта на паузе (Э17–Э18): вкладка открывает разрез пруда, на нём нарисовано (не пустой холст), «ты» в шапке словами.
-if (await tap('#ptabs [data-t=map]', 'вкладка «Карта»')) { await p.waitForTimeout(400);
+if (await tap('#gback', '«‹ Пауза» из генома') && await tap('#phub [data-t=map]', 'строка «Карта»')) { await p.waitForTimeout(400);
   say(await seen('#mcv') && await p.evaluate(() => { const c = document.getElementById('mcv'), d = c.getContext('2d').getImageData(c.width / 2, c.height / 2, 1, 1).data; return c.width > 200 && d[3] > 0 && /слое/.test(document.getElementById('mhead').textContent); }), 'карта: разрез пруда нарисован, слой назван'); }
 // Отметка гибели на карте: касание — карточка места, «Запомнить это место» ставит метку-цель (Э19–Э20).
 await p.evaluate(() => { const c = zaplyvWorld().center(); zaplyvKarta.data().marks.push({ kind: 'death', x: c.x + 2500, y: c.y + 3000, who: 'amoeba', run: 0 }); });
@@ -72,23 +75,24 @@ const mk = await p.evaluate(() => { const h = zaplyvKarta.hits().find(q => q.kin
 if (mk) { await p.touchscreen.tap(mk[0], mk[1]); await p.waitForTimeout(300); say(await seen('#mcard') && /погиб/.test(await p.evaluate(() => document.getElementById('mcard').textContent)), 'карта: касание отметки гибели открывает карточку места'); }
 else say(false, 'карта: отметки гибели не видно');
 if (await tap('#mgoal', '«Запомнить это место»')) say(await p.evaluate(() => !!zaplyvKarta.data().goal), 'метка-цель запомнена');
-if (await tap('#ptabs [data-t=genome]', 'снова «Геном»')) say(await seen('#ring') && !(await seen('#mcv')), 'вкладка «Геном» вернулась');
+if (await tap('#gback', '«‹ Пауза» с карты')) say(!(await seen('#mcv')) && (await p.textContent('#gtitle')) === 'Пауза', '«‹ Пауза» с карты возвращает на первый уровень');
 // «Отправить» в геноме: меню «Поделиться» телефона подменяем, отметки должны уйти одним сообщением.
 await p.evaluate(() => { navigator.share = async d => { window.shared = d.text; }; });
 m = await marks();
-if (await tap('#gsend', '«Отметки» в геноме') && await tap('#mlsend', '«Отправить» в списке отметок')) say(await p.evaluate(n => (window.shared || '').includes('отметок ' + n), m) && await marks() === 0, '«Отправить» отдаёт отметки и очищает их');
+if (await tap('#gsend', '«Отметки» в геноме') && await tap('#mlsend', '«Отправить» в списке отметок') && await p.waitForFunction(() => window.shared, null, { timeout: 5000 }).then(() => true, () => true)) say(await p.evaluate(n => (window.shared || '').includes('отметок ' + n), m) && await marks() === 0, '«Отправить» отдаёт отметки и очищает их');
 const t0 = await p.evaluate(() => zaplyvWorld().stats.time);
 // test_L021: на кольце у каждого живого гена значок-снимок, карточка гена — со значком 64.
 say(await p.evaluate(() => { const live = Object.keys(zaplyvWorld().cfg.genes).length, im = [...document.querySelectorAll('#ring image')];
   return im.length >= live && im.every(i => (i.getAttribute('href') || '').length > 3000); }), 'test_L021: на кольце — значки всех генов');
+await tap('#phub [data-t=genome]', 'строка «Геном» перед значками');
 await p.evaluate(() => [...document.querySelectorAll('#ring .slot')].find(s => s.querySelector('image')).dispatchEvent(new MouseEvent('click', { bubbles: true })));
 await p.waitForTimeout(300);
 say(await p.evaluate(() => { const i = document.querySelector('#gcard .gicon'); return !!i && i.getBoundingClientRect().width >= 60 && i.src.length > 3000; }), 'test_L021: в карточке гена — значок');
-await whole(['#gon', '#gmenu', '#gcab', '#gno', '#gflag'], 'пауза с выбранным геном');
+await whole(['#gon', '#gback', '#gflag'], 'геном с выбранным геном');
 await notBook(await p.evaluate(() => [[...(document.querySelector('#gcard h2')?.childNodes || [])].filter(n => n.nodeType === 3).map(n => n.textContent).join(''), ...[...document.querySelectorAll('#gcard p')].filter(e => e.querySelector('b')).map(e => [...e.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join(''))]), 'карточка гена на кольце');
 if (await tap('#gon', '«Плыть дальше»')) { await p.waitForTimeout(500); say(!(await on('genome')) && await p.evaluate(() => zaplyvWorld().stats.time) > t0, '«Плыть дальше» закрывает геном, мир идёт'); }
 // test_L031 (прогон 0.44: «из игры в меню режимов попасть нельзя»): из паузы «Меню» открывает меню режимов, «Плыть» возвращает в тот же заплыв.
-if (await p.evaluate(() => { const w = zaplyvWorld(); w.choice = []; }) === undefined && await tap('#pause', 'пауза снова') && (await p.evaluate(() => document.querySelector('#ptabs [data-t=genome]')?.click()), await p.waitForTimeout(300), await tap('#gmenu', '«Меню» в паузе'))) { const t1 = await p.evaluate(() => zaplyvWorld().stats.time); say(await on('menu'), 'test_L031: «Меню» в паузе открывает меню режимов');
+if (await p.evaluate(() => { const w = zaplyvWorld(); w.choice = []; }) === undefined && await tap('#pause', 'пауза снова') && await tap('#gmenu', '«Режимы» в паузе')) { const t1 = await p.evaluate(() => zaplyvWorld().stats.time); say(await on('menu'), 'test_L031: «Режимы» в паузе открывают меню режимов');
   if (await tap('#mgo', '«Плыть» из меню паузы')) { await p.waitForTimeout(500); say(!(await on('menu')) && await p.evaluate(t => zaplyvWorld().stats.time > t, t1), 'test_L031: «Плыть» из меню паузы продолжает тот же заплыв'); } }
 // test_L023 (Б16, Роман: «куда я его могу поставить чтобы игра вырезала…»): флажок тянут пальцем на место — игра вырезает кусок кадра и спрашивает словами.
 { const fb = await p.locator('#flag').boundingBox(), sx = fb.x + fb.width / 2, sy = fb.y + fb.height / 2; m = await marks();
@@ -100,9 +104,16 @@ if (await p.evaluate(() => { const w = zaplyvWorld(); w.choice = []; }) === unde
   await p.fill('#ftext', 'тут странно'); if (await tap('#fsave', '«Записать» отметку с картинкой')) {
     const last = await p.evaluate(() => { const q = JSON.parse(localStorage.getItem('zaplyv.marks') || '[]'); return q[q.length - 1] || {}; });
     say(await marks() === m + 1 && (last.text || '').includes('тут странно') && (last.img || '').length > 3000 && !(await on('fsheet')), 'test_L023: отметка со словами и картинкой записана, лист закрыт');
-    await p.evaluate(() => { navigator.canShare = () => true; navigator.share = async d => { window.shared = d.text; window.sharedFiles = (d.files || []).map(f => [f.name, f.size, f.type]); }; window.sharedFiles = null; });
+    await p.evaluate(() => { navigator.canShare = () => true; navigator.share = async d => { window.shared = d.text; window.sharedFiles = (d.files || []).map(f => [f.name, f.size, f.type]); window.sharedRaw = d.files || []; }; window.sharedFiles = null; });
+    await p.evaluate(() => { zaplyvWorld().choice.length = 0; }); await p.waitForTimeout(250); // случайное деление прячет паузу выбором «Две дочки»: снимаем его, шаг про отправку
     if (await tap('#pause', 'пауза перед отправкой') && await tap('#gsend', '«Отметки» перед отправкой') && await tap('#mlsend', '«Отправить» отметку с местом')) { await p.waitForFunction(() => window.sharedFiles, null, { timeout: 5000 }).catch(() => {}); const sf = await p.evaluate(() => [window.shared || '', window.sharedFiles || []]);
-      say(sf[0].includes('тут странно') && sf[1].some(f => f[1] > 3000 && /mesto/.test(f[0]) && f[2] === 'image/jpeg'), 'test_L023: «Отправить» отдаёт слова и картинку места (' + sf[1].map(f => f[0]).join(', ') + ')'); }
+      say(sf[0].includes('тут странно') && sf[1].some(f => f[1] > 3000 && /mesto/.test(f[0]) && f[2] === 'image/jpeg'), 'test_L023: «Отправить» отдаёт слова и картинку места (' + sf[1].map(f => f[0]).join(', ') + ')');
+      // test_L035 (Роман 25.11: «фото поделится без текста идут… текст куда ушел я не знаю»): слова отметки впечатаны в картинку —
+      // под куском кадра полоса подписи, в ней светлые буквы; дойдёт даже там, где «Поделиться» отдаёт одни фото.
+      const cap = await p.evaluate(async () => { const f = window.sharedRaw.find(x => /_1_mesto/.test(x.name)); if (!f) return null; const b = await createImageBitmap(f), c = document.createElement('canvas'); c.width = b.width; c.height = b.height;
+        const g = c.getContext('2d'); g.drawImage(b, 0, 0); const top = b.width, d = g.getImageData(0, top, b.width, b.height - top).data; let lit = 0; for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 450) lit++;
+        const k = window.sharedRaw.find(x => /_1_kadr/.test(x.name)), kb = k && await createImageBitmap(k); return { w: b.width, h: b.height, lit, kadr: kb ? kb.width : 0 }; });
+      say(cap && cap.h > cap.w + 100 && cap.lit > 400 && cap.kadr >= 720, 'test_L035: под картинкой отметки впечатана подпись со словами, весь кадр не уже 720 точек (' + JSON.stringify(cap) + ')'); }
     if (await on('genome')) await tap('#gon', '«Плыть дальше» после отправки'); } }
 // Выбор дочки при делении: касание самой дочки берёт её ген.
 await p.evaluate(() => { const w = zaplyvWorld(), all = Object.keys(w.cfg.genes).filter(g => !w.genes[g]); w.choice = all.slice(0, 2); });
@@ -188,8 +199,8 @@ if (await tap('#mscene [data-m=hunt]', 'закрытый режим «Охота
 if (await tap('#mscene [data-m=night]', 'объект «Ночь рода»')) say((await p.textContent('#mgo')) === 'Начать ночь', 'касание объекта меняет подпись кнопки');
 if (await tap('#mgo', '«Начать ночь»')) say(await on('night') && !(await on('menu')), '«Начать ночь» открывает ночь рода');
 if (await tap('#nback', '«Назад» из ночи в меню')) say(await on('menu'), '«Назад» возвращает в меню');
-if (await tap('#mquiet', '«Тише»')) say((await p.textContent('#mquiet')) === 'Звук', '«Тише» выключает звук');
-await tap('#mquiet', '«Звук»');
+if (await tap('#mquiet', '«Звук вкл»')) say((await p.textContent('#mquiet')) === 'Звук выкл', '«Звук вкл» выключает звук');
+await tap('#mquiet', '«Звук выкл»');
 if (await tap('#mscene [data-m=swim]', 'объект «Заплыв»') && await tap('#mgo', '«Плыть» из меню')) say(!(await on('menu')) && await p.evaluate(() => zaplyvWorld().me.length > 0), '«Плыть» начинает заплыв');
 // Режим «Мутации» (новые мутации, mutacii.js): объект в меню, кнопка запускает заплыв в этом режиме.
 await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 0; }); await p.waitForTimeout(1200);

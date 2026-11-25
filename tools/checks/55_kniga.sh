@@ -6,6 +6,7 @@
 # Урок L018 (test_L018): карточка гена для игрока — простыми словами, без латиницы, терминов и сокращений,
 # «что даёт» до 12 слов, без строки «как выглядит» (это показывает значок), прочитана копирайтером; ген в игре или на кольце без такой карточки — красное.
 set -u
+. "$(dirname "${BASH_SOURCE[0]}")/../check_mode.sh"; run_in fast kniga || exit 0
 command -v node >/dev/null || { echo "  нет node — сверить книгу нечем"; exit 1; }
 node proby/zaplyv/kniga/sverka.mjs || exit 1
 node proby/zaplyv/kniga/sverka.mjs --selftest

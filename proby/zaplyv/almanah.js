@@ -41,10 +41,24 @@ export function page(k, K, E, cards, T, G, met) {
   return { name: t.imya || c.name, line: it.line, size: it.size || '', color, blocks, met: true };
 }
 
-export function almanahScreen({ K, cards, T, G, met, snap, onSwim }) {
+// Связи карточки (книга, kniga/kto_s_kem.json): только то, что есть в игре (st «igra»), без «ничего». Подписи групп — по стороне связи,
+// текст строки — из книги. Порядок: кто опасен для этого существа, потом кого оно ест и остальное.
+const LINK_HEAD = { b: { est: 'КТО ЕСТ', zarazhaet: 'КТО ЗАРАЖАЕТ', byot: 'КТО БЬЁТ', pomogaet: 'КТО ПОМОГАЕТ', sopernik: 'С КЕМ СОПЕРНИЧАЕТ' },
+  a: { est: 'КОГО ЕСТ', zarazhaet: 'КОГО ЗАРАЖАЕТ', byot: 'КОГО БЬЁТ', pomogaet: 'КОМУ ПОМОГАЕТ', sopernik: 'С КЕМ СОПЕРНИЧАЕТ' } };
+export function links(k, S) {
+  const out = [];
+  for (const side of ['b', 'a']) for (const z of Object.keys(LINK_HEAD[side])) {
+    const rows = (S?.svyazi || []).filter(x => x.st === 'igra' && x.z === z && x[side] === k && x.a !== x.b).map(x => ({ k: x[side === 'a' ? 'b' : 'a'], t: x.t }));
+    const head = LINK_HEAD[side][z], have = out.find(g => g.head === head);
+    if (have) have.rows.push(...rows.filter(r => !have.rows.some(q => q.k === r.k))); else if (rows.length) out.push({ head, rows });
+  }
+  return out;
+}
+
+export function almanahScreen({ K, cards, T, G, S, met, snap, onSwim, onNav = () => {} }) {
   const $ = id => document.getElementById(id);
   const E = entries(K, G), keys = Object.keys(E), shots = new Map();
-  let sec = 'life', queue = [], top = 0;
+  let sec = 'life', queue = [], top = 0, cur = null; const hist = []; // hist — карточки, с которых пришёл по связи: «‹ имя» возвращает туда
   const pg = k => page(k, K, E, cards, T, G, met);
   const shot = k => { if (!shots.has(k)) { try { shots.set(k, snap(k, E[k])); } catch (e) { shots.set(k, ''); } } return shots.get(k); };
   let opened; try { opened = new Set(JSON.parse(localStorage.getItem('zaplyv.opened') || '[]')); } catch (_) { opened = new Set(); }
@@ -83,21 +97,27 @@ export function almanahScreen({ K, cards, T, G, met, snap, onSwim }) {
       if (src) { const s = document.createElement('small'); s.textContent = src; d.appendChild(s); }
       box.appendChild(d);
     }
-    const mine = keys.filter(x => met.has(x) && E[x].sec === E[k].sec), i = mine.indexOf(k), prev = mine[(i - 1 + mine.length) % mine.length], next = mine[(i + 1) % mine.length];
-    $('kprev').textContent = '‹ ' + pg(prev).name; $('kprev').onclick = () => openCard(prev);
-    $('knext').textContent = pg(next).name + ' ›'; $('knext').onclick = () => openCard(next);
-    $('kprev').style.visibility = $('knext').style.visibility = mine.length > 1 ? '' : 'hidden';
+    const L = $('klinks'); L.innerHTML = '';
+    for (const g of links(k, S).filter(g => g.rows.some(r => E[r.k]))) { const h = document.createElement('h3'); h.textContent = g.head; L.appendChild(h);
+      for (const r of g.rows.filter(r => E[r.k])) { const P2 = pg(r.k), b = document.createElement('button'); b.className = 'kl' + (P2.met ? '' : ' no'); b.dataset.k = r.k;
+        const im = document.createElement('img'); im.alt = ''; im.src = shot(r.k); b.appendChild(im);
+        const sp = document.createElement('span'), n = document.createElement('b'), t = document.createElement('small'); n.textContent = P2.name; t.textContent = P2.met ? r.t : P2.line; sp.append(n, t); b.appendChild(sp);
+        if (P2.met) { const i = document.createElement('i'); i.textContent = '›'; b.appendChild(i); b.onclick = () => { hist.push(k); openCard(r.k); }; } L.appendChild(b); } }
     if (!$('kshelf').hidden) top = $('cabinet').scrollTop; // место на полке — вернёмся ровно туда
-    $('kshelf').hidden = true; card.hidden = false; $('cabinet').scrollTop = 0;
+    $('kshelf').hidden = true; card.hidden = false; $('cabinet').scrollTop = 0; cur = k; nav();
   }
-  function toShelf() { $('kcard').hidden = true; $('kshelf').hidden = false; drawShelf(); $('cabinet').scrollTop = top; }
-  function open() { sec = 'life'; $('kcard').hidden = true; $('kshelf').hidden = false; drawShelf(); $('cabinet').classList.add('on'); $('cabinet').scrollTop = 0; }
+  function toShelf() { $('kcard').hidden = true; $('kshelf').hidden = false; cur = null; hist.length = 0; drawShelf(); $('cabinet').scrollTop = top; nav(); }
+  const where = () => cur ? (hist.length ? pg(hist[hist.length - 1]).name : 'Альманах') : null; // куда ведёт «назад»: прошлая карточка, полка, или наружу (null)
+  function nav() { $('back').textContent = '‹ ' + (where() || api.from || 'Назад'); onNav(); }
+  function goBack() { if (hist.length) openCard(hist.pop()); else if (cur) toShelf(); else (api.back || close)(); }
+  function open(from) { api.from = from; hist.length = 0; cur = null; sec = 'life'; $('kcard').hidden = true; $('kshelf').hidden = false; drawShelf(); $('cabinet').classList.add('on'); $('cabinet').scrollTop = 0; nav(); }
   function close() { $('cabinet').classList.remove('on'); }
-  $('back').onclick = close; $('kback').onclick = toShelf;
+  $('back').onclick = goBack;
   $('kswim').onclick = () => { close(); onSwim(); };
   let sx = null; // смахивание от левого края вправо — назад, как в приложениях iPhone
   $('cabinet').addEventListener('touchstart', e => { const t = e.touches[0]; sx = t.clientX < 28 ? [t.clientX, t.clientY] : null; }, { passive: true });
-  $('cabinet').addEventListener('touchend', e => { const t = e.changedTouches[0]; if (sx && t.clientX - sx[0] > 70 && Math.abs(t.clientY - sx[1]) < 60) ($('kcard').hidden ? close : toShelf)(); sx = null; }, { passive: true });
-  return { open, close, openCard, entries: E, shot,
+  $('cabinet').addEventListener('touchend', e => { const t = e.changedTouches[0]; if (sx && t.clientX - sx[0] > 70 && Math.abs(t.clientY - sx[1]) < 60) goBack(); sx = null; }, { passive: true });
+  const api = { back: null, from: '', open, close, openCard, goBack, where, entries: E, shot,
     label: () => { const n = keys.filter(k => E[k].sec !== 'gene' && E[k].group !== 'me'); return `Альманах · знаешь ${n.filter(k => met.has(k)).length} из ${n.length}`; } };
+  return api;
 }

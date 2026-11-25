@@ -2,6 +2,7 @@
 # selftest (М10): каждому сторожу подаём нарочно сломанный пример и ждём красного,
 # а исправный пример обязан пройти. Сторож, который перестал ловить, делает этот шаг красным.
 set -u
+. "$(dirname "${BASH_SOURCE[0]}")/../check_mode.sh"; run_in || exit 0
 ROOT=$(pwd); fail=0
 WT=$(mktemp -d)/wt
 git worktree add -q --detach "$WT" HEAD 2>/dev/null || { echo "  selftest: не создать копию"; exit 1; }
@@ -21,6 +22,8 @@ case_() {
 NUM='python3 -c "import json;print(json.load(open(\"data/version.json\"))[\"number\"])"'
 BUMP='n=$('"$NUM"'); m=${n%.*}.$(( ${n#*.} + 1 )); printf "{\n\t\"number\": \"%s\"\n}\n" "$m" > data/version.json'
 case_ "вторая команда в check.yml" 20_guards.sh red 'echo "      - run: echo второй" >> .github/workflows/check.yml'
+case_ "полная проверка без расписания" 20_guards.sh red "sed -i '/- cron:/d' .github/workflows/full.yml"
+case_ "книжный режим глотает игру" 20_guards.sh red "sed -i 's/proby\/zaplyv\/kniga\/teksty_\*.json) return 1/nothing) return 1/' tools/check_mode.sh"
 case_ "урок без защиты" 20_guards.sh red 'echo "| L999 | проба | проба | нет |" >> lessons.md'
 case_ "номер не сходится с CHANGELOG" 25_changelog.sh red 'printf "{\"number\": \"9.99\"}\n" > data/version.json'
 case_ "test_L004: видимое без строки в CHANGELOG" 25_changelog.sh red 'echo "# проба" >> scripts/main.gd'
@@ -43,8 +46,10 @@ ONLY=L019 case_ "test_L019: существо без места в Альмана
 case_ "test_L017: невидимый слой поверх кнопок «Заплыва»" 52_zaplyv_tap.sh red "sed -i 's|<div id=\"note\"|<div style=\"position:fixed;inset:0;z-index:99\"></div>&|' proby/zaplyv/index.html"
 case_ "test_L017: флажок молчит после касания" 52_zaplyv_tap.sh red "sed -i 's|n.classList.add(.on.);|/* нет отклика */|' proby/zaplyv/main.js"
 ONLY=L021 case_ "test_L021: значки генов пропали" 52_zaplyv_tap.sh red "sed -i 's/^function icon(g) {/function icon(g) { return String();/' $Z/main.js"
+case_ "test_L035: слова не впечатаны в картинку" 52_zaplyv_tap.sh red "sed -i 's/lines.forEach((l, k) => g.fillText/lines.forEach((l, k) => String/; s/g.fillText(.⚑ . + head, pad, ih + pad + 22);//' $Z/main.js"
 case_ "test_L034: ✕ не убирает отметку" 52_zaplyv_tap.sh red "sed -i 's/marks.splice(i, 1); keepMarks();/keepMarks();/' $Z/main.js"
 case_ "test_L036: ночь пересоздаёт холст каждый кадр" 52_zaplyv_tap.sh red "sed -i 's/if (oc.width !== ow || oc.height !== oh) { oc.width = ow; oc.height = oh; }/oc.width = ow; oc.height = oh;/' $Z/main.js"
+case_ "test_L038: кадр в двойной плотности на экране тройной" 52_zaplyv_tap.sh red "sed -i 's/\"dpr_max\": 2.5/\"dpr_max\": 2/' $Z/data.json"
 case_ "test_L031: лист гибели помнит прокрутку" 52_zaplyv_tap.sh red "sed -i 's/\$(.end.).scrollTop = 0; //' $Z/main.js"
 case_ "test_L025: кнопки гибели ниже края экрана" 52_zaplyv_tap.sh red "sed -i 's/flex-shrink: 0; position: sticky;/flex-shrink: 0;/' $Z/index.html"
 # L018 (расширен) и L024 «антибред»: черновая строка умения мимо книги, описание в data.json, слово мира без имени из Альманаха, умение без теста-обещания — красное.
