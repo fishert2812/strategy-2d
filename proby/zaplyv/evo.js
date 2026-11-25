@@ -5,7 +5,7 @@
 //   gulp — Г51 «Глотает целиком»: коснулась живой клетки заметно мельче себя — она тает внутри и идёт в рост.
 //          Кто «мельче» — решает масса, поэтому выросшая ест и тех, кто ел её в начале (амёба, колокольчик, коловратка, туфелька).
 //   igla — Г55 «Нить-игла» (шестой путь выделения, T6SS; биолог, круг 15): резкий тычок носом в бактерию-соперницу —
-//          уколотая замирает целым телом, тускнеет и через t секунд растекается едой. Кокков не берёт: толстая стенка.
+//          уколотая замирает, раздувается шариком (яд режет стенку изнутри) и через t секунд растекается соком. Кокков не берёт.
 // Свой файл; sim.js зовёт отсюда step(), main.js — draw(). Числа и слова — evo.json, имена генов — только книга.
 const url = new URL('./evo.json', import.meta.url);
 export const E = url.protocol === 'file:' ? JSON.parse((await import('node:fs')).readFileSync(url, 'utf8')) : await (await fetch(url)).json();
@@ -79,9 +79,9 @@ function igla(w, radius) {
 // добыча темнеет и сжимается, клетка наливается светом. scr — мир → экран.
 export function draw({ w, a, x, y, z, glow, scr }) {
   if (!on(w)) return;
-  if (a === w.me[0]) for (const q of w.pseudos) if (q.igla !== undefined) { // уколотая темнеет целым телом (до кирпича 'igla')
+  if (a === w.me[0]) for (const q of w.pseudos) if (q.igla !== undefined) { // уколотая раздувается шариком и светлеет к разрыву (до кирпича 'igla')
     const [qx, qy] = scr(q.x, q.y), u = Math.min(1, (w.stats.time - q.igla) / E.igla.t);
-    glow.put(qx, qy, 16 * z, 0.3, 0.25, 0.3, 0.25 + 0.35 * u);
+    glow.put(qx, qy, (10 + 14 * u) * z, 1, 0.6, 0.65, 0.15 + 0.3 * u);
   }
   if (!w.gulps) return;
   for (const g of w.gulps) {
