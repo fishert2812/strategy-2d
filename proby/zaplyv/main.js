@@ -788,10 +788,8 @@ function paint(time) {
   }
   for (const v of world.bells) { // сувойка: колокольчик на стебле-пружине, венчик ресничек крутит вихрь
     const [x, y] = scr(v.x, v.y); if (!on(x, y, 200)) continue;
-    const [bx, by] = scr(...world.bell(v)), r = cfg.bell_r * z, dx = Math.cos(v.dir), dy = Math.sin(v.dir), Ls = Math.hypot(bx - x, by - y);
-    for (let k = 0; k <= 30; k++) { const f = k / 30, coil = v.shut > 0 ? Math.sin(f * 40) * 5 * z : Math.sin(f * 5 + time) * 2 * z;
-      ink.put(x + dx * Ls * f - dy * coil, y + dy * Ls * f + dx * coil, 0.9 * z + 0.4, 0.7, 0.85, 0.8, 0.6); }
-    bodies.sphere(bx, by, r, [0.75, 0.9, 0.88], [0.9, 1, 1], v.id, 0.7);
+    const r = cfg.bell_r * z, dx = Math.cos(v.dir), dy = Math.sin(v.dir), [bx, by, open] = vid.bell({ x, y, dir: v.dir, Ls: cfg.bell_stalk * z, r, shut: v.shut || 0, time, id: v.id, z, ink }); // стебель: сжатие в спираль и развёртка — vid.js
+    bodies.sphere(bx, by, r * (0.8 + 0.2 * open), [0.75, 0.9, 0.88], [0.9, 1, 1], v.id, 0.7); // свёрнутый бокал сжат в шарик
     if (v.shut > 0) continue;
     for (let k = 0; k < 20; k++) { const t = k / 20 * 6.283 + time * 6, cx = bx + dx * r * 0.9, cy = by + dy * r * 0.9;
       ink.put(cx + Math.cos(t) * r * 0.8, cy + Math.sin(t) * r * 0.35 * Math.abs(dx) + Math.sin(t) * r * 0.35, 0.9 * z + 0.3, 0.85, 1, 0.95, 0.6); }
