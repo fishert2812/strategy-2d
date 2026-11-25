@@ -7,10 +7,10 @@ const R0 = 110, R1 = 148, GAP = 1.5;
 // Все места по порядку: { slot, arc, color, a0, a1 (градусы) | x, y для чужих }. Без DOM — проверяется тестом.
 export function layout(G) {
   const out = [];
-  const N = G.arcs.reduce((n, a) => n + a.slots.length, 0), step = 360 / N; let j = 0; // мест столько, сколько генов: шаг 360/N
+  const N = G.arcs.reduce((n, a) => n + a.slots.length, 0), step = 360 / N, gap = Math.max(0, Math.min(GAP, (step - 15) / 2)); let j = 0; // мест столько, сколько генов: шаг 360/N; щель тоньше, чтобы место не стало уже 15° (до 24 генов)
   G.arcs.forEach((arc, k) => arc.slots.forEach((slot) => {
     const a0 = -90 + j++ * step; // сверху метка ori — с неё начинается копирование кольца, дальше по часовой
-    out.push({ slot, arc: k, color: arc.color, a0: a0 + GAP, a1: a0 + step - GAP, plasmid: false });
+    out.push({ slot, arc: k, color: arc.color, a0: a0 + gap, a1: a0 + step - gap, plasmid: false });
   }));
   G.plasmids.forEach((slot, i) => out.push({ slot, arc: -1, color: slot.color, x: 205, y: 70 + i * 66, plasmid: true }));
   return out;
