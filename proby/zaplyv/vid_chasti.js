@@ -40,12 +40,13 @@ const RIS = {
     for (let k = 0; k < st.n; k++) { const t = k / st.n * 6.283, e = F.kray(t), [px, py] = at(e.u * st.osnova, e.o * st.osnova);
       const len = w * st.dlina * (e.g > 0.3 ? st.v_borozde : 1) * (0.75 + 0.5 * hash(P.id, k + 700));
       B.spine(px, py, P.a + e.n, len, w * st.tolsh, st.cvet, st.cvet, P.id * 13 + k, Math.sin(t * st.volny - P.time * st.temp) * w * st.tolsh * 6, 0); } },
-  yadro(st, F, P, B, at) { const w = P.tolshchina, [u, o] = st.gde, [px, py] = at(u, o); // ядро-боб: вытянутый зернистый шар
+  // ядро-боб: вытянутый зернистый шар; в теле по оси (F.O) нутро рисуется над плотным слоем
+  yadro(st, F, P, B, at) { if (F.O) B.vyshe = P.nad; const w = P.tolshchina, [u, o] = st.gde, [px, py] = at(u, o);
     B.put(B.ball, px, py, P.a + st.povorot, w * st.r * st.boby, w * st.r, w * st.r * 0.45, [...st.cvet, 1], st.kromka, [0, P.id + 0.3, 0, 0]); },
-  zerna(st, F, P, B, at) { const w = P.tolshchina;
+  zerna(st, F, P, B, at) { if (F.O) B.vyshe = P.nad; const w = P.tolshchina;
     for (let k = 0; k < st.n; k++) { const [u, o] = F.vnutri((hash(P.id, k + 500) - 0.5) * 2, (hash(P.id, k + 501) - 0.5) * 2), [px, py] = at(u, o);
       B.sphere(px, py, w * st.r * (0.6 + 0.8 * hash(P.id, k + 502)), st.cvet, st.kromka, P.id + k + 50, 0.8); } },
-  puzyri_edy(st, F, P, B, at) { const w = P.tolshchina; // съеденное в пузырьках, медленно ходит по кругу
+  puzyri_edy(st, F, P, B, at) { if (F.O) B.vyshe = P.nad; const w = P.tolshchina; // съеденное в пузырьках, медленно ходит по кругу
     for (let k = 0; k < st.n; k++) { const [u, o] = F.vnutri((hash(P.id, k + 400) - 0.5) * 1.5 + Math.sin(P.time * 0.3 + k) * 0.08, (hash(P.id, k + 401) - 0.5) * 2), [px, py] = at(u, o);
       B.sphere(px, py, w * st.r * (0.7 + 0.6 * hash(P.id, k + 402)), st.cvet, st.kromka, P.id + k + 3, 0.8); } },
   sokr_puzyr(st, F, P, B, at) { const w = P.tolshchina; // надувается и разом сдувается; каналы розеткой полнее, когда пузырёк пуст
@@ -98,7 +99,7 @@ const RIS = {
       // ветки тела (forma.vetki и P.vetki): отросток, ложноножка, ножка — то же тело со своей осевой линией, растёт из края наружу. Те же слои тем же материалом
       // на той же высоте: плотные слои пересекаются по глубине как настоящий объём, поэтому линии тела поперёк основания ветки нет.
       for (const { Ov, cx, cy, bx, by } of VT) {
-        const slit = (X, Y) => { const dx = (X - P.x) / w, dy = (Y - P.y) / w, T = O.poverh(dx * ux + dy * uy, dy * ux - dx * uy); return T && { h: T.h * w, nx: T.nx * ux - T.ny * uy, ny: T.nx * uy + T.ny * ux, nz: T.nz, f: T.f }; }; slit.k = VC.vetka.galtel * w;
+        const slit = (X, Y) => { const dx = (X - P.x) / w, dy = (Y - P.y) / w, T = O.poverh(dx * ux + dy * uy, dy * ux - dx * uy); return T && { h: T.h * w, nx: T.nx * ux - T.ny * uy, ny: T.nx * uy + T.ny * ux, nz: T.nz, f: T.f, g: T.g }; }; slit.k = VC.vetka.galtel * w; slit.shir = VC.vetka.galtel_shir * w; slit.shir_ot = VC.vetka.galtel_ot;
         B.loft(Ov.kolca(4).map(q => { const x = bx + q.x * cx - q.y * cy, y = by + q.x * cy + q.y * cx, tx = q.tx * cx - q.ty * cy, ty = q.tx * cy + q.ty * cx; return { x: P.x + (x * ux - y * uy) * w, y: P.y + (x * uy + y * ux) * w, tx: tx * ux - ty * uy, ty: tx * uy + ty * ux, r: q.r * w, dr: q.dr, a: q.a }; }), !!s.plotno, s.cvet, s.kromka || sv(s.cvet), P.id, s.a ?? 1, null, slit); } }); },
   // Нуклеоид: одна длинная нить ДНК, уложенная клубком в середине клетки; медленно шевелится.
   nukleoid(st, F, P, B, at) { if (P.tolshchina < (st.porog ?? 0)) return; B.vyshe = P.nad; const w = P.tolshchina, Hh = F.O ? F.O.H : P.dlina / 2 / w, p = Math.max(2, Math.round(st.petli)), vit = p * 4, N = Math.max(st.zvenya, vit * 22), T = P.time * st.temp, h = k => hash(P.id, k + 900) * 6.283; // porog — мельче этой толщины (точки экрана) нутро не рисуется: издали оно только шумит
@@ -133,7 +134,7 @@ const RIS = {
       nit(B, pts, w * st.tolsh, c, st.a, w * st.tolsh * (1 - (st.suzh ?? 0.75)), st.a * (izd ? st.izdali_a_konec ?? 0.15 : 0.15), undefined, c, st.blik || c, izd ? st.izdali_tolsh ?? st.min_tolsh ?? 0 : st.min_tolsh ?? 0); } }, // к кончику тоньше не больше чем на suzh (биолог: не больше 30 %) и гаснет // blik — цвет блика по краю нити
   // Гранулы запаса (включения): несколько плотных шариков у полюсов, в стороне от клубка ДНК.
   vklyucheniya(st, F, P, B, at) { if (P.tolshchina < (st.porog ?? 0)) return; B.vyshe = P.nad; const w = P.tolshchina; // porog — мельче этой толщины (точки экрана) нутро не рисуется: издали оно только шумит
-    for (let k = 0; k < st.n; k++) { const [px, py] = at((k % 2 ? 1 : -1) * (0.5 + 0.2 * hash(P.id, k + 300)) * (1 - w / (P.dlina / 2) * 0.35), (hash(P.id, k + 301) - 0.5) * 0.6); B.sphere(px, py, w * st.r * (0.8 + 0.4 * hash(P.id, k + 302)), st.cvet, st.kromka, P.id + k + 20, 0.9); } },
+    for (let k = 0; k < st.n; k++) { const [px, py] = at(st.vsyudu ? (hash(P.id, k + 300) - 0.5) * 1.5 : (k % 2 ? 1 : -1) * (0.5 + 0.2 * hash(P.id, k + 300)) * (1 - w / (P.dlina / 2) * 0.35), (hash(P.id, k + 301) - 0.5) * (st.vsyudu ? 1.1 : 0.6)); B.sphere(px, py, w * st.r * (0.8 + 0.4 * hash(P.id, k + 302)), st.cvet, st.kromka, P.id + k + 20, 0.9); } },
 };
 
 const VETKI = new WeakMap();
@@ -152,7 +153,9 @@ export function sobrat(zapis, poza, B) {
       const vt = v.t === 'nos' ? O.nos_t : v.t === 'korma' ? O.korma_t : v.t; // место словом: нос или корма этого тела
       // в начале роста толщины ветки не больше её длины: ветка проклёвывается низким бугорком и растёт из него, а не появляется сразу куполом
       // корень ветки сидит в теле на глубине VC.vetka.glubina и по самому телу идёт его же поверхностью (см. slit в obolochka): выпячивание самой оболочки, без шва у основания
-      const L = Math.max(0.02, v.dlina * k), [r0, r1] = (v.r || [0.4, 0.3]).map(r => Math.min(r, L * 1.2)), Rb = mestnyy_r(O, vt), rk = Math.min(Rb * VC.vetka.koren, L * 2.5), rs = Math.min(r0 + (Rb * VC.vetka.sheyka - r0) * Math.min(1, k * 2), L * 2.5), gl = Rb * VC.vetka.glubina, kor = Math.max(0, 1 - L / (rs * 2.5)), r3 = r0 + (rs - r0) * Math.max(0.12, kor * 0.6), T = [[Rb - gl, 0, rk], [Rb, 0, rs], [Rb + L * 0.45, (v.izgib || 0) * L, r3], [Rb + L, 0, r1 + (r3 * 0.9 - r1) * kor]]; // короткая ветка (почка) это широкий купол, а не столбик
+      const L = Math.max(0.02, v.dlina * k), [r0, r1] = (v.r || [0.4, 0.3]).map(r => Math.min(r, L * 1.2)), Rb = mestnyy_r(O, vt), rk = Math.min(Rb * VC.vetka.koren, Math.max(r0, (v.r || [0.4])[0] * VC.vetka.sheyka_ot_vetki) * 1.1, L * 2.5), rs = Math.min(r0 + (Math.min(Rb * VC.vetka.sheyka, Math.max(r0, (v.r || [0.4])[0] * VC.vetka.sheyka_ot_vetki)) - r0) * Math.min(1, k * 2), L * 2.5), gl = Rb * VC.vetka.glubina, kor = Math.max(0, 1 - L / (rs * 2.5)), r3 = r0 + (rs - r0) * Math.max(0.12, kor * 0.6), dlinnaya = L * 0.45 > rs * 2.2, T = dlinnaya
+        ? [[Rb - gl, 0, rk], [Rb, 0, rs], [Rb + rs * 2.2, 0, r3], [Rb + L * 0.55, (v.izgib || 0) * L, (r0 + r1) / 2], [Rb + L, 0, r1]]
+        : [[Rb - gl, 0, rk], [Rb, 0, rs], [Rb + L * 0.45, (v.izgib || 0) * L, r3], [Rb + L, 0, r1 + (r3 * 0.9 - r1) * kor]]; // короткая ветка (почка) это широкий купол, а не столбик
       return m[k] = { t: vt, ugol: v.ugol, tochki: T, r_min: Math.min(r0, r1), r0, sdvig: os(T, 16, 0.12).dlina / 2 - rk - gl }; }).filter(Boolean);
     // под веткой тело не выпучивается отдельным бугром: переход делает сама ветка (иначе бугор закрывает её корень, и край тела режет основание)
     if (vetki.length && P.vypuklosti) P.vypuklosti = P.vypuklosti.filter(b => !vetki.some(v => Math.abs(Math.atan2(Math.sin(b.t - v.t), Math.cos(b.t - v.t))) < 0.35));

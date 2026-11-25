@@ -7,7 +7,11 @@
 		"zapyataya": { "papka": "krasnaya_zapyataya", "fail": "cdc_21921_vibrio_oosthuizen.jpg", "poza": { "dlina": 3.2, "tolshchina": 80, "ugol": -0.2 } },
 		"kokki": { "papka": "kokki_grozdyu", "fail": "cdc_23234_mrsa_newlove.jpg", "poza": { "dlina": 2.0, "tolshchina": 32, "ugol": 0 } },
 		"garpun": { "papka": "garpunshchica", "fail": "cdc_23235_acinetobacter_higgins_archer.jpg", "poza": { "dlina": 2.6, "tolshchina": 42, "ugol": -1.5708 } },
-		"infuzoriya": { "papka": "tufelka", "fail": "flickr_21215821111_tufelka_temnoe_pole.jpg", "poza": { "dlina": 3.0, "tolshchina": 130, "ugol": -1.5708 } },
-		"tuflya": { "papka": "tufelka", "fail": "flickr_21215821111_tufelka_temnoe_pole.jpg", "poza": { "dlina": 3.0, "tolshchina": 130, "ugol": -1.5708 } }
+		"infuzoriya": { "papka": "tufelka", "fail": "flickr_21215821111_tufelka_temnoe_pole.jpg", "poza": { "dlina": 4.1, "tolshchina": 95, "ugol": -1.5708 } },
+		"tuflya": { "papka": "tufelka", "fail": "flickr_21215821111_tufelka_temnoe_pole.jpg", "poza": { "dlina": 3.0, "tolshchina": 130, "ugol": -1.5708 } },
+		"ameba": { "papka": "ameba", "fail": "wellcome_B0004773_ameba_est.jpg", "poza": { "dlina": 3.4, "tolshchina": 95, "ugol": 0.2 } },
+		"kolokolchik": { "papka": "kolokolchik", "fail": "flickr_10714440134_kolokolchik_dic.jpg", "poza": { "dlina": 2.2, "tolshchina": 90, "ugol": -1.5708 } },
+		"kolovratka": { "papka": "kolovratka", "fail": "flickr_7185556283_bdelloida_temnoe_pole.jpg", "poza": { "dlina": 4.4, "tolshchina": 100, "ugol": 0 } },
+		"virus": { "papka": "virus_fag", "fail": "flickr_10085619254_fag_steklo_dnk.jpg", "poza": { "dlina": 4.0, "tolshchina": 95, "ugol": -1.5708 } }
 	}
 }

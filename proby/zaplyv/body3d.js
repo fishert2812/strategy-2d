@@ -194,6 +194,11 @@ export class Bodies {
       p[i * 3] = q.x + nx * q.r; p[i * 3 + 1] = -(q.y + ny * q.r); p[i * 3 + 2] = sn * q.r + z0;
       const l = Math.hypot(1, q.dr); nr[i * 3] = (nx - q.tx * q.dr) / l; nr[i * 3 + 1] = -(ny - q.ty * q.dr) / l; nr[i * 3 + 2] = sn / l; uv[i * 2] = c; uv[i * 2 + 1] = q.a;
       const T = slit && slit(q.x + nx * q.r, q.y + ny * q.r);
+      // галтель в плане: у края тела ветка расходится вширь (высота та же), угол между боком тела и веткой скруглён
+      if (T && slit.shir) { const f = T.g > 0 ? Math.max(0, 1 - T.g / 0.3) : T.f ?? 1; let e = Math.min(slit.shir, q.r * slit.shir_ot) * f * f;
+        // у носа тело уходит из-под ветки: там расширение увело бы точку прочь от тела (юбка), его гасим
+        if (e > 0.01) { const T2 = slit(q.x + nx * (q.r + e), q.y + ny * (q.r + e)), f2 = !T2 ? 0 : T2.g > 0 ? 1 : T2.f ?? 1, m = Math.max(0, Math.min(1, (f2 / Math.max(0.05, T.g > 0 ? 1 : f) - 0.6) / 0.35)); e *= m; }
+        p[i * 3] += nx * e; p[i * 3 + 1] -= ny * e; }
       // плавный максимум двух поверхностей: внутри тела ветка идёт по самому телу, у выхода поднимается галтелью
       // тело под веткой (slit.telo): край тела поднимается на поверхность ветки и берёт её нормаль, контур тела поперёк основания пропадает
       if (T && slit.svet) { if (sn > -0.05) { const z = Math.max(0, sn * q.r), un = (T.f ?? 1) * Math.max(0, Math.min(1, 0.12 + (T.h - z) / (9 * slit.k))), tn = 1 - un; nr[i * 3] = nr[i * 3] * tn + T.nx * un; nr[i * 3 + 1] = nr[i * 3 + 1] * tn - T.ny * un; nr[i * 3 + 2] = Math.max(0, nr[i * 3 + 2]) * tn + T.nz * un; } }
