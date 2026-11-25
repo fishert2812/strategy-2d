@@ -107,8 +107,8 @@ if (await p.evaluate(() => { const w = zaplyvWorld(); w.choice = []; }) === unde
       // под куском кадра полоса подписи, в ней светлые буквы; дойдёт даже там, где «Поделиться» отдаёт одни фото.
       const cap = await p.evaluate(async () => { const f = window.sharedRaw.find(x => /_1_mesto/.test(x.name)); if (!f) return null; const b = await createImageBitmap(f), c = document.createElement('canvas'); c.width = b.width; c.height = b.height;
         const g = c.getContext('2d'); g.drawImage(b, 0, 0); const top = b.width, d = g.getImageData(0, top, b.width, b.height - top).data; let lit = 0; for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 450) lit++;
-        return { w: b.width, h: b.height, lit }; });
-      say(cap && cap.h > cap.w + 100 && cap.lit > 400, 'test_L035: под картинкой отметки впечатана подпись со словами (' + JSON.stringify(cap) + ')'); }
+        const k = window.sharedRaw.find(x => /_1_kadr/.test(x.name)), kb = k && await createImageBitmap(k); return { w: b.width, h: b.height, lit, kadr: kb ? kb.width : 0 }; });
+      say(cap && cap.h > cap.w + 100 && cap.lit > 400 && cap.kadr >= 720, 'test_L035: под картинкой отметки впечатана подпись со словами, весь кадр не уже 720 точек (' + JSON.stringify(cap) + ')'); }
     if (await on('genome')) await tap('#gon', '«Плыть дальше» после отправки'); } }
 // Выбор дочки при делении: касание самой дочки берёт её ген.
 await p.evaluate(() => { const w = zaplyvWorld(), all = Object.keys(w.cfg.genes).filter(g => !w.genes[g]); w.choice = all.slice(0, 2); });
