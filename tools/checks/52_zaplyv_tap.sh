@@ -3,6 +3,7 @@
 # в workflow web то же в WebKit) и требуем видимый результат: кнопка сверху в точке касания, не меньше 44 pt,
 # после касания видно, что случилось. Обход — tools/web/zaplyv_tap.mjs.
 set -u
+. "$(dirname "${BASH_SOURCE[0]}")/../check_mode.sh"; run_in fast || exit 0
 command -v node >/dev/null || { echo "  нет node — касания проверить нечем"; exit 1; }
 PW=${PW:-}
 g=$(npm root -g 2>/dev/null)/playwright/index.mjs; [ -z "$PW" ] && [ -f "$g" ] && PW=$g

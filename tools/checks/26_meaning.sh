@@ -3,6 +3,7 @@
 # который доказывает именно это на игре (не «функция вызвалась»). Тест добавлен или изменён в этом PR.
 # Формат строки: - **0.23** (дата, PR #N): что видно. Зачем игроку: … Доказывает: `test_имя`.
 set -u
+. "$(dirname "${BASH_SOURCE[0]}")/../check_mode.sh"; run_in fast kniga || exit 0
 base=origin/${BASE_REF:-${GITHUB_BASE_REF:-}}
 if [ "$base" = "origin/" ] || ! git rev-parse -q --verify "$base" >/dev/null; then
   echo "  нет базы PR — смысл не сверяю"; exit 0

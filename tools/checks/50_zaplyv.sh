@@ -3,5 +3,6 @@
 # и капсула, фаги и CRISPR, мир без краёв, разные миры, простой игрок живёт дольше минуты.
 # Запуск в WebKit и время кадра проверяет tools/web/check_zaplyv.sh в workflow web.
 set -u
+. "$(dirname "${BASH_SOURCE[0]}")/../check_mode.sh"; run_in fast || exit 0
 command -v node >/dev/null || { echo "  нет node — проверить «Заплыв» нечем"; exit 1; }
 timeout 300 node proby/zaplyv/test.mjs
