@@ -623,7 +623,7 @@ check('test_L019: Альманах — разделы, счёт словами, 
     if (!T[k] || !T[k].kto || !T[k].priroda) return `у «${k}» нет текста книги «кто это» и «в природе»`; }
   for (const g of Object.keys(cfg.genes)) if (!E['gene:' + g] || !(E['gene:' + g].span > 0)) return `гена «${g}» нет в Альманахе`;
   const met = new Set(['me', 'phage', 'amoeba', 'plant']), S = shelf(K, E, met);
-  if (S.count !== 'Ты знаешь 2 обитателей капли из 10 · 1 еду из 2') return 'счёт не словами: ' + S.count;
+  if (!/^Ты знаешь 2 обитателей капли из 1[0-9] · 1 еду из 2$/.test(S.count)) /* обитателей прибавляется с каждой записью движка */ return 'счёт не словами: ' + S.count;
   if (S.pills.map(p => p.s).join() !== 'life,food' || S.pills[0].label !== 'Обитатели · 2') return 'разделы: ' + S.pills.map(p => p.label).join(', ');
   met.add('gene:capsule'); const S2 = shelf(K, E, met, 'gene');
   if (!S2.pills.some(p => p.s === 'gene') || !S2.list.every(k => E[k].sec === 'gene') || !S2.count.endsWith('· 1 ген')) return 'раздел генов: ' + S2.count;
