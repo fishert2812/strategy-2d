@@ -14,7 +14,7 @@ float vn(vec3 x){ vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
 
 // Общий свет: рассеянный, блик, кромка (Френель) другим цветом, прозрачность по краю гуще.
 const LIGHT_FRAG = `
-uniform float bump; uniform float alpha0; uniform float rimK; uniform float ridge;
+uniform float bump; uniform float alpha0; uniform float rimK; uniform float ridge; uniform float edgeA;
 varying vec3 vN; varying vec3 vP; varying vec4 vA; varying vec3 vB;
 ${NOISE}
 void main(){
@@ -26,14 +26,14 @@ void main(){
   float fres = pow(1.0 - abs(n.z), 2.2);
   float spec = pow(max(dot(reflect(-L, n), vec3(0.0, 0.0, 1.0)), 0.0), 28.0);
   float cav = 0.75 + 0.25 * vn(q * 2.0);
-  float rg = ridge * (1.0 - smoothstep(0.0, 0.09, abs(vn(vP * 3.5) - 0.5))) * (1.0 - fres); // светлые складки мембраны сеткой поперёк тела (амёба на образцах)
+  float rg = ridge * max(1.0 - smoothstep(0.0, 0.08, abs(vn(vP * 3.0) - 0.5)), 0.8 * (1.0 - smoothstep(0.0, 0.07, abs(vn(vP * 6.5 + 4.0) - 0.5)))) * (1.0 - 0.6 * fres); // две сетки разной частоты: тяжи густые, как на образце // светлые складки мембраны сеткой поперёк тела (амёба на образцах)
   vec3 col = vA.rgb * (0.18 + 0.72 * d) * cav + vB * fres * rimK + spec * 0.55 + vB * rg;
-  gl_FragColor = vec4(col, vA.a * min(1.0, mix(alpha0, 1.0, fres) + rg * 0.6));
+  gl_FragColor = vec4(col, vA.a * min(1.0, mix(alpha0, edgeA, fres) + rg * 0.6));
 }`;
 
 function kind(geo, max, vertexBody, opts = {}) {
   const mat = new THREE.ShaderMaterial({
-    uniforms: { time: { value: 0 }, bump: { value: opts.bump ?? 0.35 }, alpha0: { value: opts.alpha0 ?? 1 }, rimK: { value: opts.rimK ?? 1.1 }, ridge: { value: opts.ridge ?? 0 } },
+    uniforms: { time: { value: 0 }, bump: { value: opts.bump ?? 0.35 }, alpha0: { value: opts.alpha0 ?? 1 }, rimK: { value: opts.rimK ?? 1.1 }, ridge: { value: opts.ridge ?? 0 }, edgeA: { value: opts.edgeA ?? 1 } },
     transparent: (opts.alpha0 ?? 1) < 1, depthWrite: (opts.alpha0 ?? 1) >= 1, flatShading: !!opts.flat,
     vertexShader: `uniform float time; attribute vec4 cA; attribute vec3 cB; attribute vec4 prm;
       varying vec3 vN; varying vec3 vP; varying vec4 vA; varying vec3 vB;
@@ -89,14 +89,14 @@ export class Bodies {
        float r = 1.0 + 0.22 * (vn(dir * 2.2 + vec3(time * 0.35 + prm.y)) - 0.5) * 2.0;
        float lobe = max(0.0, dot(dir.xy, vec2(cos(prm.z), sin(prm.z))));
        r += 0.45 * pow(lobe, 4.0) * prm.x + 0.3 * pow(max(0.0, vn(dir * 1.3 + vec3(prm.y, time * 0.2, 0.0)) - 0.45) * 2.0, 2.0);
-       p = dir * r; nn = dir;`, { bump: 0.55, alpha0: 0.28, order: 2, rimK: 1.1, ridge: 1.3 }); // амёба: зовёт vid.js (amoeba3d)
+       p = dir * r; nn = dir;`, { bump: 0.55, alpha0: 0.3, order: 2, rimK: 0.6, ridge: 1.6, edgeA: 0.55 }); // амёба: зовёт vid.js (amoeba3d)
     // Шип акантамёбы (акантоподия): стеклянный конус, остриём наружу; гнётся дугой к острию (prm.z), чуть дышит.
     // Ложноножка-палец акантамёбы (образец Романа): сужается к круглому кончику, гнётся дугой (prm.z) и волной (prm.w), медленно шевелится.
     const fp = []; for (let i = 0; i <= 16; i++) { const u = i / 16; fp.push(new THREE.Vector2(0.7 + 0.6 * (1 - u) ** 3 + 0.3 * (1 - u), -1 + 2 * u)); } // у корня расширяется — палец вырастает из массы тела
     for (let i = 1; i <= 8; i++) { const a = i / 8 * Math.PI / 2; fp.push(new THREE.Vector2(Math.max(0.7 * Math.cos(a), 1e-4), 1 + 0.7 * Math.sin(a) * 0.7)); } // тупой круглый кончик: трубка, не игла
     this.spines = kind(new THREE.LatheGeometry(fp, 24), 500,
       'float u = (p.y + 1.0) * 0.5; float wv = prm.w * sin(u * 4.5 + time * 0.8 + prm.y) * u; p.x += prm.z * u * u + wv; nn.x -= prm.z * u; nn = normalize(nn); p += nn * 0.04 * sin(time * 2.0 + prm.y + p.y * 3.0);',
-      { bump: 0.05, alpha0: 0.6, order: 1, rimK: 1.0, ridge: 0.25, after: 'vA.a *= smoothstep(-1.0, -0.55, position.y);' }); // раньше тела; основание тает в теле — сквозь стекло не видно срезов
+      { bump: 0.05, alpha0: 0.7, order: 1, rimK: 0.8, ridge: 0.5, after: 'vA.a *= smoothstep(-1.0, -0.55, position.y);' }); // раньше тела; основание тает в теле — сквозь стекло не видно срезов
     const head = new THREE.IcosahedronGeometry(1, 0).toNonIndexed(); head.computeVertexNormals();
     this.head = kind(head, 120, '', { bump: 0.0, order: 3, flat: true, rimK: 0.8, alpha0: 0.35 }); // голова фага — стекло: сквозь неё видна нить ДНК (fx.js), грани блестят ободком
     this.tail = kind(new THREE.CylinderGeometry(0.28, 0.28, 2, 8), 120, '', { bump: 0.1, order: 1 });
