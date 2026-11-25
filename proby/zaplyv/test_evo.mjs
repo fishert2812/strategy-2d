@@ -17,15 +17,15 @@ const bot = w => { const c = w.center(); let best = null, bd = 400;
   return best ? { x: best.x, y: best.y } : { dx: Math.cos(w.dir), dy: Math.sin(w.dir), p: 1 }; };
 const SAFE = ['amoebas', 'phages', 'bdellos', 'slippers', 'bells', 'rotis', 'pseudos']; // выбор и рост меряем без хищников
 const play = (seed, sec) => {
-  const w = new World(cfg, seed); w.mode = MODE; w.dir = seed * 1.3; let rosts = 0, asks = 0, most = 1; const got = [];
+  const w = new World(cfg, seed); w.mode = MODE; w.dir = seed * 1.3; let rosts = 0, asks = 0, most = 1; const got = [], cards = [];
   for (let i = 0; i < 30 * sec && w.me.length; i++) {
     for (const k of SAFE) w[k] = [];
     w.step(1 / 30, bot(w)); most = Math.max(most, w.me.length);
     for (const e of w.events) if (e[0] === 'rost') rosts++; w.events.length = 0;
-    if (w.choice.length) { asks++; if (new Set(w.choice).size !== w.choice.length || w.choice.some(g => w.genes[g])) got.push('!'); got.push(w.choice[0]); w.pick(w.choice[0]); }
+    if (w.choice.length) { asks++; if (new Set(w.choice).size !== w.choice.length || w.choice.some(g => w.genes[g])) got.push('!'); got.push(w.choice[0]); cards.push([...w.choice]); w.pick(w.choice[0]); }
     if (i % 300 === 0) w.dir += 0.7;
   }
-  return { w, rosts, asks, most, got };
+  return { w, rosts, asks, most, got, cards };
 };
 const runs = [2, 3, 4, 5, 6, 7].map(s => play(s, 300)), grown = runs.filter(r => r.rosts >= 4); // в капле можно и погибнуть: меряем по выросшим
 
@@ -71,10 +71,12 @@ check('test_evo_glotat: «Глотает целиком» — ест живых 
   if (res['амёба у маленькой'].alive) return 'маленькую амёба не съела — проверка ничего не меряет';
 });
 
-check('test_evo_glotat_vybor: «Глотает целиком» обязательно среди выбора со второго роста', () => {
-  const late = runs.filter(r => r.rosts >= 2 && !r.got.slice(0, 2).includes('gulp'));
-  if (late.length) return `не предложили к второму росту в ${late.length} заплывах`;
-});
+check('test_evo_glotat_vybor: «Глотает целиком» приходит событием — одной карточкой на своём росте', () => {
+  const k = evo.E.glotat.k, at = r => r.cards.findIndex(c => c.includes('gulp'));
+  console.log('    «Глотать» на выборе №', runs.map(r => at(r) + 1).join(', '), '| карточки:', runs.map(r => JSON.stringify(r.cards[at(r)])).join(' '));
+  const bad = runs.filter(r => r.rosts >= k && (at(r) < 0 || at(r) > k - 1 || r.cards[at(r)].length !== 1));
+  if (bad.length) return `не пришло одной карточкой к ${k}-му росту в ${bad.length} заплывах`;
+})
 
 // Доказательство Г55: с умением укол носом в упор убивает соперницу (стоит, раздувается, растекается соком); без умения — нет; кокка игла не берёт.
 check('test_evo_igla: «Нить-игла» — укол носом в упор убивает соперницу, она растекается едой; кокка не берёт', () => {

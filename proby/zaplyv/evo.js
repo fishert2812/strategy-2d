@@ -4,6 +4,8 @@
 // и свои умения режима, ветка хищника:
 //   gulp — Г51 «Глотает целиком»: коснулась живой клетки заметно мельче себя — она тает внутри и идёт в рост.
 //          Кто «мельче» — решает масса, поэтому выросшая ест и тех, кто ел её в начале (амёба, колокольчик, коловратка, туфелька).
+//   еда крупнеет вместе с клеткой (логика режима, ЛЭ10): с роста s новые кокки рождаются крупнее, в k раз на каждый
+//          следующий рост, — иначе корма на следующий рост почти нет и рост встаёт.
 //   igla — Г55 «Нить-игла» (шестой путь выделения, T6SS; биолог, круги 15–16): коснулась носом бактерии-соперницы —
 //          уколотая замирает, раздувается шариком (яд режет стенку изнутри) и через t секунд растекается соком. Кокков не берёт.
 // Свой файл; sim.js зовёт отсюда step(), main.js — draw(). Числа и слова — evo.json, имена генов — только книга.
@@ -22,13 +24,13 @@ const mass = (q, who) => q.m || E.glotat.razmer[who] || 1;
 // Шаг режима: глотание и выбор способности на росте (событие rost из rost.js). Способность берёт world.pick — уровни умений там же.
 export function step(w, dt, radius) {
   if (!on(w)) return;
-  gulp(w, dt, radius); igla(w, radius);
+  gulp(w, dt, radius); igla(w, radius); krupneet(w);
   if (w.choice.length || !w.events.some(e => e[0] === 'rost')) return;
   const left = pool(w);
   for (let i = left.length - 1; i > 0; i--) { const j = Math.floor(w.r() * (i + 1)); [left[i], left[j]] = [left[j], left[i]]; }
   const n = w.events.find(e => e[0] === 'rost')[3];
-  if (n >= E.glotat.k && left.includes('gulp')) left.unshift(...left.splice(left.indexOf('gulp'), 1)); // хищная ветка не теряется в жребии
-  w.choice = left.slice(0, E.vybor);
+  if (n >= E.glotat.k && left.includes('gulp')) { w.choice = ['gulp']; return; } // «Глотать» — событие, а не одна из карт: одна карточка (логика режима, ЛЭ14)
+  w.choice = left.filter(g => g !== 'gulp').slice(0, E.vybor);
 }
 
 // Г51: касание добычи — она уходит из мира и тает внутри клетки (w.gulps), за t секунд её масса переходит в рост.
@@ -54,6 +56,13 @@ function gulp(w, dt, radius) {
       }
     }
   }
+}
+
+// Новые кокки — по росту клетки: помеченные (q.evo) уже подогнаны.
+function krupneet(w) {
+  const n = (w.rost || 0) - E.eda.s; if (n <= 0) return;
+  const k = E.eda.k ** n;
+  for (const q of w.prey) if (!q.evo) { q.evo = true; q.m *= k; }
 }
 
 // Г55: укол в упор — соперница у носа клетки (впереди, в пределах dlina за краем); скорость не нужна (круг 16). Уколотая стоит (её ход в sim.js гаснет:
