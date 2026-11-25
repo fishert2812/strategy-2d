@@ -239,6 +239,16 @@ check('test_vid_ameba_obrazec: акантамёба ближе к образца
   const big = ink.filter(p => p.c[0] === A.vac_col[0] && p.c[1] === A.vac_col[1]).map(p => p.r); if (Math.max(...big) > r * 0.15) return 'розовые пузырьки крупнее, чем на образцах';
   return '';
 });
+check('test_vid_sploshno: у своей клетки нити сплошные — жгутик и ворсинки рисуются линией, а не бусами и не отдельными голубыми точками (L047, Роман про пунктир: «халтура»)', () => {
+  const runs = [], br = { put: (x, y, r, cr, cg, cb) => runs.push({ x, y, r, c: cr + ',' + cg + ',' + cb }) };
+  const a = { id: 7, x: 0, y: 0, m: 1, a: 0, vx: 0, vy: 0 };
+  vid.skin({ a, lk: look({}, cfgD.look, 0), x: 0, y: 0, ang: 0, ax: 1, ay: 0, half: 20, w: 9, z: 1, along: (u, o) => [u, o], arc: () => 0, body: { at: () => [0, 0] }, scr: (x, y) => [x, y],
+    time: 1, pdt: 0, run: false, phageNear: false, foodNear: false, spacers: 0, plasmid: false, cfg: cfgD, alive: [a], glow: br, ink: br });
+  const gaps = (col, per = 0) => { const q = runs.filter(p => p.c === col.join(',')); let bad = 0, n = 0; for (let i = 1; i < q.length; i++) { if (per && i % per === 0) continue; const d = Math.hypot(q[i].x - q[i - 1].x, q[i].y - q[i - 1].y); if (d > 6) continue; n++; if (d > q[i].r + q[i - 1].r) bad++; } return [bad, n]; };
+  const [fb, fn] = gaps(cfgD.flag.color); if (!fn || fb > fn * 0.05) return 'жгутик бусами: разрывов ' + fb + ' из ' + fn;
+  const [pb, pn] = gaps(vid.V.pili.col, vid.V.pili.n + 1); if (pn < 40 || pb) return 'ворсинки точками, а не линией: разрывов ' + pb + ' из ' + pn;
+  return '';
+});
 check('test_vid_capsule_dent: капсула прогибается от удара хищника и пружинит обратно', () => {
   vid.stepVid(5); const was = paint({ capsule: true }).join('|'); vid.poke(-15, 13); const hit = paint({ capsule: true }).join('|');
   vid.stepVid(5); const after = paint({ capsule: true }).join('|');

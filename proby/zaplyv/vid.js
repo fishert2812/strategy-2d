@@ -95,7 +95,7 @@ export function skin(c) {
   }
   if (!lk.pili) for (let k = 0; k < 16; k++) { // пили: короткие ворсинки по всей оболочке (без гена фимбрий)
     const t = k / 16 * 6.283, c = Math.cos(t), s = Math.sin(t), l = 1 + 0.25 * Math.sin(time * 3 + k * 1.7 + a.id);
-    for (const e of [1.08, 1.32 * l]) { const u = c * (half - w * 0.2) + c * w * (e - 1), [px, py] = along(u, s * w * e + arc(u / z)); ink.put(px, py, 0.9 * z + 0.4, 0.55, 0.9, 1, 0.55); }
+    for (let i = 0; i <= V.pili.n; i++) { const e = 1.04 + (1.32 * l - 1.04) * i / V.pili.n, u = c * (half - w * 0.2) + c * w * (e - 1), [px, py] = along(u, s * w * e + arc(u / z)); ink.put(px, py, (V.pili.r * z + 0.25) * (1 - 0.4 * i / V.pili.n), ...V.pili.col, V.pili.a); } // сплошная тонкая ворсинка, не две бусины (L047)
   }
   if (lk.halo) { // капсула: стеклянная плёнка — ровный светлый ободок и пустое кольцо до тела; не колышется. Ткнулся хищник — прогнулась и спружинила
     const C = V.capsule, dn = dents.map(d => { const [dx, dy] = scr(d.x, d.y), f = d.t / C.dent_t; return [dx, dy, C.dent * w * Math.exp(-f * 4) * Math.cos(f * 14)]; });
@@ -166,8 +166,8 @@ export function skin(c) {
     const [sx0, sy0] = along(-half + w * 0.3, (f - mid) * w * 0.22 * sp5 + arc(half / z)), spread = (f - mid) * 0.6 * sp5;
     const fdx = -Math.cos(ang + spread), fdy = -Math.sin(ang + spread), curl = P * (f % 3 === 1 ? 1 : 0.25); // в кувырке нить меняет форму спирали
     const ph = F.ph + f * 0.5, slow = F.t * 0.6 + f * 1.7;
-    for (let k = 1; k <= 40; k++) {
-      const s = k / 40, grow = Math.min(1, s * 3);
+    for (let k = 1; k <= V.whip.n; k++) { // нить сплошная: точки гуще своего размера, не бусы (L047)
+      const s = k / V.whip.n, grow = Math.min(1, s * 3);
       // покой: от бока наружу, медленная волна + броуновская дрожь
       let xr = 0, yr = 0, xt = 0, yt = 0;
       if (B < 0.995) { const Lr = s * w * 5.2, wr = (Math.sin(s * 7 - ph * 0.3) * 0.3 + Math.sin(s * 3 + slow) * 0.35 + Math.sin(s * 11 - slow * 2.3) * 0.08) * w * grow;
@@ -182,7 +182,7 @@ export function skin(c) {
       const bs = s * w * 5.8, wf = Math.sin(s * (10 + 10 * curl) - ph) * w * (0.42 - 0.21 * curl) * grow;
       const xf = sx0 + fdx * bs - fdy * wf, yf = sy0 + fdy * bs + fdx * wf;
       xt = xb + (xf - xb) * P; yt = yb + (yf - yb) * P; }
-      glow.put(xr + (xt - xr) * B, yr + (yt - yr) * B, (0.8 * Math.max(z, 0.7) + 0.3) * (1 - s * 0.45), fc[0], fc[1], fc[2], cfg.flag.alpha * (1 - s * 0.6)); // нить в цвете оболочки: светло-голубая, тоньше и прозрачнее к концу
+      glow.put(xr + (xt - xr) * B, yr + (yt - yr) * B, (0.8 * Math.max(z, 0.7) + 0.3) * (1 - s * 0.45), fc[0], fc[1], fc[2], cfg.flag.alpha * V.whip.a * (1 - s * 0.6)); // нить в цвете оболочки: светло-голубая, тоньше и прозрачнее к концу
     }
   }
 }
