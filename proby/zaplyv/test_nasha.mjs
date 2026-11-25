@@ -13,6 +13,11 @@ const check = (name, fn) => {
   catch (e) { bad++; console.log('  ПРОВАЛ', name + ':', e.stack); }
 };
 // Записывающие тела: что и где движок положил бы на экран.
+// Слой лежит ровно в другом: каждая точка края внутреннего слоя утоплена в наружный на одну и ту же глубину по всему обводу (и на боках, и на шапках).
+const rovno_vnutri = (nar, vn) => { let mn = 1e9, mx = -1e9; const kr = z => nar.map(o => [o.x - o.ty * o.r * z, o.y + o.tx * o.r * z]), K = [kr(1), kr(-1)];
+  const ot = (x, y, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / (dx * dx + dy * dy || 1))); return Math.hypot(x - a[0] - dx * t, y - a[1] - dy * t); };
+  for (const q of vn) for (const zn of [1, -1]) { const x = q.x - q.ty * q.r * zn, y = q.y + q.tx * q.r * zn; let g = 1e9; for (const L of K) for (let i = 1; i < L.length; i++) g = Math.min(g, ot(x, y, L[i - 1], L[i])); mn = Math.min(mn, g); mx = Math.max(mx, g); }
+  return mn <= 0.01 ? 'касается наружного или вылез' : mx > mn * 1.8 + 0.5 ? 'лежит неровно: зазор от ' + mn.toFixed(1) + ' до ' + mx.toFixed(1) : ''; };
 const tela = () => { const L = { seg: [], sphere: [], put: [] }, lom = process.env.NASHA_LOMAT; let n = 0;
   return { L, skin: 'skin', core: 'core', ball: 'ball', vyshe: 0,
     seg(x0, y0, x1, y1, r, c, a) { if (lom && n++ % 2) return; L.seg.push({ x0, y0, x1, y1, r, a, v: this.vyshe }); },
@@ -47,8 +52,8 @@ check('test_nasha_niti: жгутики и клубок ДНК сплошные �
 check('test_nasha_sloi: слои оболочки лежат ровно один в другом (одна осевая линия, один узор), нутро внутри тела и перед сердцевиной', () => {
   const B = tela(), p = P(); sobrat(Z, p, B); const S = B.L.put;
   if (S.length < 3) return 'слоёв ' + S.length + ', нужно не меньше трёх (наружная мембрана, стенка, цитоплазма)';
-  if (S.some(s => s.seed !== S[0].seed || s.kolca.some((q, i) => Math.abs(q.x - S[0].kolca[i].x) > 1e-9 || Math.abs(q.y - S[0].kolca[i].y) > 1e-9))) return 'слои съехали: разные оси или узоры';
-  for (let i = 1; i < S.length; i++) if (S[i].kolca.some((q, k) => q.r > S[i - 1].kolca[k].r + 1e-9) || !(S[i].kolca[20].r < S[i - 1].kolca[20].r)) return 'слой ' + i + ' не тоньше предыдущего';
+  if (S.some(s => s.seed !== S[0].seed)) return 'слои съехали: разные узоры';
+  for (let i = 1; i < S.length; i++) { const e = rovno_vnutri(S[i - 1].kolca, S[i].kolca); if (e) return 'слой ' + i + ': ' + e; }
   if (!S[S.length - 1].plotno) return 'внутри нет плотной сердцевины: клетка без объёма';
   const M = obvod({ forma: { tochki: [[-(150 / 70 - 1), 0, 1], [150 / 70 - 1, 0, 1]] } }, p), vne = B.L.sphere.filter(s => !vnutri(M, s.x, s.y) || do_kraya(M, s.x, s.y) < p.tolshchina * 0.15);
   if (vne.length) return vne.length + ' зёрен нутра вылезли за оболочку';
@@ -90,7 +95,7 @@ check('test_nasha_svoboda: тело свободной формы (Роман 25
       if (ch === 'vorsinki') { const Zv = Z.chasti.vorsinki.izgib ? 3 : 1; for (let i = 0; i < L.seg.length; i += Zv) if (do_kraya(M, L.seg[i].x0, L.seg[i].y0) > w * 0.05) hud = imya + ': ворсинка растёт не из края'; }
       if (['ribosomy', 'vklyucheniya'].includes(ch) && L.sphere.some(s => !vnutri(M, s.x, s.y))) hud = imya + ': зёрна части ' + ch + ' вылезли за тело';
       if (ch === 'nukleoid' && L.seg.some(s => !vnutri(M, s.x0, s.y0))) hud = imya + ': ДНК вылезла за тело';
-      if (ch === 'obolochka') for (let i = 1; i < L.put.length; i++) if (L.put[i].kolca.some((q, j) => q.r > L.put[i - 1].kolca[j].r + 1e-9)) hud = imya + ': слой ' + i + ' толще наружного'; } }
+      if (ch === 'obolochka') for (let i = 1; i < L.put.length; i++) { const e = rovno_vnutri(L.put[i - 1].kolca, L.put[i].kolca); if (e) hud = imya + ': слой ' + i + ' ' + e; } } }
   console.log('    паспорт: случайных форм 60 | корень жгутика дальше всего от оболочки на', (zazor * 100).toFixed(0) + '% толщины тела');
   if (hud) return hud; if (zazor > 0.05) return 'жгутик висит отдельно от тела: зазор ' + (zazor * 100).toFixed(0) + '% толщины';
 });

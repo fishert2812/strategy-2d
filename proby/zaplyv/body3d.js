@@ -14,7 +14,7 @@ float vn(vec3 x){ vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
 
 // Общий свет: рассеянный, блик, кромка (Френель) другим цветом, прозрачность по краю гуще.
 const LIGHT_FRAG = `
-uniform float bump; uniform float alpha0; uniform float rimK; uniform float ridge; uniform float edgeA;
+uniform float bump; uniform float alpha0; uniform float rimK; uniform float ridge; uniform float edgeA; uniform float rovno;
 varying vec3 vN; varying vec3 vP; varying vec4 vA; varying vec3 vB;
 ${NOISE}
 void main(){
@@ -28,13 +28,13 @@ void main(){
   float spec = pow(max(dot(reflect(-L, n), vec3(0.0, 0.0, 1.0)), 0.0), 28.0);
   float cav = 0.75 + 0.25 * vn(q * 2.0);
   float rg = ridge * max(1.0 - smoothstep(0.0, 0.075, abs(vn(vP * 4.0) - 0.5)), 0.35 * (1.0 - smoothstep(0.0, 0.045, abs(vn(vP * 8.0 + 4.0) - 0.5)))) * (1.0 - 0.6 * fres); // две сетки разной частоты: тяжи густые, как на образце // светлые складки мембраны сеткой поперёк тела (амёба на образцах)
-  vec3 col = vA.rgb * (0.18 + 0.72 * d) * cav + vB * fres * rimK + spec * 0.55 + vB * rg;
+  vec3 col = vA.rgb * mix(0.18 + 0.72 * d, 0.5, rovno) * cav + vB * fres * rimK + spec * 0.55 + vB * rg;
   gl_FragColor = vec4(col, vA.a * min(1.0, mix(alpha0, edgeA, fres) + rg * 0.6) * (1.0 - 0.85 * smoothstep(0.9, 1.0, f0))); // самый край мягко тает, а не обрывается ступенькой
 }`;
 
 function kind(geo, max, vertexBody, opts = {}) {
   const mat = new THREE.ShaderMaterial({
-    uniforms: { time: { value: 0 }, bump: { value: opts.bump ?? 0.35 }, alpha0: { value: opts.alpha0 ?? 1 }, rimK: { value: opts.rimK ?? 1.1 }, ridge: { value: opts.ridge ?? 0 }, edgeA: { value: opts.edgeA ?? 1 } },
+    uniforms: { time: { value: 0 }, bump: { value: opts.bump ?? 0.35 }, alpha0: { value: opts.alpha0 ?? 1 }, rimK: { value: opts.rimK ?? 1.1 }, ridge: { value: opts.ridge ?? 0 }, edgeA: { value: opts.edgeA ?? 1 }, rovno: { value: opts.rovno ?? 0 } },
     transparent: (opts.alpha0 ?? 1) < 1, depthWrite: (opts.alpha0 ?? 1) >= 1, flatShading: !!opts.flat,
     vertexShader: `uniform float time; attribute vec4 cA; attribute vec3 cB; attribute vec4 prm;
       varying vec3 vN; varying vec3 vP; varying vec4 vA; varying vec3 vB;
@@ -158,7 +158,7 @@ export class Bodies {
     if (!m || m.kolec !== R) { const geo = new THREE.BufferGeometry(), idx = [];
       for (const [k, n] of [['position', 3], ['normal', 3], ['uv', 2]]) geo.setAttribute(k, new THREE.BufferAttribute(new Float32Array(R * (G + 1) * n), n).setUsage(THREE.DynamicDrawUsage));
       for (let j = 0; j < R - 1; j++) for (let k = 0; k < G; k++) { const a = j * (G + 1) + k, b = a + G + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); } geo.setIndex(idx);
-      const old = m; m = kind(geo, 1, '', plotno ? { bump: 0.55, order: 1, rimK: 0.5, vp: 'vec3(uv.x, uv.y, normal.z)' } : { bump: 0.25, alpha0: 0.22, order: 3, rimK: 1.6, vp: 'vec3(uv.x, uv.y, normal.z)' });
+      const old = m; m = kind(geo, 1, '', plotno ? { bump: 0.55, order: 1, rimK: 0.5, vp: 'vec3(uv.x, uv.y, normal.z)' } : { bump: 0.25, alpha0: 0.22, order: 3, rimK: 1.6, rovno: 0.75, vp: 'vec3(uv.x, uv.y, normal.z)' });
       m.setMatrixAt(0, new THREE.Matrix4()); m.kolec = R; if (old) { this.scene.remove(old); this.all[this.all.indexOf(old)] = m; P.m[P.n - 1] = m; } else { this.all.push(m); P.m.push(m); } this.scene.add(m); }
     const A = m.geometry.attributes, p = A.position.array, nr = A.normal.array, uv = A.uv.array, z0 = this.vyshe || 0; let i = 0;
     for (const q of kolca) for (let k = 0; k <= G; k++) { const t = k / G * 6.2832, c = Math.cos(t), sn = Math.sin(t), nx = -q.ty * c, ny = q.tx * c; // радиус кольца: в плоскости экрана по нормали оси, из экрана по z

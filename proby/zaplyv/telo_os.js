@@ -3,11 +3,15 @@
 // нос — последняя точка). Палочка, шар, запятая, груша — просто разные положения точек. Отсюда берут своё место все части
 // (vid_chasti.js: край, нормаль, нутро), объёмное тело (body3d.js loft) и физика (объём, длина, поперечник). Чистая математика.
 const cr = (a, b, c, d, t) => 0.5 * (2 * b + (c - a) * t + (2 * a - 5 * b + 4 * c - d) * t * t + (3 * b - a - 3 * c + d) * t * t * t);
-export function os(tochki, N = 28, r_min = 0.2) {
+export function os(tochki, N = 28, r_min = 0.2, glubzhe = 0) { // glubzhe: то же тело, но тоньше на эту глубину по всему обводу (внутренний слой оболочки): ось та же самая
   const T = tochki.length > 1 ? tochki : [[tochki[0][0] - 0.01, tochki[0][1], tochki[0][2]], [tochki[0][0] + 0.01, tochki[0][1], tochki[0][2]]], K = T.length - 1, S = [];
   for (let i = 0; i <= N; i++) { const f = i / N * K, k = Math.min(K - 1, Math.floor(f)), t = f - k, p = j => T[Math.max(0, Math.min(K, k + j))];
     S.push({ x: cr(p(-1)[0], p(0)[0], p(1)[0], p(2)[0], t), y: cr(p(-1)[1], p(0)[1], p(1)[1], p(2)[1], t), r: Math.max(r_min, cr(p(-1)[2], p(0)[2], p(1)[2], p(2)[2], t)), s: 0 }); }
-  for (let k = 0; k < 2; k++) { const c = S.map(q => [q.x, q.y, q.r]); for (let i = 1; i < N; i++) { S[i].x = (c[i - 1][0] + 2 * c[i][0] + c[i + 1][0]) / 4; S[i].y = (c[i - 1][1] + 2 * c[i][1] + c[i + 1][1]) / 4; S[i].r = (c[i - 1][2] + 2 * c[i][2] + c[i + 1][2]) / 4; } } // сгладить: без изломов оси и ступенек толщины
+  for (let k = 0; k < 4; k++) { const c = S.map(q => [q.x, q.y, q.r]); for (let i = 1; i < N; i++) { S[i].x = (c[i - 1][0] + 2 * c[i][0] + c[i + 1][0]) / 4; S[i].y = (c[i - 1][1] + 2 * c[i][1] + c[i + 1][1]) / 4; S[i].r = (c[i - 1][2] + 2 * c[i][2] + c[i + 1][2]) / 4; } } // сгладить: без изломов оси и ступенек толщины
+  // Ось не может гнуться круче, чем позволяет толщина тела: иначе стенка на внутренней стороне изгиба наезжает сама на себя (залом). Такое место ось распрямляет сама.
+  const krut = () => { let m = 0; for (let i = 1; i < N; i++) { const a = S[i - 1], b = S[i], c = S[i + 1], l1 = Math.hypot(b.x - a.x, b.y - a.y) || 1e-9, l2 = Math.hypot(c.x - b.x, c.y - b.y) || 1e-9, ug = Math.abs(Math.atan2((b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x), (b.x - a.x) * (c.x - b.x) + (b.y - a.y) * (c.y - b.y))); m = Math.max(m, ug / ((l1 + l2) / 2) * b.r); } return m; };
+  for (let k = 0; k < 80 && krut() > 0.4; k++) { const c = S.map(q => [q.x, q.y]); for (let i = 1; i < N; i++) { S[i].x = (c[i - 1][0] + 2 * c[i][0] + c[i + 1][0]) / 4; S[i].y = (c[i - 1][1] + 2 * c[i][1] + c[i + 1][1]) / 4; } }
+  if (glubzhe) for (const q of S) q.r = Math.max(0.06, q.r - glubzhe);
   for (let i = 0; i <= N; i++) { const a = S[Math.max(0, i - 1)], b = S[Math.min(N, i + 1)], l = Math.hypot(b.x - a.x, b.y - a.y) || 1; S[i].tx = (b.x - a.x) / l; S[i].ty = (b.y - a.y) / l; if (i) S[i].s = S[i - 1].s + Math.hypot(S[i].x - S[i - 1].x, S[i].y - S[i - 1].y); }
   const dl = S[N].s, r0 = S[0].r, r1 = S[N].r, vsya = dl + r0 + r1, H = vsya / 2;
   // Сечение тела на расстоянии a от кончика кормы (0 … vsya): центр, касательная, полуширина. На торцах — круглые шапки.
