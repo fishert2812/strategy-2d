@@ -4,13 +4,18 @@
 const url = new URL('./konstruktor.json', import.meta.url);
 export const K = url.protocol === 'file:' ? JSON.parse((await import('node:fs')).readFileSync(url, 'utf8')) : await (await fetch(url)).json();
 
-// Радиус шара того же объёма, что тело (в толщинах эталонной палочки): по нему вода сопротивляется, трясёт и кормит.
-export const radius = f => Math.cbrt(f.dlina * f.cepochka * f.tolshchina * f.tolshchina);
-// Поведение по форме. Всё отношением к эталону (серая соперница): Л2 v = F / (6πμa); Л3 D = kT / (6πμa); Л6 J = 4πDac.
+// Размеры тела в микрометрах: длина всей цепочки, толщина, радиус шара того же объёма (по нему вода разворачивает и кормит).
+export function razmery(f, k = K) { const L = f.dlina * f.cepochka * k.priroda.mkm, d = f.tolshchina * k.priroda.mkm; return { L, d, r: Math.cbrt(3 / 16 * d * d * L) }; }
+export const radius = (f, k = K) => razmery(f, k).r;
+// Поведение по форме, в настоящих единицах. Л2: v = F / R, R = 3πμd(0,8 + 0,2·L/d) — вытянутое тело вдоль оси.
+// Л3: время, за которое вода разворачивает тело, t = 8πμr³ / kT. Л6: приход еды J = 4πDrC ∝ r, на единицу тела ∝ 1/r².
+// Тяга эталона подобрана так, чтобы серая соперница плыла ровно со своей скоростью из игры.
 export function fizika(f, cfg, k = K) {
-  const E = k.etalon, a = radius(f) / radius({ ...E }), tyaga = Math.pow(f.zhgutiki / E.zhgutiki, k.stepen_tyagi) * Math.pow(f.zh_dlina / E.zh_dlina, k.stepen_dliny);
-  const v0 = typeof E.skorost === 'string' ? cfg[E.skorost] : E.skorost;
-  return { tyaga, soprot: a, skorost: v0 * tyaga / a, ryskanie: E.ryskanie / a, eda_r: E.eda_r * a };
+  const P = k.priroda, E = k.etalon, soprot = z => 3 * Math.PI * P.mu * z.d * 1e-6 * (0.8 + 0.2 * z.L / z.d), kurs = z => 8 * Math.PI * P.mu * Math.pow(z.r * 1e-6, 3) / P.kT;
+  const z = razmery(f, k), z0 = razmery(E, k), R = soprot(z), R0 = soprot(z0), v0 = (typeof E.skorost === 'string' ? cfg[E.skorost] : E.skorost) / P.ed_v_mkm;
+  const tyaga = Math.pow(f.zhgutiki / E.zhgutiki, k.stepen_tyagi) * Math.pow(f.zh_dlina / E.zh_dlina, k.stepen_dliny), F = v0 * 1e-6 * R0 * tyaga, v = F / R * 1e6, a = z.r / z0.r;
+  return { tyaga, soprot: R / R0, skorost: v * P.ed_v_mkm, ryskanie: E.ryskanie * Math.pow(a, -1.5), eda_r: E.eda_r * a,
+    mkm: z, F_pN: F * 1e12, R_nN: R * 1e9, v_mkm: v, t_kurs: kurs(z), t_kurs0: kurs(z0), J: a, Jv: 1 / (a * a) };
 }
 // Запись для движка существ: вариация серой соперницы с этой формой и посчитанным поведением.
 export function anketa(f, cfg, k = K) {
@@ -19,9 +24,11 @@ export function anketa(f, cfg, k = K) {
       zhgutiki: f.zhgutiki === 1 ? { gde: 'korma', dlina: f.zh_dlina * 1.6, vitkov: 10, ...k.zhgutik } : { gde: 'krugom', n: f.zhgutiki, dlina: f.zh_dlina, ...k.zhgutik } },
     hod: { skorost: F.skorost, ryskanie: F.ryskanie }, eda: { r: F.eda_r }, rodnya: false, mir: { shans: [0, 0, 0], s_rosta: 0, zhrebiy: 'svoy' } };
 }
-// Строки под ползунками: закон книги и его числа сейчас, в процентах от серой соперницы.
+// Строки под ползунками: имя, процент от серой соперницы, слова и формула закона с подставленными числами.
 export function stroki(f, cfg, k = K) {
-  const F = fizika(f, cfg, k), E = fizika({ ...k.etalon }, cfg, k), pc = (a, b) => Math.round(a / b * 100);
-  const chisla = { tyaga: pc(F.tyaga, 1), soprot: pc(F.soprot, 1), skorost: pc(F.skorost, E.skorost), drozh: pc(F.ryskanie, E.ryskanie), eda: pc(F.eda_r, E.eda_r) };
-  return Object.entries(k.formuly).map(([n, z]) => ({ zakon: z.zakon, imya: z.imya, chislo: chisla[n], tekst: ((chisla[n] > 100 && z.bolshe) || (chisla[n] < 100 && z.menshe) || z.slova).replace(/\{(\w+)\}/g, (_, m) => chisla[m]) }));
+  const F = fizika(f, cfg, k), E = fizika({ ...k.etalon }, cfg, k), pc = (a, b) => Math.round(a / b * 100), n = (x, d = 2) => x.toFixed(d).replace('.', ',');
+  const chisla = { tyaga: pc(F.tyaga, 1), soprot: pc(F.soprot, 1), skorost: pc(F.skorost, E.skorost), drozh: pc(F.ryskanie, E.ryskanie), eda: pc(F.eda_r, E.eda_r),
+    F: n(F.F_pN, 3), R: n(F.R_nN, 1), v: n(F.v_mkm, 1), r: n(F.mkm.r), t: n(F.t_kurs), J: pc(F.J, 1), Jv: pc(F.Jv, 1) };
+  const vstav = t => t.replace(/\{(\w+)\}/g, (_, m) => chisla[m]);
+  return Object.entries(k.formuly).map(([key, z]) => ({ zakon: z.zakon, imya: z.imya, chislo: chisla[key], tekst: vstav((chisla[key] > 100 && z.bolshe) || (chisla[key] < 100 && z.menshe) || z.slova), formula: vstav(z.formula) }));
 }

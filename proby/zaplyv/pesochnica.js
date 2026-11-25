@@ -26,7 +26,7 @@ body:has(.layer.on) #pk,body:has(.layer.on) #pt{display:none}
 #pk{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:8px 10px calc(env(safe-area-inset-bottom) + 8px);background:linear-gradient(#02040a00,#02040af2 9%);font:15px/1.3 -apple-system,system-ui,sans-serif;color:#dff3f5;touch-action:pan-y}
 #pk .ryad{display:flex;gap:6px;padding:4px 0}#pk .ryad button{flex:1;padding:0 6px;font-size:14px}
 #pk .setka{display:grid;grid-template-columns:1fr 1fr;gap:2px 14px}#pk .polz{display:block;font-size:13.5px}#pk .polz span{display:block}#pk .polz input{display:block;width:100%;height:26px;margin:0;accent-color:#8fe6f2}body.kon #pt .kozha{visibility:hidden}
-#pk .zak{font-size:13.5px;line-height:1.3;padding:3px 0;color:#bfe6ea;min-height:36px}#pk .setka{margin-top:8px}#pk .zak b{display:inline-block;margin-right:6px;color:#fff;font-weight:600;font-size:15px}#pk .kon>button{width:100%;margin-top:6px}#pk .mera{font-size:13px;color:#a9d3d9;padding:2px 0;min-height:34px}
+#pk .zak{font-size:13px;line-height:1.25;padding:2px 0;color:#bfe6ea}#pk .setka{margin-top:8px}#pk .zak i{display:block;font-style:normal;font-size:12px;color:#8fe6f2;font-family:ui-monospace,Menlo,monospace;white-space:nowrap;letter-spacing:-0.3px}#pk .zak b{display:inline-block;margin-right:6px;color:#fff;font-weight:600;font-size:15px}#pk .kon>button{width:100%;margin-top:6px}#pk .mera{font-size:12.5px;color:#a9d3d9;padding:2px 0}
 body.kon #c{transform:scale(${KN.K.scena.masshtab});transform-origin:50% 0}body.kon #pk{background:linear-gradient(#02040a00,#02040a 5%)}#pst{display:none;position:fixed;inset:0;z-index:19}body.kon #pst{display:block}
 #pk button{flex:none;width:auto;margin:0;white-space:nowrap;min-height:44px;padding:0 14px;border-radius:22px;border:1px solid #3b8a96;background:#0a2832cc;color:#dff3f5;font:inherit}#pk button.net{display:none}
 #pk button.on{background:#dff3f5;border-color:#fff;color:#04202a;font-weight:600}#pk button.gl{background:#7a4a12;border-color:#ffc56b}
@@ -66,13 +66,13 @@ body.kon #c{transform:scale(${KN.K.scena.masshtab});transform-origin:50% 0}body.
   dob(D.chisto, w => { for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'crumbs', 'bdellos', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; });
   // Конструктор: ползунки формы → запись-анкета «svoya» → формулы книги считают ход, дрожь и еду; строки показывают закон и числа.
   const forma = { ...KN.K.etalon }, zak = [];
-  const pereschet = () => { const w = W(); if (!w) return; DV.V.vidy.svoya = KN.anketa(forma, w.cfg); KN.stroki(forma, w.cfg).forEach((z, i) => { zak[i].firstChild.textContent = z.imya + ' ' + z.chislo + '%'; zak[i].lastChild.textContent = z.tekst; }); };
+  const pereschet = () => { const w = W(); if (!w) return; DV.V.vidy.svoya = KN.anketa(forma, w.cfg); KN.stroki(forma, w.cfg).forEach((z, i) => { zak[i].firstChild.textContent = z.imya + ' ' + z.chislo + '%'; zak[i].children[1].textContent = z.tekst; zak[i].lastChild.textContent = z.formula; }); };
   const setka = el('div', 'setka', '', kon);
   for (const [k, Z] of Object.entries(KN.K.polzunki)) { const r = el('label', 'polz', '', setka), im = el('span', '', '', r), inp = el('input', '', '', r); inp.type = 'range';
-    const zn = Z.znacheniya, pishi = () => { im.textContent = Z.imya + ' ' + (Number.isInteger(Z.shag ?? 1) ? forma[k] : forma[k].toFixed(1).replace('.', ',')); };
+    const zn = Z.znacheniya, pishi = () => { im.textContent = Z.imya + ' ' + (Z.mkm ? (forma[k] * KN.K.priroda.mkm).toFixed(2).replace('.', ',') + ' ' + KN.K.slova.mkm : Number.isInteger(Z.shag ?? 1) ? forma[k] : forma[k].toFixed(1).replace('.', ',')); };
     Object.assign(inp, zn ? { min: 0, max: zn.length - 1, step: 1, value: zn.indexOf(forma[k]) } : { min: Z.ot, max: Z.do, step: Z.shag, value: forma[k] });
     inp.oninput = () => { forma[k] = zn ? zn[+inp.value] : +inp.value; pishi(); pereschet(); }; pishi(); }
-  for (let i = 0; i < Object.keys(KN.K.formuly).length; i++) { const z = el('div', 'zak', '', kon); el('b', '', '', z); el('span', '', '', z); zak.push(z); }
+  for (let i = 0; i < Object.keys(KN.K.formuly).length; i++) { const z = el('div', 'zak', '', kon); el('b', '', '', z); el('span', '', '', z); el('i', '', '', z); zak.push(z); }
   // Сцена: в середине воды лежит образец и меняется вместе с ползунками; выпущенные копии плавают в загоне вокруг него по тем же формулам.
   const SC = KN.K.scena, pst = el('div', '', '', document.body); pst.id = 'pst'; let pole = { x: 0, y: 0, a: 50, b: 30 };
   const novaya = o => ({ x: pole.x, y: pole.y, vx: 0, vy: 0, a: Math.random() * 6.283, t: 0, cool: 0, vid: 'svoya', id: ++W().ids, ...o });
