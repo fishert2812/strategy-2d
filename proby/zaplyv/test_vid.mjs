@@ -3,6 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { Fx } from './fx.js';
 import * as vid from './vid.js';
+import { sobrat, VC, KLYUCHI } from './vid_chasti.js';
 import { look } from './look.js';
 const sim = readFileSync(new URL('./sim.js', import.meta.url), 'utf8');
 const kinds = [...new Set([...sim.matchAll(/events\.push\(\[['"](\w+)/g)].map(m => m[1]))];
@@ -284,13 +285,26 @@ check('test_vid_ameba_obyom: амёба в игре — объёмное тел�
 check('test_vid_tufelka: туфелька — прозрачное тело-туфля с бороздкой, реснички — сплошные стеклянные волоски по всему краю, внутри ядро, пузырьки и сократительные пузырьки с каналами; точек нет', () => {
   const got = { slip: 0, spine: 0, sphere: 0, ball: 0 }, dots = [], br = { put: (...q) => dots.push(q) }, ang = [];
   const B = { ball: {}, slipper: (x, y, a, hl, w) => { if (!(hl > w && w > 0)) got.bad = 'тело не вытянуто'; got.slip++; }, spine: (x, y, a, len, w) => { if (!(len > 0 && w > 0)) got.bad = 'пустая ресничка'; got.spine++; ang.push(a); }, sphere: () => got.sphere++, put: () => got.ball++ };
-  vid.slipper({ x: 0, y: 0, a: 0.4, L: 200, w: 54, z: 2, time: 1, id: 3, mx: 40, my: 20, bodies: B, glow: br, ink: br });
-  const S = vid.V.slipper;
+  const n = vid.slipper({ x: 0, y: 0, a: 0.4, L: 200, w: 54, z: 2, time: 1, id: 3, mx: 40, my: 20, bodies: B, glow: br, ink: br });
+  const C = VC.chasti, S = { cilia: C.resnichki.n, canals: C.sokr_puzyr.kanaly, food: C.puzyri_edy.n };
+  if (n !== Object.keys(VC.vidy.tuflya.chasti).length) return 'туфелька собрана не из всех своих частей: ' + n;
   if (got.bad) return got.bad; if (got.slip !== 1) return 'нет объёмного тела';
   if (got.spine < S.cilia + 2 * S.canals) return 'ресничек и каналов меньше, чем в данных: ' + got.spine;
   const sides = new Set(ang.slice(0, S.cilia).map(a => Math.floor((((a - 0.4) % 6.283) + 6.283) % 6.283 / 1.571))); if (sides.size < 4) return 'реснички не со всех сторон';
   if (got.ball < 1 || got.sphere < S.food + 2) return 'внутри нет ядра, пузырьков еды или сократительных пузырьков';
   if (dots.length > 0) return 'туфелька всё ещё рисует точки: ' + dots.length;
+  return '';
+});
+check('test_vid_chasti: существа собираются из частей движка — каждая часть записи рисуется объёмными телами, ключи частей едины с договором, точек нет', () => {
+  for (const kl of ['telo', 'resnichki', 'yadro', 'zerna', 'puzyri_edy', 'sokr_puzyr', 'vorsinki', 'zhgutik_vint']) if (!KLYUCHI.includes(kl)) return 'нет части ' + kl;
+  for (const kl of KLYUCHI) if (!VC.chasti[kl]) return 'у части нет умолчаний в vid_chasti.json: ' + kl;
+  for (const tip of ['tuflya', 'palochka', 'shar']) {
+    let calls = 0; const cnt = () => calls++, B = { ball: {}, slipper: cnt, rod: cnt, spine: cnt, sphere: cnt, put: cnt, seg: (x0, y0, x1, y1, r) => { if (![x0, y0, x1, y1, r].every(Number.isFinite)) calls = -1e9; calls++; } };
+    const zap = { forma: { tip }, chasti: Object.fromEntries(KLYUCHI.map(k => [k, {}])) };
+    const n = sobrat(zap, { x: 0, y: 0, a: 0.7, dlina: 120, tolshchina: 30, z: 1, time: 2, id: 5 }, B);
+    if (n !== KLYUCHI.length) return tip + ': нарисовано частей ' + n + ' из ' + KLYUCHI.length;
+    if (!(calls > 200)) return tip + ': части почти не рисуют тела (' + calls + ')';
+  }
   return '';
 });
 check('test_vid_lysis: клетка от фага лопается прорывом — брызги вязко гаснут, остаётся пустая оболочка с дырой', () => {
