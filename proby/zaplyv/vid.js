@@ -2,6 +2,7 @@
 // Файл слоя «вид и анимации» (свой строитель). main.js только зовёт skin() и sleeper() и даёт кисти; числа — в vid.json и data.json.
 import { whip } from './whip.js';
 import { mutSkin, useBody } from './mutacii.js';
+import { sobrat, VC } from './vid_chasti.js';
 
 const flags = new Map(); // состояние жгутиков каждой клетки между кадрами (whip.js)
 export function whips(a, run, dt, beat, cfg, alive) {
@@ -307,6 +308,14 @@ export function bell(c) {
   for (let i = 0; i <= B.dots; i++) { const f = i / B.dots, amp = r * B.amp * k + 2 * z * (1 - k), ph = f * B.turns * 6.283 * k + f * 5 + time * (1 - k), o = Math.sin(ph) * amp, u = len * f - Math.cos(ph) * amp * 0.35 * k; // спираль: виток на виток
     ink.put(x + dx * u - dy * o, y + dy * u + dx * o, (0.9 + 0.5 * k) * z + 0.4, ...B.col, 0.6 + 0.3 * k); }
   return [x + dx * len, y + dy * len, 1 - k];
+}
+
+// Туфелька (биолог, «Вид существ», 5): по всему краю густая бахрома ресничек, по ней бежит волна; на боку ротовая
+// бороздка к воронке; внутри крупное ядро, пищеварительные пузырьки и два звёздчатых сократительных пузырька у концов,
+// которые медленно надуваются и разом опорожняются. Всё сплошное: реснички — короткие черты, точки чаще своего размера (L047).
+export function slipper(c) { // собрана из частей движка (vid_chasti.js): тело-туфля, пузырьки еды, зёрна, ядро-боб, сократительные пузырьки, реснички
+  const B = c.bodies || globalThis.zaplyvBodies;
+  return sobrat(VC.vidy.tuflya, { x: c.x, y: c.y, a: c.a, dlina: c.L, tolshchina: c.w * V.slipper.slim, z: c.z, time: c.time, id: c.id }, B);
 }
 
 // Лапы вируса (биолог, «Вид существ», вирус: «садится строго на лапы, перпендикулярно боку клетки, стоя как вышка»).
