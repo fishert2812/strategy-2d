@@ -83,7 +83,7 @@
    "stroitel": "строитель «Оживить мир», 25.11: режим «Рост» в меню",
    "igrok": ""
   },
-  "versiya": "0.69",
+  "versiya": "0.70",
   "kod": [
    "file:rost.js",
    "file:rost.json",
