@@ -762,6 +762,7 @@ function tick(dt) {
   view.calm = (view.calm || 0) + ((danger || fast ? 0 : 1) - (view.calm || 0)) * Math.min(1, dt * (danger ? 2.5 : 0.6));
   const want = rost.zoom(world, Math.max(rost.zoomMin(world), Math.min(2.3, 2.45 - 0.17 * Math.sqrt(world.biggest()), W * 0.36 / Math.max(spread, 1))) * (1 + cfg.close_up * view.calm), lead.m, radius); // в «Росте» камера отходит от выросшей клетки
   view.z += (Math.max(want, C.min_px / radius(lead.m)) - view.z) * Math.min(1, dt * 1.5); // клетка на экране не мельче min_px в радиусе
+  world.kamera?.(view, W, H); // стенд сравнения (stend.js) держит камеру сам: обе половины в кадре
   const t = TINT[world.biome(view.x, view.y)];
   for (let i = 0; i < 3; i++) view.tint[i] += (t[i] - view.tint[i]) * Math.min(1, dt * 0.8);
   { const b = world.me.reduce((q, a) => a.m > q.m ? a : q, world.me[0] || { m: 1 }), sp = world.split(); // размер числом: длина палочки в микрометрах (260 единиц — 10 мкм)
@@ -1050,6 +1051,7 @@ function render(t, after) {
 // Замер для проверки: кадры, худший и средний кадр за последние 5 с, число клеток и точек.
 window.zaplyvWorld = () => world; // для проверок и кадров
 if (new URLSearchParams(location.search).has('pesochnica')) import('./pesochnica.js'); // песочница движка: пустая вода, умения касанием (pesochnica.js)
+if (new URLSearchParams(location.search).has('stend')) import('./stend.js'); // стенд сравнения: слева ручной рисунок, справа то же существо из записи движка (stend.js)
 window.zaplyvScr = (x, y) => { const [sx, sy] = scr(x, y); return [sx * innerWidth / W, sy * innerHeight / H]; }; // для проверок: где на экране точка мира (в точках CSS)
 const probe = window.zaplyvProbe = { dpr0: dprNow, warn: {}, frames: 0, worst: 0, avg: 0, js: 0, jsWorst: 0, cells: 0, dots: 0, errors: 0 };
 addEventListener('error', () => probe.errors++);

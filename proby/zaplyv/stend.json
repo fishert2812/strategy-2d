@@ -1,0 +1,17 @@
+{
+	"_": "Стенд сравнения (stend.js, адрес /zaplyv/?stend; кусок Ж, design/dlya_dvizhka/kuski_parallelno.md). Пара: слева существо, нарисованное ручным кодом игры (ruka — список мира, где оно живёт: me, bdellos…), справа то же существо из записи движка (dvizhok — ключ vidy.json). Пока записи в vidy.json нет, стенд берёт chernovik: черновик записи для сравнения, в игре он не живёт. Перенос (куски Г, Е) кладёт настоящую запись в vidy.json — стенд сам переходит на неё. poza: угол (радианы), mashtab — сколько точек экрана в единице мира, razmah — расстояние от середины до каждого существа в долях ширины экрана, vverh — насколько поднять пару над серединой (доля высоты).",
+	"poza": { "a": -1.5708, "razmah": 0.25, "vverh": 0.12 },
+	"slova": { "nazad": "‹ Выход", "zagolovok": "Стенд", "ruka": "Как сейчас", "ruka_m": "ручной код", "dvizhok": "Движок", "zapis_m": "запись", "chernovik_m": "черновик записи" },
+	"pary": [
+		{ "kto": "nasha", "imya": "Наша палочка", "ruka": "me", "mashtab": 4.6, "dvizhok": "nasha",
+			"chernovik": { "ot": "pseudo",
+				"telo": { "dlina": 2.4, "tolshchina": 1.13, "cepochka": 1, "zazor": 1, "cvet": [0.35, 0.85, 1], "kromka": [0.85, 0.22, 0.62], "kach": [0, 0],
+					"zhgutiki": { "gde": "krugom", "n": 6, "dlina": 4.5, "volna": 0.5, "vitkov": 8, "beg": 20, "tolshch": 0.6, "alpha": 0.45, "cvet": [0.74, 0.87, 1] } },
+				"garpun": null } },
+		{ "kto": "zapyataya", "imya": "Красная запятая", "ruka": "bdellos", "mashtab": 6.5, "dvizhok": "bdello",
+			"chernovik": { "ot": "pseudo",
+				"telo": { "dlina": 0.84, "tolshchina": 0.56, "cepochka": 1, "zazor": 1, "cvet": [1, 0.38, 0.15], "kromka": [0.75, 0.12, 0.08], "kach": [0, 0.35],
+					"zhgutiki": { "gde": "korma", "dlina": 3, "volna": 0.4, "vitkov": 6, "beg": 18, "tolshch": 0.7, "alpha": 0.5, "cvet": [1, 0.6, 0.4] } },
+				"garpun": null } }
+	]
+}
