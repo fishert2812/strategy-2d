@@ -24,7 +24,7 @@ const genomeData = await (await fetch('genome.json')).json();
 const W = 720; // ширина экрана в единицах игры
 const canvas = document.getElementById('c');
 const gl = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' });
-gl.setPixelRatio(Math.min(devicePixelRatio, 2));
+gl.setPixelRatio(Math.min(devicePixelRatio, cfg.dpr_max)); // на iPhone плотность 3: кадр в 2,5 (полная тяжелее в полтора раза), иначе клетки и еда мягкие (Роман 25.11: «бактерия стала чуть-чуть размытая», урок L038)
 let H = W;
 const cam = new THREE.OrthographicCamera(0, W, 0, W, -1, 1);
 const back = new THREE.Scene(); // фон и дальнее
@@ -325,7 +325,15 @@ function studio(k, it) {
   w[LISTS[k]].push(e);
   return w;
 }
+// Снимки (Альманах, значки, меню) считаются в двойной плотности, как раньше: в тройной полка открывалась вдвое дольше.
+// Плотность кадра возвращается перед следующим кадром игры, так что подряд идущие снимки делят одну перестройку холста.
+let shotLow = false;
+function shotDensity() {
+  if (shotLow || gl.getPixelRatio() <= 2) return; shotLow = true; gl.setPixelRatio(2); resize();
+  requestAnimationFrame(() => { shotLow = false; gl.setPixelRatio(Math.min(devicePixelRatio, cfg.dpr_max)); resize(); });
+}
 function snap(k, it) {
+  shotDensity();
   if (it.gene) return geneShot(it.gene, 480, 300); // ген в Альманахе — тот же снимок, что значок: часть, которую он даёт, подсвечена
   const fxs = fx.save(), keep = [world, view, kids, down, moved, puffs, paint.t]; // все анимации эффектов целиком (fx.save), а не только кольца и разряды
   const out = document.createElement('canvas'); out.width = 480; out.height = 300;
@@ -343,6 +351,7 @@ function snap(k, it) {
 // той же студией, что Альманах, и оставляем ярким только то, что изменилось: сам ген на теле. Кеш — снимаем один раз.
 const icons = new Map();
 function geneShot(g, NW, NH, crop = 0) {
+  shotDensity();
   const grab = genes => {
     const fxs = fx.save(), keep = [world, view, kids, down, moved, puffs, paint.t], c = document.createElement('canvas'); c.width = NW; c.height = NH;
     try {
