@@ -76,6 +76,8 @@ ONLY=L047 case_ "test_L047: образец — свой рендер" 60_kirpich
 ONLY=L047 case_ "test_L047: навык в игре без приёмки" 60_kirpichi.sh red "sed -i '0,/\"v_igre\": false/s//\"v_igre\": true/' $Z/kirpichi.json"
 # L033: «Чует еду» без пальца снова стоит
 ONLY=L033 case_ "test_L033: без пальца клетка с умением стоит" 50_zaplyv.sh red "sed -i 's/} else if (this.genes.sense) {/} else if (false) {/' $Z/sim.js"
+# L051: дочки снова складываются бок о бок
+ONLY=L051 case_ "test_L051: сёстры дрейфуют врозь" 50_zaplyv.sh red "sed -i 's/ kid.drift = c.drift;//' $Z/sim.js"
 # L049: колония снова застревает на четырёх
 ONLY=L049 case_ "test_L049: само-деление снова отпускает дочек с четырёх" 50_zaplyv.sh red "sed -i 's/\"auto_max\": 10/\"auto_max\": 4/' $Z/data.json"
 case_ "test_L029: камера тянется к отставшим вдали" 52_zaplyv_tap.sh red "sed -i 's/const flock = live.filter(a => Math.hypot(a.x - lead.x, a.y - lead.y) < C.group)/const flock = world.me/' $Z/main.js"
