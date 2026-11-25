@@ -108,7 +108,7 @@ await p.waitForTimeout(700); { const t = await p.evaluate(() => [...document.que
 // test_L042 (прогоны 0.61 и 0.63, О44: «вирус молчит в момент посадки… совет только на экране гибели»): вирус сел на клетку —
 // в ту же секунду надпись, что случилось и что делать пальцем.
 await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.phages.length = 0; w.cfg.inject_was = w.cfg.inject; w.cfg.inject = 1e9; w.phages.push({ x: a.x + 8, y: a.y, vx: 0, vy: 0, d: Math.PI, t: 0, id: 91, host: 'me', cool: 0 }); }); // вирус садится, но не впрыскивает: шаги дальше идут живой клеткой (L045 — стряхнуть только сразу)
-await p.waitForTimeout(600); { const t = await p.evaluate(() => [...document.querySelectorAll('#toast.on')].map(e => e.textContent).join('')); say(/вирус/i.test(t) && /развернись/.test(t), 'test_L042: вирус сел на клетку — сразу надпись, что делать (' + (t || 'надписи нет') + ')'); }
+await p.waitForTimeout(600); { const t = await p.evaluate(() => [...document.querySelectorAll('#toast.on')].map(e => e.textContent).join('')); say(/Сел вирус!/.test(t) && /развернись/.test(t), 'test_L042: вирус сел на клетку — сразу надпись, что делать (' + (t || 'надписи нет') + ')'); }
 await p.evaluate(() => { const w = zaplyvWorld(); w.phages.length = 0; w.cfg.inject = w.cfg.inject_was; for (const a of w.me) a.sick = -1; });
 if (await tap('#flag', 'флажок в игре')) say(await noted(m), 'флажок в игре: отметка записана и надпись видна');
 // test_L050 (Роман 25.11 на 0.70: «почему мы не починили блять деление клеток?»): плавное деление лежало в vid.js, но main.js его не звал —
