@@ -29,6 +29,6 @@ class Strip {
 }
 export class Lenta {
   constructor(max, scene, order = 4) { this.halo = new Strip(max, scene, order - 1, 'halo'); this.body = new Strip(max, scene, order, 'body'); }
-  put(pts, ws, col, core, a = 1, halo = 2.6) { if (halo > 0) this.halo.put(pts, ws, core, core, a * 0.22, halo); this.body.put(pts, ws, col, core, a, 1); }
+  put(pts, ws, col, core, a = 1, halo = 2.6) { if (halo > 0) this.halo.put(pts, ws, core, core, a * 0.4, halo); this.body.put(pts, ws, col, core, a, 1); }
   done() { this.halo.done(); this.body.done(); }
 }

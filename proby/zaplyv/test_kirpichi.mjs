@@ -40,7 +40,7 @@ check('test_kirpichi_glotat: нити дотягиваются и обволак
   const at = (t, sink) => { const k = new Kirpichi(); k.play('glotat', { from: cell, to: food, seed: 7 }); k.list[0].t = t;
     const ink = { put: (x, y, r, cr, cg, cb, a) => a > 0.1 && sink.push([x, y, cr > cb, r]) }; k.draw({ scr: (x, y) => [x, y], z: 1, glow: { put() {} }, ink, tube: { put: (pts, ws, col, core, a) => pts.forEach(([x, y], i) => ink.put(x, y, ws[i], ...col, a)) } }); };
   const P = p => sr.ot + (sr.do - sr.ot) * p, warm = s => s.filter(e => e[2]), dc = s => { const f = warm(s); return f.length ? f.reduce((m, [x, y]) => m + Math.hypot(x - cell.x, y - cell.y), 0) / f.length : NaN; };
-  at(sn.ot + (sn.do - sn.ot) * 0.6, tips); at(P(0.2), early); at(P(0.8), late);
+  at(Math.min(sn.do, (N.tyaga || { ot: sn.do }).ot) - 0.02, tips); at(P(0.2), early); at(P(0.8), late); // нити — до того, как цель потянули
   const near = tips.filter(([x, y]) => Math.hypot(x - food.x, y - food.y) < 10), ang = near.map(([x, y]) => Math.atan2(y - food.y, x - food.x));
   const spread = ang.length ? Math.max(...ang) - Math.min(...ang) : 0, d0 = dc(early), d1 = dc(late);
   console.log(`    паспорт: у цели мазков нитей ${near.length}, охват ${(spread * 57.3).toFixed(0)}°; капля цели от центра клетки ${d0.toFixed(0)} → ${d1.toFixed(0)}`);
