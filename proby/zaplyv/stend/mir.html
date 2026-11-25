@@ -24,7 +24,7 @@ const tex = new THREE.DataTexture(new Uint8Array(P.nx * P.ny), P.nx, P.ny, THREE
 const U = { eda: { value: tex }, okno: { value: new THREE.Vector4() }, t: { value: 0 } };
 const bg = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.ShaderMaterial({ depthTest: false, side: THREE.DoubleSide, uniforms: U,
   vertexShader: 'varying vec2 v; void main(){ v = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-  fragmentShader: 'uniform sampler2D eda; uniform vec4 okno; uniform float t; varying vec2 v; void main(){ vec2 m = okno.xy + v * okno.zw; float e = texture2D(eda, m).r; float d = length(v - 0.5); vec3 c = mix(vec3(0.012, 0.05, 0.085), vec3(0.03, 0.13, 0.17), v.y) * (1.0 - 0.5 * smoothstep(0.3, 0.8, d)); c += vec3(0.20, 0.15, 0.05) * smoothstep(0.15, 1.0, e); gl_FragColor = vec4(c, 1.0); }' }));
+  fragmentShader: 'uniform sampler2D eda; uniform vec4 okno; uniform float t; varying vec2 v; void main(){ vec2 m = okno.xy + v * okno.zw; float e = texture2D(eda, m).r; float d = length(v - 0.5); vec3 c = mix(vec3(0.012, 0.05, 0.085), vec3(0.03, 0.13, 0.17), v.y) * (1.0 - 0.5 * smoothstep(0.3, 0.8, d)); c += vec3(0.20, 0.15, 0.05) * smoothstep(0.03, 0.5, e); gl_FragColor = vec4(c, 1.0); }' }));
 bg.position.set(W / 2, H / 2, 0); bg.scale.y = -1; back.add(bg);
 let cx = +(q.get('x') || M.W / 2), cy = +(q.get('y') || M.H / 2), time = 0, kadr = 0; const p = document.getElementById('p');
 window.mir = M; window.stendGL = gl; window.mirShag = (n, dt) => { for (let i = 0; i < n; i++) shag(M, dt); };
