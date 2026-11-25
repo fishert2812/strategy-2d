@@ -48,6 +48,15 @@ await whole(['#pause', '#flag'], 'заплыв');
 // test_L038 (Роман 25.11: «даже еда стала чуть-чуть размытая. И как будто сама бактерия стала чуть-чуть размытая»): на телефоне с плотностью 3
 // кадр считается в 2,5 точки на точку экрана, а не растягивается из двойной (3 — кадр тяжелее в полтора раза, L015).
 say(await p.evaluate(() => { const c = document.getElementById('c'); return devicePixelRatio >= 3 && c.width >= Math.round(innerWidth * 2.5) - 1; }), 'test_L038: кадр плотнее двойной на экране iPhone (холст ' + await p.evaluate(() => document.getElementById('c').width + ' на ширину ' + innerWidth) + ')');
+// test_L043 (Роман 25.11 на 0.67: «Большие коричневые шары это кто в игре?… они нападают» — амёбу видел много раз, а имени и что делать
+// при встрече нет: надпись была одна на всю жизнь игры, а совет при захвате — раз за заплыв): опасный в заплыве впервые — имя и что делать
+// из книги, даже если в Альманахе он уже есть; схватили — совет каждый раз.
+await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.met.delete('amoeba'); w.look = 0; w.amoebas.length = 0; w.amoebas.push({ x: a.x + w.cfg.meet * 0.7, y: a.y, vx: 0, vy: 0, m: 4, id: 9001 }); });
+await p.waitForTimeout(700); { const t = await p.evaluate(() => [...document.querySelectorAll('#toast.on')].map(e => e.textContent).join(''));
+  say(/^Амёба: .*уплывай/.test(t), 'test_L043: встретил амёбу в заплыве — сразу её имя и что делать (' + (t || 'надписи нет') + ')'); }
+{ const n = await p.evaluate(async () => { const w = zaplyvWorld(), a = w.me[0], T = document.getElementById('toast'); w.amoebas.length = 0; let k = 0;
+    for (let i = 0; i < 2; i++) { T.classList.remove('on'); T.textContent = ''; w.events.push(['grab', a.x, a.y]); await new Promise(r => setTimeout(r, 300)); if (T.classList.contains('on') && /развернись/.test(T.textContent)) k++; } return k; });
+  say(n === 2, `test_L043: схватили второй раз — совет «развернись» снова на экране (показан ${n} из 2)`); }
 if (await tap('#flag', 'флажок в игре')) say(await seen('#note') && await marks() === m + 1, 'флажок в игре: отметка записана и надпись видна');
 if (await tap('#pause', 'пауза')) say(await on('genome') && (await p.textContent('#gtitle')) === 'Пауза', 'пауза открывает меню «Пауза»');
 if (await tap('#phub [data-t=genome]', 'строка «Геном» в паузе')) say(await seen('#ring'), 'строка «Геном» открывает кольцо');
