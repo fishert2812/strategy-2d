@@ -144,9 +144,9 @@ export class World {
       if (c.m < this.split() || c.sick >= 0 || c.held > 0 || c.grab || c.spore > 0) continue;
       c.m /= 2; c.gen = (c.gen || 0) + 1; this.stats.gen = Math.max(this.stats.gen, c.gen);
       const ax = Math.cos(c.a), ay = Math.sin(c.a), r = radius(c.m);
-      born.push(mut.kid(this, c, { x: c.x - ax * r * 1.2, y: c.y - ay * r * 1.2, vx: c.vx - ax * 60, vy: c.vy - ay * 60, m: c.m, a: c.a, sick: -1, gen: c.gen, id: ++this.ids }));
+      const kid = { x: c.x - ax * r * 1.2, y: c.y - ay * r * 1.2, vx: c.vx - ax * 60, vy: c.vy - ay * 60, m: c.m, a: c.a, sick: -1, gen: c.gen, id: ++this.ids }; born.push(mut.kid(this, c, kid));
       c.x += ax * r * 0.6; c.y += ay * r * 0.6;
-      this.events.push(['split', c.x, c.y]);
+      this.events.push(['split', c.x, c.y, c.id, kid.id]); // вид деления знает пару: мать и дочка (vid.birth)
     }
     const room = leave ? 0 : Math.max(0, this.cfg.me_max - this.me.length);
     for (const b of born.slice(room)) { this.away.push({ ...b, t: 0 }); this.events.push(['leave', b.x, b.y]); }
@@ -201,7 +201,7 @@ export class World {
           a.tumble = mut.snap(this, a) ? 0 : mut.tumbleTime(this, sw.tumble_time); // разворот рывком вместо кувырка (режим «Мутации»); кувырок стряхивает фага, который ещё не впрыснул
           if (a.grab) this.escape(a);
           if (a.held > c.bdello_kill - c.bdello_loose) for (const b of this.bdellos) if (b.on === a) { b.on = null; b.t = 0; a.held = 0; a.free = c.free; this.events.push(['shake', b.x, b.y]); } // прилип, но ещё не вошёл — стряхнёшь
-          for (const g of this.phages) if (g.on === a) { g.on = null; g.cool = 1.5; g.vx = -Math.cos(g.d) * 60; g.vy = -Math.sin(g.d) * 60; this.events.push(['shake', g.x, g.y]); }
+          for (const g of this.phages) if (g.on === a && c.inject - g.t < c.phage_shake) { g.on = null; g.cool = 1.5; g.vx = -Math.cos(g.d) * 60; g.vy = -Math.sin(g.d) * 60; this.events.push(['shake', g.x, g.y]); }
         }
         // поворот с разгоном и доводкой: скорость поворота меняется плавно (не больше spin_acc рад/с²)
         // и гаснет к цели — без скачков позы ни на дуге, ни в кувырке

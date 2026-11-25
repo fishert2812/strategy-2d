@@ -95,7 +95,7 @@ export function skin(c) {
   }
   if (!lk.pili) for (let k = 0; k < 16; k++) { // пили: короткие ворсинки по всей оболочке (без гена фимбрий)
     const t = k / 16 * 6.283, c = Math.cos(t), s = Math.sin(t), l = 1 + 0.25 * Math.sin(time * 3 + k * 1.7 + a.id);
-    for (const e of [1.08, 1.32 * l]) { const u = c * (half - w * 0.2) + c * w * (e - 1), [px, py] = along(u, s * w * e + arc(u / z)); ink.put(px, py, 0.9 * z + 0.4, 0.55, 0.9, 1, 0.55); }
+    for (let i = 0; i <= V.pili.n; i++) { const e = 1.04 + (1.32 * l - 1.04) * i / V.pili.n, u = c * (half - w * 0.2) + c * w * (e - 1), [px, py] = along(u, s * w * e + arc(u / z)); ink.put(px, py, (V.pili.r * z + 0.25) * (1 - 0.4 * i / V.pili.n), ...V.pili.col, V.pili.a); } // сплошная тонкая ворсинка, не две бусины (L047)
   }
   if (lk.halo) { // капсула: стеклянная плёнка — ровный светлый ободок и пустое кольцо до тела; не колышется. Ткнулся хищник — прогнулась и спружинила
     const C = V.capsule, dn = dents.map(d => { const [dx, dy] = scr(d.x, d.y), f = d.t / C.dent_t; return [dx, dy, C.dent * w * Math.exp(-f * 4) * Math.cos(f * 14)]; });
@@ -166,8 +166,8 @@ export function skin(c) {
     const [sx0, sy0] = along(-half + w * 0.3, (f - mid) * w * 0.22 * sp5 + arc(half / z)), spread = (f - mid) * 0.6 * sp5;
     const fdx = -Math.cos(ang + spread), fdy = -Math.sin(ang + spread), curl = P * (f % 3 === 1 ? 1 : 0.25); // в кувырке нить меняет форму спирали
     const ph = F.ph + f * 0.5, slow = F.t * 0.6 + f * 1.7;
-    for (let k = 1; k <= 40; k++) {
-      const s = k / 40, grow = Math.min(1, s * 3);
+    for (let k = 1; k <= V.whip.n; k++) { // нить сплошная: точки гуще своего размера, не бусы (L047)
+      const s = k / V.whip.n, grow = Math.min(1, s * 3);
       // покой: от бока наружу, медленная волна + броуновская дрожь
       let xr = 0, yr = 0, xt = 0, yt = 0;
       if (B < 0.995) { const Lr = s * w * 5.2, wr = (Math.sin(s * 7 - ph * 0.3) * 0.3 + Math.sin(s * 3 + slow) * 0.35 + Math.sin(s * 11 - slow * 2.3) * 0.08) * w * grow;
@@ -182,7 +182,7 @@ export function skin(c) {
       const bs = s * w * 5.8, wf = Math.sin(s * (10 + 10 * curl) - ph) * w * (0.42 - 0.21 * curl) * grow;
       const xf = sx0 + fdx * bs - fdy * wf, yf = sy0 + fdy * bs + fdx * wf;
       xt = xb + (xf - xb) * P; yt = yb + (yf - yb) * P; }
-      glow.put(xr + (xt - xr) * B, yr + (yt - yr) * B, (0.8 * Math.max(z, 0.7) + 0.3) * (1 - s * 0.45), fc[0], fc[1], fc[2], cfg.flag.alpha * (1 - s * 0.6)); // нить в цвете оболочки: светло-голубая, тоньше и прозрачнее к концу
+      glow.put(xr + (xt - xr) * B, yr + (yt - yr) * B, (0.8 * Math.max(z, 0.7) + 0.3) * (1 - s * 0.45), fc[0], fc[1], fc[2], cfg.flag.alpha * V.whip.a * (1 - s * 0.6)); // нить в цвете оболочки: светло-голубая, тоньше и прозрачнее к концу
     }
   }
 }
@@ -197,21 +197,29 @@ export function marks(q, d) {
   if (g.crispr) for (let i = 0; i < 3; i++) { const [x, y] = P(-L * 0.6 + i * w * 0.35, 0); ink.put(x, y, 1.3 * z, 0.7, 1, 0.6, 0.8); }
 }
 
-// Деление (Роман 25.11: «расширялась и делилась, разъезжалась»). sim.js ставит мать и дочку на новые места мгновенно;
-// здесь обе сначала рисуются в точке деления — одна вытянутая клетка с перетяжкой — и за V.split.slide с вязко разъезжаются.
-// fx.on('split') зовёт splitAt; main.js добавляет birth(a, time).d к центру тела и birth(...).pinch к перетяжке.
-const splits = []; const born = new Map();
-export function splitAt(x, y) { splits.push({ x, y, t: null }); if (splits.length > 8) splits.shift(); }
-export function birth(a, time, all) {
+// Деление (Роман 25.11: «расширялась и делилась, разъезжалась»; «почему мы не починили деление клеток?»). sim.js ставит мать и дочку
+// на новые места мгновенно; здесь деление как у кишечной палочки: сначала рисуется сама мать, перетяжка посередине стягивается
+// до конца, а сама она вытягивается в палочку двойной длины толщиной с дочку; в миг, когда перемычка стянулась, её заменяют
+// две дочки — ровно её половинки, торец к торцу; дальше они расходятся вдоль оси, зазор открывается от нуля, и в конце клетка мягко отдаётся своему месту.
+// fx.on('split') зовёт splitAt(мать, дочка); main.js рисует клетку по birth(...): место, угол, длина и толщина, перетяжка, hide.
+const pairs = new Map();
+export function splitAt(mom, kid) { if (mom && kid && born.get(mom)?.kid !== kid) pairs.set(mom, { kid, t: null }); } // повторный вызов той же пары не перезапускает деление
+// ang, hd, wr, cx, cy — как дочка нарисовалась бы сама: угол, полудлина и полуширина в мире, центр; hm, wm — полудлина и полуширина матери.
+export function birth(a, time, all, ang, hd, wr, cx, cy, hm, wm) {
   const P = V.split;
-  for (const s of splits) if (s.t === null) { // первый кадр после деления: пара — две ближайшие к точке, общая середина
-    s.t = time; const two = (all || [a]).map(c => [Math.hypot(c.x - s.x, c.y - s.y), c]).sort((p, q) => p[0] - q[0]).slice(0, 2).map(p => p[1]);
-    if (two.length === 2) { const mx = (two[0].x + two[1].x) / 2, my = (two[0].y + two[1].y) / 2; for (const c of two) born.set(c.id, { t: time, dx: mx - c.x, dy: my - c.y }); } }
-  while (splits.length && splits[0].t !== null && time - splits[0].t > P.slide) splits.shift();
-  const b = born.get(a.id); if (!b) return { d: [0, 0], pinch: 0 };
-  const k = (time - b.t) / P.slide; if (k >= 1 || k < 0) { born.delete(a.id); return { d: [0, 0], pinch: 0 }; }
-  const e = 1 - (1 - k) * (1 - k) * (1 - k); // вязко: быстро в начале, мягко в конце, без отскока
-  return { d: [b.dx * (1 - e), b.dy * (1 - e)], pinch: P.pinch * (1 - e) };
+  for (const [mom, q] of pairs) if (q.t === null) { const A = all.find(c => c.id === mom), B = all.find(c => c.id === q.kid); pairs.delete(mom);
+    if (!A || !B) continue; const mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2, ax = Math.atan2(A.y - B.y, A.x - B.x); // ось деления — как разошлись в мире
+    let a0 = ang - ax; a0 = Math.atan2(Math.sin(a0), Math.cos(a0)); if (a0 > Math.PI / 2) a0 -= Math.PI; if (a0 < -Math.PI / 2) a0 += Math.PI; // палочка симметрична: ближний к оси разворот
+    const g = { t: time, mx, my, ang: ax, a0, lead: mom, kid: q.kid }; born.set(mom, { ...g, s: 1 }); born.set(q.kid, { ...g, s: -1 }); }
+  const b = born.get(a.id); if (!b) return null;
+  const k = (time - b.t) / P.slide; if (k >= 1 || k < 0) { born.delete(a.id); return null; }
+  const sm = u => u * u * (3 - 2 * u);
+  if (k < P.join) { const q = sm(k / P.join); // мать вытягивается в палочку двойной длины толщиной с дочку, стягивается посередине и плавно ложится на ось деления
+    return a.id === b.lead ? { x: b.mx, y: b.my, ang: b.ang + b.a0 * (1 - q), fl: hm / hd + (2 - hm / hd) * q, fw: wm / wr + (1 - wm / wr) * q, pinch: P.pinch + (1 - P.pinch) * q, sag: 0 } : { hide: true }; }
+  const u = (k - P.join) / (1 - P.join), fl = 1, fw = 1, sep = hd * (1 + P.gap * (1 - (1 - u) ** 3)); // половинки матери = дочки торец к торцу, зазор от нуля с замедлением
+  const tx = b.mx + Math.cos(b.ang) * sep * b.s, ty = b.my + Math.sin(b.ang) * sep * b.s, m = u < P.free ? 0 : sm((u - P.free) / (1 - P.free)); // в конце мягко отдаём клетку её месту
+  const da = Math.atan2(Math.sin(ang - b.ang), Math.cos(ang - b.ang));
+  return { x: tx + (cx - tx) * m, y: ty + (cy - ty) * m, ang: b.ang + da * m, fl, fw, pinch: 0, sag: m };
 }
 // Акантамёба по образцам Романа (ref_amoeba_1..3): полупрозрачное желтоватое тело неправильной формы, во все стороны тонкие острые шипики
 // (акантоподии — от них имя), внутри крупное круглое ядро-«стекло» и розовые пузырьки-вакуоли. Рисует main.js в цикле world.amoebas.
@@ -292,3 +300,4 @@ export function phageLegs(c) {
   }
 }
 const legs = new WeakMap(); // по самому вирусу: у вирусов нет номера
+const born = new Map();
