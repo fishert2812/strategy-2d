@@ -1,0 +1,30 @@
+{
+ "_": "Как видна способность (поле vidno договора движка), пока в sposobnosti.json нет своих полей gde и vidno. Правила по признакам записи, не по ключу способности: признак chast:X (daet_chast или menyaet.chast), har:X (menyaet.harakteristika), pravilo:X (pravilo или ishod.pravilo), zhest:X, sled:X, semya, eda. Каждый признак даёт сторону: заготовка kirpichi.json и зона тела. Заготовка null значит, что сторону показывает само тело (движение), заготовка не нужна. Есть в записи своё vidno: [{ k, zona }] — берётся оно. Хозяин — тред анимации навыков.",
+ "storony": {
+  "obolochka": { "k": "vspyshka", "zona": "obolochka", "chto": "оболочка крепнет или встречает удар: свет бежит по ней" },
+  "vybros": { "k": "vybros", "zona": "posadka", "chto": "вещество уходит из тела в воду облаком" },
+  "snaruzhi": { "k": "vyrost", "zona": null, "chto": "на теле вырастает новая наружная часть" },
+  "vnutri": { "k": "naliv", "zona": null, "chto": "внутри тела наливается новое вещество или орган" },
+  "igla": { "k": "igla", "zona": "udar", "chto": "укол иглой (заготовки ещё нет)" },
+  "eda": { "k": "glotat", "zona": "rot", "chto": "ест новую еду ртом" },
+  "semya": { "k": "svyaz", "zona": "scepka", "chto": "связь с соседками семьи (заготовки ещё нет)" },
+  "dvizhenie": { "k": null, "zona": null, "chto": "видно по тому, как плывёт тело" }
+ },
+ "priznaki": {
+  "chast:kapsula": "obolochka", "chast:s_sloy": "obolochka", "chast:sliz": "obolochka", "chast:pory": "obolochka", "chast:stenka": "obolochka",
+  "chast:puzyrki_obolochki": "obolochka", "chast:sistema_abi": "obolochka",
+  "chast:zhgutik": "snaruzhi", "chast:fimbrii": "snaruzhi", "chast:kurli": "snaruzhi", "chast:zastyozhka": "snaruzhi",
+  "chast:trubochka_obmena": "snaruzhi", "chast:nit_igla_cdi": "igla", "chast:chutyo": "snaruzhi", "chast:retseptor_tar": "snaruzhi",
+  "chast:ribosomy": "vnutri", "chast:dyhanie_bez_kisloroda": "vnutri", "chast:svetovoy_nasos": "vnutri", "chast:magnitnaya_cepochka": "vnutri",
+  "chast:pamyat_o_virusah": "vnutri", "chast:spyachka": "obolochka", "chast:nozhnicy_antibiotika": "vnutri", "chast:perenoschik_citrata": "vnutri",
+  "chast:zapas_sahara": "vnutri", "chast:gazovye_puzyrki": "vnutri",
+  "har:zashchita_yad": "obolochka", "har:zashchita_virus": "obolochka", "har:prochnost": "obolochka", "har:scepka": "semya",
+  "har:povorot": "dvizhenie", "har:snos": "dvizhenie", "har:tyaga": "dvizhenie", "har:plavuchest": "dvizhenie", "har:soprotivlenie": "dvizhenie",
+  "har:golod": "vnutri", "har:zapas": "vnutri", "har:cena_edy": "vnutri", "har:rost": "vnutri", "har:prityazhenie_edy": "dvizhenie", "har:zametnost": "dvizhenie", "har:zahvat_edy": "eda",
+  "pravilo:yad_oblako": "vybros", "pravilo:ukol_cdi": "igla", "pravilo:zarazhenie": "obolochka", "pravilo:otskok": "obolochka",
+  "zhest:zamert": "obolochka", "zhest:rezkiy_povorot": "dvizhenie", "zhest:otpustit_palec": "dvizhenie",
+  "sled:koridor": "vybros", "semya": "semya", "eda": "eda"
+ },
+ "zona_chasti": { "zhgutik": "posadka", "fimbrii": "obolochka", "kurli": "obolochka", "zastyozhka": "scepka", "trubochka_obmena": "scepka", "chutyo": "rot", "retseptor_tar": "rot" },
+ "shag": 0.7
+}

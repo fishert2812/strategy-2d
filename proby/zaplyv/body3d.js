@@ -219,9 +219,9 @@ export class Bodies {
     { const m = pts.length >> 1, d0 = Math.hypot(pts[2] - pts[0], pts[3] - pts[1]) || 1, d1 = Math.hypot(pts[m * 2 - 2] - pts[m * 2 - 4], pts[m * 2 - 1] - pts[m * 2 - 3]) || 1; // концы скруглены: кольцо-точка чуть дальше конца, торца нет
       pts = [pts[0] - (pts[2] - pts[0]) / d0 * r * 0.7, pts[1] - (pts[3] - pts[1]) / d0 * r * 0.7, ...pts, pts[m * 2 - 2] + (pts[m * 2 - 2] - pts[m * 2 - 4]) / d1 * r1 * 0.7, pts[m * 2 - 1] + (pts[m * 2 - 1] - pts[m * 2 - 3]) / d1 * r1 * 0.7]; }
     const T = this.nit, n = pts.length >> 1, G = T.G; if (T.v + n * G > T.N * G) return;
-    const A = T.m.geometry.attributes, P = A.position.array, Nr = A.normal.array, cA = A.cA.array, cB = A.cB.array, ix = T.m.geometry.index.array, v0 = T.v, z0 = z;
+    const A = T.m.geometry.attributes, P = A.position.array, Nr = A.normal.array, cA = A.cA.array, cB = A.cB.array, ix = T.m.geometry.index.array, v0 = T.v, z0 = z; const CS = T.cs || (T.cs = Float32Array.from({ length: G * 2 }, (_, i) => i & 1 ? Math.sin((i >> 1) / G * 6.2832) : Math.cos((i >> 1) / G * 6.2832))); // круг сечения считается один раз, а не на каждую вершину
     for (let j = 0; j < n; j++) { const a0 = Math.max(0, j - 1), b0 = Math.min(n - 1, j + 1), dx = pts[b0 * 2] - pts[a0 * 2], dy = pts[b0 * 2 + 1] - pts[a0 * 2 + 1], l = Math.hypot(dx, dy) || 1, tx = dx / l, ty = dy / l, f = Math.min(1, Math.max(0, (j - 1) / (n - 3))), rr = (r + (r1 - r) * f) * (j === 0 || j === n - 1 ? 0.25 : 1), al = a + (a1 - a) * f;
-      for (let k = 0; k < G; k++) { const t = k / G * 6.2832, c = Math.cos(t), sn = Math.sin(t), nx = -ty * c, ny = tx * c, v = T.v++;
+      for (let k = 0; k < G; k++) { const c = CS[k * 2], sn = CS[k * 2 + 1], nx = -ty * c, ny = tx * c, v = T.v++;
         P[v * 3] = pts[j * 2] + nx * rr; P[v * 3 + 1] = -(pts[j * 2 + 1] + ny * rr); P[v * 3 + 2] = sn * rr + z0; Nr[v * 3] = nx; Nr[v * 3 + 1] = -ny; Nr[v * 3 + 2] = sn;
         cA[v * 4] = col[0] + (col1[0] - col[0]) * f; cA[v * 4 + 1] = col[1] + (col1[1] - col[1]) * f; cA[v * 4 + 2] = col[2] + (col1[2] - col[2]) * f; cA[v * 4 + 3] = al; cB[v * 3] = rim[0]; cB[v * 3 + 1] = rim[1]; cB[v * 3 + 2] = rim[2]; } }
     for (let j = 0; j < n - 1; j++) for (let k = 0; k < G; k++) { const a0 = v0 + j * G + k, b0 = v0 + j * G + (k + 1) % G; ix.set([a0, a0 + G, b0, b0, a0 + G, b0 + G], T.i); T.i += 6; }

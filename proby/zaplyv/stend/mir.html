@@ -6,6 +6,7 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 #p { position: fixed; left: 10px; right: 10px; bottom: 12px; font-size: 13px; line-height: 1.35; opacity: 0.85; text-shadow: 0 1px 3px #000; }</style></head>
 <body><canvas id="c"></canvas><div id="p"></div>
 <script type="module">
+import { Proigryvatel } from '../proigryvatel.js'; const SPOSOB = new URLSearchParams(location.search).get('sposobnost'); let PR = null; // ?sposobnost=ключ — способность из sposobnosti.json проигрывается на существе
 // Стенд живого мира: мир из записи (mir.json), существа из записей (vid_chasti.json), жизнь по общим законам (mir_zhizn.js).
 // Ничего не нарисовано руками: каждое существо — sobrat(запись, поза). ?mir=kaplya&seed=1&z=1.6&x=&y= — окно камеры; ?vid=infuzoriya — камера
 // идёт за первым существом вида; ?zapis=1 — без своего цикла, шаг зовётся window.stend(dt) (для кадров и замеров); ?skor=4 — время быстрее.
@@ -33,10 +34,11 @@ window.stend = dt => { time += dt; for (let i = 0; i < skor; i++) shag(M, dt);
   bodies.begin();
   for (const s of M.sv) { const ob = oblik(M, s), w = ob.tolshchina * z, sx = (s.x - x0) * z, sy = (s.y - y0) * z, kr = w * 4; if (sx < -kr || sx > W + kr || sy < -kr || sy > H + kr) continue; vidno++;
     sobrat(ob.zapis, { x: sx, y: sy, a: s.a, tolshchina: w, z, time, id: s.id, beg: (s.vb = (s.vb ?? s.plyvet) + (s.plyvet - (s.vb ?? s.plyvet)) * Math.min(1, dt * 4)) }, bodies); }
+  if (SPOSOB) (PR ??= new Proigryvatel(W, H, SPOSOB)).vMire(dt, M, oblik, x0, y0, z, W, H, bodies, za);
   bodies.end(time);
   if (kadr++ % 6 === 0) { const d = tex.image.data; for (let i = 0; i < d.length; i++) d[i] = Math.min(255, P.C[i] * 255); tex.needsUpdate = true; }
   U.okno.value.set(x0 / (P.nx * G), y0 / (P.ny * G), vw / (P.nx * G), vh / (P.ny * G)); U.t.value = time;
-  gl.clear(); gl.render(back, cam); gl.render(bodies.scene, bodies.cam); window.vidno = vidno;
+  gl.clear(); gl.render(back, cam); gl.render(bodies.scene, bodies.cam); if (PR) PR.render(gl); window.vidno = vidno;
   if (kadr % 30 === 1) { const n = perepis(M); p.textContent = 'Живой мир записью · ' + Math.round(M.t) + ' с · существ ' + M.sv.length + ' (на экране ' + vidno + ') · видов ' + Object.keys(n).length + ' · родилось ' + M.schet.rodilos + ' · съедено ' + (M.schet.syel + M.schet.proboy) + ' · голод ' + M.schet.golod + ' · мутантов ' + M.schet.mutantov; } };
 if (!q.get('zapis')) { let last = performance.now(); const go = now => { window.stend(Math.min(0.05, (now - last) / 1000)); last = now; requestAnimationFrame(go); }; requestAnimationFrame(go); }
 window.stendReady = true;

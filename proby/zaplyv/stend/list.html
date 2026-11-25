@@ -6,6 +6,7 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 .p { position: fixed; left: 0; right: 0; text-align: center; font-size: 17px; opacity: 0.85; }</style></head>
 <body><canvas id="c"></canvas><div class="p" id="p1"></div><div class="p" id="p2"></div>
 <script type="module">
+import { Proigryvatel } from '../proigryvatel.js'; const SPOSOB = new URLSearchParams(location.search).get('sposobnost'); let PR = null; // ?sposobnost=ключ — способность из sposobnosti.json проигрывается на существе
 // Рабочий стенд движка: сверху клетка ручного кода (main.js: bodies.rod + vid.skin), снизу та же поза, собранная из частей (vid_chasti.js sobrat).
 // ?beg=1 — на ходу (пучок за кормой), ?beg=0 — покой; ?odna=ruchnaya|sobrannaya — только одна, крупно; ?z=масштаб.
 import * as THREE from '../three.module.min.js';
@@ -43,7 +44,8 @@ const KOL = q.get('vidy') ? q.get('vidy').split(',').length : +(q.get('n') || 16
 let time = 0;
 window.stend = dt => { time += dt; bodies.begin();
   zap.forEach((zp, i) => sobrat_gruppu(zp, { x: W * (i % stolb + 0.55) / stolb, y: H * (Math.floor(i / stolb) + 0.5) / ryad, a: q.get('vidy') ? -0.35 : ugly[i] - 0.3, tolshchina: 8.5 * z, z, time, id: i + 3, vypuklosti: q.get('vyp') ? q.get('vyp').split(';').map(v => { const [t, shirina, vysota] = v.split(',').map(Number); return { t, shirina, vysota }; }) : undefined, beg: +(q.get('beg') ?? (i % 3 === 0 ? 1 : 0)) }, bodies));
-  bodies.end(time); glow.done(); ink.done(); gl.clear(); gl.render(back, cam); gl.render(bodies.scene, bodies.cam); gl.render(scene, cam); };
+  if (SPOSOB) (PR ??= new Proigryvatel(W, H, SPOSOB)).kadr(dt, zap.map((zp, i) => ({ zapis: zp, poza: { x: W * (i % stolb + 0.55) / stolb, y: H * (Math.floor(i / stolb) + 0.5) / ryad, a: q.get('vidy') ? -0.35 : ugly[i] - 0.3, tolshchina: 8.5 * z } })), bodies);
+  bodies.end(time); glow.done(); ink.done(); gl.clear(); gl.render(back, cam); gl.render(bodies.scene, bodies.cam); gl.render(scene, cam); if (PR) PR.render(gl); };
 window.zapisi = zap;
 if (!q.get('zapis')) { let last = performance.now(); const go = now => { window.stend(Math.min(0.05, (now - last) / 1000)); last = now; requestAnimationFrame(go); }; requestAnimationFrame(go); }
 window.stendReady = true;
