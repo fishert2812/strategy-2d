@@ -150,5 +150,15 @@ check('test_vid_tube: ген по трубочке бежит колечком �
   for (const k of ['spore', 'sprout']) { const f = new Fx({}, [C, C, C]); f.reset(); f.world = { me: [me] }; f.on(k, 0, 0); if (f.rings.length || !f.naps.length) miss.push(k + ': вспышка вместо тихой волны'); }
   return miss.join('; ');
 });
+check('test_vid_sosedi: соседей едят, они делятся и лопаются видно, каждый своей величины', () => {
+  const C = { r: 1, g: 1, b: 1 }, miss = [], am = { x: 0, y: 0 };
+  const mk = () => { const fx = new Fx({}, [C, C, C]); fx.reset(); fx.world = { me: [], amoebas: [am], slippers: [am], bells: [am], rotis: [am] }; return fx; };
+  for (const who of ['amoeba', 'slipper', 'bell', 'roti']) for (const prey of ['coccus', 'strain', 'pseudo', 'donor', 'bdello']) {
+    const fx = mk(); fx.on('eaten_other', 5, 5, who, prey); const e = fx.eats[0];
+    if (!e) { miss.push(who + ' ест ' + prey + ': нет анимации'); continue; } if (e.w !== vid.V.sosed[prey].w) miss.push(prey + ': не своей величины'); }
+  { const fx = mk(); fx.on('divide_other', 0, 0, 'coccus'); if (fx.drops.length !== 2) miss.push('деление соседа не видно'); }
+  for (const k of ['strain', 'pseudo', 'donor']) { const fx = mk(); fx.on('pop', 0, 0, k); if (!fx.ghosts.length || fx.ghosts[0].w !== vid.V.sosed[k].w) miss.push(k + ': лопнул без оболочки своей величины'); if (fx.rings.some(r => r.r >= 90)) miss.push(k + ': всё ещё большое кольцо'); }
+  return miss.join('; ');
+});
 console.log(bad ? 'ВИД: провалов ' + bad : 'ВИД: все проверки прошли');
 process.exit(bad ? 1 : 0);
