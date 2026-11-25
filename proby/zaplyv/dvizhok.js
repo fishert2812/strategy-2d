@@ -45,10 +45,13 @@ export function oshibki(k, c) {
 }
 
 // Появление в новом квадрате мира: по порядку записей, каждый вид по своему шансу для этой воды (b) и удалению от старта.
-export function poyavlenie(w, b, far, safe, pt) {
+export function poyavlenie(w, b, far, safe, pt, mesto) { // mesto(u, v) — точка квадрата по двум долям, без общего жребия
   const c = w.cfg, r = w.r;
-  for (const k of zhivut()) { const M = anketa(k).mir;
-    if (!safe && far > num(c, M.s_rosta) && r() < num(c, M.shans)[b]) w.pseudos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: 0, cool: 0, ...(k === 'strain' ? { strain: true } : {}), vid: k, id: ++w.ids }); }
+  for (const k of zhivut()) { const M = anketa(k).mir, o = M.zhrebiy === 'obshchiy'; // у нового вида свой жребий: запись не перетасовывает остальной мир
+    let h = 2166136261; for (const ch of k + '|' + far + '|' + w.ids) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+    const sv = () => { h = Math.imul(h ^ h >>> 15, 2246822507); h = Math.imul(h ^ h >>> 13, 3266489909); return ((h ^= h >>> 16) >>> 0) / 4294967296; }, rr = o ? r : sv;
+    if (!safe && far > num(c, M.s_rosta) && rr() < num(c, M.shans)[b]) {
+      w.pseudos.push({ ...(o ? pt() : mesto(sv(), sv())), vx: 0, vy: 0, a: rr() * 6.283, t: 0, cool: 0, ...(k === 'strain' ? { strain: true } : {}), vid: k, id: ++w.ids }); } }
 }
 
 // Шаг всех палочек из анкет: рывок к ближней еде, пауза, новый курс; еду у носа съедает. Столкнулась с тобой — толчок;

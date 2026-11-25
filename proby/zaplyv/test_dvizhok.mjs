@@ -124,4 +124,16 @@ check('test_dvizhok_niti: у соседок из анкет жгутики — �
     console.log('    паспорт:', out.join(' · '));
   } finally { delete dv.V.vidy.cep; }
 });
+check('test_dvizhok_svoy_zhrebiy: новая запись не перетасовывает мир — с сенной палочкой прежние соседки появляются там же, а общий жребий мира идёт так же', () => {
+  const mir = () => { let s = 777; const r = () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296, w = { cfg, r, ids: 0, pseudos: [] };
+    for (let i = 0; i < 300; i++) dv.poyavlenie(w, i % 3, 1.3 + i * 0.05, false, () => ({ x: r(), y: r() }), (u, v) => ({ x: u, y: v }));
+    return { w, dalshe: r() }; };
+  const s = mir(), z = dv.V.vidy.seno; delete dv.V.vidy.seno; let bez; try { bez = mir(); } finally { dv.V.vidy.seno = z; }
+  const starye = m => m.w.pseudos.filter(q => q.vid !== 'seno').map(q => [q.vid, q.x, q.y, q.a].join()).join(';'), sena = s.w.pseudos.filter(q => q.vid === 'seno');
+  if (!sena.length) return 'сенная палочка ни разу не появилась за 300 квадратов — проверять нечего';
+  if (starye(s) !== starye(bez)) return 'с новой записью прежние соседки появились в других местах';
+  if (s.dalshe !== bez.dalshe) return 'новая запись берёт числа из общего жребия мира: всё, что случится после, пойдёт иначе';
+  if (new Set(sena.map(q => q.x)).size < sena.length * 0.9) return 'сенные палочки появляются в одной точке: свой жребий не случаен';
+  console.log('    паспорт: сенных палочек', sena.length, 'из 300 квадратов · прежних соседок', bez.w.pseudos.length, '· общий жребий совпал');
+});
 process.exit(bad ? 1 : 0);
