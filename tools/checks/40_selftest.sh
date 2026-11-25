@@ -51,7 +51,7 @@ ONLY=L019 case_ "test_L019: существо без места в Альмана
 case_ "test_L017: невидимый слой поверх кнопок «Заплыва»" 52_zaplyv_tap.sh red "sed -i 's|<div id=\"note\"|<div style=\"position:fixed;inset:0;z-index:99\"></div>&|' proby/zaplyv/index.html"
 case_ "test_L017: флажок молчит после касания" 52_zaplyv_tap.sh red "sed -i 's|n.classList.add(.on.);|/* нет отклика */|' proby/zaplyv/main.js"
 ONLY=L043 case_ "test_L043: опасный встречается молча" 52_zaplyv_tap.sh red "sed -i \"s/if (fresh || t.otnoshenie === 'opasen') say/if (fresh) say/\" $Z/main.js"
-ONLY=L062 case_ "test_L062: слой свечения снова мал для колонии, крошки пропадают" 52_zaplyv_tap.sh red "sed -i 's/\"dots\": { \"glow\": 24000, \"ink\": 12000 }/\"dots\": { \"glow\": 3000, \"ink\": 3000 }/' $Z/data.json"
+ONLY=L062 case_ "test_L062: слой свечения снова мал для колонии, крошки пропадают" 52_zaplyv_tap.sh red "sed -i 's/\"dots\": { \"glow\": 24000, \"ink\": 12000 }/\"dots\": { \"glow\": 1500, \"ink\": 1500 }/' $Z/data.json"
 ONLY=L046 case_ "test_L046: слизь снова мутной пеленой" 52_zaplyv_tap.sh red "sed -i 's/\"core\": 0.55, \"core_a\": 0.02/\"core\": 1.2, \"core_a\": 0.06/' $Z/data.json"
 ONLY=L053 case_ "test_L053: выбор навыка снова останавливает мир" 52_zaplyv_tap.sh red "sed -i 's/    if (!this.me.length) return; \/\/ выбор навыка/    if (this.choice.length || !this.me.length) return; \/\/ выбор навыка/' $Z/sim.js"
 ONLY=L042 case_ "test_L042: вирус сел молча" 52_zaplyv_tap.sh red "sed -i \"s/tell('stick', 'Сел вирус! Резко развернись — стряхнёшь, пока не впрыснул')/0/\" $Z/main.js"
