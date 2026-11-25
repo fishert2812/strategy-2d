@@ -27,19 +27,54 @@ check('test_dvizhok_ankety: каждая запись vidy.json полна и ч
   if (pusto.length !== 2) return 'у испорченной записи ждали две ошибки (цвет и edyat), нашли ' + pusto.length + ': ' + pusto;
 });
 
-// Отпечаток заплыва бота: сколько палочек, из них серых, свёртка их мест, съедено тобой, время, выстрелов гарпуна.
-const otpechatok = seed => { const w = new World(cfg, seed); w.dir = seed; let h = 0, zap = 0;
-  for (let i = 0; i < 30 * 90 && w.me.length; i++) { w.step(1 / 30, novice(w)); if (w.choice.length) w.pick(w.choice[0]); zap += w.events.filter(e => e[0] === 'zap').length; w.events.length = 0; }
-  for (const q of w.pseudos) h = (h * 31 + Math.round(q.x * 10) + Math.round(q.y * 10) * 7 + (q.strain ? 3 : 1)) % 1000000007;
-  return [w.pseudos.length, w.pseudos.filter(q => q.strain).length, h, w.stats.eaten, Math.round(w.stats.time * 10), zap].join(' '); };
-// Снято на коде до движка (main 2cc8ea3, 0.76): гарпунщица и серая соперница тогда ходили своим циклом в sim.js.
-const DO_DVIZHKA = { 5: '8 3 -625808140 225 900 0', 17: '5 2 -729066303 191 900 2', 41: '3 2 -101370136 161 900 0' };
-check('test_dvizhok_kak_ranshe: гарпунщица и серая соперница из анкет живут точь-в-точь как до движка (три заплыва бота по 90 с)', () => {
+// Прежний код из sim.js (main 2cc8ea3, 0.76, до движка) дословно: появление в квадрате и шаг гарпунщицы с серой соперницей.
+const staroe = {
+  poyavlenie(w, b, far, safe, pt) { const c = w.cfg, r = w.r;
+    if (!safe && far > c.pseudo_from && r() < c.pseudo_chance[b]) w.pseudos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: 0, cool: 0, id: ++w.ids });
+    if (!safe && far > c.strain_from && r() < c.strain_chance[b]) w.pseudos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: 0, cool: 0, strain: true, id: ++w.ids }); },
+  shag(w, dt) { const c = w.cfg, r = w.r;
+    for (const q of w.pseudos) {
+      if (q.held > 0) continue;
+      q.t -= dt; q.cool = Math.max(0, q.cool - dt);
+      if (q.t <= 0) {
+        let best = null, bd = c.pseudo_sense;
+        for (const f of w.food) { const d = Math.hypot(f.x - q.x, f.y - q.y); if (d < bd) { bd = d; best = f; } }
+        q.a = best ? Math.atan2(best.y - q.y, best.x - q.x) : q.a + (r() - 0.5) * 3; q.t = 0.25 + r() * 1.2; q.rest = 0.25;
+      }
+      const go = q.t > q.rest ? (q.strain ? c.strain_speed : c.pseudo_speed) : 0, k = Math.min(1, 6 * dt);
+      q.vx += (Math.cos(q.a) * go - q.vx) * k; q.vy += (Math.sin(q.a) * go - q.vy) * k; q.x += q.vx * dt; q.y += q.vy * dt;
+      for (const f of w.food) if (!f.gone && Math.hypot(f.x - q.x, f.y - q.y) < 14) f.gone = true;
+      for (const a of [...w.me]) {
+        const dx = q.x - a.x, dy = q.y - a.y, d = Math.hypot(dx, dy) || 1;
+        if (d > radius(a.m) + c.pseudo_r || a.spore > 0) continue;
+        const mine = (a.vx * dx + a.vy * dy) / d, its = -(q.vx * dx + q.vy * dy) / d;
+        a.vx -= dx / d * 120; a.vy -= dy / d * 120; q.vx += dx / d * 120; q.vy += dy / d * 120;
+        if (mine > its && q.cool <= 0 && !q.strain) {
+          q.cool = c.pseudo_cool; a.stun = c.pseudo_stun; a.m *= c.pseudo_hit; w.events.push(['zap', q.x, q.y, a.x, a.y]);
+          if (a.m < c.pseudo_min) w.lose(a, a.x, a.y, 'pseudo');
+        }
+      }
+    } },
+};
+check('test_dvizhok_kak_ranshe: гарпунщица и серая соперница из анкет появляются и живут точь-в-точь как по прежнему коду (один мир, одно зерно, 40 с)', () => {
   const svoi = Object.keys(dv.V.vidy).filter(k => !['pseudo', 'strain'].includes(k)), was = {};
-  for (const k of svoi) { was[k] = dv.V.vidy[k]; delete dv.V.vidy[k]; } // сверяем только двух прежних: новые виды берут свои случайные числа
-  const got = Object.keys(DO_DVIZHKA).map(s => [s, otpechatok(+s)]); Object.assign(dv.V.vidy, was);
-  console.log('    паспорт: отпечатки —', got.map(([s, f]) => 'зерно ' + s + ': ' + f).join(' | '));
-  const diff = got.filter(([s, f]) => f !== DO_DVIZHKA[s]); if (diff.length) return 'заплыв разошёлся с прежним: ' + diff.map(([s, f]) => 'зерно ' + s + ' стало «' + f + '», было «' + DO_DVIZHKA[s] + '»').join('; ');
+  for (const k of svoi) { was[k] = dv.V.vidy[k]; delete dv.V.vidy[k]; } // сверяем двух прежних: новые виды берут свои случайные числа
+  try {
+    const mir = kto => { let s = 12345; const r = () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; // свой мир-заглушка: только то, что трогает шаг палочек
+      const w = { cfg, r, ids: 0, pseudos: [], food: [], events: [], lost: 0, me: [{ x: 0, y: 0, vx: 60, vy: 10, m: 1.2 }, { x: 300, y: -200, vx: -40, vy: 30, m: 2 }], lose(a) { this.lost++; this.me = this.me.filter(c => c !== a); } };
+      for (let i = 0; i < 40; i++) kto.poyavlenie(w, i % 3, 1 + i * 0.2, i % 7 === 0, () => ({ x: (r() - 0.5) * 900, y: (r() - 0.5) * 900 }));
+      for (let i = 0; i < 150; i++) w.food.push({ x: (r() - 0.5) * 1200, y: (r() - 0.5) * 1200 });
+      for (let i = 0; i < 1200; i++) { if (i % 60 === 0 && w.me.length) { const a = w.me[0], g = w.pseudos.filter(q => !q.strain).sort((p, q) => Math.hypot(p.x - a.x, p.y - a.y) - Math.hypot(q.x - a.x, q.y - a.y))[0], d = Math.hypot(g.x - a.x, g.y - a.y) || 1; a.vx = (g.x - a.x) / d * 260; a.vy = (g.y - a.y) / d * 260; } // первая клетка таранит ближнюю гарпунщицу
+        for (const a of w.me) { a.x += a.vx / 30; a.y += a.vy / 30; } kto === dv ? dv.shag(w, 1 / 30, radius) : kto.shag(w, 1 / 30); }
+      return w; };
+    const A = mir(staroe), B = mir(dv), zap = w => w.events.filter(e => e[0] === 'zap').length, eaten = w => w.food.filter(f => f.gone).length;
+    console.log('    паспорт: палочек', B.pseudos.length, '(серых', B.pseudos.filter(q => q.strain).length + ') · съели кусков', eaten(B), 'из 150 · выстрелов гарпуна', zap(B), '· было по прежнему коду:', A.pseudos.length, eaten(A), zap(A));
+    if (B.pseudos.length < 6 || !B.pseudos.some(q => q.strain) || !B.pseudos.some(q => !q.strain) || !eaten(B) || !zap(B)) return 'мир пустой или без событий — сверка ничего не доказывает';
+    if (A.pseudos.length !== B.pseudos.length || eaten(A) !== eaten(B) || zap(A) !== zap(B) || A.lost !== B.lost) return 'итоги разошлись с прежним кодом';
+    const far = A.pseudos.findIndex((q, i) => q.x !== B.pseudos[i].x || q.y !== B.pseudos[i].y || !!q.strain !== !!B.pseudos[i].strain || q.cool !== B.pseudos[i].cool);
+    if (far >= 0) return 'палочка №' + far + ' оказалась не там, где по прежнему коду';
+    if (A.me.some((a, i) => a.m !== B.me[i].m || a.x !== B.me[i].x)) return 'твои клетки после столкновений разошлись с прежним кодом';
+  } finally { Object.assign(dv.V.vidy, was); }
 });
 
 check('test_dvizhok_variaciya: новый сосед одной записью — появляется, плывёт к еде и ест её, живёт по своей анкете, получает паспорт и карточку', () => {
