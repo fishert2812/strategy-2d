@@ -27,7 +27,13 @@ try {
   await p.tap('#zm-done'); need((await p.textContent('#zm-send')) === 'Замечаний нет', 'копилка не опустела после «Отправил»');
   await p.goto(url + '#geny'); await p.reload(); await p.waitForSelector('.zm-n.otpr', { timeout: 4000 }).catch(() => need(false, 'отправленное замечание не видно у пункта'));
   const [sw, cw] = await p.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]); need(sw <= cw, `страница шире экрана: ${sw} при ${cw}`);
-  if (!bad.length) console.log(`  ПАСПОРТ панели (${eng}, iPhone 13): кнопок на «Генах» ${btn}, замечаний в письме 2, знаков ${text.length}, файлов 0`);
+  const str = {}; // страницы панели: разбор навыков, каталог, замечания; у пункта видна его задача
+  for (const [k, min] of [['razbor', 33], ['katalog', 70], ['zamechaniya', 1]]) { await p.goto(url + '?' + k + '#' + k); await p.waitForSelector('[data-panel] .card', { timeout: 4000 }).catch(() => {});
+    str[k] = await p.evaluate(() => document.querySelectorAll('[data-panel] .card > .t > .zm-b').length); need(str[k] >= min, `на странице ${k} карточек с кнопкой ${str[k]}, нужно от ${min}`); }
+  const zd = await (await p.request.get(url.replace('index.html', 'zamechaniya.json'))).json();
+  for (const z of zd.kartochki) need(/^З\d+$/.test(z.id) && z.punkt && z.step && z.r.some(r => r[0] === 'Слова') && z.r.some(r => r[0] === 'Хозяин'), 'замечание ' + z.id + ' без номера, пункта, статуса, слов или хозяина');
+  await p.goto(url + '?u#umeniya'); await p.waitForSelector('.zm-n.zd', { timeout: 4000 }).catch(() => need(false, 'задача не видна у своего пункта'));
+  if (!bad.length) console.log(`  ПАСПОРТ панели (${eng}, iPhone 13): кнопок на «Генах» ${btn}, замечаний в письме 2, знаков ${text.length}, файлов 0; разбор ${str.razbor}, каталог ${str.katalog}, замечаний ${str.zamechaniya}`);
 } catch (e) { bad.push('панель не отвечает: ' + e.message.split('\n')[0]); }
 for (const m of bad) console.log('  ПАНЕЛЬ: ' + m);
 await b.close(); process.exit(bad.length ? 1 : 0);
