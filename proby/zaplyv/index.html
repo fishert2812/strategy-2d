@@ -201,7 +201,7 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
 #pstate { margin: -4px 0 6px; font-size: 15px; opacity: 0.7; text-align: center; }
 #phub h3 { margin: 4px 4px 0; font-size: 13px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; opacity: 0.55; text-align: left; }
 .prow { width: 100%; min-height: 64px; display: flex; align-items: center; gap: 12px; text-align: left; border-radius: 16px; padding: 8px 16px; background: rgba(8, 22, 34, 0.9); border-color: rgba(120, 220, 255, 0.28); }
-.prow span { flex: 1; } .prow b { display: block; font-size: 20px; font-weight: 600; } .prow small { font-size: 14px; margin-top: 2px; } .prow > i { font-style: normal; font-size: 28px; opacity: 0.5; }
+.prow span { flex: 1; } .pico { width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0; object-fit: cover; background: #061018; margin-left: -6px; } /* снимок раздела: твоё кольцо ДНК, последний встреченный, разрез пруда */ .prow b { display: block; font-size: 20px; font-weight: 600; } .prow small { font-size: 14px; margin-top: 2px; } .prow > i { font-style: normal; font-size: 28px; opacity: 0.5; }
 #pserv { display: flex; gap: 10px; margin-top: auto; } #pserv button { flex: 1; width: auto; min-height: 44px; font-size: 15px; border-color: rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.8); }
 #gbar { display: flex; gap: 10px; width: 100%; max-width: 420px; flex-shrink: 0; z-index: 1; margin-top: auto; } #gbar #gback, #kbot #back { flex: 0 0 38%; width: auto; min-width: 0; min-height: 56px; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 12px; } /* «‹ куда» одной строкой */
 #gbar #gon { flex: 1; width: auto; } #genome.tab-hub #gbar { margin-top: 0; } #pnew.sure { border-color: #ff8a6a; color: #ffb4a0; }
@@ -280,9 +280,9 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
   <div id="ghead"><i class="gsp"></i><div><h1 id="gtitle">Пауза</h1></div><button id="gflag" class="flag" aria-label="Не так">⚑</button></div>
   <div id="phub"><p id="pstate"></p>
     <h3>Справочник</h3>
-    <button class="prow" data-t="genome"><span><b>Геном</b><small id="pg"></small></span><i>›</i></button>
-    <button class="prow" data-t="alm"><span><b>Альманах</b><small id="pa"></small></span><i>›</i></button>
-    <button class="prow" data-t="map"><span><b>Карта</b><small id="pm"></small></span><i>›</i></button>
+    <button class="prow" data-t="genome"><img class="pico" alt=""><span><b>Геном</b><small id="pg"></small></span><i>›</i></button>
+    <button class="prow" data-t="alm"><img class="pico" alt=""><span><b>Альманах</b><small id="pa"></small></span><i>›</i></button>
+    <button class="prow" data-t="map"><img class="pico" alt=""><span><b>Карта</b><small id="pm"></small></span><i>›</i></button>
     <div id="pserv"><button id="psound" class="ghost"></button></div></div>
   <p id="gsub"></p>
   <svg id="ring" viewBox="-228 -190 468 375" preserveAspectRatio="xMidYMid meet"></svg>

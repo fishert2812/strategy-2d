@@ -23,6 +23,7 @@ const BROKEN = {
   'главное сверху': '#gbar { order: -1; margin-top: 0 !important; }',
   'нет заголовка': '#gtitle { display: none !important; }',
   'связи не строками': '.kl { width: 120px !important; }',
+  'значков нет': '.pico { display: none !important; }',
   'Альманах в режимах чипом': '#malm { width: 120px !important; min-height: 44px !important; border-radius: 22px !important; }',
 };
 async function walk(css) {
@@ -59,6 +60,8 @@ async function walk(css) {
   // Из игры: пауза → каждый раздел → назад → продолжить. Глубина не больше двух касаний до игры.
   if (await tap('#pause')) {
     const hub = SCREENS[0]; say(await title() === 'Пауза', 'test_L037: пауза всегда открывается первым уровнем «Пауза»'); await check(hub);
+    await p.waitForTimeout(600); const ic = await p.evaluate(() => [...document.querySelectorAll('#phub .prow')].map(b => { const i = b.querySelector('.pico'); return [b.dataset.t, i && i.naturalWidth >= 52 && i.src.length > 2000]; }));
+    say(ic.length && ic.every(x => x[1]), 'test_L037: у каждой строки справочника — значок-снимок раздела (кольцо ДНК, встреченный, разрез пруда)' + (ic.every(x => x[1]) ? '' : ': пусто у ' + ic.filter(x => !x[1]).map(x => x[0]).join(', ')));
     for (const [s, name] of Object.entries(hub.nav)) {
       if (!(await tap(s))) { say(false, `test_L037: раздела «${name}» не видно`); continue; } if (name === 'Альманах') await p.waitForTimeout(800);
       const S = SCREENS.find(x => x.name === name); await check(S);
