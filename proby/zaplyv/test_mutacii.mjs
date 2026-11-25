@@ -142,7 +142,7 @@ check('[magnet] пищевой магнит: еда рядом сама плыв
 
 // Способности записями (Роман 25.11: «чтобы движок был как ядро наше… чтобы больше не пришлось руками писать»; договор design/dlya_dvizhka/dogovor.md, раздел 4):
 // у каждого гена игры есть запись способности, её номер есть в книге, характеристики — только из списка договора, у каждой ступени уровня — запись.
-check('[sposobnosti] у каждого гена есть запись способности по договору движка, номера — из книги', () => {
+check('[sposobnosti] у каждого гена есть запись способности по договору движка, номера — из книги; у каждой gde, zapusk, delaet, cena, vidno', () => {
   const S = JSON.parse(readFileSync(new URL('./sposobnosti.json', import.meta.url))), Z = S.sposobnosti, H = new Set(S.harakteristiki);
   const kniga = readdirSync(new URL('./kniga/zapisi/', import.meta.url)).map(f => readFileSync(new URL('./kniga/zapisi/' + f, import.meta.url), 'utf8')).join('') + readFileSync(new URL('./kniga/geny.md', import.meta.url), 'utf8');
   const net = [...Object.keys(M.genes), ...Object.keys(cfg.genes || {})].filter(g => !Z[g]); if (net.length) return 'нет записи способности: ' + net.join(', ');
@@ -150,6 +150,11 @@ check('[sposobnosti] у каждого гена есть запись спосо
     for (const g of [z.kniga].flat()) if (!g || !kniga.includes(g)) return k + ': номера ' + g + ' нет в книге';
     for (const u of [z, ...(z.urovni || [])]) for (const m of u.menyaet || []) if (m.harakteristika && !H.has(m.harakteristika)) return k + ': характеристики «' + m.harakteristika + '» нет в списке договора';
     if (z.ot && !Z[z.ot]) return k + ': родителя ' + z.ot + ' нет';
+    if (!S.zony_gde.includes(z.gde)) return k + ': gde «' + z.gde + '» — не зона из списка';
+    if (!S.zapuski.includes(z.zapusk)) return k + ': zapusk «' + z.zapusk + '» не из списка';
+    if (!(typeof z.cena === 'number' && z.cena >= 0)) return k + ': cena — не число';
+    if (!S.zagotovki.includes(z.vidno?.zagotovka) || !S.zony_gde.includes(z.vidno?.na)) return k + ': vidno — заготовка и зона из списков';
+    if (!(z.daet_chast || z.menyaet || z.ishod || z.sled || z.urovni || z.nuzhno || z.ot || z.semya || z.eda_vidy || z.pravilo || z.nasledstvo)) return k + ': нет delaet — что способность делает';
     for (const u of z.urovni || []) for (const v of u.vklyuchaet || []) if (!Z[v]) return k + ': включает ' + v + ', а такой записи нет';
     if (k in M.levels && (z.urovni || []).length !== M.levels[k]) return k + ': ступеней в записи ' + (z.urovni || []).length + ', а в игре ' + M.levels[k];
   }
