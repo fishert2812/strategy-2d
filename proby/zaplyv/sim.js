@@ -143,9 +143,9 @@ export class World {
       if (c.m < this.split() || c.sick >= 0 || c.held > 0 || c.grab || c.spore > 0) continue;
       c.m /= 2; c.gen = (c.gen || 0) + 1; this.stats.gen = Math.max(this.stats.gen, c.gen);
       const ax = Math.cos(c.a), ay = Math.sin(c.a), r = radius(c.m);
-      born.push({ x: c.x - ax * r * 1.2, y: c.y - ay * r * 1.2, vx: c.vx - ax * 60, vy: c.vy - ay * 60, m: c.m, a: c.a, sick: -1, gen: c.gen, id: ++this.ids });
+      const kid = { x: c.x - ax * r * 1.2, y: c.y - ay * r * 1.2, vx: c.vx - ax * 60, vy: c.vy - ay * 60, m: c.m, a: c.a, sick: -1, gen: c.gen, id: ++this.ids }; born.push(kid);
       c.x += ax * r * 0.6; c.y += ay * r * 0.6;
-      this.events.push(['split', c.x, c.y]);
+      this.events.push(['split', c.x, c.y, c.id, kid.id]); // вид деления знает пару: мать и дочка (vid.birth)
     }
     const room = leave ? 0 : Math.max(0, this.cfg.me_max - this.me.length);
     for (const b of born.slice(room)) { this.away.push({ ...b, t: 0 }); this.events.push(['leave', b.x, b.y]); }
