@@ -36,7 +36,7 @@ check('test_vid_skin: клетка со всеми умениями и спящ�
 // (своими точками, не только числом), спящая клетка замирает (биолог: крупинки перестают дрожать), капсула прогибается от удара.
 const cfgD = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
 const paint = (genes, opt = {}) => { const pts = [], brush = { put: (x, y, r, cr, cg, cb, ca) => pts.push([x, y, r, cr, cg, cb, ca].map(v => Math.round(v * 100) / 100).join()) };
-  const a = { id: 1, m: 1, a: 0, vx: 0, vy: 0, stuck: !!opt.stuck }, lk = look(genes, cfgD.look, opt.spacers || 0);
+  const a = { id: 1, x: 0, y: 0, m: 1, a: 0, vx: 0, vy: 0, stuck: !!opt.stuck }, lk = look(genes, cfgD.look, opt.spacers || 0);
   vid.skin({ a, lk, x: 0, y: 0, ang: 0, ax: 1, ay: 0, half: 20, w: 9, z: 1, along: (u, o) => [u, o], arc: () => 0, body: { at: () => [0, 0] }, scr: (x, y) => [x, y],
     time: opt.time ?? 1, pdt: opt.pdt ?? 0, run: false, phageNear: false, foodNear: !!opt.food, spacers: opt.spacers || 0, plasmid: false, cfg: cfgD, alive: [a], glow: brush, ink: brush });
   const fl = ',' + cfgD.flag.color.join() + ','; return pts.filter(p => !p.includes(fl)); }; // жгутики живут своим ходом между кадрами (whip.js)
@@ -78,6 +78,68 @@ check('test_vid_split: деление — мать стягивается пер
   if (Math.abs(a1.x - b1.x - 2 * hd) > 0.1 || Math.abs(at(mom, P.join * 0.999).fl - 2) > 0.01) return 'после перетяжки дочки не половинки матери торец к торцу: ' + (a1.x - b1.x).toFixed(2);
   let prev = a1.x - b1.x; for (let t = P.join + 0.03; t < P.join + (1 - P.join) * P.free; t += 0.03) { const d = at(mom, t).x - at(kid, t).x; if (d < prev - 1e-6) return 'дочки сходятся обратно'; if (d - prev > hd * 0.3) return 'рывок в расхождении на ' + t.toFixed(2); prev = d; }
   if (at(mom, 1.01)) return 'деление не кончилось за V.split.slide';
+  return '';
+});
+check('test_vid_cut: CRISPR и обманка срабатывают видимо — светлый разрез на вирусе, половинки расходятся, за V.cut.life всё гаснет; не красный', () => {
+  const C = { r: 1, g: 0.2, b: 0.2 }, fx = new Fx({}, [C, C, C]); fx.reset(); fx.on('cut', 50, 50);
+  if (!fx.cuts.length) return 'разрез не появился';
+  const shot = () => { const pts = []; const b = { put: (x, y, r, cr, cg, cb, a) => pts.push({ x, y, cr, cg, cb, a }) }; fx.drawOver({ scr: (x, y) => [x, y], z: 1, time: 0, glow: b, ink: b }); return pts; };
+  fx.step(0.06); const p1 = shot();
+  if (!p1.length) return 'разреза не видно';
+  if (p1.some(p => p.cr > p.cg + 0.15)) return 'разрез красный: красный только за опасностью';
+  const span = ps => Math.max(...ps.map(p => Math.hypot(p.x - 50, p.y - 50)));
+  fx.step(0.2); const p2 = shot(); if (span(p2) <= span(p1) - 2) return 'половинки не расходятся';
+  for (let i = 0; i < 20 && fx.cuts.length; i++) fx.step(0.05); if (fx.cuts.length) return 'разрез не погас за V.cut.life';
+  return '';
+});
+check('test_vid_poison: от яда соперница не лопается — остаётся целым телом, бледнеет и тонет; от вируса лопается брызгами', () => {
+  const C = { r: 1, g: 1, b: 1 }, fx = new Fx({}, [C, C, C]); fx.reset(); fx.on('poisoned', 0, 0, 'strain', 0.5);
+  if (fx.drops.length || fx.ghosts.length) return 'отравленная лопнула: брызги или пустая оболочка';
+  if (fx.dead.length !== 1) return 'нет целого мёртвого тела';
+  const shot = () => { const pts = []; const b = { put: (x, y, r, cr, cg, cb, a) => pts.push({ x, y, cr, cg, cb, a }) }; fx.drawUnder({ scr: (x, y) => [x, y], z: 1, time: 0, glow: b, ink: b }); return pts; };
+  const size = ps => Math.max(...ps.map(p => Math.hypot(p.x, p.y))), pale = ps => Math.min(...ps.map(p => Math.min(p.cr, p.cg, p.cb)));
+  const p0 = shot(); fx.step(1.5); const p1 = shot();
+  if (!(pale(p1) > pale(p0) + 0.1)) return 'тело не бледнеет';
+  if (!(size(p1) < size(p0))) return 'тело не тонет (не уменьшается)';
+  const v = new Fx({}, [C, C, C]); v.reset(); v.on('pop', 0, 0, 'strain'); if (!v.drops.length) return 'от вируса не лопается';
+  return '';
+});
+check('test_vid_shchit_vspyshka: щит срабатывает видимо — вирус не сел: светлая вспышка в точке касания; первый вирус: светлая волна сходится в клетку; сестра гаснет со светлым контуром', () => {
+  const C = { r: 1, g: 1, b: 1 }, shot = fx => { const pts = []; const b = { put: (x, y, r, cr, cg, cb, a) => pts.push({ x, y, r, cr, cg, cb, a }) }; fx.drawOver({ scr: (x, y) => [x, y], z: 1, time: 0, glow: b, ink: b }); fx.drawUnder({ scr: (x, y) => [x, y], z: 1, time: 0, glow: b, ink: b }); return pts; };
+  const lock = new Fx({}, [C, C, C]); lock.reset(); lock.world = { me: [{ x: 0, y: 0 }] }; lock.on('shrug', 12, 0); lock.step(0.03);
+  if (!shot(lock).some(p => Math.hypot(p.x - 12, p.y) < 6 && p.r >= 8 && p.a > 0.6 && p.cr > 0.9)) return 'вирус не сел — нет светлой вспышки в точке касания';
+  const learn = new Fx({}, [C, C, C]); learn.reset(); learn.world = { me: [{ x: 0, y: 0 }] }; learn.on('learn', 30, 0); learn.step(0.3);
+  const ring = shot(learn).filter(p => Math.abs(Math.hypot(p.x, p.y) - 40) < 40 && p.a > 0.4); if (ring.length < 20) return 'первый вирус: волны к клетке не видно';
+  const ab = new Fx({}, [C, C, C]); ab.reset(); ab.on('abort', 0, 0, 0, 1); ab.step(0.5);
+  if (!shot(ab).some(p => p.a > 0.25 && p.cr > 0.5)) return 'сестра гаснет без светлого контура — на тёмной воде не видно';
+  return '';
+});
+check('test_vid_impuls: навык сработал — по телу своей клетки за V.pulse.life пробегает золотой импульс от точки срабатывания к другому концу; на опасности его нет', () => {
+  const C = { r: 1, g: 1, b: 1 }, fx = new Fx({}, [C, C, C]); fx.reset(); fx.world = { me: [{ id: 1, x: 0, y: 0, a: 0 }] };
+  const gold = () => paint({}).map(p => p.split(',').map(Number)).filter(([x, y, r, cr, cg, cb, a]) => cr > 0.9 && cg > 0.6 && cg < 0.9 && cb < 0.5 && a > 0.05);
+  const mid = ps => ps.reduce((s, p) => s + p[0] * p[6], 0) / ps.reduce((s, p) => s + p[6], 0);
+  if (gold().length) return 'золото на теле без срабатывания';
+  fx.on('shrug', 30, 0); fx.step(0.12); const p1 = gold(); if (p1.length < 3) return 'золотого импульса на теле не видно';
+  fx.step(0.25); const p2 = gold(); if (!(mid(p1) > 3 && mid(p2) < mid(p1) - 6)) return 'импульс не бежит от точки срабатывания: ' + mid(p1).toFixed(1) + ' → ' + mid(p2).toFixed(1);
+  fx.step(0.3); if (gold().length) return 'импульс не погас за V.pulse.life';
+  fx.on('stick', 30, 0); fx.step(0.1); if (gold().length) return 'импульс на опасности: золотой только у навыка';
+  return '';
+});
+check('test_vid_virus: вирус — в гранёной голове светится золотая нить ДНК; впрыснул — голова пустеет', () => {
+  const C = { r: 1, g: 1, b: 1 }, me = { id: 7, x: 0, y: 0, m: 1 };
+  const gold = (g) => { const f = new Fx({ inject: 2 }, [C, C, C]); f.reset(); f.world = { me: [me], phages: [g] }; let n = 0; const b = { put: (x, y, r, cr, cg, cb) => { if (cr === 1 && cg === vid.V.virus.gold[1]) n++; } }; f.drawOver({ scr: (u, v) => [u, v], z: 1, time: 0, glow: b, ink: b }); return [n]; };
+  const [free] = gold({ x: 120, y: 0, d: 0 }); if (free < 20) return 'нет золотой нити в голове: ' + free;
+  const [late] = gold({ x: 120, y: 0, d: 0, on: me, t: 0.1 }); if (!(late < free / 3)) return 'впрыснул, а голова полна: ' + late;
+  return '';
+});
+check('test_vid_skorlupa: спящая в тонкой твёрдой скорлупе; хищник рядом — по скорлупе с его стороны бегут трещины, далеко — скорлупа цела', () => {
+  const a = { id: 77, x: 0, y: 0, m: 1.6, a: 0, spore: cfgD.spore - vid.V.sleep.fall - 0.3 }, pts = [], br = { put: (x, y, r, cr, cg, cb, al) => pts.push({ x, y, cr, al }) };
+  vid.sleeper({ a, x: 0, y: 0, z: 1, time: 0, cfg: cfgD, bodies: { rod() {} }, glow: br, ink: br });
+  const sh = vid.shellOf(77); if (!sh) return 'скорлупы нет';
+  const ring = pts.filter(p => p.cr > 0.8 && p.al > 0.3 && Math.hypot(p.x, p.y) > sh.R * 0.95); if (ring.length < 40) return 'скорлупа не видна: ' + ring.length;
+  const crack = (mx) => { const C = { r: 1, g: 1, b: 1 }, fx = new Fx({}, [C, C, C]); fx.reset(); fx.world = { me: [a], amoebas: [{ x: mx, y: 0 }] }; const q = []; const b = { put: (x, y, r, cr, cg, cb, al) => { if (cr === 1 && cg === 1 && al > 0.3) q.push(x); } }; fx.drawOver({ scr: (x, y) => [x, y], z: 1, time: 0, glow: b, ink: b }); return q; };
+  const near = crack(sh.R + 15); if (near.length < 6) return 'хищник у скорлупы, а трещин нет'; if (near.some(x => x < 0)) return 'трещина не с той стороны, где хищник';
+  if (crack(500).length) return 'трещины без хищника';
   return '';
 });
 check('test_vid_capsule_dent: капсула прогибается от удара хищника и пружинит обратно', () => {
@@ -167,7 +229,7 @@ check('test_vid_tube: ген по трубочке бежит колечком �
   const p = pts(fx), cx = p.reduce((s, q) => s + q[0], 0) / (p.length || 1); if (!fx.genes.length) miss.push('ген: нет колечка'); else if (cx < 20 || cx > 80) miss.push('колечко не бежит от сородича к клетке');
   if (fx.rings.length) miss.push('ген: всё ещё простое кольцо');
   { const keep = fx.save(); fx.reset(); fx.load(keep); if (!fx.genes.length) miss.push('снимок значка (reset) гасит идущую анимацию'); }
-  const len = t => { const f = new Fx({ inject: 2 }, [C, C, C]); f.reset(); f.world = { me: [me], phages: [{ x: 120, y: 0, d: 0, on: me, t }] }; return pts(f).length; };
+  const len = t => { const f = new Fx({ inject: 2 }, [C, C, C]); f.reset(); f.world = { me: [me], phages: [{ x: 120, y: 0, d: 0, on: me, t }] }; const p = []; const br = { put: (x, y, r, cr, cg, cb) => { if (![vid.V.virus.gold].some(c => c[0] === cr && c[1] === cg && c[2] === cb)) p.push([x, y]); } }; f.drawOver({ scr: (u, v) => [u, v], z: 1, time: 0, glow: br, ink: br }); return p.length; }; // только нить, без головы вируса
   if (!(len(0.2) > len(1.8) + 4)) miss.push('нить ДНК не растёт, пока фаг сидит');
   for (const k of ['spore', 'sprout']) { const f = new Fx({}, [C, C, C]); f.reset(); f.world = { me: [me] }; f.on(k, 0, 0); if (f.rings.length || !f.naps.length) miss.push(k + ': вспышка вместо тихой волны'); }
   return miss.join('; ');

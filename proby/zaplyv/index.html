@@ -13,8 +13,12 @@ html, body { margin: 0; height: 100%; background: #02040a; overflow: hidden; tou
 canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 #hud { position: fixed; top: calc(env(safe-area-inset-top) + 10px); left: 68px; right: 68px; font-size: 17px;
   opacity: 0.75; pointer-events: none; display: flex; justify-content: space-between; }
-#scalebox { position: fixed; left: 16px; bottom: calc(env(safe-area-inset-bottom) + 8px); font-size: 12px; opacity: 0.45; pointer-events: none; }
-#scale { height: 3px; background: #fff; margin-bottom: 3px; border-radius: 2px; }
+#scalebox { position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 24px); opacity: 0.75; pointer-events: none; }
+/* Полоса роста (Роман 25.11: «Здоровье и опыт можешь показать полосой… линию… заменить на опыт. Размер оставить только числом»):
+   заполняется к делению, голод и яд отъедают её назад, заражение — красная засечка с отсчётом на конце. */
+#growbar { position: relative; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.18); overflow: hidden; }
+#growfill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: #e8f2f2; border-radius: 2px; transition: width 0.25s; }
+#sicknotch { position: absolute; top: 0; bottom: 0; width: 0; background: #ff5a4a; }
 #ver { position: fixed; right: 10px; bottom: calc(env(safe-area-inset-bottom) + 6px); font-size: 11px; opacity: 0.3; pointer-events: none; }
 .layer { position: fixed; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center;
   gap: 16px; background: rgba(2, 4, 10, 0.72); padding: 24px; } /* без размытия под слоем: в WebKit без видеокарты оно дорогое */
@@ -89,6 +93,7 @@ body:has(.layer.on) #hud, body:has(.layer.on) #scalebox, body:has(.layer.on) #ve
 .khead { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
 .khead h1 { margin: 0; font-size: 26px; font-weight: 700; }
 button.round { width: 44px; height: 44px; min-height: 44px; padding: 0; border-radius: 50%; flex-shrink: 0; font-size: 22px; background: rgba(2, 4, 10, 0.4); border-color: rgba(255, 255, 255, 0.25); }
+#knote { margin: 0 0 10px; font-size: 14px; line-height: 1.35; opacity: 0.75; text-align: left; }
 #kcount { margin: 4px 0 8px; font-size: 16px; opacity: 0.8; text-align: left; }
 #kbar { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.12); margin-bottom: 14px; }
 #kbar i { display: block; height: 100%; border-radius: 2px; background: #3ee0a8; }
@@ -201,7 +206,7 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
 #pstate { margin: -4px 0 6px; font-size: 15px; opacity: 0.7; text-align: center; }
 #phub h3 { margin: 4px 4px 0; font-size: 13px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; opacity: 0.55; text-align: left; }
 .prow { width: 100%; min-height: 64px; display: flex; align-items: center; gap: 12px; text-align: left; border-radius: 16px; padding: 8px 16px; background: rgba(8, 22, 34, 0.9); border-color: rgba(120, 220, 255, 0.28); }
-.prow span { flex: 1; } .prow b { display: block; font-size: 20px; font-weight: 600; } .prow small { font-size: 14px; margin-top: 2px; } .prow > i { font-style: normal; font-size: 28px; opacity: 0.5; }
+.prow span { flex: 1; } .pico { width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0; object-fit: cover; background: #061018; margin-left: -6px; } /* снимок раздела: твоё кольцо ДНК, последний встреченный, разрез пруда */ .prow b { display: block; font-size: 20px; font-weight: 600; } .prow small { font-size: 14px; margin-top: 2px; } .prow > i { font-style: normal; font-size: 28px; opacity: 0.5; }
 #pserv { display: flex; gap: 10px; margin-top: auto; } #pserv button { flex: 1; width: auto; min-height: 44px; font-size: 15px; border-color: rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.8); }
 #gbar { display: flex; gap: 10px; width: 100%; max-width: 420px; flex-shrink: 0; z-index: 1; margin-top: auto; } #gbar #gback, #kbot #back { flex: 0 0 38%; width: auto; min-width: 0; min-height: 56px; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 12px; } /* «‹ куда» одной строкой */
 #gbar #gon { flex: 1; width: auto; } #genome.tab-hub #gbar { margin-top: 0; } #pnew.sure { border-color: #ff8a6a; color: #ffb4a0; }
@@ -240,7 +245,7 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
 <div id="fpin" hidden>⚑</div>
 <div class="layer" id="fsheet"><div id="fbox"><img id="fimg" alt="Кусок кадра вокруг флажка"><p>Что здесь не так?</p><textarea id="ftext" rows="3" placeholder="Скажи словами — можно голосом с клавиатуры"></textarea>
   <div id="fbtns"><button id="fcancel" class="ghost">Отмена</button><button id="fsave">Записать</button></div></div></div>
-<div id="scalebox"><div id="scale"></div>10 мкм</div>
+<div id="scalebox"><div id="growbar"><i id="growfill"></i><i id="sicknotch"></i></div></div>
 <div class="layer" id="genes"><h1>Две дочки</h1><p>Они получились разными. Коснись той, кем плыть дальше</p><div id="cards"></div></div>
 <div class="layer" id="end">
   <div id="card"><img id="ckill" alt="" hidden><div id="who"></div><h2 id="cname"></h2><p id="ctext"></p><p id="ctip"></p><p id="cfact"></p></div>
@@ -281,9 +286,9 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
   <div id="ghead"><i class="gsp"></i><div><h1 id="gtitle">Пауза</h1></div><button id="gflag" class="flag" aria-label="Не так">⚑</button></div>
   <div id="phub"><p id="pstate"></p>
     <h3>Справочник</h3>
-    <button class="prow" data-t="genome"><span><b>Геном</b><small id="pg"></small></span><i>›</i></button>
-    <button class="prow" data-t="alm"><span><b>Альманах</b><small id="pa"></small></span><i>›</i></button>
-    <button class="prow" data-t="map"><span><b>Карта</b><small id="pm"></small></span><i>›</i></button>
+    <button class="prow" data-t="genome"><img class="pico" alt=""><span><b>Геном</b><small id="pg"></small></span><i>›</i></button>
+    <button class="prow" data-t="alm"><img class="pico" alt=""><span><b>Альманах</b><small id="pa"></small></span><i>›</i></button>
+    <button class="prow" data-t="map"><img class="pico" alt=""><span><b>Карта</b><small id="pm"></small></span><i>›</i></button>
     <div id="pserv"><button id="psound" class="ghost"></button></div></div>
   <p id="gsub"></p>
   <svg id="ring" viewBox="-228 -190 468 375" preserveAspectRatio="xMidYMid meet"></svg>
@@ -296,7 +301,7 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
 </div>
 <div class="layer" id="cabinet">
   <div id="kshelf"><div class="khead"><h1>Альманах</h1></div>
-    <p id="kcount"></p><div id="kbar"><i></i></div><div id="kpills"></div><div id="shelf"></div></div>
+    <p id="kcount"></p><div id="kbar"><i></i></div><div id="kpills"></div><p id="knote" hidden></p><div id="shelf"></div></div>
   <div id="kcard" hidden><div class="khead"><h1>Альманах</h1></div><div id="kframe"><img id="kimg" alt=""><div id="ksize"></div></div><h2 id="kname"></h2><div id="ktag"></div><div id="kblocks"></div>
     <div id="klinks"></div></div>
   <div id="kbot"><button id="back" class="ghost">‹ Назад</button><button id="kswim">Плыть</button></div>

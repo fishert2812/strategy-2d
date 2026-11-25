@@ -6,7 +6,7 @@
 //   gas   — №26 «пузырьки для подъёма»: отпустил палец — клетка сама медленно всплывает; с пузырьками плывёт чуть тяжелее (чужой ген).
 //   door  — №17 «закрыть дверь»: яд кокка больше не щиплет, зато любая еда даёт меньше.
 //   flu   — Г24 «Сцепка» (Роман 24.11, «чтобы бактерии держались с друг другом вместе»): сёстры держатся плотом, между ними застёжки;
-//           маленькие рты плот не берут, плот поворачивает лениво, вирус в плоту переходит на соседок, кувырок рассыпает плот. Живёт и в обычном заплыве.
+//           маленькие рты плот не берут, плот поворачивает лениво; вирус сел на одну — заболевает и соседняя. Живёт и в обычном заплыве.
 //   steady — Г34 «Крепче жгут»: кувырок только на совсем крутом повороте и короче; остальные повороты — дугой на ходу, след без остановок. На корме тугой жгут.
 //   citrate — Г35 «Ест голубую еду» (опыт Ленски): в капле режима голубые точки, которых никто не ест; с геном они твоя еда.
 //   decoy — №14 «обманки»: за клеткой тянутся пузырьки её оболочки; вирус садится на пузырёк и гибнет с ним. Каждый пузырёк — кусочек сил.
@@ -69,8 +69,8 @@ export const thrust = (w, a) => (has(w, 'gas') ? M.gas.drag : 1) * (a.snap > 0 ?
 export const raft = w => has(w, 'flu') && w.me.length > 1 && !((w.raftOff || 0) > w.stats.time);
 export function cell(w, a, dt, th) {
   if (raft(w) && !a.grab) { // застёжки: каждая сестра тянется к середине плота, пока не встанет бок о бок
-    const c = w.center(), dx = c.x - a.x, dy = c.y - a.y, d = Math.hypot(dx, dy), rest = 13 * Math.sqrt(a.m) * Math.sqrt(w.me.length) * M.flu.pack; // плот плотный: бок о бок, как соты
-    if (d > rest) { const k = Math.min(1, M.flu.k * dt) * (d - rest) / d; a.x += dx * k; a.y += dy * k; }
+    const c = w.center(), dx = c.x - a.x, dy = c.y - a.y, d = Math.hypot(dx, dy), rest = 13 * Math.sqrt(a.m) * Math.sqrt(w.me.length) * M.flu.pack; // плот плотный: бок о бок, как соты; дальнюю (застряла, унесло) застёжки не тянут
+    if (d > rest && d < M.flu.reach) { const k = Math.min(1, M.flu.k * dt) * (d - rest) / d; a.x += dx * k; a.y += dy * k; }
     const rs = 13 * Math.sqrt(a.m) * M.flu.sep; // но не налезают: палочка длинная, круг тесен — держим расстояние в длину палочки
     for (const b of w.me) { if (b === a) continue; const ex = a.x - b.x, ey = a.y - b.y, e = Math.hypot(ex, ey) || 0.01; if (e < rs) { const k = (rs - e) / e * Math.min(1, 6 * dt) * 0.5; a.x += ex * k; a.y += ey * k; } }
     let vx = 0, vy = 0; for (const b of w.me) { vx += b.vx; vy += b.vy; } const al = Math.min(1, M.flu.align * dt); // плывут как одно: ход сестры тянется к ходу плота
@@ -97,9 +97,18 @@ function citrate(w) {
   while (w.cit.length < C.n) { const t = w.r() * 6.283, d = C.near * (0.25 + 0.75 * Math.sqrt(w.r())); w.cit.push({ x: c.x + Math.cos(t) * d, y: c.y + Math.sin(t) * d, ph: w.r() * 6.283 }); }
 }
 
+// Вирус сел на свою клетку (sim.js). В плоту с шансом M.flu.spread заболевает и ближайшая здоровая соседка вплотную —
+// цена сцепки (книга Г24: «Сядет вирус на одну, заболеет и соседняя»). Соседка помечена тем же признаком, что и севший вирус.
+export function landed(w, a) {
+  if (!raft(w) || !(w.r() < M.flu.spread)) return;
+  let best = null, bd = M.flu.r * 2;
+  for (const b of w.me) { if (b === a || b.sick >= 0) continue; const d = Math.hypot(b.x - a.x, b.y - a.y) - 13 * Math.sqrt(a.m) - 13 * Math.sqrt(b.m); if (d < bd) { bd = d; best = b; } }
+  if (!best) return;
+  best.sick = w.cfg.sick; w.stats.fluSick = (w.stats.fluSick || 0) + 1; w.events.push(['sick', best.x, best.y]);
+}
+
 // Своя заражённая клетка дозрела (sim.js, перед лопанием). true — погибла тихо: целая, без вирусов и без облака.
 export function burst(w, a) {
-  if (raft(w) && !has(w, 'abort')) for (const b of w.me) if (b !== a && !(b.sick >= 0) && Math.hypot(b.x - a.x, b.y - a.y) < M.flu.r * 2 && w.r() < M.flu.spread) { b.sick = w.cfg.sick; w.events.push(['sick', b.x, b.y]); } // в плоту вирус садится на соседок вплотную
   if (!has(w, 'abort')) return false;
   const x = a.x, y = a.y, ang = a.a, m = a.m;
   w.lose(a, x, y, 'phage');
@@ -137,6 +146,12 @@ export function raftHolds(w, a, who) {
   w.stats.raft = (w.stats.raft || 0) + 1;
   if (!((a.held0 || 0) > w.stats.time)) { a.held0 = w.stats.time + 1; w.events.push(['bump', a.x, a.y]); } // видно, что пасть сорвалась
   return true;
+}
+// Амёба проглотила сестру (sim.js). Плот она объедает с края по одной (книга Г24): после куска сыта M.flu.nibble с,
+// и остальные успевают уплыть. Одиночку и пару — без передышки, как раньше.
+export function bite(w, m) {
+  if (!raft(w) || w.me.length + 1 < M.flu.min.amoeba) return;
+  m.syt = M.flu.nibble; w.stats.nibble = (w.stats.nibble || 0) + 1; w.events.push(['bump', m.x, m.y]);
 }
 // Кокк щиплет ядом (sim.js). true — дверь закрыта: яд не вошёл.
 export const shut = w => has(w, 'door');

@@ -71,6 +71,27 @@ await p.waitForTimeout(700); { const t = await p.evaluate(() => [...document.que
   const inside = await lum({ x: cx - 4, y: 120, width: 8, height: 120 }), aside = await lum({ x: Math.max(0, cx - 120), y: 120, width: 8, height: 120 });
   await p.evaluate(() => { zaplyvWorld().slime.length = 0; });
   say(inside - aside < 8, `test_L046: тяж слизи прозрачный, не пелена (яркость внутри ${inside.toFixed(0)}, рядом ${aside.toFixed(0)})`); }
+// test_L039 (Роман 25.11: «в процессе игры они просто уплывают куда-то, исчезают. И я не понимаю, почему»): сестра за кадром видна стрелкой у края,
+// а гибель за краем называет убийцу.
+{ await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.me.push({ ...a, id: 990, x: a.x + 2500, y: a.y, held: 1, vx: 0, vy: 0 }); });
+  await p.waitForTimeout(400); const e = await p.evaluate(() => zaplyvProbe.sisEdge);
+  await p.evaluate(() => { const w = zaplyvWorld(), b = w.me.find(q => q.id === 990); if (b) w.lose(b, b.x, b.y, 'bdello'); }); await p.waitForTimeout(300);
+  const t = await p.textContent('#toast');
+  say(e >= 1 && /за краем/.test(t) && t.includes('Бделловибрион'), 'test_L039: сестра за кадром — стрелка у края (' + e + '), гибель за краем названа: «' + t + '»'); }
+// test_L040 (Роман 25.11: «Здоровье и опыт можешь показать полосой… линию… заменить на опыт. Размер оставить только числом»):
+// полоса внизу растёт к делению и ползёт назад, когда клетка теряет; заражение — красная засечка; размер — число в микрометрах.
+{ const fill = () => p.evaluate(() => parseFloat(document.getElementById('growfill').style.width) || 0);
+  await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 1; w.me[0].m = w.split() * 0.8; }); await p.waitForTimeout(400); const hi = await fill();
+  await p.evaluate(() => { const w = zaplyvWorld(); w.me[0].m = w.split() * 0.6; }); await p.waitForTimeout(400); const lo = await fill();
+  await p.evaluate(() => { zaplyvWorld().me[0].sick = 3; }); await p.waitForTimeout(300);
+  const notch = await p.evaluate(() => document.getElementById('sicknotch').getBoundingClientRect().width), cnt = await p.textContent('#count');
+  await p.evaluate(() => { const a = zaplyvWorld().me[0]; a.sick = -1; a.m = 1; });
+  say(hi > 50 && lo < hi - 20 && lo > 5 && notch > 4 && /мкм/.test(cnt) && await seen('#growbar'), 'test_L040: полоса роста ' + hi.toFixed(0) + '% → ' + lo.toFixed(0) + '% назад, засечка заражения ' + notch.toFixed(0) + ' px, «' + cnt + '»'); }
+// test_L042 (прогоны 0.61 и 0.63, О44: «вирус молчит в момент посадки… совет только на экране гибели»): вирус сел на клетку —
+// в ту же секунду надпись, что случилось и что делать пальцем.
+await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.phages.length = 0; w.phages.push({ x: a.x + 8, y: a.y, vx: 0, vy: 0, d: Math.PI, t: 0, id: 91, host: 'me', cool: 0 }); });
+await p.waitForTimeout(600); { const t = await p.evaluate(() => [...document.querySelectorAll('#toast.on')].map(e => e.textContent).join('')); say(/вирус/i.test(t) && /развернись/.test(t), 'test_L042: вирус сел на клетку — сразу надпись, что делать (' + (t || 'надписи нет') + ')'); }
+await p.evaluate(() => { const w = zaplyvWorld(); w.phages.length = 0; for (const a of w.me) a.sick = -1; });
 if (await tap('#flag', 'флажок в игре')) say(await seen('#note') && await marks() === m + 1, 'флажок в игре: отметка записана и надпись видна');
 // test_L048 (Роман 25.11 на 0.70: «почему мы не починили блять деление клеток?»): плавное деление лежало в vid.js, но main.js его не звал —
 // дочка появлялась рывком. После деления несколько кадров рисуется рождение: дочки из одной клетки с перетяжкой расходятся.
@@ -87,6 +108,11 @@ if (await tap('#gback', '«‹ Пауза» из генома') && await tap('#p
 // test_L019: у каждой карточки полки — снимок живой модели (картинка не пустая), разделы и карточка отвечают пальцу
 await p.waitForFunction(() => { const a = [...document.querySelectorAll('#shelf .kc img')]; return a.length && a.every(i => i.naturalWidth > 100 && i.src.length > 5000); }, null, { timeout: 6000 }).catch(() => {}); // снимки встают по одному: ждём их, а не время
 say(await p.evaluate(() => [...document.querySelectorAll('#shelf .kc img')].every(i => i.naturalWidth > 100 && i.src.length > 5000)), 'test_L019: у каждой записи Альманаха — снимок модели из игры');
+// test_L044 (Роман 25.11: «у нас образовательная игра… чтобы выглядело примерно как в жизни»): в Альманахе сказано, что цвета — наши
+// метки (под микроскопом почти все бесцветные), а еду в воде не видно — мы рисуем её точками; слова из книги (подписи).
+{ const P = await p.evaluate(async () => (await (await fetch('kniga/teksty_sushchestv.json')).json()).podpisi), note = () => p.evaluate(() => { const e = document.getElementById('knote'); return e && !e.hidden && e.getBoundingClientRect().height > 10 ? e.textContent : ''; });
+  say(P.almanah_cveta && await note() === P.almanah_cveta, 'test_L044: в «Обитателях» строка книги, что цвета — наши метки');
+  if (await tap('#kpills button:nth-child(2)', 'раздел «Еда» (подпись)')) say(P.eda_tochki && await note() === P.eda_tochki, 'test_L044: в «Еде» строка книги, что еду не видно и мы рисуем её точками'); }
 if (await tap('#kpills button:nth-child(2)', 'раздел «Еда»')) say(await p.evaluate(() => document.querySelectorAll('#shelf .kc').length > 0 && document.querySelector('#kpills .on').dataset.g === 'food'), 'раздел «Еда» открылся');
 if (await tap('#kpills button:nth-child(1)', 'раздел «Обитатели»')) say(await p.evaluate(() => !!document.querySelector('#shelf .kc[data-k=me]')), 'раздел «Обитатели» открылся');
 if (await tap('#shelf .kc[data-k=me]', 'карточка «Ты»')) say(await seen('#kcard') && await p.evaluate(() => document.querySelectorAll('#kblocks .kb').length >= 2 && document.getElementById('kimg').naturalWidth > 100), 'карточка открылась: модель и блоки текста');

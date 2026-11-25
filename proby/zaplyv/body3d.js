@@ -90,7 +90,7 @@ export class Bodies {
        r += 0.45 * pow(lobe, 4.0) * prm.x + 0.3 * pow(max(0.0, vn(dir * 1.3 + vec3(prm.y, time * 0.2, 0.0)) - 0.45) * 2.0, 2.0);
        p = dir * r; nn = dir;`, { bump: 0.4, alpha0: 0.6, order: 2, rimK: 1.2 });
     const head = new THREE.IcosahedronGeometry(1, 0).toNonIndexed(); head.computeVertexNormals();
-    this.head = kind(head, 120, '', { bump: 0.0, order: 1, flat: true, rimK: 0.8 });
+    this.head = kind(head, 120, '', { bump: 0.0, order: 3, flat: true, rimK: 0.8, alpha0: 0.35 }); // голова фага — стекло: сквозь неё видна нить ДНК (fx.js), грани блестят ободком
     this.tail = kind(new THREE.CylinderGeometry(0.28, 0.28, 2, 8), 120, '', { bump: 0.1, order: 1 });
     this.all = [this.core, this.skin, this.ball, this.knob, this.amoeba, this.head, this.tail];
     for (const m of this.all) this.scene.add(m);
@@ -124,7 +124,7 @@ export class Bodies {
   spike(x, y, r, col) { this.put(this.knob, x, y, -Math.PI / 2, r, r, r, [col[0], col[1], col[2], 1], [1, 1, 1], [0, 0, 0, 0]); }
   blobby(x, y, r, heading, moving, col, rim, seed) { this.put(this.amoeba, x, y, -Math.PI / 2, r, r, r * 0.5, [col[0], col[1], col[2], 1], rim, [moving, seed, -heading, 0]); }
   phage(x, y, ang, s) {
-    this.put(this.head, x - Math.cos(ang) * s * 2.1, y - Math.sin(ang) * s * 2.1, ang, s * 0.85, s * 1.15, s * 0.85, [0.78, 0.8, 0.9, 1], [1, 0.5, 0.6], [0, 0, 0, 0]);
+    this.put(this.head, x - Math.cos(ang) * s * 2.1, y - Math.sin(ang) * s * 2.1, ang, s * 0.85, s * 1.15, s * 0.85, [0.8, 0.92, 1, 1], [1, 0.5, 0.6], [0, 0, 0, 0]);
     this.put(this.tail, x - Math.cos(ang) * s * 0.4, y - Math.sin(ang) * s * 0.4, ang, s, s * 0.8, s, [0.6, 0.62, 0.72, 1], [0.9, 0.9, 1], [0, 0, 0, 0]);
   }
   end(time) {
