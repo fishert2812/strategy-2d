@@ -167,7 +167,7 @@ export class Bodies {
     const glow = c => [c[0] * 0.5 + 0.5, c[1] * 0.5 + 0.5, c[2] * 0.5 + 0.5];
     this.put(this.skin, x, y, ang, w, half / 2, w, [skin[0], skin[1], skin[2], 1], glow(skin), [0, seed, bend / (4 * w), 0]);
   }
-  sphere(x, y, r, col, rim, seed, zs = 1) { this.put(r < 4 ? this.zerno : this.ball, x, y, -Math.PI / 2, r, r, r * zs, [col[0], col[1], col[2], 1], rim, [0, seed, 0, 0]); }
+  sphere(x, y, r, col, rim, seed, zs = 1, a = 1) { this.put(r < 4 ? this.zerno : this.ball, x, y, -Math.PI / 2, r, r, r * zs, [col[0], col[1], col[2], a], rim, [0, seed, 0, 0]); }
   spike(x, y, r, col) { this.put(this.knob, x, y, -Math.PI / 2, r, r, r, [col[0], col[1], col[2], 1], [1, 1, 1], [0, 0, 0, 0]); }
   blobby(x, y, r, heading, moving, col, rim, seed, sx = 1, sy = 1, ang = -Math.PI / 2) { this.put(this.amoeba, x, y, ang, r * sx, r * sy, r * 0.5, [col[0], col[1], col[2], 1], rim, [moving, seed, -heading, 0]); }
   // Шип: от точки основания (x, y) наружу под углом ang, длина len, полуширина у основания w; bend — отход острия вбок (экранные единицы).
