@@ -38,7 +38,7 @@ const has = (w, g) => (own(w, g) || everywhere(g)) && !!w.genes[g];
 // Уровни (З1, З5): то же умение может прийти ещё раз, пока уровень ниже M.levels[g]. Первый приход — уровень 1.
 export const lvl = (w, g) => w.genes[g] ? Math.max(1, (w.lvl || {})[g] || 0) : 0;
 export const more = (w, g) => g in M.levels && own(w, g) && lvl(w, g) < M.levels[g];
-export function up(w, g) { if (!(g in M.levels)) return; const n = (w.lvl ||= {})[g] = lvl(w, g) + 1; // sim.js pick: до того, как ген встал
+export function up(w, g) { if (!(g in M.levels)) return; const n = (w.lvl ||= {})[g] = lvl(w, g) + 1; (w.upAt ||= {})[g] = w.stats.time; // только что выбран: круг навыка вспыхивает на воде // sim.js pick: до того, как ген встал
   for (const c of ((M.combo || {})[g] || [])[n - 1] || []) { w.genes[c] = true; (w.from ||= {})[c] = 'kid'; } } // объединённое умение: ступень включает прежний ген
 const parts = w => w.mode === 'mut' ? Object.entries(M.combo || {}).filter(([k]) => k !== '_').flatMap(([, v]) => v.flat()) : []; // в режиме прежние гены идут только ступенями
 export const daet = (w, g, book) => (g in M.levels && book['uroven' + (lvl(w, g) + 1)]) || book.daet || ''; // на карточке дочки — текст следующего уровня из книги
@@ -156,7 +156,7 @@ export const loud = w => has(w, 'tail') ? M.tail.loud : 1;
 export const calm = w => has(w, 'memory');
 export function immune(w, h, g) {
   if (g.host !== 'me' || !has(w, 'memory')) return false;
-  if (h.knows) { w.events.push(['cut', g.x, g.y]); w.stats.cutKnown = (w.stats.cutKnown || 0) + 1;
+  if (h.knows) { w.events.push(['cut', h.x, h.y], ['recall', h.x, h.y, g.x, g.y]); /* биолог, круг 17: память внутри — вирус вошёл и распался в клетке; recall: центр клетки, затем где сидел вирус (кирпич треда вида) */ w.stats.cutKnown = (w.stats.cutKnown || 0) + 1;
     if (lvl(w, 'memory') >= 3) { w.grow(h, M.memory.food); w.fed(g.x, g.y, 1); w.stats.virusFood = (w.stats.virusFood || 0) + 1; } return true; } // знакомый: нить рвётся, на третьем уровне — еда
   h.knows = true; h.m = Math.max(0.6, h.m * w.cfg.crispr_cost); w.events.push(['learn', g.x, g.y]); w.stats.learned = (w.stats.learned || 0) + 1; return true; // первая встреча: выжила, похудела, запомнила
 }
@@ -215,7 +215,13 @@ let bodyFn = null; export const useBody = f => { bodyFn = f; }; const bodyOf = a
 const reach = (w, a, g, phi) => { const R = g ? g.w : 8.5 * Math.pow(a.m, 0.3), half = g ? g.L + g.w : R * (1.6 + Math.min(a.m, w.split()) / w.split());
   return (half - R) * Math.abs(Math.cos(phi - (g ? g.ang : a.a || 0))) + R; };
 const claspsOf = new WeakMap(); // у каждого мира свои (снимок Альманаха рисует свою семью со своим временем): пара сестёр → { t0: когда застёжка защёлкнулась, seen: когда последний раз держала } (время заплыва)
-export function drawWorld({ w, scr, z, glow, ink }) {
+export function drawWorld({ w, scr, z, glow, ink, kids }) {
+  const [mr, mg, mb] = M.magnet.gold, S = M.magnet.show, ring = (a, R, k0, al, th = 1.1) => { const rb = th * z + 0.5, N = Math.max(24, Math.ceil(6.283 * R * z / (rb * 0.7))); // сплошная линия: мазки внахлёст, без пунктира (Роман 25.11)
+    for (let k = 0; k < N; k++) { const t = k0 + k / N * 6.283, [x, y] = scr(a.x + Math.cos(t) * R, a.y + Math.sin(t) * R); glow.put(x, y, rb, mr, mg, mb, al); } };
+  for (const a of kids || []) if (a.g === 'magnet') { const n = Math.min(M.levels.magnet, lvl(w, 'magnet') + 1), R = (M.magnet.lvl[n - 1].r + 13 * Math.sqrt(a.m)) * S.kid; // выбор дочки: вокруг неё круг, докуда возьмёт магнит следующего уровня
+    ring(a, R, w.stats.time * 0.3, 0.3 + 0.2 * Math.sin(w.stats.time * 3)); }
+  const just = w.stats.time - ((w.upAt || {}).magnet ?? -99); // сразу после выбора: круг вырастает от тела до своего радиуса и гаснет за S.t секунд
+  if (has(w, 'magnet') && just < S.t) for (const a of w.me) { const f = just / S.t, R = (M.magnet.lvl[lvl(w, 'magnet') - 1].r + 13 * Math.sqrt(a.m)) * Math.min(1, f * 3); ring(a, R, 0, 0.9 * (1 - f)); }
   const safe = w.me.length >= Math.min(...Object.values(M.flu.min)), br = safe ? 1 : 0.45; // застёжки загораются, когда семья уже не по зубам мелкому рту (книга: порог виден)
   if (!claspsOf.has(w)) claspsOf.set(w, new Map()); const clasps = claspsOf.get(w);
   const C = M.flu.clasp, now = w.stats.time, alive = new Set(); // щелчок застёжки (дизайнер): сёстры встали бок о бок — застёжки вспыхивают и сходятся зубцами, у шва мягкая вспышка
@@ -227,8 +233,10 @@ export function drawWorld({ w, scr, z, glow, ink }) {
     const gp = bodyOf(p), gq = bodyOf(q), [px, py] = gp && gp.scr === scr ? [gp.sx, gp.sy] : scr(p.x, p.y), [qx, qy] = gq && gq.scr === scr ? [gq.sx, gq.sy] : scr(q.x, q.y); // где тела нарисованы: мягкое тело отстаёт от a.x
     const ds = Math.hypot(qx - px, qy - py) || 1, ux = (qx - px) / ds, uy = (qy - py) / ds, phi = Math.atan2(uy, ux); // дальше всё в точках экрана
     const e0 = reach(w, p, gp, phi) * z, e1 = ds - reach(w, q, gq, phi + Math.PI) * z, len = Math.max(4 * z, e1 - e0 + 2 * C.inset * z), mid = (e0 + e1) / 2, rg = 1.1 * z * (1 + 0.5 * snap) + 0.35, nb = Math.max(2, Math.ceil(len / (rg * 0.35))); const far = Math.max(C.far_min, Math.min(1, 1 - ((e1 - e0) / z - C.touch) / C.fade)); // вплотную застёжка яркая, издалека — бледная нить: белок держит на касании // три зубца поперёк шва: светлые сплошные черты от оболочки до оболочки (заходят под кромку на C.inset), концы тают в тела (L047: не бусами)
-    for (let kk = -1; kk <= 1; kk++) for (let s = 0; s <= nb; s++) { const e = s / nb, f = mid + len * (e - 0.5), o = kk * spread * z, end = Math.sin(Math.PI * e) ** 0.5;
-      glow.put(px + ux * f - uy * o, py + uy * f + ux * o, rg, 0.55, 0.85, 1, Math.min(1, 0.4 * br * fl) * end * Math.max(far, snap) * 2.2 / Math.sqrt(nb)); }
+    if (far <= 0 && snap <= 0) continue; // не касаются — застёжки нет: через чужое тело черты не тянем
+    const rw = spread * z * C.seam, ns = Math.max(2, Math.ceil(len / (rw * 0.5))); // один мягкий светлый шов поперёк зазора: широкое сплошное пятно, без полос-рельсов (Роман: пунктир — халтура)
+    for (let s = 0; s <= ns; s++) { const e = s / ns, f = mid + len * (e - 0.5), end = Math.sin(Math.PI * e) ** 0.5;
+      glow.put(px + ux * f, py + uy * f, rw, 0.55, 0.85, 1, Math.min(1, 0.4 * br * fl) * end * Math.max(far, snap) * C.seam_a / Math.sqrt(ns)); }
     if (k < 1) glow.put(px + ux * mid, py + uy * mid, C.ring * z * (0.4 + 0.6 * Math.sqrt(k)), 0.75, 0.93, 1, C.ring_a * snap * snap); // мягкая вспышка у шва: одно пятно, без колец-схем
   }
   for (const [key, cl] of clasps) if (!alive.has(key) && now - cl.seen > C.forget) clasps.delete(key); // расцепились надолго — следующая сцепка снова щёлкнет (на краю застёжка не мигает щелчками)
@@ -243,7 +251,7 @@ export function drawWorld({ w, scr, z, glow, ink }) {
       const [x, y] = scr(g.x + ux * u - uy * o, g.y + uy * u + ux * o), r = 1.6 * z + 0.8;
       ink.put(x, y, r * 1.4, 0.2, 0.05, 0.12, 0.8 * f); glow.put(x, y, r * 0.7, 0.85, 0.35, 0.55, 0.45 * f); ink.put(x + ux * r * 1.8, y + uy * r * 1.8, r * 0.5, 0.2, 0.05, 0.12, 0.6 * f); } }
   if (has(w, 'magnet')) for (const a of w.me) { const [r, g, b] = M.magnet.gold, R = M.magnet.lvl[lvl(w, 'magnet') - 1].r + 13 * Math.sqrt(a.m), t0 = w.stats.time * 0.3; // магнит (сверено с ref_17, ref_23, Вид 3 и 6): золото только у еды и сигнала
-    for (let k = 0; k < 40; k++) { const t = t0 + k / 40 * 6.283, [x, y] = scr(a.x + Math.cos(t) * R, a.y + Math.sin(t) * R); glow.put(x, y, 0.8 * z + 0.4, r, g, b, k % 2 ? 0.18 : 0.38); } // мелкие золотые бусины там, докуда магнит берёт: кольцо растёт с уровнем
+    ring(a, R, t0, 0.09, 0.8); // тонкое сплошное золотое кольцо там, докуда магнит берёт: растёт с уровнем (было бусинами — пунктир)
     for (const f of a.pulled || []) { const dx = a.x - f.x, dy = a.y - f.y, s = f.side * 0.35, run = (w.stats.time * 1.8 + (f.side > 0 ? 0 : 0.5)) % 1; // ref_17: тонкая сплошная нить от крупинки к телу, по ней бежит одна капля света
       for (let k = 0; k <= 16; k++) { const u = k / 16, q = s * u * (1 - u) * 4, [x, y] = scr(f.x + dx * u - dy * q, f.y + dy * u + dx * q), hot = Math.abs(u - run) < 0.07;
         glow.put(x, y, (hot ? 1.7 : 0.55) * z + 0.4, r, g, b, hot ? 0.95 : 0.45); }

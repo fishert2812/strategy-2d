@@ -3,6 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { Fx } from './fx.js';
 import * as vid from './vid.js';
+import { sobrat, VC, KLYUCHI } from './vid_chasti.js';
 import { look } from './look.js';
 const sim = readFileSync(new URL('./sim.js', import.meta.url), 'utf8'), main = readFileSync(new URL('./main.js', import.meta.url), 'utf8'), fx = readFileSync(new URL('./fx.js', import.meta.url), 'utf8'), body3d = readFileSync(new URL('./body3d.js', import.meta.url), 'utf8');
 const kinds = [...new Set([...sim.matchAll(/events\.push\(\[['"](\w+)/g)].map(m => m[1]))];
@@ -78,6 +79,14 @@ check('test_vid_split: деление — мать стягивается пер
   if (Math.abs(a1.x - b1.x - 2 * hd) > 0.1 || Math.abs(at(mom, P.join * 0.999).fl - 2) > 0.01) return 'после перетяжки дочки не половинки матери торец к торцу: ' + (a1.x - b1.x).toFixed(2);
   let prev = a1.x - b1.x; for (let t = P.join + 0.03; t < P.join + (1 - P.join) * P.free; t += 0.03) { const d = at(mom, t).x - at(kid, t).x; if (d < prev - 1e-6) return 'дочки сходятся обратно'; if (d - prev > hd * 0.3) return 'рывок в расхождении на ' + t.toFixed(2); prev = d; }
   if (at(mom, 1.01)) return 'деление не кончилось за V.split.slide';
+  return '';
+});
+check('test_L047 (след за клеткой, холодная приёмка 0.83: «пунктирные следы за клеткой»): частицы следа шире шага между ними — мягкое завихрение, а не цепочка бусин', () => {
+  const m = main.match(/wake\.put\(x, y, \(([\d.]+) \+ ([\d.]+) \* p\.t\) \* z, [^;]*?, ([\d.]+) \* \(1 - p\.t/);
+  if (!m) return 'не нашёл в main.js строку следа wake.put(x, y, (A + B * p.t) * z, …)';
+  const A = +m[1], shag = 2 * cfgD.speed / 60; // частица на кадр, сторона случайна: в одной полосе шаг около двух кадров хода
+  if (2 * A <= shag) return 'след бусами: частица радиусом ' + A + ' при шаге ' + shag.toFixed(1) + ' — между ними просвет';
+  if (+m[3] > 0.15) return 'широкий след слишком плотный (' + m[3] + '): должен быть мягким';
   return '';
 });
 check('test_L055 (Роман 25.11: «деление… не реалистична физика разделения клетки… бери реальную физику!»): палочка растёт в длину при постоянной толщине, ДНК делится раньше кольца, кольцо сжимается по массе только в одну сторону, деление без кольца-свечения и без толчка', () => {
@@ -293,6 +302,44 @@ check('test_vid_ameba_obyom: амёба в игре — объёмное тел�
   vid.amoeba({ m: { id: 5, m: 6 }, x: 0, y: 0, r: 40, head: 0, sp: 0, side: 1, time: 1, z: 2, glow: br, ink: br, bubbles: br, bodies: B });
   if (got.blobby !== 1) return 'нет объёмного тела'; if (got.spine < vid.V.amoeba.spikes) return 'шипов меньше, чем в образце: ' + got.spine; if (got.bad) return 'пустой шип';
   if (got.sphere < 1 + vid.V.amoeba.vac) return 'внутри нет ядра и пузырьков'; if (dots.length > 1) return 'амёба всё ещё рисует точки: ' + dots.length;
+  return '';
+});
+check('test_vid_niti_trubki: в игре жгутики и ворсинки своей клетки — сплошные стеклянные трубки встык, без точек-бус (Роман: пунктир — халтура)', () => {
+  const segs = [], B = { seg: (x0, y0, x1, y1, r) => segs.push([x0, y0, x1, y1, r]) }, fl = ',' + cfgD.flag.color.join() + ',';
+  globalThis.zaplyvBodies = B; let pts; try { pts = []; const brush = { put: (...q) => pts.push(q.map(v => Math.round(v * 100) / 100).join()) };
+    const a = { id: 1, x: 0, y: 0, m: 1, a: 0, vx: 0, vy: 0 }, lk = look({}, cfgD.look, 0);
+    for (let i = 0; i < 3; i++) vid.skin({ a, lk, x: 0, y: 0, ang: 0, ax: 1, ay: 0, half: 20, w: 9, z: 1, along: (u, o) => [u, o], arc: () => 0, body: { at: () => [0, 0] }, scr: (x, y) => [x, y],
+      time: 1 + i, pdt: 0.03, run: false, phageNear: false, foodNear: false, spacers: 0, plasmid: false, cfg: cfgD, alive: [a], glow: brush, ink: brush });
+  } finally { delete globalThis.zaplyvBodies; }
+  const whipDots = pts.filter(p => p.includes(fl)).length; if (whipDots) return 'жгутик всё ещё рисуется точками: ' + whipDots;
+  const piliDots = pts.filter(p => p.endsWith(',' + vid.V.pili.a)).length; if (piliDots) return 'ворсинки всё ещё точками: ' + piliDots;
+  if (segs.length < 16) return 'мало звеньев: ' + segs.length; if (segs.some(q => !(q[4] > 0) || q.some(Number.isNaN))) return 'пустое звено';
+  for (let i = 1; i < segs.length; i++) { const p = segs[i - 1], q = segs[i]; if (Math.hypot(p[2] - q[0], p[3] - q[1]) > 1e-6 && Math.hypot(p[2] - q[0], p[3] - q[1]) < 0.5) return 'щель между звеньями нити'; }
+  return '';
+});
+check('test_vid_tufelka: туфелька — прозрачное тело-туфля с бороздкой, реснички — сплошные стеклянные волоски по всему краю, внутри ядро, пузырьки и сократительные пузырьки с каналами; точек нет', () => {
+  const got = { slip: 0, spine: 0, sphere: 0, ball: 0 }, dots = [], br = { put: (...q) => dots.push(q) }, ang = [];
+  const B = { ball: {}, slipper: (x, y, a, hl, w) => { if (!(hl > w && w > 0)) got.bad = 'тело не вытянуто'; got.slip++; }, spine: (x, y, a, len, w) => { if (!(len > 0 && w > 0)) got.bad = 'пустая ресничка'; got.spine++; ang.push(a); }, sphere: () => got.sphere++, put: () => got.ball++ };
+  const n = vid.slipper({ x: 0, y: 0, a: 0.4, L: 200, w: 54, z: 2, time: 1, id: 3, mx: 40, my: 20, bodies: B, glow: br, ink: br });
+  const C = VC.chasti, S = { cilia: C.resnichki.n, canals: C.sokr_puzyr.kanaly, food: C.puzyri_edy.n };
+  if (n !== Object.keys(VC.vidy.tuflya.chasti).length) return 'туфелька собрана не из всех своих частей: ' + n;
+  if (got.bad) return got.bad; if (got.slip !== 1) return 'нет объёмного тела';
+  if (got.spine < S.cilia + 2 * S.canals) return 'ресничек и каналов меньше, чем в данных: ' + got.spine;
+  const sides = new Set(ang.slice(0, S.cilia).map(a => Math.floor((((a - 0.4) % 6.283) + 6.283) % 6.283 / 1.571))); if (sides.size < 4) return 'реснички не со всех сторон';
+  if (got.ball < 1 || got.sphere < S.food + 2) return 'внутри нет ядра, пузырьков еды или сократительных пузырьков';
+  if (dots.length > 0) return 'туфелька всё ещё рисует точки: ' + dots.length;
+  return '';
+});
+check('test_vid_chasti: существа собираются из частей движка — каждая часть записи рисуется объёмными телами, ключи частей едины с договором, точек нет', () => {
+  for (const kl of ['telo', 'resnichki', 'yadro', 'zerna', 'puzyri_edy', 'sokr_puzyr', 'vorsinki', 'zhgutik_vint']) if (!KLYUCHI.includes(kl)) return 'нет части ' + kl;
+  for (const kl of KLYUCHI) if (!VC.chasti[kl]) return 'у части нет умолчаний в vid_chasti.json: ' + kl;
+  for (const tip of ['tuflya', 'palochka', 'shar']) {
+    let calls = 0; const cnt = () => calls++, B = { ball: {}, slipper: cnt, rod: cnt, spine: cnt, sphere: cnt, put: cnt, seg: (x0, y0, x1, y1, r) => { if (![x0, y0, x1, y1, r].every(Number.isFinite)) calls = -1e9; calls++; } };
+    const zap = { forma: { tip }, chasti: Object.fromEntries(KLYUCHI.map(k => [k, {}])) };
+    const n = sobrat(zap, { x: 0, y: 0, a: 0.7, dlina: 120, tolshchina: 30, z: 1, time: 2, id: 5 }, B);
+    if (n !== KLYUCHI.length) return tip + ': нарисовано частей ' + n + ' из ' + KLYUCHI.length;
+    if (!(calls > 200)) return tip + ': части почти не рисуют тела (' + calls + ')';
+  }
   return '';
 });
 check('test_vid_lysis: клетка от фага лопается прорывом — брызги вязко гаснут, остаётся пустая оболочка с дырой', () => {

@@ -11,3 +11,6 @@ if grep -q "ПРОВАЛ test_evo_vybor" <<<"$off" && grep -q "ПРОВАЛ test
 else
   echo "  САМОПРОВЕРКА: режим выключен, а test_evo_vybor зелёный — проверка ничего не доказывает"; exit 1
 fi
+t=$(ROST_SYTOST=0.06 timeout 300 node proby/zaplyv/test_evo.mjs 2>&1)
+grep -q 'ПРОВАЛ test_evo_minuta' <<<"$t" || { echo "  САМОПРОВЕРКА: при сытости 0.84 (0.06) test_evo_minuta зелёный — сторож первой минуты не видит, что клетка не растёт"; exit 1; }
+echo "  самопроверка: при прежней сытости 0.84 test_evo_minuta красный (так и должно быть)"

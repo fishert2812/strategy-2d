@@ -4,13 +4,14 @@ import { look } from './look.js';
 import { M, drawWorld } from './mutacii.js';
 import * as mut from './mutacii.js';
 import * as vid from './vid.js';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
 let bad = 0;
 // PART=a|b делит проверки на две половины, шаг 54 гоняет их параллельно: самый долгий бот-замер (b) идёт рядом со всем остальным (a).
 const PART = process.env.PART, heavy = name => name.startsWith('бот в режиме');
 const check = (name, fn) => {
   if (PART && (PART === 'b') !== heavy(name)) return;
+  if (process.env.ONLY && !name.includes(process.env.ONLY)) return; // ONLY=[ключ] — прогнать один тест, пока чинишь
   try { const r = fn(); if (r) { bad++; console.log('  ПРОВАЛ', name + ':', r); } else console.log('  ок   ', name); }
   catch (e) { bad++; console.log('  ПРОВАЛ', name + ':', e.stack); }
 };
@@ -137,6 +138,40 @@ check('[magnet] пищевой магнит: еда рядом сама плыв
   const w = mw(9, ['magnet']); w.lvl = { magnet: 1 }; const ok = w.offer('magnet'); w.pick('magnet'); w.pick('magnet'); const top = !w.offer('magnet');
   if (!ok || w.lvl.magnet !== 3 || !top) return 'дочка не поднимает уровень магнита до 3 (уровень ' + w.lvl.magnet + ')';
   const s = mw(9, ['magnet'], 'swim'); s.lvl = { magnet: 1 }; if (s.offer('magnet')) return 'в обычном заплыве магнит предлагают снова';
+});
+
+// Способности записями (Роман 25.11: «чтобы движок был как ядро наше… чтобы больше не пришлось руками писать»; договор design/dlya_dvizhka/dogovor.md, раздел 4):
+// у каждого гена игры есть запись способности, её номер есть в книге, характеристики — только из списка договора, у каждой ступени уровня — запись.
+check('[sposobnosti] у каждого гена есть запись способности по договору движка, номера — из книги; у каждой gde, zapusk, delaet, cena, vidno', () => {
+  const S = JSON.parse(readFileSync(new URL('./sposobnosti.json', import.meta.url))), Z = S.sposobnosti, H = new Set(S.harakteristiki);
+  const kniga = readdirSync(new URL('./kniga/zapisi/', import.meta.url)).map(f => readFileSync(new URL('./kniga/zapisi/' + f, import.meta.url), 'utf8')).join('') + readFileSync(new URL('./kniga/geny.md', import.meta.url), 'utf8');
+  const net = [...Object.keys(M.genes), ...Object.keys(cfg.genes || {})].filter(g => !Z[g]); if (net.length) return 'нет записи способности: ' + net.join(', ');
+  for (const [k, z] of Object.entries(Z)) {
+    for (const g of [z.kniga].flat()) if (!g || !kniga.includes(g)) return k + ': номера ' + g + ' нет в книге';
+    for (const u of [z, ...(z.urovni || [])]) for (const m of u.menyaet || []) if (m.harakteristika && !H.has(m.harakteristika)) return k + ': характеристики «' + m.harakteristika + '» нет в списке договора';
+    if (z.ot && !Z[z.ot]) return k + ': родителя ' + z.ot + ' нет';
+    if (!S.zony_gde.includes(z.gde)) return k + ': gde «' + z.gde + '» — не зона из списка';
+    if (!S.zapuski.includes(z.zapusk)) return k + ': zapusk «' + z.zapusk + '» не из списка';
+    if (!(typeof z.cena === 'number' && z.cena >= 0)) return k + ': cena — не число';
+    if (!S.zagotovki.includes(z.vidno?.zagotovka) || !S.zony_gde.includes(z.vidno?.na)) return k + ': vidno — заготовка и зона из списков';
+    if (!(z.daet_chast || z.menyaet || z.ishod || z.sled || z.urovni || z.nuzhno || z.ot || z.semya || z.eda_vidy || z.pravilo || z.nasledstvo)) return k + ': нет delaet — что способность делает';
+    for (const u of z.urovni || []) for (const v of u.vklyuchaet || []) if (!Z[v]) return k + ': включает ' + v + ', а такой записи нет';
+    if (k in M.levels && (z.urovni || []).length !== M.levels[k]) return k + ': ступеней в записи ' + (z.urovni || []).length + ', а в игре ' + M.levels[k];
+  }
+});
+
+// Круг магнита виден при выборе и сразу после (книга 53, разбор навыков: «при выборе навыка показать его круг на воде»), и магнит тянет только еду.
+check('[magnet] круг магнита: вокруг дочки на выборе и вспышкой после выбора; тянет только еду — не комок, не вирус, не клетку', () => {
+  const gold = w => { let n = 0; const [r, g, b] = M.magnet.gold; mut.drawWorld({ w, scr: (x, y) => [x, y], z: 1, kids: w.kidsT, ink: { put() {} }, glow: { put: (x, y, s, cr, cg, cb, al) => { if (cr === r && cg === g && cb === b && al > 0.25) n++; } } }); return n; };
+  const w = mw(13); const a = w.me[0]; w.kidsT = [{ g: 'magnet', x: a.x, y: a.y, m: 1.7 }, { g: 'shield', x: a.x + 300, y: a.y, m: 1.7 }];
+  if (!gold(w)) return 'на выборе вокруг дочки с магнитом нет круга';
+  w.kidsT = [{ g: 'shield', x: a.x, y: a.y, m: 1.7 }]; if (gold(w)) return 'круг рисуется и у дочки без магнита';
+  w.kidsT = null; w.pick('magnet'); const just = gold(w); run(w, M.magnet.show.t + 0.5, null); const late = gold(w);
+  if (!just || late) return 'после выбора круг не вспыхнул или не погас (' + just + ' → ' + late + ')';
+  const q = { x: a.x + 15, y: a.y, vx: 0, vy: 0, m: 0.6, a: 0, id: 991, pair: false }; w.prey.push(q); w.crumbs.push({ x: a.x - 15, y: a.y, m: 3, id: 992 }); w.cloud(a.x, a.y + 15, 'me', 0);
+  const c = w.crumbs.at(-1), g = w.phages.at(-1); a.pulled = []; w.food.length = 0;
+  const inj = w.cfg.inject; w.cfg.inject = 1e9; for (let t = 0; t < 1; t += 1 / 30) w.step(1 / 30, null); w.cfg.inject = inj; // cfg общий на все тесты: вернуть
+  if ((a.pulled || []).some(f => f === q || f === c || f === g)) return 'магнит тянет не еду';
 });
 
 // Защита от вирусов и яда (З5, книга Г48): уровни — дочка приносит умение снова. 1 — вирус не садится, 2 — и яд шариков не входит, 3 — отскочивший вирус летит на шарик.

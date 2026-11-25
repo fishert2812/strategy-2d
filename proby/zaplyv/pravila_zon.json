@@ -1,0 +1,24 @@
+{
+ "_": "Таблица «зона коснулась зоны» (Роман 25.11 22:32: «Зону рта!… оболочка зона!»; карта движка, кусок 4). Одна строка — одна пара зон и что из касания выходит. Строки идут по порядку: первая, чьё условие выполнено, решает исход. Код один на все строки (pravila_zon.js); новая пара или новый исход из известных — новая строка без кода. Существо для таблицы: { m — масса в палочках, mir, chasti — список частей, sposobnosti — { ключ: уровень } из sposobnosti.json, zony — { имя: свойства зоны } }. Свойства зоны: rot.do — доля массы жертвы от охотника, которую рот берёт; udar.sila; obolochka.prochnost; posadka.vid — вид вируса; scepka.rod — кто с кем сцепляется. Условия — закрытый список (pravila_zon.js USLOVIE). ishod — закрытый список исходов (ishody). Исход «zarazil» уточняют способности жертвы: запись способности с ishod: { pravilo: 'zarazhenie', na } (договор, раздел 4) меняет его на свой; по умолчанию — lopnet. shans — доля касаний, в которых строка срабатывает (оценка, подобрать ботом); не сработала — смотрим следующую строку.",
+ "zony": ["rot", "obolochka", "posadka", "scepka", "udar"],
+ "ishody": ["syel", "vyskolznul", "proboy", "otravil", "zarazil", "prilip", "otskochil", "zavyaz", "ottolknul"],
+ "zarazhenie": { "po_umolch": "lopnet", "na": ["lopnet", "tiho", "razrez", "zhilec", "pamyat", "pamyat_eda", "dar", "na_puzyrek", "k_sosedke"] },
+ "stroki": [
+  { "a": "rot", "b": "obolochka", "esli": { "u_b_est": ["kapsula"] }, "ishod": "vyskolznul", "zakon": "Л6", "ist": "О2" },
+  { "a": "rot", "b": "obolochka", "esli": { "razmer_do": "rot.do" }, "ishod": "syel", "zakon": "Л6" },
+  { "a": "rot", "b": "obolochka", "esli": {}, "ishod": "otskochil", "zakon": "Л6" },
+  { "a": "posadka", "b": "obolochka", "esli": { "u_b_sposobnost": ["lock"] }, "ishod": "otskochil", "ist": "Р11" },
+  { "a": "posadka", "b": "obolochka", "esli": { "u_b_est": ["sliz"], "shans": 0.6 }, "ishod": "zavyaz", "ist": "оценка" },
+  { "a": "posadka", "b": "obolochka", "esli": { "u_b_est": ["puzyrki_obolochki"], "shans": 0.5 }, "ishod": "zarazil", "zarazhenie": "na_puzyrek", "ist": "оценка" },
+  { "a": "posadka", "b": "obolochka", "esli": { "mir_b": ["bakteriya"] }, "ishod": "zarazil" },
+  { "a": "posadka", "b": "obolochka", "esli": {}, "ishod": "otskochil" },
+  { "a": "udar", "b": "obolochka", "esli": { "u_a_est": ["yad"], "net_u_b_sposobnosti": ["door"] }, "ishod": "otravil", "ist": "Р4" },
+  { "a": "udar", "b": "obolochka", "esli": { "sila_bolshe": "obolochka.prochnost" }, "ishod": "proboy", "zakon": "Л2" },
+  { "a": "udar", "b": "obolochka", "esli": {}, "ishod": "otskochil" },
+  { "a": "scepka", "b": "scepka", "esli": { "rod_odin": true }, "ishod": "prilip", "ist": "П4" },
+  { "a": "scepka", "b": "scepka", "esli": {}, "ishod": "ottolknul" },
+  { "a": "scepka", "b": "obolochka", "esli": { "rod_odin": true }, "ishod": "prilip", "ist": "П4" },
+  { "a": "scepka", "b": "obolochka", "esli": {}, "ishod": "ottolknul" },
+  { "a": "obolochka", "b": "obolochka", "esli": {}, "ishod": "ottolknul" }
+ ]
+}

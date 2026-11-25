@@ -1,0 +1,1007 @@
+{
+ "_": "Способности «Заплыва» по договору движка (design/dlya_dvizhka/dogovor.md, раздел 4). Хозяин — тред мутаций; «Эволюция» читает. Способность не несёт своей физики: ставит часть (daet_chast), сдвигает параметр части или характеристику (menyaet), выбирает исход правила (ishod), включает другие способности по уровням (urovni, vklyuchaet). Число строкой — ключ mutacii.json/data.json, «оценка» — подобрать ботом. nuzhno — чего не хватает в движке, чтобы запись работала без кода. Г1–Г23 — черновик треда «Эволюции», Г24, Г27–Г50 — тред мутаций. Слов для игрока здесь нет: только ключ книги. Пять полей способности по карте движка (Роман 25.11 22:52: «способности тоже универсальными»): gde — зона тела (zony_gde), zapusk — когда срабатывает (zapuski), delaet — daet_chast / menyaet / ishod / sled, cena — прибавка к цене жизни (оценка, подобрать ботом; прежние слова о цене — cena_prezhde), vidno — заготовка анимации и зона (zagotovki; имени нет в kirpichi.json — это заказ на заготовку).",
+ "zony_gde": [
+  "rot",
+  "obolochka",
+  "posadka",
+  "scepka",
+  "udar",
+  "vsyo"
+ ],
+ "zapuski": [
+  "vsegda",
+  "zhest",
+  "kasanie",
+  "pole",
+  "beda"
+ ],
+ "zagotovki": [
+  "vyrost",
+  "vybros",
+  "vspyshka",
+  "nit",
+  "oblako",
+  "naliv",
+  "rastvorenie"
+ ],
+ "harakteristiki": [
+  "tyaga",
+  "soprotivlenie",
+  "snos",
+  "zahvat_edy",
+  "rost",
+  "prochnost",
+  "zashchita_virus",
+  "zashchita_yad",
+  "scepka",
+  "zametnost",
+  "cena_edy",
+  "plavuchest",
+  "prityazhenie_edy",
+  "povorot",
+  "golod",
+  "zapas",
+  "zashchita_kislota"
+ ],
+ "_harakteristiki": "закрытый список из договора движка, раздел 1; расширяет только тред движка",
+ "sposobnosti": {
+  "flagellum": {
+   "kniga": "Г1",
+   "menyaet": [
+    {
+     "chast": "zhgutik",
+     "parametr": "n",
+     "na": 2,
+     "ist": "Д1"
+    }
+   ],
+   "cena": 0.05,
+   "zhest": null,
+   "nuzhna_beda": "sliz",
+   "proba": "время прохода через тяж слизи",
+   "cena_prezhde": {
+    "eda": "оценка"
+   },
+   "gde": "obolochka",
+   "zapusk": "vsegda",
+   "vidno": {
+    "zagotovka": "vyrost",
+    "na": "obolochka"
+   }
+  },
+  "sense": {
+   "kniga": "Г2",
+   "daet_chast": {
+    "chutyo": {
+     "porog": "оценка"
+    }
+   },
+   "ist": "Е3",
+   "zhest": "otpustit_palec",
+   "proba": "без пальца доплывает до куска в 125 мкм за N с",
+   "gde": "vsyo",
+   "zapusk": "vsegda",
+   "cena": 0.02,
+   "vidno": {
+    "zagotovka": "vspyshka",
+    "na": "rot"
+   }
+  },
+  "fim": {
+   "kniga": "Г3",
+   "daet_chast": {
+    "fimbrii": {
+     "n": "оценка"
+    }
+   },
+   "ist": "П1",
+   "zhest": null,
+   "nuzhna_beda": "techenie",
+   "proba": "сносит ли течением у водоросли",
+   "gde": "obolochka",
+   "zapusk": "vsegda",
+   "cena": 0.02,
+   "vidno": {
+    "zagotovka": "vyrost",
+    "na": "obolochka"
+   }
+  },
+  "magnit_kompas": {
+   "kniga": "Г5",
+   "daet_chast": {
+    "magnitnaya_cepochka": {}
+   },
+   "ist": "Н10",
+   "nuzhna_beda": "il_vnizu",
+   "proba": "доля времени у ила",
+   "gde": "vsyo",
+   "zapusk": "vsegda",
+   "cena": 0.02,
+   "vidno": {
+    "zagotovka": "naliv",
+    "na": "vsyo"
+   }
+  },
+  "fast": {
+   "kniga": "Г6",
+   "menyaet": [
+    {
+     "chast": "ribosomy",
+     "parametr": "n",
+     "na": "оценка",
+     "ist": "Н3"
+    }
+   ],
+   "cena": 0.04,
+   "proba": "время до первого роста",
+   "cena_prezhde": {
+    "eda": "оценка"
+   },
+   "gde": "vsyo",
+   "zapusk": "vsegda",
+   "vidno": {
+    "zagotovka": "naliv",
+    "na": "vsyo"
+   }
+  },
+  "nitrat": {
+   "kniga": "Г7",
+   "daet_chast": {
+    "dyhanie_bez_kisloroda": {}
+   },
+   "ist": "Е6",
+   "nuzhna_beda": "malo_kisloroda",
+   "zametka": "слить с Г9 (книга)",
+   "gde": "vsyo",
+   "zapusk": "pole",
+   "cena": 0.02,
+   "vidno": {
+    "zagotovka": "naliv",
+    "na": "vsyo"
+   }
+  },
+  "svet": {
+   "kniga": "Г8",
+   "daet_chast": {
+    "svetovoy_nasos": {}
+   },
+   "ist": "Е5",
+   "nuzhna_beda": "svet_i_golod",
+   "proba": "убыль массы на свету без еды",
+   "gde": "vsyo",
+   "zapusk": "pole",
+   "cena": 0.02,
+   "vidno": {
+    "zagotovka": "vspyshka",
+    "na": "vsyo"
+   }
+  },
+  "malo_kisloroda": {
+   "kniga": "Г9",
+   "ot": "nitrat",
+   "zametka": "слить с Г7",
+   "gde": "vsyo",
+   "zapusk": "pole",
+   "cena": 0.02,
+   "vidno": {
+    "zagotovka": "naliv",
+    "na": "vsyo"
+   }
+  },
+  "capsule": {
+   "kniga": "Г11",
+   "daet_chast": {
+    "kapsula": {
+     "tolshchina": "оценка"
+    }
+   },
+   "ist": "О2",
+   "nuzhna_beda": "ameba",
+   "proba": "выскользнула ли из амёбы",
+   "gde": "obolochka",
+   "zapusk": "vsegda",
+   "cena": 0.05,
+   "vidno": {
+    "zagotovka": "vyrost",
+    "na": "obolochka"
+   }
+  },
+  "kolchuga": {
+   "kniga": "Г12",
+   "daet_chast": {
+    "s_sloy": {}
+   },
+   "ist": "О3",
+   "nuzhna_beda": "bdello",
+   "proba": "отскок бделловибриона",
+   "gde": "obolochka",
+   "zapusk": "vsegda",
+   "cena": 0.03,
+   "vidno": {
+    "zagotovka": "naliv",
+    "na": "obolochka"
+   }
+  },
+  "lock": {
+   "kniga": "Г13",
+   "menyaet": [
+    {
+     "chast": "pory",
+     "parametr": "zamok",
+     "na": "drugoy",
+     "ist": "Р11"
+    }
+   ],
+   "nuzhna_beda": "virus",
+   "proba": "сел ли вирус",
+   "gde": "obolochka",
+   "zapusk": "kasanie",
+   "cena": 0.02,
+   "vidno": {
+    "zagotovka": "vspyshka",
+    "na": "obolochka"
+   }
+  },
+  "crispr": {
+   "kniga": "Г14",
+   "daet_chast": {
+    "pamyat_o_virusah": {}
+   },
+   "ist": "Р7",
+   "nuzhna_beda": "virus",
+   "proba": "второй вирус того же вида",
+   "gde": "vsyo",
+   "zapusk": "kasanie",
+   "cena": 0.02,
+   "vidno": {
+    "zagotovka": "rastvorenie",
+    "na": "vsyo"
+   }
+  },
+  "spore": {
+   "kniga": "Г15",
+   "daet_chast": {
+    "spyachka": {}
+   },
+   "ist": "Р12",
+   "zhest": "zamert",
+   "nuzhna_beda": "yad_ili_virus",
+   "gde": "vsyo",
+   "zapusk": "zhest",
+   "cena": 0,
+   "vidno": {
+    "zagotovka": "naliv",
+    "na": "vsyo"
+   }
+  },
+  "kurli": {
+   "kniga": "Г16",
+   "daet_chast": {
+    "kurli": {}
+   },
+   "ist": "П4",
+   "semya": true,
+   "gde": "scepka",
+   "zapusk": "vsegda",
+   "cena": 0.02,
+   "vidno": {
+    "zagotovka": "nit",
+    "na": "scepka"
+   }
+  },
+  "kvorum": {
+   "kniga": "Г17",
+   "semya": true,
+   "ist": "оценка",
+   "gde": "vsyo",
+   "zapusk": "pole",
+   "cena": 0.01,
+   "vidno": {
+    "zagotovka": "oblako",
+    "na": "vsyo"
+   }
+  },
+  "kolicin": {
+   "kniga": "Г18",
+   "pravilo": "yad_oblako",
+   "ist": "Р4",
+   "cena": 0.03,
+   "zametka": "биолог: выпускает ценой своей гибели, в игре — теряешь один рост",
+   "cena_prezhde": {
+    "rost": 1
+   },
+   "gde": "vsyo",
+   "zapusk": "beda",
+   "vidno": {
+    "zagotovka": "vybros",
+    "na": "vsyo"
+   }
+  },
+  "bla": {
+   "kniga": "Г19",
+   "daet_chast": {
+    "nozhnicy_antibiotika": {}
+   },
+   "ist": "оценка",
+   "nuzhna_beda": "pleseni_yad",
+   "gde": "obolochka",
+   "zapusk": "beda",
+   "cena": 0.02,
+   "vidno": {
+    "zagotovka": "rastvorenie",
+    "na": "obolochka"
+   }
+  },
+  "plazmida_f": {
+   "kniga": "Г20",
+   "daet_chast": {
+    "trubochka_obmena": {}
+   },
+   "ist": "П2",
+   "semya": true,
+   "gde": "scepka",
+   "zapusk": "kasanie",
+   "cena": 0.02,
+   "vidno": {
+    "zagotovka": "nit",
+    "na": "scepka"
+   }
+  },
+  "profag": {
+   "kniga": "Г21",
+   "semya": false,
+   "nuzhna_beda": "virus",
+   "zametka": "близко к Г38 «Вирус-жилец» (тред мутаций)",
+   "gde": "vsyo",
+   "zapusk": "kasanie",
+   "cena": 0.01,
+   "vidno": {
+    "zagotovka": "vspyshka",
+    "na": "vsyo"
+   },
+   "ishod": {
+    "pravilo": "zarazhenie",
+    "na": "zhilec"
+   }
+  },
+  "cepochka": {
+   "kniga": "Г22",
+   "semya": true,
+   "ist": "Ф6",
+   "gde": "scepka",
+   "zapusk": "vsegda",
+   "cena": 0.01,
+   "vidno": {
+    "zagotovka": "nit",
+    "na": "scepka"
+   }
+  },
+  "toxin": {
+   "kniga": "Г23",
+   "daet_chast": {
+    "nit_igla_cdi": {}
+   },
+   "ist": "Р1",
+   "pravilo": "ukol_cdi",
+   "proba": "соперница замерла от касания",
+   "gde": "udar",
+   "zapusk": "kasanie",
+   "cena": 0.03,
+   "vidno": {
+    "zagotovka": "nit",
+    "na": "udar"
+   }
+  },
+  "flu": {
+   "kniga": "Г24",
+   "daet_chast": {
+    "zastyozhka": {}
+   },
+   "menyaet": [
+    {
+     "harakteristika": "scepka",
+     "na": "оценка"
+    }
+   ],
+   "semya": true,
+   "ishod": {
+    "pravilo": "zarazhenie",
+    "na": "k_sosedke"
+   },
+   "nuzhna_beda": "rassypayutsya",
+   "proba": "разброс семьи за минуту",
+   "gde": "scepka",
+   "zapusk": "vsegda",
+   "cena": 0.02,
+   "vidno": {
+    "zagotovka": "nit",
+    "na": "scepka"
+   }
+  },
+  "snap": {
+   "kniga": "Г27",
+   "menyaet": [
+    {
+     "chast": "zhgutik",
+     "parametr": "podlom",
+     "na": true
+    },
+    {
+     "harakteristika": "povorot",
+     "na": "оценка"
+    }
+   ],
+   "zhest": "rezkiy_povorot",
+   "chuzhaya": true,
+   "cena": 0.02,
+   "proba": "потеря скорости на развороте",
+   "cena_prezhde": {
+    "zametka": "в густой воде не работает (биолог, круг 17)"
+   },
+   "gde": "obolochka",
+   "zapusk": "zhest",
+   "vidno": {
+    "zagotovka": "vspyshka",
+    "na": "obolochka"
+   }
+  },
+  "abort": {
+   "kniga": "Г28",
+   "daet_chast": {
+    "sistema_abi": {}
+   },
+   "ishod": {
+    "pravilo": "zarazhenie",
+    "na": "tiho"
+   },
+   "semya": true,
+   "nuzhna_beda": "virus",
+   "proba": "сколько сестёр заразилось от одной",
+   "gde": "vsyo",
+   "zapusk": "beda",
+   "cena": 0,
+   "vidno": {
+    "zagotovka": "rastvorenie",
+    "na": "vsyo"
+   }
+  },
+  "gas": {
+   "kniga": [
+    "Г29",
+    "Г4"
+   ],
+   "daet_chast": {
+    "gazovye_puzyrki": {}
+   },
+   "menyaet": [
+    {
+     "harakteristika": "plavuchest",
+     "na": "оценка"
+    },
+    {
+     "harakteristika": "soprotivlenie",
+     "na": "оценка"
+    }
+   ],
+   "zhest": "otpustit_palec",
+   "chuzhaya": true,
+   "nuzhna_beda": "glubina",
+   "proba": "подъём без пальца за 10 с",
+   "gde": "vsyo",
+   "zapusk": "zhest",
+   "cena": 0.05,
+   "vidno": {
+    "zagotovka": "naliv",
+    "na": "vsyo"
+   }
+  },
+  "door": {
+   "kniga": "Г30",
+   "menyaet": [
+    {
+     "chast": "pory",
+     "parametr": "zakryta",
+     "na": true
+    },
+    {
+     "harakteristika": "zashchita_yad",
+     "na": 1
+    },
+    {
+     "harakteristika": "zahvat_edy",
+     "na": "door.food"
+    }
+   ],
+   "nuzhna_beda": "yad_sharikov",
+   "proba": "вошёл ли яд шарика",
+   "gde": "obolochka",
+   "zapusk": "kasanie",
+   "cena": 0.02,
+   "vidno": {
+    "zagotovka": "vspyshka",
+    "na": "obolochka"
+   }
+  },
+  "decoy": {
+   "kniga": "Г31",
+   "daet_chast": {
+    "puzyrki_obolochki": {}
+   },
+   "menyaet": [
+    {
+     "harakteristika": "cena_edy",
+     "na": "оценка"
+    }
+   ],
+   "ishod": {
+    "pravilo": "zarazhenie",
+    "na": "na_puzyrek"
+   },
+   "nuzhna_beda": "virus",
+   "proba": "доля вирусов, севших на пузырьки",
+   "gde": "obolochka",
+   "zapusk": "vsegda",
+   "cena": 0.03,
+   "vidno": {
+    "zagotovka": "vybros",
+    "na": "obolochka"
+   },
+   "sled": "puzyrki"
+  },
+  "wall": {
+   "kniga": "Г32",
+   "menyaet": [
+    {
+     "chast": "stenka",
+     "parametr": "sbroshena",
+     "na": true
+    },
+    {
+     "harakteristika": "prochnost",
+     "na": "оценка"
+    }
+   ],
+   "nuzhno": [
+    "правило «яд плесени»"
+   ],
+   "nuzhna_beda": "pleseni_yad",
+   "gde": "obolochka",
+   "zapusk": "beda",
+   "cena": 0,
+   "vidno": {
+    "zagotovka": "rastvorenie",
+    "na": "obolochka"
+   }
+  },
+  "upstream": {
+   "kniga": "Г33",
+   "menyaet": [
+    {
+     "harakteristika": "snos",
+     "na": "оценка"
+    }
+   ],
+   "nuzhno": [
+    "правило «поток вихря»: снос в потоке"
+   ],
+   "nuzhna_beda": "vihr",
+   "gde": "vsyo",
+   "zapusk": "pole",
+   "cena": 0.02,
+   "vidno": {
+    "zagotovka": "vyrost",
+    "na": "obolochka"
+   }
+  },
+  "steady": {
+   "kniga": "Г34",
+   "menyaet": [
+    {
+     "chast": "zhgutik",
+     "parametr": "tugoy",
+     "na": true
+    },
+    {
+     "harakteristika": "snos",
+     "na": "steady.tumble"
+    },
+    {
+     "harakteristika": "povorot",
+     "na": "steady.turn"
+    }
+   ],
+   "cena": 0.03,
+   "proba": "длина пробежки между кувырками",
+   "cena_prezhde": {
+    "eda": "оценка"
+   },
+   "gde": "obolochka",
+   "zapusk": "vsegda",
+   "vidno": {
+    "zagotovka": "vyrost",
+    "na": "obolochka"
+   }
+  },
+  "citrate": {
+   "kniga": "Г35",
+   "daet_chast": {
+    "perenoschik_citrata": {}
+   },
+   "eda_vidy": [
+    "citrat"
+   ],
+   "nuzhna_beda": "konkurenty",
+   "proba": "рост там, где жёлтая еда выедена",
+   "gde": "rot",
+   "zapusk": "kasanie",
+   "cena": 0.02,
+   "vidno": {
+    "zagotovka": "naliv",
+    "na": "rot"
+   }
+  },
+  "spread": {
+   "kniga": "Г36",
+   "semya": true,
+   "nuzhno": [
+    "правило семьи «разъезд»"
+   ],
+   "cena": 0,
+   "cena_prezhde": {
+    "zametka": "поодиночке легче съесть"
+   },
+   "gde": "vsyo",
+   "zapusk": "pole",
+   "vidno": {
+    "zagotovka": "oblako",
+    "na": "vsyo"
+   }
+  },
+  "cut": {
+   "kniga": "Г37",
+   "ot": "crispr",
+   "ishod": {
+    "pravilo": "zarazhenie",
+    "na": "razrez"
+   },
+   "nuzhna_beda": "virus",
+   "cena": 0.02,
+   "cena_prezhde": {
+    "zametka": "иногда режет подарок соседки"
+   },
+   "gde": "vsyo",
+   "zapusk": "kasanie",
+   "vidno": {
+    "zagotovka": "rastvorenie",
+    "na": "vsyo"
+   }
+  },
+  "tenant": {
+   "kniga": [
+    "Г38",
+    "Г21"
+   ],
+   "ishod": {
+    "pravilo": "zarazhenie",
+    "na": "zhilec"
+   },
+   "nuzhna_beda": "virus",
+   "zametka": "Г21 «профаг» (Эволюция) — та же запись",
+   "gde": "vsyo",
+   "zapusk": "kasanie",
+   "cena": 0,
+   "vidno": {
+    "zagotovka": "naliv",
+    "na": "vsyo"
+   }
+  },
+  "mire": {
+   "kniga": "Г39",
+   "daet_chast": {
+    "sliz": {}
+   },
+   "menyaet": [
+    {
+     "harakteristika": "zashchita_virus",
+     "na": "оценка"
+    }
+   ],
+   "nuzhna_beda": "virus",
+   "zametka": "противовес «одному вирусу слизь нужна» ждёт «да» Романа",
+   "gde": "obolochka",
+   "zapusk": "vsegda",
+   "cena": 0.03,
+   "vidno": {
+    "zagotovka": "vyrost",
+    "na": "obolochka"
+   }
+  },
+  "lean": {
+   "kniga": "Г40",
+   "menyaet": [
+    {
+     "harakteristika": "golod",
+     "na": "lean.slow"
+    }
+   ],
+   "nuzhna_beda": "golod",
+   "proba": "сколько секунд живёт в пустой воде",
+   "gde": "vsyo",
+   "zapusk": "beda",
+   "cena": 0,
+   "vidno": {
+    "zagotovka": "naliv",
+    "na": "vsyo"
+   }
+  },
+  "share": {
+   "kniga": "Г41",
+   "semya": true,
+   "nuzhno": [
+    "правило семьи «общий стол»: облачко остатков"
+   ],
+   "eda_vidy": [
+    "ostatki"
+   ],
+   "gde": "vsyo",
+   "zapusk": "pole",
+   "cena": 0,
+   "vidno": {
+    "zagotovka": "oblako",
+    "na": "vsyo"
+   },
+   "sled": "ostatki"
+  },
+  "store": {
+   "kniga": [
+    "Г42",
+    "Г10"
+   ],
+   "daet_chast": {
+    "zapas_sahara": {}
+   },
+   "menyaet": [
+    {
+     "harakteristika": "zapas",
+     "na": "store.n"
+    }
+   ],
+   "nuzhna_beda": "golod",
+   "proba": "сколько секунд живёт в пустой воде",
+   "gde": "vsyo",
+   "zapusk": "vsegda",
+   "cena": 0.01,
+   "vidno": {
+    "zagotovka": "naliv",
+    "na": "vsyo"
+   }
+  },
+  "acetate": {
+   "kniga": "Г43",
+   "eda_vidy": [
+    "uksus"
+   ],
+   "nuzhno": [
+    "след «муть» за семьёй"
+   ],
+   "gde": "rot",
+   "zapusk": "pole",
+   "cena": 0.01,
+   "vidno": {
+    "zagotovka": "oblako",
+    "na": "rot"
+   },
+   "sled": "mut"
+  },
+  "nose": {
+   "kniga": "Г44",
+   "menyaet": [
+    {
+     "chast": "chutyo",
+     "parametr": "dalnost",
+     "na": "оценка"
+    }
+   ],
+   "nuzhno": [
+    "поиск бурого комка без пальца"
+   ],
+   "gde": "rot",
+   "zapusk": "pole",
+   "cena": 0.02,
+   "vidno": {
+    "zagotovka": "nit",
+    "na": "rot"
+   }
+  },
+  "courier": {
+   "kniga": "Г45",
+   "ishod": {
+    "pravilo": "zarazhenie",
+    "na": "dar"
+   },
+   "nuzhna_beda": "virus",
+   "gde": "vsyo",
+   "zapusk": "kasanie",
+   "cena": 0,
+   "vidno": {
+    "zagotovka": "vspyshka",
+    "na": "vsyo"
+   }
+  },
+  "mutator": {
+   "kniga": "Г46",
+   "nuzhno": [
+    "правило деления: выбор дочек чаще"
+   ],
+   "gde": "vsyo",
+   "zapusk": "vsegda",
+   "cena": 0,
+   "vidno": {
+    "zagotovka": "vspyshka",
+    "na": "vsyo"
+   }
+  },
+  "magnet": {
+   "kniga": "Г47",
+   "daet_chast": {
+    "retseptor_tar": {}
+   },
+   "urovni": [
+    {
+     "menyaet": [
+      {
+       "harakteristika": "prityazhenie_edy",
+       "na": "magnet.lvl.0"
+      },
+      {
+       "harakteristika": "povorot",
+       "na": "magnet.lvl.0.turn"
+      }
+     ]
+    },
+    {
+     "menyaet": [
+      {
+       "harakteristika": "prityazhenie_edy",
+       "na": "magnet.lvl.1"
+      },
+      {
+       "harakteristika": "povorot",
+       "na": "magnet.lvl.1.turn"
+      }
+     ]
+    },
+    {
+     "menyaet": [
+      {
+       "harakteristika": "prityazhenie_edy",
+       "na": "magnet.lvl.2"
+      },
+      {
+       "harakteristika": "povorot",
+       "na": "magnet.lvl.2.turn"
+      }
+     ]
+    }
+   ],
+   "proba": "еды за 15 с одного пути",
+   "gde": "rot",
+   "zapusk": "pole",
+   "cena": 0.05,
+   "vidno": {
+    "zagotovka": "nit",
+    "na": "rot"
+   }
+  },
+  "shield": {
+   "kniga": "Г48",
+   "urovni": [
+    {
+     "vklyuchaet": [
+      "lock"
+     ]
+    },
+    {
+     "vklyuchaet": [
+      "door"
+     ]
+    },
+    {
+     "ishod": {
+      "pravilo": "otskok",
+      "na": "na_sharik"
+     }
+    }
+   ],
+   "menyaet": [
+    {
+     "harakteristika": "rost",
+     "na": "оценка"
+    }
+   ],
+   "nuzhna_beda": "virus",
+   "proba": "сел ли вирус; вошёл ли яд",
+   "gde": "obolochka",
+   "zapusk": "kasanie",
+   "cena": 0.05,
+   "vidno": {
+    "zagotovka": "vspyshka",
+    "na": "obolochka"
+   }
+  },
+  "tail": {
+   "kniga": "Г49",
+   "urovni": [
+    {
+     "vklyuchaet": [
+      "steady"
+     ]
+    },
+    {
+     "vklyuchaet": [
+      "flagellum"
+     ],
+     "sled": "koridor"
+    },
+    {
+     "menyaet": [
+      {
+       "harakteristika": "tyaga",
+       "na": "tail.boost"
+      },
+      {
+       "harakteristika": "povorot",
+       "na": "tail.wide"
+      }
+     ]
+    }
+   ],
+   "menyaet": [
+    {
+     "harakteristika": "zametnost",
+     "na": "tail.loud"
+    }
+   ],
+   "proba": "время пути через слизь",
+   "gde": "obolochka",
+   "zapusk": "vsegda",
+   "cena": 0.05,
+   "vidno": {
+    "zagotovka": "vyrost",
+    "na": "obolochka"
+   }
+  },
+  "memory": {
+   "kniga": "Г50",
+   "urovni": [
+    {
+     "vklyuchaet": [
+      "crispr"
+     ],
+     "ishod": {
+      "pravilo": "zarazhenie",
+      "na": "pamyat"
+     }
+    },
+    {
+     "nasledstvo": "pamyat"
+    },
+    {
+     "ishod": {
+      "pravilo": "zarazhenie",
+      "na": "pamyat_eda"
+     }
+    }
+   ],
+   "nuzhna_beda": "virus",
+   "proba": "знакомый и незнакомый вирус — два разных события",
+   "gde": "vsyo",
+   "zapusk": "kasanie",
+   "cena": 0.03,
+   "vidno": {
+    "zagotovka": "rastvorenie",
+    "na": "vsyo"
+   }
+  }
+ }
+}
