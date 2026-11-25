@@ -698,7 +698,9 @@ function events() {
     if (k === 'pop') { beep(260, 0.25, 0.06, 'triangle', 0.6); } // чужая клетка лопнула
     if (k === 'pinch') { beep(1400, 0.05, 0.03, 'square', 0.6); tell('pinch', 'Кокк щиплет своим ядом — отплыви'); }
     if (k === 'sick') { beep(180, 0.3, 0.05, 'sawtooth', 0.7); }
-    if (k === 'burst' || k === 'eaten') { shake = 0.35; beep(110, 0.45, 0.09, 'triangle', 0.5); }
+    if (k === 'burst' || k === 'eaten') { shake = 0.35; beep(110, 0.45, 0.09, 'triangle', 0.5);
+      const [sx, sy] = scr(x, y), who = k === 'burst' ? 'phage' : size; // погибла за краем экрана — говорим, кто её взял (урок L039)
+      if (world.me.length && !(sx > 0 && sx < W && sy > 0 && sy < H)) { probe.lostFar = (probe.lostFar || 0) + 1; say('Сестра погибла за краем экрана: ' + ((cards[who] && cards[who].name) || 'хищник'), 2600); } }
   }
   world.events.length = 0;
 }
@@ -783,11 +785,16 @@ function paint(time) {
       for (const a of world.me) { if (Math.hypot(a.x - wx, a.y - wy) > R) continue; const [ax, ay] = scr(a.x, a.y); // тебя тянет: штрихи бегут от клетки к рту
         for (let k = 0; k < Zc.streak; k++) { const f = (time * 1.2 + k / Zc.streak) % 1;
           for (let i = 0; i < 6; i++) { const u = (f + i * 0.015) * 0.7; ink.put(ax + (x - ax) * u, ay + (y - ay) * u, 1.1 * z + 0.5, cr, cg, cb, Zc.warn * (1 - f) * (0.4 + i * 0.12)); } } } } }
+  const edgeArrow = (x, y, [cr, cg, cb], al, big = 1) => { // стрелка у края экрана, острием к тому, что за кадром
+    const [cx, cy] = scr(view.x, view.y), a = Math.atan2(y - cy, x - cx), ux = Math.cos(a), uy = Math.sin(a), m = 34;
+    const t = Math.min((ux > 0 ? W - m - cx : m - cx) / (ux || 1e-9), (uy > 0 ? H - m - cy : m - cy) / (uy || 1e-9)), px = cx + ux * t, py = cy + uy * t;
+    for (let i = 0; i < 12; i++) { const s = i * 1.6 * big; ink.put(px + ux * s * 1.4, py + uy * s * 1.4, 4 * big, cr, cg, cb, al); ink.put(px + ux * 18 * big - (ux + uy) * s * 0.75, py + uy * 18 * big - (uy - ux) * s * 0.75, 4 * big, cr, cg, cb, al); ink.put(px + ux * 18 * big - (ux - uy) * s * 0.75, py + uy * 18 * big - (uy + ux) * s * 0.75, 4 * big, cr, cg, cb, al); } };
   { const wn = world.warning(); if (wn && wn.level > 0) { const [x, y] = scr(wn.zone[0], wn.zone[1]); // источник тревоги за кадром: стрелка у края экрана, острием к нему (L030)
-    if (!on(x, y, wn.zone[2] * z - 12)) { const [cx, cy] = scr(world.center().x, world.center().y), a = Math.atan2(y - cy, x - cx), ux = Math.cos(a), uy = Math.sin(a), m = 34;
-      const t = Math.min((ux > 0 ? W - m - cx : m - cx) / (ux || 1e-9), (uy > 0 ? H - m - cy : m - cy) / (uy || 1e-9)), px = cx + ux * t, py = cy + uy * t, [cr, cg, cb] = cfg.zone.color, al = 0.45 + 0.4 * wn.level;
-      probe.edge = (probe.edge || 0) + 1;
-      for (let i = 0; i < 12; i++) { const s = i * 1.6; ink.put(px + ux * s * 1.4, py + uy * s * 1.4, 4, cr, cg, cb, al); ink.put(px + ux * 18 - (ux + uy) * s * 0.75, py + uy * 18 - (uy - ux) * s * 0.75, 4, cr, cg, cb, al); ink.put(px + ux * 18 - (ux - uy) * s * 0.75, py + uy * 18 - (uy + ux) * s * 0.75, 4, cr, cg, cb, al); } } } }
+    if (!on(x, y, wn.zone[2] * z - 12)) { probe.edge = (probe.edge || 0) + 1; edgeArrow(x, y, cfg.zone.color, 0.45 + 0.4 * wn.level); } } }
+  // Сестра за кадром (Роман 25.11: «они просто уплывают куда-то, исчезают»): камера не ждёт схваченную, заражённую и отставшую,
+  // поэтому у края — маленькая стрелка к ней; в беде стрелка красная и крупнее (урок L039).
+  probe.sisEdge = 0; for (const a of world.me) { const [x, y] = scr(a.x, a.y); if (on(x, y, -8)) continue; const bad = a.grab || a.held > 0 || a.sick >= 0;
+    probe.sisEdge++; edgeArrow(x, y, bad ? [1, 0.35, 0.3] : [CELL[0].r, CELL[0].g, CELL[0].b], bad ? 0.55 + 0.35 * Math.sin(time * 8) ** 2 : 0.45, bad ? 0.8 : 0.55); }
   for (const p of world.slippers) { // туфелька: огромная клетка в ресничках, воронка-рот на боку, поток в рот виден
     const [x, y] = scr(p.x, p.y), L = cfg.slipper_len * z; if (!on(x, y, L)) continue;
     const ux = Math.cos(p.a), uy = Math.sin(p.a), w = L * 0.27;

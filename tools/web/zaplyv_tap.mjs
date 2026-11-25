@@ -68,6 +68,13 @@ await p.waitForTimeout(700); { const t = await p.evaluate(() => [...document.que
   const inside = await lum({ x: cx - 4, y: 120, width: 8, height: 120 }), aside = await lum({ x: Math.max(0, cx - 120), y: 120, width: 8, height: 120 });
   await p.evaluate(() => { zaplyvWorld().slime.length = 0; });
   say(inside - aside < 8, `test_L046: тяж слизи прозрачный, не пелена (яркость внутри ${inside.toFixed(0)}, рядом ${aside.toFixed(0)})`); }
+// test_L039 (Роман 25.11: «в процессе игры они просто уплывают куда-то, исчезают. И я не понимаю, почему»): сестра за кадром видна стрелкой у края,
+// а гибель за краем называет убийцу.
+{ await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.me.push({ ...a, id: 990, x: a.x + 2500, y: a.y, held: 1, vx: 0, vy: 0 }); });
+  await p.waitForTimeout(400); const e = await p.evaluate(() => zaplyvProbe.sisEdge);
+  await p.evaluate(() => { const w = zaplyvWorld(), b = w.me.find(q => q.id === 990); if (b) w.lose(b, b.x, b.y, 'bdello'); }); await p.waitForTimeout(300);
+  const t = await p.textContent('#toast');
+  say(e >= 1 && /за краем/.test(t) && t.includes('Бделловибрион'), 'test_L039: сестра за кадром — стрелка у края (' + e + '), гибель за краем названа: «' + t + '»'); }
 if (await tap('#flag', 'флажок в игре')) say(await seen('#note') && await marks() === m + 1, 'флажок в игре: отметка записана и надпись видна');
 if (await tap('#pause', 'пауза')) say(await on('genome') && (await p.textContent('#gtitle')) === 'Пауза', 'пауза открывает меню «Пауза»');
 if (await tap('#phub [data-t=genome]', 'строка «Геном» в паузе')) say(await seen('#ring'), 'строка «Геном» открывает кольцо');
