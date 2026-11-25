@@ -2,6 +2,7 @@
 # stop (М7, М9): пока открыта issue с меткой stop (её заводит tools/metrics.py), любой PR красный,
 # кроме PR с меткой fix, который чинит причину. main не блокируем. Без сети шаг не решает и проходит.
 set -u
+. "$(dirname "${BASH_SOURCE[0]}")/../check_mode.sh"; run_in fast kniga || exit 0
 [ -z "${GITHUB_BASE_REF:-}" ] && { echo "  не PR — остановку не сверяю"; exit 0; }
 repo=${GITHUB_REPOSITORY:-fishert2812/strategy-2d}
 # STOP_ISSUES подменяет ответ GitHub (для selftest).

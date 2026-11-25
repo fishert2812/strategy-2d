@@ -1,0 +1,49 @@
+# Полная проверка (справочник, раздел 3, «Три режима»): все шаги check.sh со сторожем сторожей,
+# раз в час на main и по запросу (Actions → full → Run workflow). Красная — issue «Полная проверка красная»;
+# тред выкладки откатывает виновную версию, потом разбор.
+name: full
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+concurrency:
+  group: full
+  cancel-in-progress: false
+permissions:
+  contents: read
+  issues: write
+  actions: read
+jobs:
+  full:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Уже проверен?
+        id: seen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          last=$(gh api "repos/${{ github.repository }}/actions/workflows/full.yml/runs?status=success&branch=main&per_page=1" --jq '.workflow_runs[0].head_sha' || true)
+          if [ "${{ github.event_name }}" = schedule ] && [ "$last" = "$(git rev-parse HEAD)" ]; then echo "skip=1" >> "$GITHUB_OUTPUT"; echo "main $last уже проверен полностью"; fi
+      - name: check.sh полная
+        if: steps.seen.outputs.skip != '1'
+        env:
+          CHECK_FULL: "1"
+        run: bash tools/check.sh
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.seen.outputs.skip != '1'
+        with:
+          name: full-out
+          path: out/
+      - name: Красная — issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha=$(git rev-parse --short HEAD); url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          body="$(cat out/check.txt 2>/dev/null) — $url. Откатить виновную версию, потом разбор (правило 2.4)."
+          n=$(gh issue list --state open --search "Полная проверка красная in:title" --json number --jq '.[0].number' || true)
+          if [ -n "$n" ]; then gh issue comment "$n" --body "$sha: $body"; else gh issue create --title "Полная проверка красная: $sha" --body "$body"; fi
