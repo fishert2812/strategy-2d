@@ -26,7 +26,9 @@ const genomeData = await (await fetch('genome.json')).json();
 const W = 720; // ширина экрана в единицах игры
 const canvas = document.getElementById('c');
 const gl = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' });
-gl.setPixelRatio(Math.min(devicePixelRatio, cfg.dpr_max)); // на iPhone плотность 3: кадр в 2,5 (полная тяжелее в полтора раза), иначе клетки и еда мягкие (Роман 25.11: «бактерия стала чуть-чуть размытая», урок L038)
+// Плотность кадра (Роман 25.11: «мутнота», ночью: «расплывчатое»): на iPhone сразу полная — 3 точки на точку экрана. Если телефон её не тянет
+// (средний кадр за cfg.dpr_check кадров дольше cfg.dpr_slow мс), один раз и насовсем на этот заход откатываемся до cfg.dpr_max (L052).
+let dprNow = Math.min(devicePixelRatio, cfg.dpr_full); gl.setPixelRatio(dprNow);
 let H = W;
 const cam = new THREE.OrthographicCamera(0, W, 0, W, -1, 1);
 const back = new THREE.Scene(); // фон и дальнее
@@ -341,7 +343,7 @@ function studio(k, it) {
 let shotLow = false;
 function shotDensity() {
   if (shotLow || gl.getPixelRatio() <= 2) return; shotLow = true; gl.setPixelRatio(2); resize();
-  requestAnimationFrame(() => { shotLow = false; gl.setPixelRatio(Math.min(devicePixelRatio, cfg.dpr_max)); resize(); });
+  requestAnimationFrame(() => { shotLow = false; gl.setPixelRatio(dprNow); resize(); });
 }
 function snap(k, it) {
   shotDensity();
@@ -1048,9 +1050,10 @@ function render(t, after) {
 // Замер для проверки: кадры, худший и средний кадр за последние 5 с, число клеток и точек.
 window.zaplyvWorld = () => world; // для проверок и кадров
 window.zaplyvScr = (x, y) => { const [sx, sy] = scr(x, y); return [sx * innerWidth / W, sy * innerHeight / H]; }; // для проверок: где на экране точка мира (в точках CSS)
-const probe = window.zaplyvProbe = { warn: {}, frames: 0, worst: 0, avg: 0, js: 0, jsWorst: 0, cells: 0, dots: 0, errors: 0 };
+const probe = window.zaplyvProbe = { dpr0: dprNow, warn: {}, frames: 0, worst: 0, avg: 0, js: 0, jsWorst: 0, cells: 0, dots: 0, errors: 0 };
 addEventListener('error', () => probe.errors++);
 let last = performance.now(), acc = [], js = [];
+const dprAcc = [];
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   if (($('menu').classList.contains('on') || $('night').classList.contains('on')) && !frame.hid) { frame.hid = true; $('pause').style.display = $('flag').style.display = 'none'; } // кнопки заплыва не лежат поверх меню и ночи
@@ -1058,6 +1061,9 @@ function frame(now) {
   if ($('night').classList.contains('on')) { last = now; nightFrame(dt); probe.frames++; requestAnimationFrame(frame); return; } // ночь рода закрывает мир
   const play = !ended; // замер «средний кадр» — только пока плывёшь; экран гибели в него не подмешивается
   if (play) { acc.push(now - last); if (acc.length > 300) acc.shift(); }
+  if (play && !shotLow && dprNow > cfg.dpr_max && probe.frames > 90) { dprAcc.push(now - last); if (dprAcc.length >= cfg.dpr_check) { // тяжело — плотность ниже, один раз
+    if (dprAcc.reduce((a, b) => a + b, 0) / dprAcc.length > cfg.dpr_slow) { dprNow = Math.min(devicePixelRatio, cfg.dpr_max); gl.setPixelRatio(dprNow); resize(); probe.dprDrop = probe.frames; }
+    dprAcc.length = 0; } }
   last = now;
   const t0 = performance.now();
   if (!ended && !paused && !frozen) tick(dt);
@@ -1081,7 +1087,7 @@ function frame(now) {
   if (solo) for (const l in solo) world[l] = [];
   try { render(now / 1000, () => { if (!ended) { js.push(performance.now() - t0); if (js.length > 300) js.shift(); } }); } finally { if (solo) Object.assign(world, solo); }
   if (probe.frames % 60 === 0) knowGenes();
-  probe.frames++; probe.cells = world.me.length; probe.z = view.z; // масштаб камеры: тап-обход проверяет, что она возвращается (L029)
+  probe.frames++; probe.dpr = dprNow; probe.cells = world.me.length; probe.z = view.z; // масштаб камеры: тап-обход проверяет, что она возвращается (L029)
   probe.js = js.reduce((s, v) => s + v, 0) / Math.max(js.length, 1); probe.jsWorst = Math.max(0, ...js.slice(5)); probe.path = Math.max(probe.path || 0, world.stats.path);
   probe.dots = world.food.length + world.prey.length + world.phages.length;
   probe.worst = Math.max(...acc.slice(5)); probe.avg = acc.reduce((s, v) => s + v, 0) / Math.max(acc.length, 1); probe.ended = ended;
