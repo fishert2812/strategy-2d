@@ -2,6 +2,7 @@
 # kniga_stranicy: каждая вкладка книги «Заплыва» открывается на телефоне без ошибки страницы и не пустая.
 # Урок 25.11: вкладка «Тексты» упала на новой записи без латинского имени, сверка данных этого не видит.
 set -u
+. "$(dirname "${BASH_SOURCE[0]}")/../check_mode.sh"; run_in fast kniga || exit 0
 command -v node >/dev/null || { echo "  нет node — открыть книгу нечем"; exit 1; }
 PW=${PW:-}
 g=$(npm root -g 2>/dev/null)/playwright/index.mjs; [ -z "$PW" ] && [ -f "$g" ] && PW=$g

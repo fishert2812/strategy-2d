@@ -3,6 +3,7 @@
 # после гибели остаётся еда, соседи делятся; игрок за первую минуту видит это на экране.
 # Самопроверка: с выключенным движком проверка-доказательство test_zhizn_minuta обязана покраснеть.
 set -u
+. "$(dirname "${BASH_SOURCE[0]}")/../check_mode.sh"; run_in fast || exit 0
 command -v node >/dev/null || { echo "  нет node — жизнь капли проверить нечем"; exit 1; }
 timeout 120 node proby/zaplyv/test_zhizn.mjs || exit 1
 off=$(ZHIZN_OFF=1 timeout 120 node proby/zaplyv/test_zhizn.mjs 2>&1)
