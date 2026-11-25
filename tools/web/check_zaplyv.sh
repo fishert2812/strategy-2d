@@ -42,6 +42,9 @@ const say = t => console.log('ПАСПОРТ: ' + t);
   process.exit(bad || g.errors || g.frames <= at0 || g.path < 200 || g.cells !== KLETOK || g.js > 6 ? 1 : 0);
 })().catch(e => { say('прогон упал: ' + e.message); process.exit(1); });
 JS
-node z.js "http://localhost:8766/zaplyv/index.html" "$B"
-# урок L017: каждая кнопка отвечает пальцу и в этом браузере
-PW=$W/node_modules/playwright/index.mjs node "$ROOT/tools/web/zaplyv_tap.mjs" "http://localhost:8766/zaplyv/" "$B"
+rc=0
+node z.js "http://localhost:8766/zaplyv/index.html" "$B" || rc=1
+# урок L017: каждая кнопка отвечает пальцу и в этом браузере. Идёт и при красной пробе скорости (решение 25.11):
+# иначе, пока скорость красная, касания в WebKit никто не проверяет.
+PW=$W/node_modules/playwright/index.mjs node "$ROOT/tools/web/zaplyv_tap.mjs" "http://localhost:8766/zaplyv/" "$B" || rc=1
+exit $rc
