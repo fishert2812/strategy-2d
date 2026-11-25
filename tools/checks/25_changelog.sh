@@ -2,6 +2,7 @@
 # changelog: номер версии в data/version.json совпадает с верхней строкой CHANGELOG.md,
 # а PR, который меняет видимое (scenes, scripts, data, art, audio), добавляет строку и поднимает номер.
 set -u
+. "$(dirname "${BASH_SOURCE[0]}")/../check_mode.sh"; run_in fast kniga || exit 0
 fail=0
 bad() { echo "  ВЕРСИЯ: $1"; fail=1; }
 num=$(python3 -c "import json;print(json.load(open('data/version.json'))['number'])" 2>/dev/null)

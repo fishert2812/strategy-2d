@@ -3,6 +3,7 @@
 # Ошибка скрипта во время теста — провал, даже если тест «вернул успех».
 # Предел времени на прогон — TESTS_TIMEOUT секунд (по умолчанию 300): зависание — провал.
 set -u
+. "$(dirname "${BASH_SOURCE[0]}")/../check_mode.sh"; run_in fast || exit 0
 GODOT="${GODOT:-godot}"
 LIMIT="${TESTS_TIMEOUT:-300}"
 

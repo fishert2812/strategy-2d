@@ -3,6 +3,7 @@
 # путь назад на каждом уровне, разделы строками, а не чипами; затем самопроверка на нарочно сломанных меню.
 # Обход — tools/web/zaplyv_menu.mjs. Playwright и браузер ищем так же, как 52_zaplyv_tap.sh.
 set -u
+. "$(dirname "${BASH_SOURCE[0]}")/../check_mode.sh"; run_in fast || exit 0
 command -v node >/dev/null || { echo "  нет node — меню проверить нечем"; exit 1; }
 PW=${PW:-}
 g=$(npm root -g 2>/dev/null)/playwright/index.mjs; [ -z "$PW" ] && [ -f "$g" ] && PW=$g
