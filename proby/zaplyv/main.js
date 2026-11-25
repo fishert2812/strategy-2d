@@ -227,8 +227,9 @@ function menuOpen() {
   const n = [...met].filter(k => KAB.items[k] && k !== 'me').length, g = [...met].filter(k => k.startsWith('gene:')).length;
   const pl = (k, a, b, c) => k % 10 === 1 && k % 100 !== 11 ? a : k % 10 >= 2 && k % 10 <= 4 && (k % 100 < 12 || k % 100 > 14) ? b : c;
   $('mknow').textContent = n ? 'Ты знаешь ' + n + ' ' + pl(n, 'обитателя', 'обитателей', 'обитателей') + (g ? ' · ' + g + ' ' + pl(g, 'ген', 'гена', 'генов') : '') : '';
-  $('mquiet').textContent = ROD.quiet ? 'Звук' : 'Тише';
-  menuPick('swim', true); // обычный заплыв — одно касание
+  $('mquiet').textContent = ROD.quiet ? 'Звук выкл' : 'Звук вкл'; $('mak').textContent = kab.label().replace(/^Альманах · /, '');
+  const live = menuGo.back && !ended && world.me.length; $('mback').hidden = !live; // из паузы — путь назад в паузу
+  menuPick(live ? world.mode : 'swim', true); // обычный заплыв — одно касание
 }
 function menuPick(m, quiet) {
   const M = MODES[m];
@@ -239,19 +240,23 @@ function menuPick(m, quiet) {
   }
   $('mline').textContent = M.line;
   for (const o of $('mscene').querySelectorAll('.mo')) o.classList.toggle('sel', o.dataset.m === m);
+  $('mscene').querySelector(`.mo[data-m=${m}]`)?.scrollIntoView({ block: 'nearest' }); // выбранный режим виден целиком, даже когда сцена ниже
   $('mscene').classList.toggle('picked', !quiet);
-  mSel = m; $('mgo').textContent = M.go;
+  mSel = m; const same = menuGo.back && !ended && world.me.length && m === world.mode; // тот же режим из паузы: «Продолжить» тот же заплыв, рядом «Новый заплыв» (О45)
+  $('mgo').textContent = same ? 'Продолжить' : M.go; $('mnew').hidden = !same;
 }
 function menuGo() { if (mSel === 'night') { $('menu').classList.remove('on'); openNight(); } else if (menuGo.back && !ended && world.me.length && mSel === world.mode) { $('menu').classList.remove('on'); menuGo.back = false; } else { menuGo.back = false; start(null, mSel); } } // из паузы: «Плыть» в том же режиме возвращает в тот же заплыв, другой режим — новый заплыв
 for (const o of document.querySelectorAll('#mscene .mo')) { o.onclick = () => menuPick(o.dataset.m); o.ondblclick = () => { menuPick(o.dataset.m); if (!MODES[o.dataset.m].lock) menuGo(); }; }
 $('mgo').onclick = menuGo;
-$('mquiet').onclick = () => { ROD.quiet = !ROD.quiet; saveRod(); $('mquiet').textContent = ROD.quiet ? 'Звук' : 'Тише'; };
-$('malm').onclick = () => kab.open();
+$('mquiet').onclick = () => { ROD.quiet = !ROD.quiet; saveRod(); $('mquiet').textContent = ROD.quiet ? 'Звук выкл' : 'Звук вкл'; };
+$('mnew').onclick = () => { menuGo.back = false; start(null, mSel); };
+$('mback').onclick = () => { $('menu').classList.remove('on'); menuGo.back = false; genome.openScreen(); };
+$('malm').onclick = () => kab.open('Режимы');
 
 // «Ночь рода» (night.js; design/zaplyv_noch_roda_spec.md): после гибели род живёт 1000 поколений, игрок выбирает опасность, потом ветку.
 let NT = null, ntT = 0, ntPick = null;
-$('gmenu').onclick = () => { genome.close(); menuOpen(); menuGo.back = true; }; // путь в меню из паузы (L031)
-$('tomenu').onclick = () => { $('end').classList.remove('on'); menuOpen(); }; // режимы — только в меню: заплыв остаётся заплывом (Роман: «мы тестируем разные режимы»)
+$('gmenu').onclick = () => { genome.close(); menuGo.back = true; menuOpen(); }; // путь в меню из паузы (L031)
+$('tomenu').onclick = () => { $('end').classList.remove('on'); menuGo.back = false; menuOpen(); }; // режимы — только в меню: заплыв остаётся заплывом (Роман: «мы тестируем разные режимы»)
 function openNight() { nightIcons(); NT = null; ntPick = null; $('night').classList.add('on'); $('ndanger').hidden = $('nask').hidden = false; $('npicks').innerHTML = ''; $('ngo').disabled = true; $('ngen').textContent = 'Ночь рода'; drawNight(); }
 function nightIcons() { // значки опасностей — снимки самой опасности из той же студии, что Альманах (правило дизайнера)
   const im = $('ndanger').querySelectorAll('img'); if (im[0].src) return;
@@ -311,6 +316,7 @@ const saveMet = () => { try { localStorage.setItem('zaplyv.met', JSON.stringify(
 const KAB = await (await fetch('almanah.json')).json();
 const GENY = await fetch('kniga/teksty_genov.json').then(r => r.ok ? r.json() : {}).catch(() => ({})); // гены: имена и тексты книги
 mut.addGenes(cfg); mut.names(cfg, GENY); // новые мутации: имена из книги
+const SVYAZI = await fetch('kniga/kto_s_kem.json').then(r => r.ok ? r.json() : {}).catch(() => ({})); // кто кого ест — связи карточек Альманаха
 const TEKSTY = await fetch('kniga/teksty_sushchestv.json').then(r => r.ok ? r.json() : {}).then(j => j.sushchestva || {}).catch(() => ({})); // тексты книги
 // Снимок модели: на миг подменяем мир студией с одним существом в середине кадра, рисуем тем же paint и вырезаем середину.
 const LISTS = { me: 'me', phage: 'phages', bdello: 'bdellos', amoeba: 'amoebas', slipper: 'slippers', bell: 'bells', roti: 'rotis',
@@ -394,7 +400,7 @@ setTimeout(function warm(i = 0) { const g = Object.keys(cfg.genes)[i]; if (!g) r
 const geneBook = g => Object.values(GENY.geny || {}).find(q => q.klyuch === g) || {}, geneName = g => geneBook(g).imya || g; // имя и тексты гена — только из книги
 genomeData.book = GENY.geny || {};
 GENY.gruppa = Object.fromEntries([...genomeData.arcs.flatMap(a => a.slots.map(x => [x.id, a.name])), ...genomeData.plasmids.map(x => [x.id, 'Чужие'])].filter(x => x[0])); // группа гена — дуга кольца
-const kab = almanahScreen({ K: KAB, cards, T: TEKSTY, G: GENY, met, snap, onSwim: () => { if (ended || $('menu').classList.contains('on')) start(); else if (paused) genome.close(); } });
+const kab = almanahScreen({ K: KAB, cards, T: TEKSTY, G: GENY, S: SVYAZI, met, snap, onNav: () => { if (curTab === 'alm') $('gback').textContent = '‹ ' + (kab.where() || 'Пауза'); }, onSwim: () => { if (ended || $('menu').classList.contains('on')) start(); else if (paused) genome.close(); } });
 const cabLabel = () => { $('cab').textContent = kab.label(); };
 cabLabel();
 const knowGenes = () => { let add = false; for (const g in world.genes) if (!met.has('gene:' + g)) { met.add('gene:' + g); add = true; } if (add) { saveMet(); cabLabel(); } }; // ген, который у тебя был, — запись в Альманахе
@@ -423,7 +429,8 @@ function tab(t) {
   for (const k in PNAME) G.classList.toggle('tab-' + k, t === k);
   $('gtitle').textContent = PNAME[t]; $('map').hidden = t !== 'map'; $('mcard').hidden = true;
   if (t === 'hub') hubFill();
-  if (t === 'alm') { knowGenes(); kab.open(); kab.back = () => tab('hub'); C.classList.add('inpause'); const top = $('ghead').getBoundingClientRect().bottom + 6, bot = innerHeight - $('gbar').getBoundingClientRect().top + 8;
+  $('gback').textContent = '‹ Пауза';
+  if (t === 'alm') { knowGenes(); kab.open('Пауза'); kab.back = () => tab('hub'); C.classList.add('inpause'); const top = $('ghead').getBoundingClientRect().bottom + 6, bot = innerHeight - $('gbar').getBoundingClientRect().top + 8;
     C.style.top = top + 'px'; C.style.bottom = bot + 'px'; } else if (C.classList.contains('inpause')) { kab.close(); kab.back = null; C.classList.remove('inpause'); C.style.top = C.style.bottom = ''; }
   if (t === 'map') { keepSeen(); mapOpenedAt = performance.now(); }
 }
@@ -439,7 +446,7 @@ function hubFill() { // первый уровень паузы: что в каж
 function openTab() { tab('hub'); }
 function leaveTabs() { const C = $('cabinet'); if (C.classList.contains('inpause')) { kab.close(); kab.back = null; C.classList.remove('inpause'); C.style.top = C.style.bottom = ''; } curTab = null; }
 for (const b of $('phub').querySelectorAll('.prow')) b.onclick = () => tab(b.dataset.t);
-$('gback').onclick = () => tab('hub');
+$('gback').onclick = () => { if (curTab === 'alm' && kab.where()) kab.goBack(); else tab('hub'); }; // в Альманахе «назад» идёт по шагам: карточка → прошлая карточка → полка → пауза
 $('psound').onclick = () => { ROD.quiet = !ROD.quiet; saveRod(); hubFill(); };
 $('pnew').onclick = () => { const n = $('pnew'); if (!n.sure) { n.sure = true; n.classList.add('sure'); n.textContent = 'Точно заново?'; return; } genome.close(); start(null, world.mode); }; // второе касание: текущий заплыв пропадёт
 { let sx = null; // смахивание от левого края вправо — назад на «Паузу», как в приложениях iPhone
@@ -530,10 +537,23 @@ function flag(screen, btn) {
   if (btn) { btn.classList.remove('hit'); void btn.offsetWidth; btn.classList.add('hit'); }
   try { beep(880, 0.08, 0.04, 'sine', 0.8); } catch (_) {}
 }
+// Картинка отметки с подписью снизу: номер, время и все слова отметки. Без картинки — карточка из одних слов.
+async function signed(url, head, text) {
+  let im = null; if (url) { im = new Image(); im.src = url; await im.decode(); }
+  const W = Math.max(640, im ? im.width : 0), pad = 20, c = document.createElement('canvas'), g = c.getContext('2d'); // кадр не ужимаем
+  const ih = im ? Math.round(W * im.height / im.width) : 0, font = '22px -apple-system, system-ui, sans-serif'; g.font = font;
+  const lines = []; for (const para of text.split('\n')) { let l = ''; for (const w of para.split(' ')) { const t = l ? l + ' ' + w : w; if (g.measureText(t).width > W - 2 * pad && l) { lines.push(l); l = w; } else l = t; } lines.push(l); }
+  c.width = W; c.height = ih + pad * 2 + 34 + lines.length * 28; g.fillStyle = '#081a22'; g.fillRect(0, 0, W, c.height);
+  if (im) g.drawImage(im, 0, 0, W, ih);
+  g.fillStyle = '#ffc9a8'; g.font = 'bold 24px -apple-system, system-ui, sans-serif'; g.fillText('⚑ ' + head, pad, ih + pad + 22);
+  g.fillStyle = '#e8f2f2'; g.font = font; lines.forEach((l, k) => g.fillText(l, pad, ih + pad + 56 + k * 28));
+  return await new Promise((ok, no) => c.toBlob(b => b ? ok(b) : no(new Error('нет картинки')), 'image/jpeg', 0.85));
+}
 async function send() {
   const text = message(marks);
   try {
-    const files = []; for (const [i, m] of marks.entries()) for (const [u, nm] of [[m.img, 'mesto'], [m.full, 'kadr']]) if (u) try { files.push(new File([await (await fetch(u)).blob()], `ne_tak_${i + 1}_${nm}.jpg`, { type: 'image/jpeg' })); } catch (_) {} // кусок и весь кадр
+    const files = []; for (const [i, m] of marks.entries()) { const head = `Отметка ${i + 1} из ${marks.length} · ${m.at}`; // слова впечатаны в картинку: «Поделиться» часто отдаёт только фото (урок L035)
+      for (const [u, nm] of [[m.img, 'mesto'], [m.full, 'kadr']]) if (u || nm === 'mesto') try { files.push(new File([await signed(u, head, m.text)], `ne_tak_${i + 1}_${nm}.jpg`, { type: 'image/jpeg' })); } catch (_) {} }
     if (navigator.share && files.length && navigator.canShare?.({ files })) await navigator.share({ text, files }); // картинки мест — вместе со словами
     else if (navigator.share) await navigator.share({ text });
     else { await navigator.clipboard.writeText(text); say('Скопировано — вставь в чат', 2200); }
@@ -562,7 +582,7 @@ function flagAt(cx, cy) { // вырезаем кусок кадра вокруг
   const fx = (cx - x0) / S * 320, fy = (cy - y0) / S * 320; g.strokeStyle = 'rgba(0,0,0,0.55)'; g.lineWidth = 7; g.beginPath(); g.arc(fx, fy, 22, 0, 6.283); g.stroke(); g.strokeStyle = '#ffb48a'; g.lineWidth = 3; g.stroke(); // где стоял флажок: рамка 3 на тёмном гало
   const [ux, uy] = unit({ clientX: cx, clientY: cy }), wp = toWorld(ux, uy);
   FLAG.img = c.toDataURL('image/jpeg', 0.8); FLAG.wp = wp;
-  const a = document.createElement('canvas'); a.width = 360; a.height = Math.round(360 * innerHeight / innerWidth); a.getContext('2d').drawImage(canvas, 0, 0, a.width, a.height); FLAG.full = a.toDataURL('image/jpeg', 0.7); // и весь кадр — где это было
+  const a = document.createElement('canvas'); a.width = 720; a.height = Math.round(720 * innerHeight / innerWidth); a.getContext('2d').drawImage(canvas, 0, 0, a.width, a.height); FLAG.full = a.toDataURL('image/jpeg', 0.8); // и весь кадр — где это было; 720 в ширину, а не 360: мелкий кадр на телефоне мыльный (Роман 25.11: «Все стало расплывчатое»)
   $('fsheet').classList.toggle('top', cy > innerHeight / 2); // лист от дальнего края: место под флажком остаётся видно
   $('fimg').src = FLAG.img; $('ftext').value = ''; $('fsheet').classList.add('on');
 }
