@@ -16,6 +16,10 @@ if [ -z "$PW" ]; then
   PW=$W/node_modules/playwright/index.mjs
 fi
 [ -f "$PW" ] || { echo "  нет playwright — нагрузку движка мерить нечем"; exit 1; }
+# браузер: свой у playwright, иначе Chrome раннера (как в 52_zaplyv_tap.sh)
+if [ -z "${CHROME:-}" ] && ! ls -d /opt/pw-browsers/chromium* ~/.cache/ms-playwright/chromium* >/dev/null 2>&1; then
+  for c in /usr/bin/google-chrome /usr/bin/chromium /usr/bin/chromium-browser; do [ -x "$c" ] && CHROME=$c && break; done
+fi
 srv=""; trap '[ -n "$srv" ] && kill $srv 2>/dev/null' EXIT
 zamer() { # $1 — папка proby; печатает строки замера, код 0 — в пороге
   local port; port=$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')
