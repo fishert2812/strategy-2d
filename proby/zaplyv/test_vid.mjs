@@ -66,6 +66,18 @@ check('test_vid_sleep_shape: спящая — короткий овал той �
   if (w > w0) return 'спящая толще бодрой';
   return '';
 });
+check('test_vid_ameba: амёба как на образцах Романа — полупрозрачное желтоватое тело, во все стороны десятки тонких шипиков, внутри крупное ядро и розовые пузырьки; не оранжевый шар', () => {
+  const pts = [], b = { put: (x, y, r, cr, cg, cb, a) => pts.push({ d: Math.hypot(x, y), r, cr, cg, cb, a }) }, r = 50;
+  vid.amoeba({ m: { id: 3 }, x: 0, y: 0, r, head: 0, sp: 0, time: 1, z: 1, glow: b, ink: b, bubbles: b });
+  const A = vid.V.amoeba, out = pts.filter(p => p.d > r * (A.core + A.lump * 1.1) + r * 0.15);
+  if (out.length < 60) return 'шипиков почти нет: ' + out.length;
+  const tips = pts.filter(p => p.d > r * 1.2 && p.r < r * 0.03); if (tips.length < 20) return 'шипики не острые: у концов нет тонких точек';
+  const fill = pts.filter(p => p.d < r * 0.5 && p.r > r * 0.15); if (!fill.length || fill.some(p => p.a > 0.6)) return 'тело не полупрозрачное';
+  if (!pts.some(p => p.cb > p.cr && p.r >= r * A.nucleus * 1.9)) return 'нет крупного голубовато-серого ядра';
+  if (!pts.some(p => p.cr > 0.9 && p.cg < 0.7 && p.cb > 0.6)) return 'нет розовых пузырьков';
+  if (pts.some(p => p.cr === 1 && p.cg === 0.4 && p.cb === 0.12)) return 'остался оранжевый шар';
+  return '';
+});
 check('test_vid_capsule_dent: капсула прогибается от удара хищника и пружинит обратно', () => {
   vid.stepVid(5); const was = paint({ capsule: true }).join('|'); vid.poke(-15, 13); const hit = paint({ capsule: true }).join('|');
   vid.stepVid(5); const after = paint({ capsule: true }).join('|');

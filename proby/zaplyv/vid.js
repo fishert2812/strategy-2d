@@ -185,3 +185,32 @@ export function marks(q, d) {
   if (g.toxin) for (let f = 0; f < 4; f++) { const [u0, o0, nu, no] = rim(f / 4 + 0.12, L, w); for (let k = 1; k <= 5; k++) { const s = k / 5 * w * V.toxin.len, [x, y] = P(u0 + nu * s, o0 + no * s); ink.put(x, y, (k === 5 ? 1.4 : 0.8) * z, 0.95, 0.5, 0.3, 0.8); } }
   if (g.crispr) for (let i = 0; i < 3; i++) { const [x, y] = P(-L * 0.6 + i * w * 0.35, 0); ink.put(x, y, 1.3 * z, 0.7, 1, 0.6, 0.8); }
 }
+
+// Акантамёба по образцам Романа (ref_amoeba_1..3): полупрозрачное желтоватое тело неправильной формы, во все стороны тонкие острые шипики
+// (акантоподии — от них имя), внутри крупное круглое ядро-«стекло» и розовые пузырьки-вакуоли. Рисует main.js в цикле world.amoebas.
+const hash = (i, k) => { const v = Math.sin(i * 127.1 + k * 311.7) * 43758.5453; return v - Math.floor(v); };
+export function amoeba(c) {
+  const { m, x, y, r, head, sp, time, z, glow, ink, bubbles, col } = c, A = V.amoeba, id = m.id || 0, hx = Math.cos(head), hy = Math.sin(head), mov = sp > 3 ? 1 : 0;
+  const body = col || A.body, edge = col ? col.map(v => Math.min(1, v * 0.6 + 0.45)) : A.edge;
+  const R = t => r * (A.core + A.lump * (Math.sin(t * 3 + id + time * 0.4) * 0.5 + Math.sin(t * 5 - id * 1.7 - time * 0.3) * 0.3 + Math.sin(t * 9 + id * 2.3) * 0.25) + A.lead * mov * Math.max(0, Math.cos(t - head)) ** 3); // комковатый край, к ходу вытянут
+  for (let i = 0; i < A.fill; i++) { const t = i * 2.39996, q = Math.sqrt((i + 0.5) / A.fill), rr = R(t) * q * 0.95; ink.put(x + Math.cos(t) * rr, y + Math.sin(t) * rr, r * A.fill_r, ...body, A.fill_a); } // нутро: прозрачная желтизна
+  for (let k = 0; k < A.veins; k++) { const ta = hash(id, k) * 6.283, tb = ta + 1.2 + hash(id, k + 9) * 2.5, bow = (hash(id, k + 5) - 0.5) * 0.6; // светлые складки мембраны: дуги поперёк тела, как сетка на образцах
+    const ax = Math.cos(ta) * R(ta) * 0.9, ay = Math.sin(ta) * R(ta) * 0.9, bx = Math.cos(tb) * R(tb) * 0.9, by = Math.sin(tb) * R(tb) * 0.9;
+    for (let i = 0; i <= A.vein_n; i++) { const f = i / A.vein_n, px = x + ax + (bx - ax) * f - (by - ay) * bow * f * (1 - f) * 2, py = y + ay + (by - ay) * f + (bx - ax) * bow * f * (1 - f) * 2; glow.put(px, py, 0.7 * z + 0.3, ...edge, A.vein_a * Math.sin(Math.PI * f)); } }
+  for (let i = 0; i < A.rim; i++) { const t = i / A.rim * 6.283, rr = R(t); glow.put(x + Math.cos(t) * rr, y + Math.sin(t) * rr, 2.2 * z + 0.5, ...edge, A.rim_a * (0.6 + 0.4 * Math.sin(t * 7 + id))); } // светлый неровный край
+  for (let k = 0; k < A.spikes; k++) { // шипики: тонкие, острые, чуть изогнуты, медленно шевелятся; к ходу длиннее
+    const t = (k + 0.9 * hash(id, k)) / A.spikes * 6.283, base = R(t) * 0.92, ahead = Math.max(0, Math.cos(t - head)), L = r * (A.spike_min + (A.spike_max - A.spike_min) * hash(id, k + 40)) * (1 + 0.5 * mov * ahead) * (0.85 + 0.15 * Math.sin(time * 1.3 + k * 2.1));
+    const bend = (hash(id, k + 70) - 0.5) * A.bend + 0.12 * Math.sin(time * 0.9 + k), n = Math.max(6, Math.round(L / Math.max(0.8 * z + 0.3, r * A.spike_w * 0.35))); // шаг меньше толщины: шип сплошной, не пунктир
+    for (let i = 0; i <= n; i++) { const f = i / n, a = t + bend * f * f, d = base + L * f, px = x + Math.cos(a) * d, py = y + Math.sin(a) * d, w = r * A.spike_w * (1 - f) ** A.taper + 0.4 * z; // шип конусом: широкий у тела, игла на конце
+      ink.put(px, py, w, ...body, A.spike_a * (1 - f * 0.4)); glow.put(px, py, Math.max(0.7 * z, w * 0.55), ...edge, A.spike_glow * (1 - f * 0.5)); }
+    if (hash(id, k + 55) < A.fork) { const f0 = 0.55, a0 = t + bend * f0 * f0, d0 = base + L * f0, side = hash(id, k + 56) < 0.5 ? -1 : 1, l2 = L * 0.4; // часть шипов ветвится
+      for (let i = 1; i <= n; i++) { const f = i / n, a = a0 + side * 0.5 * f, px = x + Math.cos(a0) * d0 + Math.cos(a) * l2 * f, py = y + Math.sin(a0) * d0 + Math.sin(a) * l2 * f, w = r * A.spike_w * 0.5 * (1 - f) + 0.4 * z;
+        ink.put(px, py, w, ...body, A.spike_a * 0.8); glow.put(px, py, Math.max(0.7 * z, w * 0.55), ...edge, A.spike_glow * 0.7 * (1 - f * 0.5)); } } }
+  const nx = x - hx * r * 0.15 + hy * r * 0.1, ny = y - hy * r * 0.15 - hx * r * 0.1, nr = r * A.nucleus; // ядро: крупный голубовато-серый шар со стеклянным бликом
+  ink.put(nx, ny, nr * 2, ...A.nuc, 0.55); for (let i = 0; i < 24; i++) { const t = i / 24 * 6.283; glow.put(nx + Math.cos(t) * nr, ny + Math.sin(t) * nr, 1.1 * z + 0.4, ...A.nuc_rim, 0.6); }
+  for (let i = 0; i < 5; i++) glow.put(nx + (i - 2) * nr * 0.3, ny + Math.sin(i * 1.3) * nr * 0.35, 0.9 * z + 0.3, ...A.nuc_rim, 0.35); // складки ядра
+  glow.put(nx - nr * 0.35, ny - nr * 0.35, nr * 0.35, 1, 1, 1, 0.35);
+  for (let k = 0; k < A.vac; k++) { const t = hash(id, k + 90) * 6.283, d = r * (0.25 + 0.35 * hash(id, k + 91)), vr = r * (0.06 + 0.05 * hash(id, k + 92)), px = x + Math.cos(t) * d, py = y + Math.sin(t) * d; // розовые пузырьки
+    ink.put(px, py, vr * 2, ...A.vac_col, 0.5); glow.put(px - vr * 0.3, py - vr * 0.3, vr * 0.6, 1, 1, 1, 0.45); }
+  if (bubbles) { const v = (time / 6 + id * 0.37) % 1; bubbles.put(x - hx * r * 0.45 - hy * r * 0.2, y - hy * r * 0.45 + hx * r * 0.2, r * 0.16 * Math.sqrt(v) + 1, 0.95, 0.9, 1, 0.35 * (1 - v * v * v)); } // сократительная вакуоль: набухает и выплёскивает
+}
