@@ -154,7 +154,7 @@ export const loud = w => has(w, 'tail') ? M.tail.loud : 1;
 // Память о вирусах (sim.js, вирус впрыснул): true — память сработала, обычного заражения нет.
 export function immune(w, h, g) {
   if (g.host !== 'me' || !has(w, 'memory')) return false;
-  if (h.knows) { w.events.push(['cut', g.x, g.y]); w.stats.cutKnown = (w.stats.cutKnown || 0) + 1;
+  if (h.knows) { w.events.push(['cut', h.x, h.y], ['recall', h.x, h.y, g.x, g.y]); /* биолог, круг 17: память внутри — вирус вошёл и распался в клетке; recall: центр клетки, затем где сидел вирус (кирпич треда вида) */ w.stats.cutKnown = (w.stats.cutKnown || 0) + 1;
     if (lvl(w, 'memory') >= 3) { w.grow(h, M.memory.food); w.fed(g.x, g.y, 1); w.stats.virusFood = (w.stats.virusFood || 0) + 1; } return true; } // знакомый: нить рвётся, на третьем уровне — еда
   h.knows = true; h.m = Math.max(0.6, h.m * w.cfg.crispr_cost); w.events.push(['learn', g.x, g.y]); w.stats.learned = (w.stats.learned || 0) + 1; return true; // первая встреча: выжила, похудела, запомнила
 }
