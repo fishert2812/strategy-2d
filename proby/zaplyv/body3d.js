@@ -20,7 +20,8 @@ ${NOISE}
 void main(){
   vec3 n = normalize(vN);
   vec3 q = vP * 5.0;
-  n = normalize(n + bump * (vec3(vn(q), vn(q + 3.1), vn(q + 7.7)) - 0.5) * 1.6);
+  float f0 = 1.0 - abs(n.z); // насколько близко к силуэту — до шума
+  n = normalize(n + bump * (1.0 - smoothstep(0.55, 0.9, f0)) * (vec3(vn(q), vn(q + 3.1), vn(q + 7.7)) - 0.5) * 1.6); // у кромки шум гаснет: край ровный, без зубчиков и зерна
   vec3 L = normalize(vec3(-0.45, 0.55, 0.75));
   float d = max(dot(n, L), 0.0);
   float fres = pow(1.0 - abs(n.z), 2.2);
@@ -28,7 +29,7 @@ void main(){
   float cav = 0.75 + 0.25 * vn(q * 2.0);
   float rg = ridge * max(1.0 - smoothstep(0.0, 0.075, abs(vn(vP * 4.0) - 0.5)), 0.35 * (1.0 - smoothstep(0.0, 0.045, abs(vn(vP * 8.0 + 4.0) - 0.5)))) * (1.0 - 0.6 * fres); // две сетки разной частоты: тяжи густые, как на образце // светлые складки мембраны сеткой поперёк тела (амёба на образцах)
   vec3 col = vA.rgb * (0.18 + 0.72 * d) * cav + vB * fres * rimK + spec * 0.55 + vB * rg;
-  gl_FragColor = vec4(col, vA.a * min(1.0, mix(alpha0, edgeA, fres) + rg * 0.6));
+  gl_FragColor = vec4(col, vA.a * min(1.0, mix(alpha0, edgeA, fres) + rg * 0.6) * (1.0 - 0.85 * smoothstep(0.9, 1.0, f0))); // самый край мягко тает, а не обрывается ступенькой
 }`;
 
 function kind(geo, max, vertexBody, opts = {}) {
@@ -122,9 +123,9 @@ export class Bodies {
   // bend — на сколько концы отходят вбок от середины (экранные единицы, + к оси (-sin, cos)).
   rod(x, y, ang, half, w, pinch, skin, core, seed, bend = 0) {
     const sy = half / 2, glow = c => [c[0] * 0.5 + 0.5, c[1] * 0.5 + 0.5, c[2] * 0.5 + 0.5];
-    const E = (h, r) => Math.max(h / r - 2, -0.9), hc = half * 0.86, wc = w * 0.7; // сколько добавить прямой части сверх двух радиусов
-    this.put(this.core, x, y, ang, wc, wc, wc, [core[0], core[1], core[2], 1], glow(core), [pinch * 0.95, seed, bend / (4 * wc), E(hc, wc)]);
-    this.put(this.skin, x, y, ang, w, w, w, [skin[0], skin[1], skin[2], 1], glow(skin), [pinch, seed, bend / (4 * w), E(half, w)]);
+    const E = (h, r) => Math.max(h / r - 2, 0), Y = (h, r) => Math.max(0.1, Math.min(1, h / (2 * r))), hc = half * 0.86, wc = w * 0.7; // сколько добавить прямой части сверх двух радиусов; короче двух радиусов — сплющить целиком (шар без шва), а не стягивать середину
+    this.put(this.core, x, y, ang, wc, wc * Y(hc, wc), wc, [core[0], core[1], core[2], 1], glow(core), [pinch * 0.95, seed, bend / (4 * wc), E(hc, wc)]);
+    this.put(this.skin, x, y, ang, w, w * Y(half, w), w, [skin[0], skin[1], skin[2], 1], glow(skin), [pinch, seed, bend / (4 * w), E(half, w)]);
   }
   // Только прозрачная оболочка без содержимого: сквозь неё видны органы (коловратка).
   shell(x, y, ang, half, w, skin, seed, bend = 0) {
