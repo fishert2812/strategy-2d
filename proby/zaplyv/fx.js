@@ -37,6 +37,7 @@ export class Fx {
     if (k === 'shrug') this.flick(x, y, 0); // новая дверь: вирус отброшен
     if (k === 'eaten') this.swallow(x, y, size);
     if (k === 'burst') this.lyse(x, y, seen(x, y));
+    if (k === 'poisoned') { const N = V.sosed[size] || V.sosed.strain; this.dead.push({ x, y, ang: typeof y2 === 'number' ? y2 : Math.random() * 6.283, L: N.L, w: N.w, t: 0, P: V.poison, col: N.col }); } // от яда (CDI) не лопается: замирает целой, бледнеет и тонет (биолог, круг 13)
     if (k === 'abort') { const g = seen(x, y); this.dead.push({ x, y, ang: g ? g.ang : size, L: g ? g.L : 8, w: g ? g.w : 6, t: 0 }); } // умерла за своих: целая, без прорыва
   }
   near(x, y) { let b = null, bd = 1e9; for (const a of (this.world && this.world.me) || []) { const d = Math.hypot(a.x - x, a.y - y); if (d < bd) { bd = d; b = a; } } return b ? { a: b, d: bd } : null; }
@@ -91,11 +92,12 @@ export class Fx {
       ink.put(x2, y2, 1.6 * z + 0.5, 0.15, 0.1, 0.2, 0.7 * (1 - p.t / 0.35)); // прокол
     }
     for (const g of this.dead) { // тихая гибель сестры (абортивная инфекция): тело темнеет и замирает целым, не вспухает, без брызг, гаснет
-      const D = V.abort, f = g.t / D.fade, e = Math.min(1, g.t / D.dark), ca = Math.cos(g.ang), sa = Math.sin(g.ang);
-      for (let k = 0; k < D.fill; k++) { const t = k * 2.39996, r = Math.sqrt((k + 0.5) / D.fill), u = Math.cos(t) * r * (g.L + g.w * 0.6), o = Math.sin(t) * r * g.w * 0.75;
-        const [sx, sy] = scr(g.x + ca * u - sa * o, g.y + sa * u + ca * o); ink.put(sx, sy, g.w * z * 0.45, D.color[0], D.color[1], D.color[2], D.alpha * e * (1 - f)); }
-      const n = 36, st = (4 * g.L + 2 * Math.PI * g.w) * z / n;
-      for (let k = 0; k < n; k++) { const [u, o] = rim(k / n, g.L, g.w), [sx, sy] = scr(g.x + ca * u - sa * o, g.y + sa * u + ca * o); glow.put(sx, sy, st * 1.3, 0.45, 0.55, 0.7, 0.12 * (1 - f)); }
+      const D = g.P || V.abort, f = g.t / D.fade, e = Math.min(1, g.t / D.dark), ca = Math.cos(g.ang), sa = Math.sin(g.ang), sk = 1 - (D.sink || 0) * f, L = g.L * sk, w = g.w * sk; // отравленная тонет: меньше и тусклее
+      const col = g.col ? g.col.map((c, i) => c + (D.color[i] - c) * e) : D.color; // нутро бледнеет из своего цвета
+      for (let k = 0; k < D.fill; k++) { const t = k * 2.39996, r = Math.sqrt((k + 0.5) / D.fill), u = Math.cos(t) * r * (L + w * 0.6), o = Math.sin(t) * r * w * 0.75;
+        const [sx, sy] = scr(g.x + ca * u - sa * o, g.y + sa * u + ca * o); ink.put(sx, sy, w * z * 0.45, col[0], col[1], col[2], D.alpha * (g.col ? 1 : e) * (1 - f)); }
+      const n = 36, st = (4 * L + 2 * Math.PI * w) * z / n;
+      for (let k = 0; k < n; k++) { const [u, o] = rim(k / n, L, w), [sx, sy] = scr(g.x + ca * u - sa * o, g.y + sa * u + ca * o); glow.put(sx, sy, st * 1.3, 0.45, 0.55, 0.7, 0.12 * (1 - f)); }
     }
     const P = V.lysis;
     for (const g of this.ghosts) { // призрак: пустая обвисшая оболочка с дырой на месте прорыва, мнётся и тает
@@ -167,6 +169,6 @@ export class Fx {
     for (const q of this.cuts) q.t += dt; this.cuts = this.cuts.filter(q => q.t < V.cut.life);
     for (const q of this.flicks) q.t += dt; this.flicks = this.flicks.filter(q => q.t < V.flick.life);
     for (const e of this.eats) e.t += dt; this.eats = this.eats.filter(e => e.t < e.S.life);
-    for (const g of this.dead) g.t += dt; this.dead = this.dead.filter(g => g.t < V.abort.fade); // целую не носит: замерла
+    for (const g of this.dead) g.t += dt; this.dead = this.dead.filter(g => g.t < (g.P || V.abort).fade); // целую не носит: замерла
     for (const r of this.rings) r.t += dt; this.rings = this.rings.filter(r => r.t < 0.6); }
 }

@@ -91,6 +91,18 @@ check('test_vid_cut: CRISPR и обманка срабатывают видим�
   for (let i = 0; i < 20 && fx.cuts.length; i++) fx.step(0.05); if (fx.cuts.length) return 'разрез не погас за V.cut.life';
   return '';
 });
+check('test_vid_poison: от яда соперница не лопается — остаётся целым телом, бледнеет и тонет; от вируса лопается брызгами', () => {
+  const C = { r: 1, g: 1, b: 1 }, fx = new Fx({}, [C, C, C]); fx.reset(); fx.on('poisoned', 0, 0, 'strain', 0.5);
+  if (fx.drops.length || fx.ghosts.length) return 'отравленная лопнула: брызги или пустая оболочка';
+  if (fx.dead.length !== 1) return 'нет целого мёртвого тела';
+  const shot = () => { const pts = []; const b = { put: (x, y, r, cr, cg, cb, a) => pts.push({ x, y, cr, cg, cb, a }) }; fx.drawUnder({ scr: (x, y) => [x, y], z: 1, time: 0, glow: b, ink: b }); return pts; };
+  const size = ps => Math.max(...ps.map(p => Math.hypot(p.x, p.y))), pale = ps => Math.min(...ps.map(p => Math.min(p.cr, p.cg, p.cb)));
+  const p0 = shot(); fx.step(1.5); const p1 = shot();
+  if (!(pale(p1) > pale(p0) + 0.1)) return 'тело не бледнеет';
+  if (!(size(p1) < size(p0))) return 'тело не тонет (не уменьшается)';
+  const v = new Fx({}, [C, C, C]); v.reset(); v.on('pop', 0, 0, 'strain'); if (!v.drops.length) return 'от вируса не лопается';
+  return '';
+});
 check('test_vid_capsule_dent: капсула прогибается от удара хищника и пружинит обратно', () => {
   vid.stepVid(5); const was = paint({ capsule: true }).join('|'); vid.poke(-15, 13); const hit = paint({ capsule: true }).join('|');
   vid.stepVid(5); const after = paint({ capsule: true }).join('|');
