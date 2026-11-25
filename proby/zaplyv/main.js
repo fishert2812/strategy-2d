@@ -5,6 +5,7 @@
 import * as THREE from './three.module.min.js';
 import { World, radius } from './sim.js';
 import * as mut from './mutacii.js';
+import * as rost from './rost.js';
 import { Stick } from './controls.js';
 import { follow } from './soft.js';
 import { look } from './look.js';
@@ -211,6 +212,7 @@ const MODES = {
   swim: { go: 'Плыть', line: 'Твоя клетка в капле пруда. Ешь, делись, не попадись' },
   night: { go: 'Начать ночь', line: 'Тысяча поколений за полминуты. Ставишь одну опасность' },
   sel: { lock: 'Пройди ночь рода — и сможешь растить свои породы' },
+  rost: { go: 'Расти', line: 'Клетка не делится, а растёт. Чем крупнее, тем больше еды и тем меньше пастей' },
   mut: { go: 'Плыть с мутациями', line: 'Та же капля, но дочки и соседки приносят новые мутации' },
   hunt: { lock: 'Погибни от красной запятой трижды — и сыграешь за неё' },
   deep: { lock: 'Доплыви до ила — и увидишь, что было в капле миллиард лет назад' },
@@ -627,6 +629,8 @@ function events() {
   for (const [k, x, y, size = 1, y2] of world.events) {
     fx.on(k, x, y, size, y2); // вид — fx.js, здесь звук и подписи
     if (k === 'spore') { beep(200, 0.6, 0.06, 'sine', 0.5); say('Уснула! Спящую не берут — переждёшь беду', 2600); }
+    if (k === 'rost') { beep(440, 0.5, 0.05, 'sine', 1.5); say(rost.text(size), 3200); world.rostT = world.stats.time; } // режим «Рост»: подросла, что теперь можно есть
+    if (k === 'spit') { beep(260, 0.15, 0.04, 'sine', 0.7); tell('spit', 'Пасть тебя не взяла: ты больше её рта'); }
     if (k === 'sprout') { beep(520, 0.3, 0.05, 'sine', 2); }
     if (k === 'gene') { beep(780, 0.3, 0.05, 'sine', 1.6); say('Ген от сородича: ' + geneName(size) + ' — ' + (geneBook(size).daet || ''), 2600, size); addMark({ kind: 'gene', x, y, who: 'gene:' + size }); } // конъюгация
     if (k === 'zap') { beep(1500, 0.05, 0.05, 'square', 0.4); } // выстрел гарпуна синегнойки
@@ -683,7 +687,7 @@ function tick(dt) {
   const danger = near(world.amoebas, 420) || near(world.bdellos, 420) || near(world.slippers, 380) || near(world.bells, 300) || near(world.rotis, 420) || near(world.phages.filter(g => g.host === 'me'), 300);
   const fast = world.me.some(a => Math.hypot(a.vx, a.vy) > 120);
   view.calm = (view.calm || 0) + ((danger || fast ? 0 : 1) - (view.calm || 0)) * Math.min(1, dt * (danger ? 2.5 : 0.6));
-  const want = Math.max(0.9, Math.min(2.3, 2.45 - 0.17 * Math.sqrt(world.biggest()), W * 0.36 / Math.max(spread, 1))) * (1 + cfg.close_up * view.calm);
+  const want = rost.zoom(world, Math.max(rost.zoomMin(world), Math.min(2.3, 2.45 - 0.17 * Math.sqrt(world.biggest()), W * 0.36 / Math.max(spread, 1))) * (1 + cfg.close_up * view.calm), lead.m, radius); // в «Росте» камера отходит от выросшей клетки
   view.z += (Math.max(want, C.min_px / radius(lead.m)) - view.z) * Math.min(1, dt * 1.5); // клетка на экране не мельче min_px в радиусе
   const t = TINT[world.biome(view.x, view.y)];
   for (let i = 0; i < 3; i++) view.tint[i] += (t[i] - view.tint[i]) * Math.min(1, dt * 0.8);
@@ -891,7 +895,7 @@ function paint(time) {
   }
   for (const a of kids || world.me) { // палочка: мягкое тело
     if (a.spore > 0) continue; // перёд ведёт, корма и пучок жгутиков идут по его следу
-    const lk = a.g ? look({ ...world.genes, [a.g]: true }, cfg.look, world.spacers.size) : lkAll, w = 8.5 * Math.pow(a.m, 0.3) * z * (a.g ? 1.9 : 1), sp = Math.hypot(a.vx, a.vy);
+    const lk = a.g ? look({ ...world.genes, [a.g]: true }, cfg.look, world.spacers.size) : lkAll, w = 8.5 * Math.pow(a.m, rost.vid(world)) * z * (a.g ? 1.9 : 1), sp = Math.hypot(a.vx, a.vy);
     const run = sp > 25 && !a.tumble, wob = run ? 0.035 : 0.015; // встречное вращение тела к пучку: 3 раза в секунду
     const half = a.held > 0 ? w * (1.05 + 0.6 * a.held / cfg.bdello_kill) : w * (1.6 + 1.0 * Math.min(a.m, cfg.split) / cfg.split), tailW = w * 7.5 / z; // хищник внутри — клетка округляется в шарик
     const body = follow(a, half / z, tailW);
@@ -900,8 +904,9 @@ function paint(time) {
     const x = x0 - ay * sag * 0.675, y = y0 + ax * sag * 0.675; // центр модели так, чтобы концы легли на хорду
     const along = (s, o = 0) => [x + ax * s - ay * o, y + ay * s + ax * o];
     const arc = u => -sag * 0.675 + sag * (1 - Math.min(1, (u * z / half) ** 2)); // прогиб в точке u (u — в единицах мира от центра)
-    const pinch = a.m >= cfg.split ? 0.62 + 0.12 * Math.sin(time * 6) : 0; // перетяжка: вот-вот две
+    const pinch = a.m >= cfg.split && !rost.on(world) ? 0.62 + 0.12 * Math.sin(time * 6) : 0; // перетяжка: вот-вот две
     bodies.rod(x, y, ang, half, w, pinch, [CELL[0].r, CELL[0].g, CELL[0].b], [CORE[0].r, CORE[0].g, CORE[0].b], a.id, -sag);
+    rost.draw({ w: world, a, x, y, ang, half, wd: w, z, glow, time, scr }); // контур следующего роста, струйки от комка
     if (a.grab) glow.put(x, y, half * 1.8, 1, 0.25, 0.15, 0.22 + 0.15 * Math.sin(time * 14)); // схвачена: бьётся в пасти
     if (world.rush > 0.05) glow.put(x, y, half * (1.4 + world.rush * 0.6), 1, 0.75, 0.35, 0.08 + 0.1 * world.rush); // разгон роста: рибосомы работают на всю
     if (pinch) for (let k = 0; k < 18; k++) { const t = k * 0.349, R = half * (1.35 + 0.08 * Math.sin(time * 5)); glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 2.2, 1, 1, 1, 0.4); }
@@ -923,7 +928,7 @@ function paint(time) {
   for (const f of world.food) { // еда трёх видов (Е2, Е4): жёлтые крошки, белые искры глюкозы, розовый белковый сок
     const [x, y] = scr(f.x, f.y); if (!on(x, y, 20)) continue;
     const F = cfg.food_kinds[f.kind || 'bits'], k = Math.sqrt(f.s || 1) * F.size, tw = F.twinkle ? 0.75 + 0.25 * Math.sin(time * 7 + f.x * 0.3 + f.y) : 1;
-    glow.put(x, y, 9 * z * k * F.halo_r, ...F.halo, 0.14 * tw); glow.put(x, y, 3.2 * z * k + 0.6, ...F.core, 0.9 * tw); // ценность видна размером и ореолом: крошка меньше всех, сок крупнее (дизайнер); искры мерцают
+    const dm = rost.dim(world, f.kind || 'bits'); glow.put(x, y, 9 * z * k * F.halo_r, ...F.halo, 0.14 * tw * dm); glow.put(x, y, 3.2 * z * k + 0.6, ...F.core, 0.9 * tw * dm); // ценность видна размером и ореолом: крошка меньше всех, сок крупнее (дизайнер); искры мерцают
   }
   for (const g of world.phages) { // фаг T4: головка позади, хвостом вперёд — садится хвостом
     const [x, y] = scr(g.x, g.y); if (!on(x, y)) continue;
