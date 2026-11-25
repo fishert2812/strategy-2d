@@ -55,13 +55,15 @@
   "min": {
    "slipper": 4,
    "bell": 4,
-   "roti": 7
+   "roti": 7,
+   "amoeba": 4
   },
   "pins": 6,
   "pack": 1.0,
   "align": 4,
   "sep": 2.3,
-  "reach": 300
+  "reach": 300,
+  "nibble": 3
  },
  "steady": {
   "angle": 1.45,

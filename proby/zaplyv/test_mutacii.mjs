@@ -122,6 +122,14 @@ check('[flu] сцепка: туфелька не втягивает сестру
   console.log(`    паспорт: пасть туфельки схватила — из плота в ${M.flu.min.slipper + 1}: ${big}, из пары: ${small}, без сцепки: ${none}`);
   if (big) return 'плот не спас'; if (!small) return 'пара спаслась, хотя меньше порога'; if (!none) return 'без сцепки не схватила — сравнение не работает';
 });
+check('[flu] сцепка: амёба объедает плот с края по одной — после куска сыта, остальные живы', () => {
+  const left = genes => { const w = family(genes); w.divide = () => {}; run(w, 2, null); const c = w.center();
+    w.amoebas = [{ x: c.x + 50, y: c.y, vx: 0, vy: 0, m: 8, id: 99 }]; run(w, 10, null); return w.me.length; };
+  const a = left(['flu']), b = left([]);
+  console.log(`    паспорт: шесть сестёр стоят у амёбы 10 с — осталось со сцепкой ${a}, без ${b}`);
+  if (!(a >= 3)) return 'амёба глотает плот целиком';
+  if (!(a > b)) return 'без сцепки амёба ест так же медленно — сравнение не работает';
+});
 check('[flu] сцепка: цена — вирус сел на сестру в плоту, соседняя помечена больной', () => {
   const land = genes => { let n = 0, m = 0;
     for (const seed of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) { const w = family(genes); let k = seed; w.r = () => (k = (k * 16807) % 2147483647) / 2147483647; run(w, 3, null);

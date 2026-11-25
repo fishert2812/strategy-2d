@@ -147,6 +147,12 @@ export function raftHolds(w, a, who) {
   if (!((a.held0 || 0) > w.stats.time)) { a.held0 = w.stats.time + 1; w.events.push(['bump', a.x, a.y]); } // видно, что пасть сорвалась
   return true;
 }
+// Амёба проглотила сестру (sim.js). Плот она объедает с края по одной (книга Г24): после куска сыта M.flu.nibble с,
+// и остальные успевают уплыть. Одиночку и пару — без передышки, как раньше.
+export function bite(w, m) {
+  if (!raft(w) || w.me.length + 1 < M.flu.min.amoeba) return;
+  m.syt = M.flu.nibble; w.stats.nibble = (w.stats.nibble || 0) + 1; w.events.push(['bump', m.x, m.y]);
+}
 // Кокк щиплет ядом (sim.js). true — дверь закрыта: яд не вошёл.
 export const shut = w => has(w, 'door');
 // Множитель еды: закрытая дверь пропускает меньше.
