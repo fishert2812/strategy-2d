@@ -295,8 +295,8 @@ if (await tap('#mgo', '«Плыть с мутациями»')) say(!(await on('m
 await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 0; }); await p.waitForTimeout(1200);
 await p.reload(); await p.waitForFunction(() => window.zaplyvProbe && zaplyvProbe.frames > 5, null, { timeout: 30000 }); await p.waitForTimeout(800);
 if (await tap('#mscene [data-m=golod]', 'объект «Голод»')) say((await p.textContent('#mgo')) === 'Плыть в голод', 'касание «Голода» меняет подпись кнопки');
-if (await tap('#mgo', '«Плыть в голод»')) { const m0 = await p.evaluate(() => { const w = zaplyvWorld(); w.food.length = 0; return w.me[0].m; }); await p.waitForTimeout(1500);
-  say(!(await on('menu')) && await p.evaluate(m0 => { const w = zaplyvWorld(); w.food.length = 0; return w.mode === 'golod' && w.me.length > 0 && w.me[0].m < m0; }, m0), '«Плыть в голод» начинает заплыв, и без еды клетка худеет'); }
+if (await tap('#mgo', '«Плыть в голод»')) { const m0 = await p.evaluate(() => { const w = zaplyvWorld(); for (const l of ['food', 'crumbs', 'plants', 'prey']) w[l].length = 0; return w.me[0].m; }); // без любой еды: детрит и нить тоже кормят await p.waitForTimeout(1500);
+  say(!(await on('menu')) && await p.evaluate(m0 => { const w = zaplyvWorld(); w.food.length = 0; for (const l of ['crumbs', 'plants', 'prey']) w[l].length = 0; return w.mode === 'golod' && w.me.length > 0 && w.me[0].m < m0; }, m0), '«Плыть в голод» начинает заплыв, и без еды клетка худеет'); }
 // Память о вирусах (Роман 25.11, кадр 0.83): с памятью вирус клетку не убьёт — совета «резко развернись» нет; без памяти он есть.
 await p.reload(); await p.waitForFunction(() => window.zaplyvProbe && zaplyvProbe.frames > 5, null, { timeout: 30000 }); await p.waitForTimeout(800);
 if (await tap('#mscene [data-m=mut]', 'объект «Мутации»') && await tap('#mgo', '«Плыть с мутациями»')) {
