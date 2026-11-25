@@ -315,7 +315,7 @@ const KAB = await (await fetch('almanah.json')).json();
 const GENY = await fetch('kniga/teksty_genov.json').then(r => r.ok ? r.json() : {}).catch(() => ({})); // гены: имена и тексты книги
 mut.addGenes(cfg); mut.names(cfg, GENY); // новые мутации: имена из книги
 const SVYAZI = await fetch('kniga/kto_s_kem.json').then(r => r.ok ? r.json() : {}).catch(() => ({})); // кто кого ест — связи карточек Альманаха
-const TEKSTY = await fetch('kniga/teksty_sushchestv.json').then(r => r.ok ? r.json() : {}).then(j => j.sushchestva || {}).catch(() => ({})); // тексты книги
+const KNIGA = await fetch('kniga/teksty_sushchestv.json').then(r => r.ok ? r.json() : {}).catch(() => ({})), TEKSTY = KNIGA.sushchestva || {}, PODPISI = KNIGA.podpisi || {}; // тексты книги
 // Снимок модели: на миг подменяем мир студией с одним существом в середине кадра, рисуем тем же paint и вырезаем середину.
 const LISTS = { me: 'me', phage: 'phages', bdello: 'bdellos', amoeba: 'amoebas', slipper: 'slippers', bell: 'bells', roti: 'rotis',
   pseudo: 'pseudos', strain: 'pseudos', donor: 'donors', coccus: 'prey', plant: 'plants', crumb: 'crumbs' };
@@ -398,7 +398,7 @@ setTimeout(function warm(i = 0) { const g = Object.keys(cfg.genes)[i]; if (!g) r
 const geneBook = g => Object.values(GENY.geny || {}).find(q => q.klyuch === g) || {}, geneName = g => geneBook(g).imya || g; // имя и тексты гена — только из книги
 genomeData.book = GENY.geny || {};
 GENY.gruppa = Object.fromEntries([...genomeData.arcs.flatMap(a => a.slots.map(x => [x.id, a.name])), ...genomeData.plasmids.map(x => [x.id, 'Чужие'])].filter(x => x[0])); // группа гена — дуга кольца
-const kab = almanahScreen({ K: KAB, cards, T: TEKSTY, G: GENY, S: SVYAZI, met, snap, onNav: () => { if (curTab === 'alm') $('gback').textContent = '‹ ' + (kab.where() || 'Пауза'); }, onSwim: () => { if (ended || $('menu').classList.contains('on')) start(); else if (paused) genome.close(); } });
+const kab = almanahScreen({ K: KAB, cards, T: TEKSTY, P: PODPISI, G: GENY, S: SVYAZI, met, snap, onNav: () => { if (curTab === 'alm') $('gback').textContent = '‹ ' + (kab.where() || 'Пауза'); }, onSwim: () => { if (ended || $('menu').classList.contains('on')) start(); else if (paused) genome.close(); } });
 const cabLabel = () => { $('cab').textContent = kab.label(); };
 cabLabel();
 const knowGenes = () => { let add = false; for (const g in world.genes) if (!met.has('gene:' + g)) { met.add('gene:' + g); add = true; } if (add) { saveMet(); cabLabel(); } }; // ген, который у тебя был, — запись в Альманахе
