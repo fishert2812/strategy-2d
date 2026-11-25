@@ -37,7 +37,9 @@ const has = (w, g) => (own(w, g) || everywhere(g)) && !!w.genes[g];
 // Уровни (З1, З5): то же умение может прийти ещё раз, пока уровень ниже M.levels[g]. Первый приход — уровень 1.
 export const lvl = (w, g) => w.genes[g] ? Math.max(1, (w.lvl || {})[g] || 0) : 0;
 export const more = (w, g) => g in M.levels && own(w, g) && lvl(w, g) < M.levels[g];
-export function up(w, g) { if (g in M.levels) (w.lvl ||= {})[g] = lvl(w, g) + 1; } // sim.js pick: до того, как ген встал
+export function up(w, g) { if (!(g in M.levels)) return; const n = (w.lvl ||= {})[g] = lvl(w, g) + 1; // sim.js pick: до того, как ген встал
+  for (const c of ((M.combo || {})[g] || [])[n - 1] || []) { w.genes[c] = true; (w.from ||= {})[c] = 'kid'; } } // объединённое умение: ступень включает прежний ген
+const parts = w => w.mode === 'mut' ? Object.entries(M.combo || {}).filter(([k]) => k !== '_').flatMap(([, v]) => v.flat()) : []; // в режиме прежние гены идут только ступенями
 export const daet = (w, g, book) => (g in M.levels && book['uroven' + (lvl(w, g) + 1)]) || book.daet || ''; // на карточке дочки — текст следующего уровня из книги
 const fresh = (w, list) => list.filter(g => !w.genes[g] || more(w, g));
 // Из чего выбирают дочки при делении. В режиме — одна новая мутация (кроме чужих) и одно прежнее умение.
@@ -45,7 +47,7 @@ export function pool(w) {
   const old = Object.keys(w.cfg.genes).filter(g => !(g in M.genes) || everywhere(g));
   if (!on(w)) return old;
   const ok = g => !w.offer || w.offer(g), one = l => l.length ? [l[Math.floor(w.r() * l.length)]] : [];
-  const mine = fresh(w, Object.keys(M.genes).filter(g => !M.pipe.includes(g) && own(w, g))).filter(ok), was = old.filter(g => !w.genes[g] && ok(g));
+  const no = parts(w), mine = fresh(w, Object.keys(M.genes).filter(g => !M.pipe.includes(g) && own(w, g) && !no.includes(g))).filter(ok), was = old.filter(g => !w.genes[g] && ok(g) && !no.includes(g));
   return [...one(mine), ...one(was)]; // одна дочка — с новой мутацией, другая — с прежним умением (прогон 0.61, О43: «Ядовитое касание» и «Запасная жизнь» не выпадали)
 }
 // Что передаёт по трубочке золотистая соседка. В режиме — сначала чужие мутации.
@@ -136,6 +138,18 @@ function magnet(w, a, dt) {
   if (a === w.me[0] && w.waves) { for (const q of w.waves) q.t += dt; w.waves = w.waves.filter(q => q.t < Q.wave); }
 }
 
+// Защита, уровень 3 (sim.js, вирус отскочил от оболочки): летит к ближайшему кокку и садится на него.
+export function shrug(w, g) {
+  if (!has(w, 'shield') || lvl(w, 'shield') < 3) return;
+  let best = null, bd = M.shield.reach; for (const q of w.prey) { const d = Math.hypot(q.x - g.x, q.y - g.y); if (d < bd) { bd = d; best = q; } }
+  if (!best) return; g.host = 'prey'; g.aim = best; g.from = { x: g.x, y: g.y }; w.stats.bounce = (w.stats.bounce || 0) + 1;
+}
+// Вирус с целью (после отскока) правит к ней сам: течение его не сносит (sim.js, шаг вируса).
+export function steer(w, g, dt) {
+  const q = g.aim; if (!q) return; if (q.gone) { g.aim = null; return; }
+  const dx = q.x - g.x, dy = q.y - g.y, d = Math.hypot(dx, dy) || 1; g.vx = dx / d * M.shield.v; g.vy = dy / d * M.shield.v;
+}
+
 // Голубые точки режима «Мутации»: держим их число вокруг семьи, дальние уходят. Никто, кроме клетки с геном, их не ест.
 function citrate(w) {
   const c = w.center(), C = M.citrate; w.cit = (w.cit || []).filter(q => !q.gone && Math.hypot(q.x - c.x, q.y - c.y) < C.far);
@@ -195,6 +209,8 @@ export function drawWorld({ w, scr, z, glow, ink }) {
       for (let k = 0; k <= 16; k++) { const u = k / 16, q = s * u * (1 - u) * 4, [x, y] = scr(f.x + dx * u - dy * q, f.y + dy * u + dx * q), hot = Math.abs(u - run) < 0.07;
         glow.put(x, y, (hot ? 1.7 : 0.55) * z + 0.4, r, g, b, hot ? 0.95 : 0.45); }
       const [x, y] = scr(f.x, f.y); glow.put(x, y, 3.2 * z + 1, r, g, b, 0.3); glow.put(x, y, 1.4 * z + 0.6, 1, 0.92, 0.7, 0.9); } } // крупинка — яркая капля с ореолом
+  for (const g of w.phages) if (g.aim && g.from) { // защита 3: отскочивший вирус оставляет холодный след от клетки к кокку
+    for (let k = 0; k <= 10; k++) { const u = k / 10, [x, y] = scr(g.from.x + (g.x - g.from.x) * u, g.from.y + (g.y - g.from.y) * u); glow.put(x, y, 0.6 * z + 0.4, 0.6, 0.85, 1, 0.35 * u); } }
   for (const q of w.waves || []) { const f = q.t / M.magnet.wave, [r, g, b] = M.magnet.gold; // каскад: волна по воде сходится к клетке
     for (let k = 0; k < 64; k++) { const t = k / 64 * 6.283, rr = q.r * (1.3 - f), [x, y] = scr(q.x + Math.cos(t) * rr, q.y + Math.sin(t) * rr); glow.put(x, y, 1.2 * z + 0.6, r, g, b, 0.5 * (1 - f)); } }
   for (const v of w.vesicles || []) { const [x, y] = scr(v.x, v.y), f = 1 - v.t / M.decoy.life, r = 2.2 * z + 1;
@@ -227,7 +243,7 @@ export const food = w => has(w, 'door') ? M.door.food : 1;
 
 // Что рисовать на теле (дополнение к look.js).
 export function mutLook(genes) {
-  return { ...(genes.snap ? { flagella: M.snap.look } : {}), snap: !!genes.snap, gas: genes.gas ? M.gas.n : 0, abort: !!genes.abort, door: !!genes.door, decoy: !!genes.decoy, flu: genes.flu ? M.flu.pins : 0, steady: genes.steady ? M.steady.look : 0, citrate: !!genes.citrate, store: !!genes.store, lean: !!genes.lean, magnet: !!genes.magnet };
+  return { ...(genes.snap ? { flagella: M.snap.look } : {}), snap: !!genes.snap, gas: genes.gas ? M.gas.n : 0, abort: !!genes.abort, door: !!genes.door, decoy: !!genes.decoy, flu: genes.flu ? M.flu.pins : 0, steady: genes.steady ? M.steady.look : 0, citrate: !!genes.citrate, store: !!genes.store, lean: !!genes.lean, magnet: !!genes.magnet, shield: genes.shield ? M.shield.look : 0 };
 }
 
 // Вид мутаций на теле плывущей клетки (зовёт vid.js skin()). Цвет — из палитры клетки, без чистого белого (урок L020).
@@ -262,5 +278,7 @@ export function mutSkin({ a, lk, ink, glow, at, w, L, time }) {
       for (let j = 1; j <= 4; j++) { const [px, py] = at(L + w * (0.2 + j * 0.14) - Math.abs(o) * 0.5, o * (1 + j * 0.12)); ink.put(px, py, w * 0.035, 0.1, 0.18, 0.26, 0.5); }
       const [px, py] = at(L + w * 0.9 - Math.abs(o) * 0.5, o * 1.6); glow.put(px, py, w * (lit ? 0.2 : 0.11), r, g, b, lit ? 0.95 : 0.7); }
     if (a.warm > 0) for (let k = -2; k <= 2; k++) { const [cx, cy] = at(k * L * 0.25, 0); glow.put(cx, cy, w * (0.5 - Math.abs(k) * 0.08), 1, 0.6, 0.18, 0.35 * a.warm / M.magnet.warm); } } // ref_21: съеденное тепло светится вдоль ядра
+  if (lk.shield) for (let k = 0; k < lk.shield * 2; k++) { const t = k / (lk.shield * 2) * 6.283, [px, py] = at(Math.cos(t) * (L + w * 0.75), Math.sin(t) * w * 1.12); // защита (Вид 2, 7): стеклянная кромка поверх оболочки — холодные блики по кругу
+    ink.put(px, py, w * 0.07, 0.1, 0.2, 0.3, 0.45); glow.put(px, py, w * 0.09, 0.6, 0.9, 1, 0.55); }
   if (lk.snap && a.snap > 0) { const [px, py] = at(-L - w, 0); glow.put(px, py, w * 0.6, 0.6, 0.8, 1, 0.15 * a.snap / M.snap.time); } // щелчок: вспышка у кормы, где подломился хвост
 }

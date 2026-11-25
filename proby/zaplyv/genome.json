@@ -89,6 +89,10 @@
    "color": "#c9a2ff",
    "slots": [
     {
+     "id": "shield",
+     "gene": "ompC+"
+    },
+    {
      "id": "lock",
      "gene": "ompC",
      "body": "синие бугорки по краю оболочки",

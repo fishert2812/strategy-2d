@@ -591,7 +591,7 @@ export class World {
       g.vx += (r() - 0.5) * c.phage_jitter * 6 * dt + (fx - g.vx) * Math.min(1, 1.5 * dt);
       g.vy += (r() - 0.5) * c.phage_jitter * 6 * dt + (fy - g.vy) * Math.min(1, 1.5 * dt);
       g.d += (r() - 0.5) * 3 * dt;
-      g.x += g.vx * dt; g.y += g.vy * dt;
+      mut.steer(this, g, dt); g.x += g.vx * dt; g.y += g.vy * dt;
       if (g.cool > 0) { g.cool -= dt; continue; } // стряхнутый отплывает и не липнет сразу
       if (g.host === 'me') {
         if (mut.decoy(this, g)) continue; // обманки: вирус сел на пузырёк оболочки
@@ -599,7 +599,7 @@ export class World {
         if (!a) continue;
         const d = dist(a, g);
         if (d < radius(a.m) + 2 && !(a.spore > 0) && !this.genes.lock) { g.on = a; /* сменил замок — фагу T4 не за что зацепиться */ g.t = c.inject; g.off = Math.atan2(g.y - a.y, g.x - a.x) - a.a; this.events.push(['stick', g.x, g.y]); }
-        else if (d < radius(a.m) + 2 && this.genes.lock && !g.shrug) { g.shrug = 1; const k = 80 / (d || 1); g.vx = (g.vx || 0) + (g.x - a.x) * k; g.vy = (g.vy || 0) + (g.y - a.y) * k; this.events.push(['shrug', g.x, g.y]); } // новая дверь сработала: вирус не сел — видно
+        else if (d < radius(a.m) + 2 && this.genes.lock && !g.shrug) { g.shrug = 1; const k = 80 / (d || 1); g.vx = (g.vx || 0) + (g.x - a.x) * k; g.vy = (g.vy || 0) + (g.y - a.y) * k; this.events.push(['shrug', g.x, g.y]); mut.shrug(this, g); } // новая дверь сработала: вирус не сел — видно
       } else for (const q of this.prey) if (dist(q, g) < radius(q.m) * 0.5 + 2) { g.on = q; g.t = c.inject; g.off = Math.atan2(g.y - q.y, g.x - q.x) - q.a; break; }
     }
     for (const q of this.prey) if (q.sick >= 0 && (q.sick -= dt) < 0) { // заражённый кокк лопается своим облаком
