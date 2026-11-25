@@ -24,7 +24,7 @@ const genomeData = await (await fetch('genome.json')).json();
 const W = 720; // ширина экрана в единицах игры
 const canvas = document.getElementById('c');
 const gl = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' });
-gl.setPixelRatio(Math.min(devicePixelRatio, cfg.dpr_max)); // на iPhone плотность 3: кадр в полную плотность, иначе клетки и еда мягкие (Роман 25.11: «бактерия стала чуть-чуть размытая», урок L038)
+gl.setPixelRatio(Math.min(devicePixelRatio, cfg.dpr_max)); // на iPhone плотность 3: кадр в 2,5 (полная тяжелее в полтора раза), иначе клетки и еда мягкие (Роман 25.11: «бактерия стала чуть-чуть размытая», урок L038)
 let H = W;
 const cam = new THREE.OrthographicCamera(0, W, 0, W, -1, 1);
 const back = new THREE.Scene(); // фон и дальнее
