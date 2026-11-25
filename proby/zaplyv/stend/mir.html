@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Заплыв · живой мир записью</title>
+<style>html, body { margin: 0; height: 100%; background: #04101a; overflow: hidden; font-family: -apple-system, system-ui, sans-serif; color: #dff; }
+canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
+#p { position: fixed; left: 10px; right: 10px; bottom: 12px; font-size: 13px; line-height: 1.35; opacity: 0.85; text-shadow: 0 1px 3px #000; }</style></head>
+<body><canvas id="c"></canvas><div id="p"></div>
+<script type="module">
+// Стенд живого мира: мир из записи (mir.json), существа из записей (vid_chasti.json), жизнь по общим законам (mir_zhizn.js).
+// Ничего не нарисовано руками: каждое существо — sobrat(запись, поза). ?mir=kaplya&seed=1&z=1.6&x=&y= — окно камеры; ?vid=infuzoriya — камера
+// идёт за первым существом вида; ?zapis=1 — без своего цикла, шаг зовётся window.stend(dt) (для кадров и замеров); ?skor=4 — время быстрее.
+import * as THREE from '../three.module.min.js';
+import { Bodies } from '../body3d.js';
+import { sobrat } from '../vid_chasti.js';
+import { sozdat, shag, perepis, tolshchina, MR } from '../mir_zhizn.js';
+const q = new URLSearchParams(location.search), z = +(q.get('z') || 1.6), skor = +(q.get('skor') || 1), za = q.get('vid');
+const W = 720, gl = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true }); gl.setPixelRatio(Math.min(devicePixelRatio, 2.5)); gl.autoClear = false;
+const H = W * innerHeight / innerWidth; gl.setSize(innerWidth, innerHeight, false);
+const cam = new THREE.OrthographicCamera(0, W, 0, H, -1, 1), back = new THREE.Scene(), bodies = new Bodies(); bodies.resize(W, H);
+const M = sozdat(q.get('mir') || 'kaplya', +(q.get('seed') || 1)), P = M.pole, G = P.shag_setki;
+// Вода и еда: фон темнее в глубине, еда светится тёплым там, где её больше (поле рисуется одной текстурой, без частиц).
+const tex = new THREE.DataTexture(new Uint8Array(P.nx * P.ny), P.nx, P.ny, THREE.RedFormat); tex.magFilter = THREE.LinearFilter; tex.minFilter = THREE.LinearFilter;
+const U = { eda: { value: tex }, okno: { value: new THREE.Vector4() }, t: { value: 0 } };
+const bg = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.ShaderMaterial({ depthTest: false, side: THREE.DoubleSide, uniforms: U,
+  vertexShader: 'varying vec2 v; void main(){ v = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: 'uniform sampler2D eda; uniform vec4 okno; uniform float t; varying vec2 v; void main(){ vec2 m = okno.xy + v * okno.zw; float e = texture2D(eda, m).r; float d = length(v - 0.5); vec3 c = mix(vec3(0.012, 0.05, 0.085), vec3(0.03, 0.13, 0.17), v.y) * (1.0 - 0.5 * smoothstep(0.3, 0.8, d)); c += vec3(0.20, 0.15, 0.05) * smoothstep(0.15, 1.0, e); gl_FragColor = vec4(c, 1.0); }' }));
+bg.position.set(W / 2, H / 2, 0); bg.scale.y = -1; back.add(bg);
+let cx = +(q.get('x') || M.W / 2), cy = +(q.get('y') || M.H / 2), time = 0, kadr = 0; const p = document.getElementById('p');
+window.mir = M; window.stendGL = gl; window.mirShag = (n, dt) => { for (let i = 0; i < n; i++) shag(M, dt); };
+window.stend = dt => { time += dt; for (let i = 0; i < skor; i++) shag(M, dt);
+  if (za) { const o = M.sv.find(s => s.vid === za); if (o) { cx += (o.x - cx) * 0.05; cy += (o.y - cy) * 0.05; } }
+  const vw = W / z, vh = H / z, x0 = Math.max(0, Math.min(M.W - vw, cx - vw / 2)), y0 = Math.max(0, Math.min(M.H - vh, cy - vh / 2)); let vidno = 0;
+  bodies.begin();
+  for (const s of M.sv) { const w = tolshchina(M, s) * z, sx = (s.x - x0) * z, sy = (s.y - y0) * z, kr = w * 4; if (sx < -kr || sx > W + kr || sy < -kr || sy > H + kr) continue; vidno++;
+    sobrat(s.zapis, { x: sx, y: sy, a: s.a, tolshchina: w, z, time, id: s.id, beg: (s.vb = (s.vb ?? s.plyvet) + (s.plyvet - (s.vb ?? s.plyvet)) * Math.min(1, dt * 4)) }, bodies); }
+  bodies.end(time);
+  if (kadr++ % 6 === 0) { const d = tex.image.data; for (let i = 0; i < d.length; i++) d[i] = Math.min(255, P.C[i] * 255); tex.needsUpdate = true; }
+  U.okno.value.set(x0 / (P.nx * G), y0 / (P.ny * G), vw / (P.nx * G), vh / (P.ny * G)); U.t.value = time;
+  gl.clear(); gl.render(back, cam); gl.render(bodies.scene, bodies.cam); window.vidno = vidno;
+  if (kadr % 30 === 1) { const n = perepis(M); p.textContent = 'Живой мир записью · ' + Math.round(M.t) + ' с · существ ' + M.sv.length + ' (на экране ' + vidno + ') · видов ' + Object.keys(n).length + ' · родилось ' + M.schet.rodilos + ' · съедено ' + (M.schet.syel + M.schet.proboy) + ' · голод ' + M.schet.golod + ' · мутантов ' + M.schet.mutantov; } };
+if (!q.get('zapis')) { let last = performance.now(); const go = now => { window.stend(Math.min(0.05, (now - last) / 1000)); last = now; requestAnimationFrame(go); }; requestAnimationFrame(go); }
+window.stendReady = true;
+</script></body></html>

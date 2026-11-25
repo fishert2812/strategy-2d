@@ -116,7 +116,7 @@ export class Bodies {
     { const N = 48000, G = 6, geo = new THREE.BufferGeometry(), idx = new Uint32Array(N * G * 6);
       for (const [k, n] of [['position', 3], ['normal', 3]]) geo.setAttribute(k, new THREE.BufferAttribute(new Float32Array(N * G * n), n).setUsage(THREE.DynamicDrawUsage));
       geo.setIndex(new THREE.BufferAttribute(idx, 1).setUsage(THREE.DynamicDrawUsage));
-      const m = kind(geo, 1, '', { bump: 0, alpha0: 0.95, edgeA: 0.45, order: 1, rimK: 0.6 }); // свет как у seg
+      const m = kind(geo, 1, '', { bump: 0, alpha0: 0.95, edgeA: 0.6, order: 1, rimK: 1.3 }); // кромка ярче, чем у seg: блик по краю нити (образцы CDC)
       for (const [k, n] of [['cA', 4], ['cB', 3], ['prm', 4]]) geo.setAttribute(k, new THREE.BufferAttribute(new Float32Array(N * G * n), n).setUsage(THREE.DynamicDrawUsage)); // цвет у каждой вершины: у каждой нити свой
       m.setMatrixAt(0, new THREE.Matrix4()); this.nit = { m, N, G, v: 0, i: 0 }; this.scene.add(m); this.all.push(m); }
   }
