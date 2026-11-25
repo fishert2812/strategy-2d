@@ -76,22 +76,22 @@ check('test_evo_glotat_vybor: «Глотает целиком» обязател
   if (late.length) return `не предложили к второму росту в ${late.length} заплывах`;
 });
 
-// Доказательство Г55: с умением тычок носом на ходу убивает соперницу (стоит, потом растекается соком), без умения и без тычка — нет.
-check('test_evo_igla: «Нить-игла» — тычок носом на ходу убивает соперницу, она растекается едой', () => {
+// Доказательство Г55: с умением укол носом в упор убивает соперницу (стоит, раздувается, растекается соком); без умения — нет; кокка игла не берёт.
+check('test_evo_igla: «Нить-игла» — укол носом в упор убивает соперницу, она растекается едой; кокка не берёт', () => {
   const go = (genes, fast) => { const w = new World(cfg, 31); w.mode = MODE;
     for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'crumbs', 'bdellos', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = [];
     w.tidy = 1e9; const a = w.me[0]; Object.assign(a, { m: 2, x: 0, y: 0, a: 0, vx: fast ? 200 : 0, vy: 0 }); for (const g of genes) w.genes[g] = true;
-    w.pseudos.push({ x: 40, y: 0, vx: 0, vy: 0, a: Math.PI, t: 5, rest: 0.25, cool: 5, strain: true, id: 88 });
+    w.pseudos.push({ x: 40, y: 0, vx: 0, vy: 0, a: Math.PI, t: 5, rest: 0.25, cool: 5, strain: true, id: 88 }); w.prey.push({ x: -22, y: 0, vx: 0, vy: 0, m: 1, a: 0, id: 89 });
     let stab = 0, juice = 0;
     for (let i = 0; i < 75 && w.me.length; i++) { w.step(1 / 30, fast ? { x: 600, y: 0 } : null); stab += w.events.filter(e => e[0] === 'igla').length; w.events.length = 0; if (w.choice.length) w.choice = []; }
     juice = w.food.filter(f => f.kind === 'lysate').length;
-    return { stab, juice, left: w.pseudos.length };
+    return { stab, juice, left: w.pseudos.length, kokk: w.prey.length };
   };
-  const yes = go(['igla'], true), no = go([], true), slow = go(['igla'], false);
-  console.log('    тычок с иглой:', JSON.stringify(yes), '| без иглы:', JSON.stringify(no), '| игла без тычка:', JSON.stringify(slow));
+  const yes = go(['igla'], true), no = go([], true), still = go(['igla'], false);
+  console.log('    укол с иглой на ходу:', JSON.stringify(yes), '| без иглы:', JSON.stringify(no), '| с иглой стоя:', JSON.stringify(still));
   if (!(yes.stab === 1 && yes.left === 0 && yes.juice > 0)) return 'с иглой тычок не убил соперницу или она не растеклась едой';
   if (no.stab || no.left === 0) return 'без иглы соперница погибла';
-  if (slow.stab) return 'укол без тычка — игла бьёт от простого касания';
+  if (yes.kokk !== 1 || still.kokk !== 1) return 'игла убила кокка';
 });
 
 console.log(bad ? `ЭВОЛЮЦИЯ: провалов ${bad}` : 'ЭВОЛЮЦИЯ: все проверки прошли');
