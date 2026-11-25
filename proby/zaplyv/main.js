@@ -658,7 +658,7 @@ canvas.addEventListener('pointercancel', up);
 
 // Выбор навыка на ходу (Роман 25.11: «Прерывает игру зачем то — пускай просто всплывает навыки. Игра продолжается аккуратно»):
 // мир не стоит, экран не перекрыт. Варианты всплывают полосой у нижнего края под большим пальцем; не выбрал за offer_fold с —
-// полоса сворачивается в значок у края, коснёшься — снова раскроется; ждёт offer_auto с — берётся первый вариант.
+// полоса сворачивается в значок у края, коснёшься — снова раскроется; сам вариант не берётся, значок ждёт касания.
 let offerKey = '', offerT = 0; // offerT — время на часах телефона (performance.now), а не мира: полоса сворачивается за 6 настоящих секунд
 function offer(dt) {
   const key = world.choice.join(), O = $('offer'), D = $('odot');
@@ -667,15 +667,20 @@ function offer(dt) {
     offerKey = key; offerT = performance.now(); $('otitle').textContent = evo.on(world) ? evo.E.zagolovok : $('otitle').dataset.d; const box = $('obtns'); box.innerHTML = '';
     world.choice.forEach(g => { const b = document.createElement('button'); b.innerHTML = '<img class="gicon" alt=""><span></span><small></small>';
       b.children[1].textContent = geneName(g); b.children[2].textContent = mut.daet(world, g, geneBook(g)); b.firstChild.src = icon(g); b.firstChild.style.borderColor = geneColor(g);
-      b.onclick = e => { e.stopPropagation(); if (b.classList.contains('sel')) return take(g); // первое касание выбирает, второе берёт: случайный тап большим пальцем навык не возьмёт
-        for (const q of box.children) q.classList.remove('sel'); b.classList.add('sel'); offerT = performance.now(); $('otitle').textContent = 'Коснись ещё раз — взять «' + geneName(g) + '»'; }; box.appendChild(b); });
+      b.onclick = e => { e.stopPropagation(); if (oswipe) return; if (b.classList.contains('sel')) return take(g); // первое касание выбирает, второе берёт: случайный тап большим пальцем навык не возьмёт
+        for (const q of box.children) q.classList.remove('sel'); b.classList.add('sel'); offerT = performance.now(); $('otitle').textContent = 'Коснись ещё раз — взять «' + geneName(g) + '»'; $('odesc').textContent = b.children[2].textContent; }; box.appendChild(b); }); $('odesc').textContent = '';
     D.querySelector('img').src = icon(world.choice[0]); O.classList.add('on'); D.classList.remove('on'); beep(440, 0.3, 0.04, 'sine', 2);
   }
   const age = (performance.now() - offerT) / 1000;
   if (O.classList.contains('on') && age > cfg.offer_fold) { O.classList.remove('on'); D.classList.add('on'); } // свернулась в значок
-  D.style.setProperty('--left', Math.max(0, 1 - age / cfg.offer_auto).toFixed(3)); // кольцо значка тает до автовыбора
-  if (age > cfg.offer_auto) take(world.choice[0]); // так и не выбрал — первый вариант
+  D.style.setProperty('--left', 1); // сам не берётся: значок ждёт касания (прогон 0.84, О86: «Чует еду взялся сам без выбора»)
 }
+// Свайп, начатый на полосе, — это плавание, а не выбор (прогон 0.84, О86): палец на полосе сразу ведёт джойстик; ушёл дальше 12 точек — касание варианта не считается.
+let oswipe = false, ofrom = null;
+$('offer').addEventListener('pointerdown', e => { const [x, y] = unit(e); ofrom = [x, y]; oswipe = false; pad.start(x, y, performance.now()); down = pad.down; finger = pad.finger; });
+addEventListener('pointermove', e => { if (!ofrom || !down) return; const [x, y] = unit(e); pad.move(x, y); finger = pad.finger; if (Math.hypot(x - ofrom[0], y - ofrom[1]) > 12) { oswipe = moved = true; } });
+const oup = () => { if (!ofrom) return; ofrom = null; pad.end(performance.now()); down = null; finger = null; setTimeout(() => { oswipe = false; }, 0); }; // касание полосы не «делится»
+addEventListener('pointerup', oup); addEventListener('pointercancel', oup);
 function take(g) { world.pick(g); offer(0); say('Взято: ' + geneName(g), 2200, g); fx.ring(world.center().x, world.center().y, 0, 300); beep(660, 0.4, 0.06, 'sine', 1.5); }
 $('odot').onclick = e => { e.stopPropagation(); offerT = performance.now(); $('offer').classList.add('on'); $('odot').classList.remove('on'); };
 $('otitle').dataset.d = $('otitle').textContent;
@@ -1090,7 +1095,7 @@ function frame(now) {
   if (probe.frames % 60 === 0) knowGenes();
   probe.frames++; probe.dpr = dprNow; probe.cells = world.me.length; probe.z = view.z; // масштаб камеры: тап-обход проверяет, что она возвращается (L029)
   probe.js = js.reduce((s, v) => s + v, 0) / Math.max(js.length, 1); probe.jsWorst = Math.max(0, ...js.slice(5)); probe.path = Math.max(probe.path || 0, world.stats.path);
-  probe.dots = world.food.length + world.prey.length + world.phages.length;
+  probe.dots = world.food.length + world.prey.length + world.phages.length; probe.finger = finger ? [Math.round(finger.x), Math.round(finger.y)] : null; // палец ведёт джойстик (обход касаний: свайп с полосы — плавание)
   probe.worst = Math.max(...acc.slice(5)); probe.avg = acc.reduce((s, v) => s + v, 0) / Math.max(acc.length, 1); probe.ended = ended;
   requestAnimationFrame(frame);
 }
