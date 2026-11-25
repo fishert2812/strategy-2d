@@ -95,4 +95,12 @@ check('test_nasha_svoboda: тело свободной формы (Роман 25
   if (hud) return hud; if (zazor > 0.05) return 'жгутик висит отдельно от тела: зазор ' + (zazor * 100).toFixed(0) + '% толщины';
 });
 
+check('test_nasha_svyazano: всё связано (Роман 25.11) — раздул одну точку тела: объём вырос, скорость упала, еду берёт дальше, зёрен и ворса стало больше', () => {
+  const E = { ...kn.K.etalon }, A = { ...E, tochki: [[-1.3, 0, 1], [0, 0, 1], [1.3, 0, 1]] }, Bf = { ...E, tochki: [[-1.3, 0, 1], [0, 0, 1.6], [1.3, 0, 1]] }, fa = kn.fizika(A, cfg), fb = kn.fizika(Bf, cfg);
+  const schet = f => { dv.V.vidy.svoya = kn.anketa(f, cfg); const [zap] = dv.sborka({ x: 0, y: 0, a: 0, t: 1, rest: 2, vid: 'svoya', id: 5 }, { x: 300, y: 400, z: 4, time: 1 })[0]; return zap.chasti; }, ca = schet(A), cb = schet(Bf);
+  console.log('    паспорт: скорость', fa.skorost.toFixed(0), '→', fb.skorost.toFixed(0), '| захват еды', fa.eda_r.toFixed(1), '→', fb.eda_r.toFixed(1), '| зёрен', ca.ribosomy.n, '→', cb.ribosomy.n, '| ворсинок', ca.vorsinki.n, '→', cb.vorsinki.n);
+  if (!(fb.skorost < fa.skorost)) return 'раздутое тело плывёт не медленнее'; if (!(fb.eda_r > fa.eda_r)) return 'раздутое тело берёт еду не дальше';
+  if (!(cb.ribosomy.n > ca.ribosomy.n && cb.vorsinki.n > ca.vorsinki.n)) return 'зёрен или ворса не прибавилось вместе с поверхностью';
+});
+
 console.log(bad ? `НАША КЛЕТКА: провалов ${bad}` : 'НАША КЛЕТКА: все проверки прошли'); process.exit(bad ? 1 : 0);
