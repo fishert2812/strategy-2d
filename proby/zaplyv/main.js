@@ -236,7 +236,7 @@ function menuOpen() {
   $('mknow').textContent = g ? 'Ты знаешь ' + g + ' ' + pl(g, 'ген', 'гена', 'генов') : '';
   $('mquiet').textContent = ROD.quiet ? 'Звук выкл' : 'Звук вкл'; $('mak').textContent = kab.label().replace(/^Альманах · /, '');
   const live = menuGo.back && !ended && world.me.length; $('mback').hidden = !live; // из паузы — путь назад в паузу
-  menuPick(live ? world.mode : 'swim', true); // обычный заплыв — одно касание
+  $('mscene').scrollTop = 0; menuPick(live ? world.mode : 'swim', true); // каждый раз сверху, а не там, где долистали (О78) // обычный заплыв — одно касание
 }
 function menuPick(m, quiet) {
   const M = MODES[m];
@@ -250,9 +250,9 @@ function menuPick(m, quiet) {
   $('mscene').querySelector(`.mo[data-m=${m}]`)?.scrollIntoView({ block: 'nearest' }); // выбранный режим виден целиком, даже когда сцена ниже
   $('mscene').classList.toggle('picked', !quiet);
   mSel = m; const same = menuGo.back && !ended && world.me.length && m === world.mode; // тот же режим из паузы: «Продолжить» тот же заплыв, рядом «Новый заплыв» (О45)
-  $('mgo').textContent = same ? 'Продолжить' : M.go; $('mnew').hidden = !same; $('mnew').sure = false; $('mnew').classList.remove('sure'); $('mnew').textContent = 'Новый заплыв';
+  $('mgo').textContent = same ? 'Продолжить' : M.go; $('mgo').sure = false; $('mgo').classList.remove('sure'); $('mnew').hidden = !same; $('mnew').sure = false; $('mnew').classList.remove('sure'); $('mnew').textContent = 'Новый заплыв';
 }
-function menuGo() { if (mSel === 'night') { $('menu').classList.remove('on'); openNight(); } else if (menuGo.back && !ended && world.me.length && mSel === world.mode) { $('menu').classList.remove('on'); menuGo.back = false; } else { menuGo.back = false; start(null, mSel); } } // из паузы: «Плыть» в том же режиме возвращает в тот же заплыв, другой режим — новый заплыв
+function menuGo() { if (mSel === 'night') { $('menu').classList.remove('on'); openNight(); } else if (menuGo.back && !ended && world.me.length && mSel === world.mode) { $('menu').classList.remove('on'); menuGo.back = false; } else { const g = $('mgo'); if (menuGo.back && !ended && world.me.length && !g.sure) { g.sure = true; g.classList.add('sure'); g.textContent = 'Бросить заплыв?'; return; } menuGo.back = false; start(null, mSel); } } // другой режим из паузы бросает идущий заплыв — только вторым касанием (прогон 0.81, О77) // из паузы: «Плыть» в том же режиме возвращает в тот же заплыв, другой режим — новый заплыв
 for (const o of document.querySelectorAll('#mscene .mo')) { o.onclick = () => menuPick(o.dataset.m); o.ondblclick = () => { menuPick(o.dataset.m); if (!MODES[o.dataset.m].lock) menuGo(); }; }
 $('mgo').onclick = menuGo;
 $('mquiet').onclick = () => { ROD.quiet = !ROD.quiet; saveRod(); $('mquiet').textContent = ROD.quiet ? 'Звук выкл' : 'Звук вкл'; };
@@ -774,7 +774,6 @@ function tick(dt) {
 // облако нуклеоида и зёрна, у полюсов светлые шапочки; жгутики пучком на ходу и врозь на месте;
 // кокки — одиночки, пары, цепочки, грозди; амёба с ложноножками, током зёрен, ядром и вакуолью;
 // фаг T4 — вытянутая головка, хвост, пластинка и шесть ножек; вдали частицы в расфокусе кольцами.
-const SPIKES = [[1, 0.45, 0.75], [1, 0.6, 0.2], [0.45, 0.7, 1], [0.8, 0.5, 1]];
 const BALL = [null, [0.55, 0.48, 0.8], [0.55, 0.95, 0.3]], BRIM = [null, [0.85, 0.8, 1], [0.85, 1, 0.6]]; // не по зубам (сиреневые), съедобное
 const ball = (x, y, r, side, seed) => bodies.sphere(x, y, r, BALL[side], BRIM[side], seed);
 function paint(time) {
@@ -890,14 +889,11 @@ function paint(time) {
   for (const q of world.prey) { // кокки — соседи-соперники, сиреневые; с токсином зеленеют: касание их убьёт
     const [x, y] = scr(q.x, q.y); if (!on(x, y)) continue;
     const side = 1, r = radius(q.m) * z, kind = q.id % 4, a = q.a + time * 0.2;
+    if (q.touch > 0) { probe.poison = (probe.poison || 0) + 1; const k = Math.min(1, q.touch / cfg.pinch_t); // прижалась к кокку — вокруг него проступает его яд, к «щипку» облачко полное
+      for (let i = 0; i < 7; i++) { const f = (time * 0.7 + i / 7) % 1, t = i * 0.8976 + q.id + time * 0.3, d = r * (0.8 + f * (0.7 + 0.8 * k)); // яд сочится мягкими клубами наружу и тает, без точек по кругу (L047)
+        glow.put(x + Math.cos(t) * d, y + Math.sin(t) * d, r * (0.55 + 0.7 * f) + 2, 0.75, 0.95, 0.3, (0.1 + 0.3 * k) * (1 - f)); } }
     const ux = Math.cos(a), uy = Math.sin(a);
-    if (kind === 0) { // шар с шипами, у каждого свой цвет шипов
-      ball(x, y, r * 0.9, side, q.id);
-      const hue = SPIKES[q.id % SPIKES.length];
-      for (let k = 0; k < 14; k++) { const t = k * 0.4488 + a * 0.3, c = Math.cos(t), s = Math.sin(t);
-        ink.put(x + c * r * 1.02, y + s * r * 1.02, 1.1 * z + 0.4, hue[0], hue[1], hue[2], 0.8);
-        bodies.spike(x + c * r * 1.28, y + s * r * 1.28, 2.6 * z + 0.6, hue); }
-    }
+    if (kind === 0) ball(x, y, r * 0.9, side, q.id); // одиночный кокк: гладкий шарик, шипов у кокков нет (Роман 25.11: шипастый «похож на вирус»)
     else if (kind === 1) { ball(x + ux * r * 0.45, y + uy * r * 0.45, r * 0.6, side, q.id); ball(x - ux * r * 0.45, y - uy * r * 0.45, r * 0.6, side, q.id + 1); }
     else if (kind === 2) for (let k = -1.5; k <= 1.5; k++) { // цепочка
       const w = Math.sin(time * 1.5 + k + q.id) * r * 0.15;
