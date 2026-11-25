@@ -67,6 +67,7 @@ case_ "test_L036: ночь пересоздаёт холст каждый кад
 case_ "test_L038: кадр в двойной плотности на экране тройной" 52_zaplyv_tap.sh red "sed -i 's/\"dpr_max\": 2.5/\"dpr_max\": 2/' $Z/data.json"
 case_ "test_L039: сестра за кадром без стрелки" 52_zaplyv_tap.sh red "sed -i 's/if (on(x, y, -8)) continue; const bad/continue; const bad/' $Z/main.js"
 case_ "test_L040: полоса роста стоит на месте" 52_zaplyv_tap.sh red "sed -i 's/(top.m - sp \/ 2) \/ (sp \/ 2)/1/' $Z/main.js"
+ONLY=L059 case_ "test_L059: клетка снова проходит сквозь амёбу и водоросли" 50_zaplyv.sh red "sed -i 's/    this.solid(dt);//' $Z/sim.js"
 ONLY=L041 case_ "test_L041: клетка снова проходит сквозь кокка" 50_zaplyv.sh red "sed -i 's/ q.x += (q.x - a.x) \* k; q.y += (q.y - a.y) \* k;//' $Z/sim.js"
 case_ "test_L031: лист гибели помнит прокрутку" 52_zaplyv_tap.sh red "sed -i 's/\$(.end.).scrollTop = 0; //' $Z/main.js"
 case_ "test_L025: кнопки гибели ниже края экрана" 52_zaplyv_tap.sh red "sed -i 's/flex-shrink: 0; position: sticky;/flex-shrink: 0;/' $Z/index.html"

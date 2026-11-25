@@ -35,7 +35,8 @@ const player = w => {
   if (w.readyToSplit() && w.me.length < 6) w.divide();
   const c = w.center(), big = w.biggest();
   let best = null, bd = 1e9;
-  for (const f of [...w.food, ...w.prey.filter(q => q.m < big * 0.8)]) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } }
+  // кокков не глотаешь (L016): игрок к ним не плывёт, иначе бот застревал у кокка под его ядом
+  for (const f of w.food) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } }
   let tx = best ? best.x : c.x, ty = best ? best.y - 1 : c.y - 100;
   for (const e of [...w.amoebas, ...w.phages, ...w.bdellos, ...w.slippers.map(p => { const [x, y] = w.mouth(p); return { x, y }; }), ...w.bells.map(v => { const [x, y] = w.bell(v); return { x, y }; }), ...w.rotis.map(q => { const [x, y] = w.head(q); return { x, y }; }), ...w.pseudos]) {
     const d = Math.hypot(e.x - c.x, e.y - c.y);
@@ -1002,6 +1003,21 @@ check('test_L054 (Роман 25.11 на 0.78: «запятые… уменьши
   run(br, cfg.bdello_kill + 1, null);
   if (br.pseudos.length) return 'запятая не взяла синегнойку';
   if (br.bdellos.length > N.cap) return 'из синегнойки вышел рой: запятых стало ' + br.bdellos.length;
+});
+
+// Урок L059 (прогон 0.84, П8: «клетки проходят сквозь амёбу, водоросли и друг друга»).
+check('test_L059: клетка упирается в амёбу, которая её не ест, и в нить водоросли, а не проплывает насквозь; голодная амёба по-прежнему съедает', () => {
+  const lone = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; w.choice = []; return w; };
+  const w = lone(701), a = w.me[0]; w.genes.capsule = true; const m = { x: a.x + 200, y: a.y, vx: 0, vy: 0, m: 6, id: 9 }; w.amoebas = [m];
+  let near = 1e9; for (let t = 0; t < 4; t += 1 / 30) { w.choice = []; w.step(1 / 30, { x: m.x + 300, y: m.y }); near = Math.min(near, Math.hypot(a.x - m.x, a.y - m.y)); }
+  const w2 = lone(702), b = w2.me[0], p = { x: b.x, y: b.y - 200, m: 6, id: 1, t: 0 }; w2.plants = [p]; const R = radius(p.m), ux = Math.cos(p.id * 1.7), uy = Math.sin(p.id * 1.7);
+  let pn = 1e9; for (let t = 0; t < 4; t += 1 / 30) { w2.choice = []; w2.step(1 / 30, { x: p.x, y: p.y - 300 }); for (let i = -2; i <= 2; i++) pn = Math.min(pn, Math.hypot(b.x - p.x - ux * i * R * 0.72, b.y - p.y - uy * i * R * 0.72)); }
+  const w3 = lone(703), e = w3.me[0], m3 = { x: e.x + 40, y: e.y, vx: 0, vy: 0, m: 6, id: 9 }; w3.amoebas = [m3];
+  for (let t = 0; t < 8 && w3.me.length; t += 1 / 30) { w3.choice = []; w3.step(1 / 30, null); }
+  console.log('    паспорт: с капсулой ближе всего к центру амёбы', Math.round(near), '(тело', Math.round(radius(m.m)) + ') | к клеткам нити', Math.round(pn), '(клетка нити', Math.round(R * 0.38) + ') | без капсулы амёба съела:', !w3.me.length);
+  if (near < radius(m.m) * 0.9) return 'клетка прошла сквозь амёбу: центр в ' + Math.round(near) + ' при теле ' + Math.round(radius(m.m));
+  if (pn < R * 0.38) return 'клетка прошла сквозь нить водоросли: ' + Math.round(pn) + ' до клетки нити';
+  if (w3.me.length) return 'голодная амёба больше не съедает клетку';
 });
 
 console.log(bad ? 'ЗАПЛЫВ: провалов ' + bad : 'ЗАПЛЫВ: все проверки прошли');
