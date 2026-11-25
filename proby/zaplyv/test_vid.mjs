@@ -103,6 +103,16 @@ check('test_vid_poison: от яда соперница не лопается —
   const v = new Fx({}, [C, C, C]); v.reset(); v.on('pop', 0, 0, 'strain'); if (!v.drops.length) return 'от вируса не лопается';
   return '';
 });
+check('test_vid_shchit_vspyshka: щит срабатывает видимо — вирус не сел: светлая вспышка в точке касания; первый вирус: светлая волна сходится в клетку; сестра гаснет со светлым контуром', () => {
+  const C = { r: 1, g: 1, b: 1 }, shot = fx => { const pts = []; const b = { put: (x, y, r, cr, cg, cb, a) => pts.push({ x, y, r, cr, cg, cb, a }) }; fx.drawOver({ scr: (x, y) => [x, y], z: 1, time: 0, glow: b, ink: b }); fx.drawUnder({ scr: (x, y) => [x, y], z: 1, time: 0, glow: b, ink: b }); return pts; };
+  const lock = new Fx({}, [C, C, C]); lock.reset(); lock.world = { me: [{ x: 0, y: 0 }] }; lock.on('shrug', 12, 0); lock.step(0.03);
+  if (!shot(lock).some(p => Math.hypot(p.x - 12, p.y) < 6 && p.r >= 8 && p.a > 0.6 && p.cr > 0.9)) return 'вирус не сел — нет светлой вспышки в точке касания';
+  const learn = new Fx({}, [C, C, C]); learn.reset(); learn.world = { me: [{ x: 0, y: 0 }] }; learn.on('learn', 30, 0); learn.step(0.3);
+  const ring = shot(learn).filter(p => Math.abs(Math.hypot(p.x, p.y) - 40) < 40 && p.a > 0.4); if (ring.length < 20) return 'первый вирус: волны к клетке не видно';
+  const ab = new Fx({}, [C, C, C]); ab.reset(); ab.on('abort', 0, 0, 0, 1); ab.step(0.5);
+  if (!shot(ab).some(p => p.a > 0.25 && p.cr > 0.5)) return 'сестра гаснет без светлого контура — на тёмной воде не видно';
+  return '';
+});
 check('test_vid_capsule_dent: капсула прогибается от удара хищника и пружинит обратно', () => {
   vid.stepVid(5); const was = paint({ capsule: true }).join('|'); vid.poke(-15, 13); const hit = paint({ capsule: true }).join('|');
   vid.stepVid(5); const after = paint({ capsule: true }).join('|');
