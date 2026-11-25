@@ -49,8 +49,22 @@ body { padding-bottom: calc(env(safe-area-inset-bottom) + 96px) !important; } #t
     for (const el of document.querySelectorAll('#page [data-panel]:not([data-ok])')) { el.dataset.ok = '1';
       try { const d = await get(el.dataset.panel);
         el.innerHTML = (d.itog ? `<div class="card"><div class="t">Всего: ${d.kartochki.length}</div>` + d.itog.map(([b, v]) => `<div class="r"><b>${esc(b)}</b><span>${v}</span></div>`).join('') + '</div>' : '') + (d.kartochki.map(karta).join('') || '<p>Пока пусто.</p>');
+        if (el.dataset.panel === 'zamechaniya' && !PDF) el.insertAdjacentHTML('afterbegin', AG);
       } catch { el.innerHTML = '<p>Не открылось. Обнови страницу.</p>'; } }
     if (!PDF) decorate();
+  }
+  // Другой агент: отдаём ему книгу одним текстом (agentu.js), его ответ строками «[Г7] текст» раскладываем по пунктам как замечания.
+  const AG = '<div class="card zm-s" style="border-radius:20px;background:none;border:1px solid var(--line);max-height:none"><div class="t">Дать книгу другому агенту</div><p>1. Скопируй книгу и вставь агенту. 2. Его ответ вставь сюда. Строки разойдутся по пунктам, и ты отправишь их вместе со своими.</p>' +
+    '<div class="row"><button type="button" data-ag="1">Скопировать навыки</button><button type="button" data-ag="">Скопировать всю книгу</button></div><textarea id="zm-in" style="margin-top:10px;min-height:96px" placeholder="Сюда вставь ответ агента"></textarea><div class="row"><button type="button" id="zm-razl" class="go">Разложить по пунктам</button></div></div>';
+  async function kniga(navyki) {
+    if (!window.knigaDlyaAgenta) await new Promise((ok, no) => { const s = document.createElement('script'); s.src = 'agentu.js'; s.onload = ok; s.onerror = no; document.head.append(s); });
+    const D = Object.fromEntries(await Promise.all(window.knigaFayly.map(async f => [f, await get(f)])));
+    D.zapisi = (await Promise.all((await get('zapisi/spisok')).map(f => get('zapisi/' + f)))).flat();
+    return window.knigaDlyaAgenta(D, navyki);
+  }
+  function razlozhit(text, kto) { // «[Г7] текст» или «[Г7 · Название] текст»; строка без номера продолжает прошлую
+    const a = []; for (const l of text.split('\n')) { const m = l.match(/^\s*[-*•]?\s*\[([^\]·]+)[^\]]*\]\s*(.*)/); if (m) a.push({ punkt: m[1].trim(), nazv: kto, vkladka: 'разбор агента', text: m[2], kogda: new Date().toISOString(), otpr: '' }); else if (a.length && l.trim()) a[a.length - 1].text += '\n' + l.trim(); }
+    const ok = a.filter(z => z.text.trim()); if (ok.length) save([...mem, ...ok]); return ok.length;
   }
   function decorate() {
     const by = {}; for (const z of mem) (by[z.punkt] = by[z.punkt] || []).push(z);
@@ -103,10 +117,13 @@ body { padding-bottom: calc(env(safe-area-inset-bottom) + 96px) !important; } #t
     if (e.target.closest('#zm-page')) return edit(pageTarget());
     if (e.target.closest('#zm-send')) return send();
     if (e.target.id === 'zm-w') close();
+    const ag = e.target.closest('[data-ag]');
+    if (ag) { const t = ag.textContent; ag.textContent = 'Собираю…'; kniga(!!ag.dataset.ag).then(async x => { try { await navigator.clipboard.writeText(x); say('Скопировано: ' + Math.round(x.length / 1000) + ' тыс. знаков. Вставь агенту'); } catch { $('#zm-in').value = x; say('Текст в поле ниже: выдели и скопируй'); } }).catch(() => say('Не собралось. Обнови страницу')).finally(() => { ag.textContent = t; }); }
+    if (e.target.id === 'zm-razl') { const n = razlozhit($('#zm-in').value, 'агент'); if (n) $('#zm-in').value = ''; decorate(); say(n ? 'Разложено по пунктам: ' + n + '. Проверь и отправь' : 'Не нашёл строк вида [Г7] текст'); }
   }, true);
   let busy = false; // страница перерисовывается при смене вкладки: расставляем кнопки заново
   new MutationObserver(() => { if (busy) return; busy = true; requestAnimationFrame(() => { fill(); busy = false; }); }).observe($('#page'), { childList: true });
   if (PDF) return void fill();
   addEventListener('hashchange', () => setTimeout(fill, 0));
-  window.zaplyvPanel = { pismo, novye }; fill(); get('zamechaniya').then(d => { ZD = d.kartochki; decorate(); }).catch(() => {});
+  window.zaplyvPanel = { pismo, novye, kniga, razlozhit }; fill(); get('zamechaniya').then(d => { ZD = d.kartochki; decorate(); }).catch(() => {});
 })();

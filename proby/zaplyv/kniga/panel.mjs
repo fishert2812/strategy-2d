@@ -32,6 +32,11 @@ try {
     str[k] = await p.evaluate(() => document.querySelectorAll('[data-panel] .card > .t > .zm-b').length); need(str[k] >= min, `на странице ${k} карточек с кнопкой ${str[k]}, нужно от ${min}`); }
   const zd = await (await p.request.get(url.replace('index.html', 'zamechaniya.json'))).json();
   for (const z of zd.kartochki) need(/^З\d+$/.test(z.id) && z.punkt && z.step && z.r.some(r => r[0] === 'Слова') && z.r.some(r => r[0] === 'Хозяин'), 'замечание ' + z.id + ' без номера, пункта, статуса, слов или хозяина');
+  await p.goto(url + '?z#zamechaniya'); await p.waitForSelector('#zm-razl', { timeout: 4000 }).catch(() => {}); // другой агент: книга текстом и разбор его ответа
+  const kn = await p.evaluate(() => window.zaplyvPanel.kniga(true)).catch(() => ''); need(kn.includes('КАК ОТВЕЧАТЬ') && kn.includes('[Г2] ') && kn.includes('[Ф70] '), 'книга для агента не собралась или без номеров');
+  await p.fill('#zm-in', 'Вот разбор:\n[Г2] Магнит слабый на первом уровне\nвторая строка того же\n- [Ф16 · Броня] Брать первой\nбез номера в конце'); await p.tap('#zm-razl');
+  const raz = await p.evaluate(() => window.zaplyvPanel.novye().map(z => z.punkt + '|' + z.text)); need(raz.length === 2 && raz[0].startsWith('Г2|Магнит') && raz[0].includes('вторая строка') && raz[1].startsWith('Ф16|Брать'), 'ответ агента разложен не так: ' + JSON.stringify(raz));
+  await p.evaluate(() => localStorage.clear());
   await p.goto(url + '?u#umeniya'); await p.waitForSelector('.zm-n.zd', { timeout: 4000 }).catch(() => need(false, 'задача не видна у своего пункта'));
   if (!bad.length) console.log(`  ПАСПОРТ панели (${eng}, iPhone 13): кнопок на «Генах» ${btn}, замечаний в письме 2, знаков ${text.length}, файлов 0; разбор ${str.razbor}, каталог ${str.katalog}, замечаний ${str.zamechaniya}`);
 } catch (e) { bad.push('панель не отвечает: ' + e.message.split('\n')[0]); }
