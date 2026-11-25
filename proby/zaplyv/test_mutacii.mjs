@@ -101,7 +101,7 @@ check('[flu] сцепка: сёстры держатся строем за па�
   // Шесть сестёр в живой капле (соседи едят и ловят как обычно) 40 с плывут за пальцем зигзагом. Меряем после первых 5 с:
   // среднее расстояние сестры до середины семьи и разнобой хода. Среднее, а не самая дальняя: одну сестру может на миг утащить пасть.
   const go = genes => { let far = 0, dis = 0, n = 0;
-    for (const seed of [1, 2, 3, 4, 5, 6]) { const w = new World(cfg, seed); w.mode = 'swim'; for (const g of genes) w.genes[g] = true;
+    for (const seed of [1, 2, 3, 4, 5, 6]) { const w = new World(cfg, seed); w.mode = 'swim'; w.divide = () => {}; for (const g of genes) w.genes[g] = true;
       const a = w.me[0]; a.m = 1.5; for (let i = 1; i < 6; i++) w.me.push({ ...a, id: 10 + i, x: a.x + (i % 3) * 40 - 40, y: a.y + Math.floor(i / 3) * 40, vx: 0, vy: 0, sick: -1 });
       for (let t = 0; t < 40 && w.me.length > 2; t += 1 / 30) { if (w.choice.length) w.pick(w.choice[0]);
         const ang = Math.floor(t / 1.5) * 2.1; w.step(1 / 30, { dx: Math.cos(ang), dy: Math.sin(ang), p: 1 }); // палец водит зигзагом
