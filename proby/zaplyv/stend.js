@@ -11,6 +11,7 @@ export const S = url.protocol === 'file:' ? JSON.parse((await import('node:fs'))
 
 // Чистые правила (проверяет test_stend.mjs). Ключ записи движка: настоящая из vidy.json, иначе черновик стенда.
 export const klyuch = p => dv.V.vidy[p.dvizhok] && dv.V.vidy[p.dvizhok] !== p.chernovik ? p.dvizhok : 'stend_' + p.kto;
+const VC = typeof document === 'undefined' ? {} : await fetch('vid_chasti.json').then(r => r.json()).catch(() => ({})); // сборки из частей (тред вида и движка); нет файла — движок рисует по-старому
 export const chernovik = p => klyuch(p) !== p.dvizhok;
 export function zapis(p) { const k = klyuch(p); if (!dv.V.vidy[k]) dv.V.vidy[k] = p.chernovik; return k; } // черновик виден движку только на стенде
 export function oshibki(p, cfg) { // что не так в паре — словами
@@ -50,8 +51,8 @@ if (typeof document !== 'undefined') {
     w.me.length = 1; const me = w.me[0]; me.tr = null; me.m = 1; // ручной рисунок нашей клетки следует за следом: новый след для новой позы
     if (P.ruka === 'me' && lomat !== 'levo') derzhi(me, l); else derzhi(me, { x: 0, y: 1e5, a: S.poza.a }); // не на стенде — далеко за кадром
     if (P.ruka !== 'me' && lomat !== 'levo') w[P.ruka] = [{ ...l, vx: 0, vy: 0, t: 99, m: 1, id }];
-    if (lomat !== 'pravo') w.pseudos = [{ ...r, vx: 0, vy: 0, t: 99, cool: 0, vid: k, id }];
-    zag.textContent = P.imya; podpis(L, S.slova.ruka, S.slova.ruka_m); podpis(R, S.slova.dvizhok, chernovik(P) ? S.slova.chernovik_m : S.slova.zapis_m + ' ' + k);
+    if (lomat !== 'pravo') w.pseudos = [{ ...r, vx: 0, vy: 0, t: 1, rest: 2, cool: 0, vid: k, id }]; // t < rest — покой: жгутики врозь, как у ручной клетки на месте
+    zag.textContent = P.imya; podpis(L, S.slova.ruka, S.slova.ruka_m); podpis(R, S.slova.dvizhok, chernovik(P) ? (VC.vidy?.[P.chernovik.sborka?.vid] ? S.slova.sborka_m : S.slova.chernovik_m) : S.slova.zapis_m + ' ' + k);
     knop.forEach((b, j) => b.classList.toggle('on', j === i)); nado = false;
     window.zaplyvStend = { para: P.kto, ruka: P.ruka, dvizhok: k, chernovik: chernovik(P), lomat, levo: l, pravo: r }; };
   const shag = w => { const P = S.pary[i], l = mesto(-1), r = mesto(1);
