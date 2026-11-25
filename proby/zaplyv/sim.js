@@ -144,8 +144,10 @@ export class World {
       if (c.m < this.split() || c.sick >= 0 || c.held > 0 || c.grab || c.spore > 0) continue;
       c.m /= 2; c.gen = (c.gen || 0) + 1; this.stats.gen = Math.max(this.stats.gen, c.gen);
       const ax = Math.cos(c.a), ay = Math.sin(c.a), r = radius(c.m);
-      const kid = { x: c.x - ax * r * 1.2, y: c.y - ay * r * 1.2, vx: c.vx - ax * 60, vy: c.vy - ay * 60, m: c.m, a: c.a, sick: -1, gen: c.gen, id: ++this.ids }; born.push(mut.kid(this, c, kid));
-      c.x += ax * r * 0.6; c.y += ay * r * 0.6;
+      const D = this.cfg.split_apart * r / 2; // дочки торец к торцу: центры на полдлины палочки от точки деления, иначе палочки наложены и колония складывает их бок о бок
+      const kid = { x: c.x - ax * D, y: c.y - ay * D, vx: c.vx - ax * 60, vy: c.vy - ay * 60, m: c.m, a: c.a, sick: -1, gen: c.gen, id: ++this.ids }; born.push(mut.kid(this, c, kid));
+      const spin = c.spin ?? (c.id % 2 ? 1 : -1); c.spin = kid.spin = spin; kid.drift = c.drift; // сёстры дрейфуют вместе и поворачивают в одну сторону: цепочка, а не «две таблетки» бок о бок
+      c.x += ax * D; c.y += ay * D;
       this.events.push(['split', c.x, c.y, c.id, kid.id]); // вид деления знает пару: мать и дочка (vid.birth)
     }
     const room = leave ? 0 : Math.max(0, this.cfg.me_max - this.me.length);
@@ -212,7 +214,7 @@ export class World {
       } else { // палец отпущен: в воде клетка встаёт сразу (вязкость); её медленно сносит и поворачивает (~90° за 10 с)
         a.drift = (a.drift ?? r() * 6.283) + (r() - 0.5) * dt * 1.5;
         a.om = (a.om || 0) * Math.max(0, 1 - 6 * dt);
-        a.a += (a.id % 2 ? 0.16 : -0.16) * dt + a.om * dt;
+        a.a += (a.spin ?? (a.id % 2 ? 1 : -1)) * 0.16 * dt + a.om * dt;
       }
       const ux = Math.cos(a.a), uy = Math.sin(a.a);
       let fwd = a.vx * ux + a.vy * uy, side = -a.vx * uy + a.vy * ux;
@@ -248,7 +250,7 @@ export class World {
     this.life(dt);
     this.eat(dt);
     zhizn(this, dt, radius);
-    rost.step(this, dt, radius); evo.step(this);
+    rost.step(this, dt, radius); evo.step(this, dt, radius);
     this.hunters(dt);
     this.hold(dt);
     this.rush = Math.max(0, this.rush - (this.stats.time - this.lastEat > c.rush_gap ? c.rush_fall * dt : 0));

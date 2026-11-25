@@ -48,5 +48,31 @@ check('test_evo_semya: умения семьи одной клетке не пр
   if (fam.length) return 'предложили: ' + fam.join(', ');
 });
 
+// Доказательство Г51: с умением клетка глотает живых мельче себя и растёт, а кто крупнее — не тронут; без умения никого.
+// Выросшая ест того, кто ел её маленькой: амёба, которая проглотила бы клетку массы 1, сама проглочена клеткой массы 12.
+check('test_evo_glotat: «Глотает целиком» — ест живых мельче себя, крупнее не трогает, выросшая ест того, кто ел её', () => {
+  const empty = (m, genes) => { const w = new World(cfg, 21); w.mode = MODE;
+    for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'crumbs', 'bdellos', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = [];
+    w.tidy = 1e9; Object.assign(w.me[0], { m, x: 0, y: 0, vx: 0, vy: 0 }); for (const g of genes) w.genes[g] = true; return w; };
+  const run = w => { for (let i = 0; i < 60 && w.me.length; i++) { w.step(1 / 30, null); w.events.length = 0; if (w.choice.length) w.choice = []; } return w; };
+  const res = {};
+  for (const [name, m, genes, prey] of [['мелкий кокк', 6, ['gulp'], { prey: { m: 1 } }], ['кокк без умения', 6, [], { prey: { m: 1 } }],
+    ['крупная амёба', 3, ['gulp'], { amoebas: { m: 5 } }], ['амёба у выросшей', 12, ['gulp'], { amoebas: { m: 5 } }], ['амёба у маленькой', 1, ['gulp'], { amoebas: { m: 5 } }]]) {
+    const w = empty(m, genes), [list, q] = Object.entries(prey)[0]; w[list].push({ x: 4, y: 0, vx: 0, vy: 0, a: 0, id: 77, ...q }); run(w);
+    res[name] = { alive: w.me.length > 0, ate: !w[list].length && (w.stats.gulped || 0) > 0, m: w.me[0]?.m ?? 0, m0: m };
+  }
+  console.log('    ', Object.entries(res).map(([k, r]) => `${k}: ${r.alive ? (r.ate ? 'проглотила, масса ' + r.m0 + '→' + r.m.toFixed(1) : 'не глотала') : 'съедена'}`).join(' | '));
+  if (!res['мелкий кокк'].ate || !(res['мелкий кокк'].m > 6.3)) return 'с умением мелкого кокка не проглотила или не выросла';
+  if (res['кокк без умения'].ate) return 'без умения глотает';
+  if (res['крупная амёба'].ate) return 'проглотила того, кто крупнее';
+  if (!res['амёба у выросшей'].ate) return 'выросшая не проглотила амёбу';
+  if (res['амёба у маленькой'].alive) return 'маленькую амёба не съела — проверка ничего не меряет';
+});
+
+check('test_evo_glotat_vybor: «Глотает целиком» обязательно среди выбора со второго роста', () => {
+  const late = runs.filter(r => r.rosts >= 2 && !r.got.slice(0, 2).includes('gulp'));
+  if (late.length) return `не предложили к второму росту в ${late.length} заплывах`;
+});
+
 console.log(bad ? `ЭВОЛЮЦИЯ: провалов ${bad}` : 'ЭВОЛЮЦИЯ: все проверки прошли');
 process.exit(bad ? 1 : 0);

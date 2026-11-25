@@ -74,7 +74,7 @@ export function skin(c) {
   const { a, lk, x, y, ang, ax, ay, half, w, z, along, arc, body, scr, time, pdt, run, phageNear, foodNear, spacers, plasmid, cfg, alive, glow, ink } = c;
   const fc = cfg.flag.color, L = half - w, m = keep(a, alive);
   const at = (u, o) => along(u, o + arc(u / z));
-  Object.assign(m, { id: a.id, x: a.x, y: a.y, ang, L: L / z, w: w / z });
+  Object.assign(m, { id: a.id, x: a.x, y: a.y, ang, L: L / z, w: w / z, sx: x, sy: y }); // sx, sy — где тело нарисовано на экране (мягкое тело отстаёт от a.x на рывке)
   const pu = pulses.get(a.id); if (pu) { const P = V.pulse, k = pu.t / P.life, head = pu.from * (L + w) * (1 - 2 * k), bw = P.band * w; // от того конца, где сработало, к другому
     for (let i = 0; i < P.dots; i++) { const [u, o] = rim(i / P.dots, L, w), d = Math.abs(u - head); if (d > bw) continue; const [px, py] = at(u, o); glow.put(px, py, P.r * z + 1, ...P.color, 0.95 * (1 - d / bw) * Math.sin(Math.PI * k)); }
     for (let i = -2; i <= 2; i++) { const u = head + i * bw * 0.3; if (Math.abs(u) > L + w * 0.5) continue; const [px, py] = at(u, 0); glow.put(px, py, w * 0.5, ...P.color, 0.35 * Math.sin(Math.PI * k)); } } // свет идёт и внутри: стекло тела

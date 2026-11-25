@@ -842,6 +842,16 @@ check('test_L049 (прогон игроками, круг 6: «после пол
   console.log('    паспорт: сытая колония за', t.toFixed(0), 'с — клеток', w.me.length, 'из', cfg.me_max, '| уплыли', w.away.length);
   if (w.me.length < cfg.me_max) return `колония застряла на ${w.me.length} клетках: само-деление отправляет дочек прочь раньше me_max`;
 });
+check('test_L051 (проверка кадров деления 25.11: «дочки складываются бок о бок, как две таблетки, а не цепочкой»): после деления дочки лежат торец к торцу вдоль оси матери', () => {
+  const w = new World(cfg, 602); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = [];
+  const a = w.me[0]; for (let t = 0; t < 1; t += 1 / 30) w.step(1 / 30, null); // мать постояла без пальца: дрейф и поворот уже идут
+  a.m = w.split() + 0.01; const ux = Math.cos(a.a), uy = Math.sin(a.a); w.divide(); w.choice = [];
+  for (let t = 0; t < 2.5; t += 1 / 30) w.step(1 / 30, null);
+  const [p, q] = w.me, dx = p.x - q.x, dy = p.y - q.y, along = Math.abs(dx * ux + dy * uy), across = Math.abs(-dx * uy + dy * ux), L = 2 * 8.5 * 2.1; // длина палочки дочки в мире (main.js: half = w·2,1)
+  console.log('    паспорт: через 2,5 с дочки вдоль оси', along.toFixed(0), 'поперёк', across.toFixed(0), '| длина палочки', L.toFixed(0));
+  if (along < L * 0.95) return `дочки вдоль оси ближе длины палочки (${along.toFixed(0)} < ${L.toFixed(0)}): палочки наложены, колония сложит их бок о бок`;
+  if (across > L * 0.3) return 'дочку утянуло вбок: ' + across.toFixed(0);
+});
 check('test_L033 (прогон 0.54, О33: «Убери палец, и клетка сама поплывёт к ближайшей еде» — стояли 11 с): с «Чует еду» без пальца клетка сама доплывает до куска', () => {
   const go = sense => { const w = new World(cfg, 600); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9;
     const a = w.me[0]; w.genes.sense = sense; w.food = [{ x: a.x + 110, y: a.y - 60, vx: 0, vy: 0, s: 1 }]; const e0 = w.stats.eaten; let t = 0;
