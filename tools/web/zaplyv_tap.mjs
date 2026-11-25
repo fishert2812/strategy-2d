@@ -163,6 +163,10 @@ if (await toNight('снова') && await tap('#ndanger [data-d=phage]', 'опа�
   await p.waitForTimeout(600); say(await p.evaluate(() => zaplyvNight() && zaplyvNight().gen > 0), 'после выбора опасности поколения идут');
   await p.evaluate(() => zaplyvNight().run()); await p.waitForFunction(() => document.querySelector('#npicks button'), null, { timeout: 8000 }).catch(() => {}); await p.waitForTimeout(200); // ждём сами кнопки веток, а не время (WebKit рисует позже)
   await whole(['#nback', '#nflag', '#ngo', '#npicks button'], 'конец ночи рода');
+  // test_L036 (тред слияний 25.11: вкладка WebKit падала после «Ночи рода», «Target crashed»): экран ночи не заводит холсты заново каждый кадр.
+  say(await p.evaluate(async () => { const P = HTMLCanvasElement.prototype, D = Object.getOwnPropertyDescriptor(P, 'width'); let n = 0;
+    Object.defineProperty(P, 'width', { configurable: true, get: D.get, set(v) { n++; D.set.call(this, v); } });
+    await new Promise(ok => setTimeout(ok, 1000)); Object.defineProperty(P, 'width', D); return n < 5; }), 'test_L036: экран «Ночи рода» за секунду не пересоздаёт холсты (было по два каждый кадр)');
   if (await tap('#npicks button', 'ветка «выше всех»')) {
     const g = await p.evaluate(() => zaplyvNight().res.picks[0].genes);
     if (await tap('#ngo', '«Плыть этой веткой»')) { await p.waitForTimeout(300); say(await p.evaluate(g => !document.getElementById('night').classList.contains('on') && g.every(k => zaplyvWorld().genes[k]), g), '«Плыть этой веткой» начинает заплыв с генами ветки: ' + g); }
