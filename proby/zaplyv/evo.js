@@ -33,7 +33,10 @@ export function step(w, dt, radius) {
   if (!on(w)) return;
   gulp(w, dt, radius); igla(w, radius); krupneet(w);
   for (const a of w.me) if (!(a.spore > 0)) a.m = Math.max(E.hudeet.min, a.m * (1 - E.hudeet.v * dt)); // тело тратит
-  if (w.me.some(a => has(w, 'kislota'))) for (const q of w.prey) q.touch = 0; // не боится кислоты: кокк рядом не успевает выпустить её (sim.js pinch_t)
+  if (w.me.some(a => has(w, 'kislota'))) for (const q of w.prey) { // не боится кислоты: шарик рядом не жжёт (sim.js pinch_t), но насос тратит силы
+    for (const a of w.me) if (q.touch > 0) a.m = Math.max(E.hudeet.min, a.m * (1 - E.kislota.plata * dt));
+    q.touch = 0;
+  }
   if (w.choice.length || !w.events.some(e => e[0] === 'rost')) return;
   const left = pool(w);
   for (let i = left.length - 1; i > 0; i--) { const j = Math.floor(w.r() * (i + 1)); [left[i], left[j]] = [left[j], left[i]]; }
