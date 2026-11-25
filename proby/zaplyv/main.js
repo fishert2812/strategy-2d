@@ -24,7 +24,7 @@ const genomeData = await (await fetch('genome.json')).json();
 const W = 720; // ширина экрана в единицах игры
 const canvas = document.getElementById('c');
 const gl = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' });
-gl.setPixelRatio(Math.min(devicePixelRatio, 2));
+gl.setPixelRatio(Math.min(devicePixelRatio, cfg.dpr_max)); // на iPhone плотность 3: кадр в 2,5 (полная тяжелее в полтора раза), иначе клетки и еда мягкие (Роман 25.11: «бактерия стала чуть-чуть размытая», урок L038)
 let H = W;
 const cam = new THREE.OrthographicCamera(0, W, 0, W, -1, 1);
 const back = new THREE.Scene(); // фон и дальнее
@@ -281,7 +281,7 @@ function nightEnd() {
   });
 }
 function drawNight() {
-  const cv = $('ncv'), r = cv.getBoundingClientRect(), d = devicePixelRatio || 1; if (!r.width || !r.height) return;
+  const cv = $('ncv'), r = cv.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1); if (!r.width || !r.height) return; // как у главного холста: не больше 2
   if (cv.width !== Math.round(r.width * d) || cv.height !== Math.round(r.height * d)) { cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d); }
   const x = cv.getContext('2d'); x.setTransform(d, 0, 0, d, 0, 0); x.clearRect(0, 0, r.width, r.height);
   const C = NT ? NT.cols : NJ.cols, R = NJ.rows, s = Math.min(r.width / C, r.height / R), w = s * C, h = s * R, ox = (r.width - w) / 2, oy = (r.height - h) / 2, nb = NJ.bands.length;
@@ -289,8 +289,9 @@ function drawNight() {
     x.fillStyle = `rgba(255,120,90,${0.06 + NJ.bands[k] * 0.16})`; x.fillRect(ox, y0, w, h / nb); x.fillStyle = 'rgba(255,170,140,0.6)'; x.fillRect(ox, y0 + h / nb - 0.75, w, 1.5); } };
   x.fillStyle = '#071a22'; x.fillRect(ox, oy, w, h);
   if (NT) {
-    const d2 = d, oc = drawNight.oc || (drawNight.oc = document.createElement('canvas')); oc.width = Math.round(r.width * d2); oc.height = Math.round(r.height * d2);
-    const o = oc.getContext('2d'); o.setTransform(d2, 0, 0, d2, 0, 0); const best = NT.res ? NT.res.best : -1;
+    const d2 = d, oc = drawNight.oc || (drawNight.oc = document.createElement('canvas')), ow = Math.round(r.width * d2), oh = Math.round(r.height * d2);
+    if (oc.width !== ow || oc.height !== oh) { oc.width = ow; oc.height = oh; } // холст заводим один раз, а не каждый кадр: WebKit не успевал убирать старые и вкладка падала (урок L036)
+    const o = oc.getContext('2d'); o.setTransform(1, 0, 0, 1, 0, 0); o.clearRect(0, 0, ow, oh); o.globalAlpha = 1; o.setTransform(d2, 0, 0, d2, 0, 0); const best = NT.res ? NT.res.best : -1;
     if (best >= 0) { o.fillStyle = '#fff'; o.globalAlpha = 0.9; for (let i = 0; i < NT.grid.length; i++) if (NT.grid[i] === best) { const cx = i % C, cy = (i / C) | 0; // ветка, дошедшая выше всех, обведена светлой каймой (после размытия)
       o.beginPath(); o.arc(ox + (cx + 0.5) * s, oy + h - (cy + 0.5) * s, s * 1.05, 0, 6.283); o.fill(); } }
     for (let i = 0; i < NT.grid.length; i++) { const v = NT.grid[i]; if (v < 0) continue; const cx = i % C, cy = (i / C) | 0, hsh = Math.sin(i * 12.9898) * 43758.5 % 1, j2 = Math.sin(i * 78.233) * 43758.5 % 1; // клетка — мягкое пятно, внахлёст, разного размера
@@ -324,7 +325,15 @@ function studio(k, it) {
   w[LISTS[k]].push(e);
   return w;
 }
+// Снимки (Альманах, значки, меню) считаются в двойной плотности, как раньше: в тройной полка открывалась вдвое дольше.
+// Плотность кадра возвращается перед следующим кадром игры, так что подряд идущие снимки делят одну перестройку холста.
+let shotLow = false;
+function shotDensity() {
+  if (shotLow || gl.getPixelRatio() <= 2) return; shotLow = true; gl.setPixelRatio(2); resize();
+  requestAnimationFrame(() => { shotLow = false; gl.setPixelRatio(Math.min(devicePixelRatio, cfg.dpr_max)); resize(); });
+}
 function snap(k, it) {
+  shotDensity();
   if (it.gene) return geneShot(it.gene, 480, 300); // ген в Альманахе — тот же снимок, что значок: часть, которую он даёт, подсвечена
   const fxs = fx.save(), keep = [world, view, kids, down, moved, puffs, paint.t]; // все анимации эффектов целиком (fx.save), а не только кольца и разряды
   const out = document.createElement('canvas'); out.width = 480; out.height = 300;
@@ -342,6 +351,7 @@ function snap(k, it) {
 // той же студией, что Альманах, и оставляем ярким только то, что изменилось: сам ген на теле. Кеш — снимаем один раз.
 const icons = new Map();
 function geneShot(g, NW, NH, crop = 0) {
+  shotDensity();
   const grab = genes => {
     const fxs = fx.save(), keep = [world, view, kids, down, moved, puffs, paint.t], c = document.createElement('canvas'); c.width = NW; c.height = NH;
     try {
@@ -383,7 +393,7 @@ const geneBook = g => Object.values(GENY.geny || {}).find(q => q.klyuch === g) |
 genomeData.book = GENY.geny || {};
 GENY.gruppa = Object.fromEntries([...genomeData.arcs.flatMap(a => a.slots.map(x => [x.id, a.name])), ...genomeData.plasmids.map(x => [x.id, 'Чужие'])].filter(x => x[0])); // группа гена — дуга кольца
 const kab = almanahScreen({ K: KAB, cards, T: TEKSTY, G: GENY, met, snap, onSwim: () => { if (ended || $('menu').classList.contains('on')) start(); else if (paused) genome.close(); } });
-const cabLabel = () => { $('cab').textContent = $('gcab').textContent = kab.label(); };
+const cabLabel = () => { $('cab').textContent = kab.label(); };
 cabLabel();
 const knowGenes = () => { let add = false; for (const g in world.genes) if (!met.has('gene:' + g)) { met.add('gene:' + g); add = true; } if (add) { saveMet(); cabLabel(); } }; // ген, который у тебя был, — запись в Альманахе
 $('cab').onclick = () => { knowGenes(); kab.open(); };
@@ -393,10 +403,10 @@ let paused = false;
 const genome = genomeScreen({ G: genomeData, cfg, world: () => world, icon: g => icon(g),
   onOpen: () => { paused = true; document.body.classList.add('paused'); pad.end(0); down = null; finger = null; openTab(); },
   onClose: () => { paused = false; document.body.classList.remove('paused'); leaveTabs(); },
-  onCabinet: () => tab('alm'), onSend: () => openMarks(), onDraw: () => showMarks() });
+  onSend: () => openMarks(), onDraw: () => showMarks() });
 
-// Пауза с вкладками (книга, Э17): Геном · Карта · Альманах, внизу одна «Плыть». Открывается та, с которой ушёл;
-// в самый первый раз — Геном (карта ещё пуста), после первой гибели — Карта.
+// Пауза — игровое меню (урок L037): уровень 1 «Пауза» (tab 'hub'): «Продолжить», «Новый заплыв», «Режимы», справочник строками.
+// Уровень 2 — раздел (Геном, Альманах, Карта): заголовок раздела, внизу «‹ Пауза» и «Продолжить». Пауза всегда открывается первым уровнем.
 let KARTA = { seen: [], marks: [] };
 try { KARTA = { ...KARTA, ...JSON.parse(localStorage.getItem('zaplyv.karta') || '{}') }; } catch (_) {}
 const saveKarta = () => { try { localStorage.setItem('zaplyv.karta', JSON.stringify(KARTA)); } catch (_) {} };
@@ -405,25 +415,34 @@ const addMark = m => { KARTA.marks.push({ ...m, run: world.seed }); KARTA.marks 
 let curTab = null, mapT = 0, mapHit = null, mapOpenedAt = 0;
 const mapIcons = {};
 const iconOf = who => { if (!mapIcons[who]) { const im = new Image(); im.src = who.startsWith('gene:') ? icon(who.slice(5)) : KAB.items[who] ? snap(who, KAB.items[who]) : ''; mapIcons[who] = im; } return mapIcons[who]; };
+const PNAME = { hub: 'Пауза', genome: 'Геном', map: 'Карта', alm: 'Альманах' };
 function tab(t) {
-  curTab = t; try { localStorage.setItem('zaplyv.tab', t); } catch (_) {}
-  const G = $('genome'), C = $('cabinet');
-  G.classList.toggle('tab-map', t === 'map'); G.classList.toggle('tab-alm', t === 'alm');
-  for (const b of $('ptabs').children) { b.classList.toggle('on', b.dataset.t === t); b.setAttribute('aria-selected', b.dataset.t === t); }
-  $('map').hidden = t !== 'map'; $('mcard').hidden = true;
-  if (t === 'alm') { knowGenes(); kab.open(); C.classList.add('inpause'); const top = $('ptabs').getBoundingClientRect().bottom + 6, bot = innerHeight - $('gon').getBoundingClientRect().top + 8;
-    C.style.top = top + 'px'; C.style.bottom = bot + 'px'; } else if (C.classList.contains('inpause')) { kab.close(); C.classList.remove('inpause'); C.style.top = C.style.bottom = ''; }
+  curTab = t; const G = $('genome'), C = $('cabinet');
+  for (const k in PNAME) G.classList.toggle('tab-' + k, t === k);
+  $('gtitle').textContent = PNAME[t]; $('map').hidden = t !== 'map'; $('mcard').hidden = true;
+  if (t === 'hub') hubFill();
+  if (t === 'alm') { knowGenes(); kab.open(); kab.back = () => tab('hub'); C.classList.add('inpause'); const top = $('ghead').getBoundingClientRect().bottom + 6, bot = innerHeight - $('gbar').getBoundingClientRect().top + 8;
+    C.style.top = top + 'px'; C.style.bottom = bot + 'px'; } else if (C.classList.contains('inpause')) { kab.close(); kab.back = null; C.classList.remove('inpause'); C.style.top = C.style.bottom = ''; }
   if (t === 'map') { keepSeen(); mapOpenedAt = performance.now(); }
 }
-function openTab() { let t = null; try { t = localStorage.getItem('zaplyv.tab'); } catch (_) {} tab(t || (KARTA.marks.some(m => m.kind === 'death') ? 'map' : 'genome')); }
-function leaveTabs() { const C = $('cabinet'); if (C.classList.contains('inpause')) { kab.close(); C.classList.remove('inpause'); C.style.top = C.style.bottom = ''; } curTab = null; }
-for (const b of $('ptabs').children) b.onclick = () => tab(b.dataset.t);
-{ let sx = null; // смахивание влево-вправо — соседняя вкладка, вниз от шапки — «Плыть»
-  const order = ['genome', 'map', 'alm'];
-  $('genome').addEventListener('touchstart', e => { const t = e.touches[0]; sx = t.clientX > 28 ? [t.clientX, t.clientY, $('ptabs').getBoundingClientRect().bottom > t.clientY] : null; }, { passive: true });
-  $('genome').addEventListener('touchend', e => { if (!sx) return; const t = e.changedTouches[0], dx = t.clientX - sx[0], dy = t.clientY - sx[1];
-    if (Math.abs(dx) > 70 && Math.abs(dy) < 50) tab(order[(order.indexOf(curTab) + (dx < 0 ? 1 : 2)) % 3]);
-    else if (sx[2] && dy > 90 && Math.abs(dx) < 60) genome.close(); sx = null; }, { passive: true }); }
+function hubFill() { // первый уровень паузы: что в каждом разделе — одной строкой, служебное — мелко
+  const own = genomeData.arcs.flatMap(a => a.slots), deaths = KARTA.marks.filter(m => m.kind === 'death').length;
+  $('pstate').textContent = ($(`mscene`).querySelector(`.mo[data-m=${world.mode}] b`)?.textContent || 'Заплыв') + ' · поколение ' + world.stats.gen + ' · клеток ' + world.me.length;
+  $('pg').textContent = `включено ${own.filter(x => x.id && world.genes[x.id]).length} из ${own.length}`;
+  $('pa').textContent = kab.label().replace(/^Альманах · /, '');
+  keepSeen(); $('pm').textContent = karta.count(cfg.pond, new Set(KARTA.seen)).replace(/^Ты в/, 'В') + (deaths ? ` · гибелей ${deaths}` : '');
+  $('psound').textContent = ROD.quiet ? 'Звук выключен' : 'Звук включён';
+  const n = $('pnew'); n.sure = false; n.classList.remove('sure'); n.textContent = 'Новый заплыв';
+}
+function openTab() { tab('hub'); }
+function leaveTabs() { const C = $('cabinet'); if (C.classList.contains('inpause')) { kab.close(); kab.back = null; C.classList.remove('inpause'); C.style.top = C.style.bottom = ''; } curTab = null; }
+for (const b of $('phub').querySelectorAll('.prow')) b.onclick = () => tab(b.dataset.t);
+$('gback').onclick = () => tab('hub');
+$('psound').onclick = () => { ROD.quiet = !ROD.quiet; saveRod(); hubFill(); };
+$('pnew').onclick = () => { const n = $('pnew'); if (!n.sure) { n.sure = true; n.classList.add('sure'); n.textContent = 'Точно заново?'; return; } genome.close(); start(null, world.mode); }; // второе касание: текущий заплыв пропадёт
+{ let sx = null; // смахивание от левого края вправо — назад на «Паузу», как в приложениях iPhone
+  $('genome').addEventListener('touchstart', e => { const t = e.touches[0]; sx = t.clientX < 28 ? [t.clientX, t.clientY] : null; }, { passive: true });
+  $('genome').addEventListener('touchend', e => { if (!sx) return; const t = e.changedTouches[0]; if (t.clientX - sx[0] > 70 && Math.abs(t.clientY - sx[1]) < 60 && curTab !== 'hub') tab('hub'); sx = null; }, { passive: true }); }
 // Метка-цель в заплыве: тонкая стрелка у края экрана в её сторону и расстояние; доплыл — гаснет сама.
 window.zaplyvKarta = { data: () => KARTA, hits: () => mapHit }; // для обхода касаниями (tools/web/zaplyv_tap.mjs)
 function goalArrow() {
@@ -555,7 +574,7 @@ $('fsave').onclick = () => {
 };
 const fclose = () => { $('fsheet').classList.remove('on'); frozen = false; };
 $('fcancel').onclick = fclose;
-$('gflag').onclick = $('gno').onclick = e => flag('геном', e.currentTarget);
+$('gflag').onclick = e => flag('геном', e.currentTarget);
 $('eno').onclick = e => flag('экран гибели', e.currentTarget);
 $('esend').onclick = openMarks;
 showMarks();
@@ -919,9 +938,10 @@ function paint(time) {
   }
   puffs = puffs.filter(p => (p.t += 1 / 60) < 1.4);
   for (const p of puffs) { p.x += p.vx / 60; p.y += p.vy / 60; p.vx *= 0.95; p.vy *= 0.95; const [x, y] = scr(p.x, p.y); wake.put(x, y, (1.1 + p.t) * z, 0.8, 0.92, 1, 0.3 * (1 - p.t / 1.4)); }
-  for (const f of world.food) { // сахар: мелкие светящиеся зёрна
+  for (const f of world.food) { // еда трёх видов (Е2, Е4): жёлтые крошки, белые искры глюкозы, розовый белковый сок
     const [x, y] = scr(f.x, f.y); if (!on(x, y, 20)) continue;
-    const k = Math.sqrt(f.s || 1); glow.put(x, y, 9 * z * k, 1, 0.8, 0.35, 0.14); glow.put(x, y, 3.2 * z * k + 0.6, 1, 0.93, 0.65, 0.9); // крупный кусок крупнее и светит ярче
+    const F = cfg.food_kinds[f.kind || 'bits'], k = Math.sqrt(f.s || 1) * F.size, tw = F.twinkle ? 0.75 + 0.25 * Math.sin(time * 7 + f.x * 0.3 + f.y) : 1;
+    glow.put(x, y, 9 * z * k * F.halo_r, ...F.halo, 0.14 * tw); glow.put(x, y, 3.2 * z * k + 0.6, ...F.core, 0.9 * tw); // ценность видна размером и ореолом: крошка меньше всех, сок крупнее (дизайнер); искры мерцают
   }
   for (const g of world.phages) { // фаг T4: головка позади, хвостом вперёд — садится хвостом
     const [x, y] = scr(g.x, g.y); if (!on(x, y)) continue;
