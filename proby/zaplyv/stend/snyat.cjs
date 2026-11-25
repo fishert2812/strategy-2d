@@ -25,7 +25,7 @@ if (!fs.existsSync(ref)) { console.error('нет образца ' + ref); proces
     ff(['-framerate', '30', '-i', `${tmp}/f%04d.png`, '-pix_fmt', 'yuv420p', '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2', mp4]);
     fs.copyFileSync(`${tmp}/f${String(Math.min(mid, nf - 1)).padStart(4, '0')}.png`, path.join(out, name + '.png'));
     const h = fs.readFileSync(`${tmp}/f0000.png`).readUInt32BE(20); // высота кадра телефона: образец под неё
-    ff(['-stream_loop', '2', '-i', mp4, '-loop', '1', '-i', ref, '-filter_complex', `[1:v]scale=-2:${h},setsar=1[r];[r][0:v]hstack=inputs=2,scale=trunc(iw/4)*2:trunc(ih/4)*2[v]`, '-map', '[v]', '-t', String(nf / 10), '-pix_fmt', 'yuv420p', path.join(out, name + '_ryadom.mp4')]);
+    ff(['-stream_loop', '2', '-i', mp4, '-loop', '1', '-i', ref, '-filter_complex', `[1:v]scale=-2:${h},setsar=1[r];[r][0:v]hstack=inputs=2,scale=trunc(iw/4)*2:trunc(ih/4)*2[v]`, '-map', '[v]', '-r', '30', '-t', String(nf / 10), '-pix_fmt', 'yuv420p', path.join(out, name + '_ryadom.mp4')]);
     fs.writeFileSync(path.join(out, name + '_pasport.json'), JSON.stringify({ navyk: name, kadrov: nf, sekund: nf / 30, ekran: 'iPhone 13 (390×844, x2)', obrazec: N.obrazec, priemka: 'нужна: stend/PRIEMKA.md' }, null, 1));
     console.log(`снято: ${name} — ${nf} кадров (${(nf / 30).toFixed(1)} с), образец ${N.obrazec}, папка ${out}`);
   } finally { await b.close(); srv.kill(); fs.rmSync(tmp, { recursive: true, force: true }); }
