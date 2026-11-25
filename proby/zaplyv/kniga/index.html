@@ -140,8 +140,8 @@ function render(md) {
     const l = L[i];
     if (!l.trim()) continue;
     let m;
-    if ((m = l.match(/^\*\*((?:Л[А-Я]|ПР)\d+)\.(?: (.+?)\.?)?\*\*\s*(.*)$/))) { // пункт логики режима: карточка с номером (кнопку ✎ ставит панель) до следующего пункта, заголовка или черты
-      let j = i + 1; while (j < L.length && !/^\*\*(?:Л[А-Я]|ПР)\d+\./.test(L[j]) && !/^#{1,3} /.test(L[j]) && !/^---+$/.test(L[j].trim())) j++;
+    if ((m = l.match(/^\*\*((?:Л[А-Я]|ПР|Ч)\d+)\.(?: (.+?)\.?)?\*\*\s*(.*)$/))) { // пункт логики режима: карточка с номером (кнопку ✎ ставит панель) до следующего пункта, заголовка или черты
+      let j = i + 1; while (j < L.length && !/^\*\*(?:Л[А-Я]|ПР|Ч)\d+\./.test(L[j]) && !/^#{1,3} /.test(L[j]) && !/^---+$/.test(L[j].trim())) j++;
       out.push(`<div class="card"><div class="t"><span class="code">${m[1]}</span>${inline(m[2] || '')}</div>${render([m[3], '', ...L.slice(i + 1, j)].join('\n'))}</div>`); i = j - 1; continue; }
     if ((m = l.match(/^(#{1,3}) (.*)/))) { out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`); continue; }
     if (/^---+$/.test(l.trim())) { out.push('<hr>'); continue; }
