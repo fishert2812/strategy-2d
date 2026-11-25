@@ -812,16 +812,7 @@ function paint(time) {
     bodies.shell(tx, ty, a, L * 0.24, w, skin, q.id, Math.sin(time * 0.9 + q.id) * w * 0.15); // туловище
     bodies.sphere(tx - vx * L * 0.08, ty - vy * L * 0.08, w * 0.5, [0.85, 0.65, 0.3], [1, 0.85, 0.5], q.id, 0.6); // желудок: съеденное
     for (let k = 0; k < 5; k++) ink.put(tx - vx * L * (0.04 + k * 0.03) + vy * Math.sin(k * 2.3) * w * 0.3, ty - vy * L * (0.04 + k * 0.03) - vx * Math.sin(k * 2.3) * w * 0.3, 1.3 * z + 0.4, 0.4, 0.9, 0.3, 0.6); // зелёные съеденные водоросли
-    const chew = Math.abs(Math.sin(time * (4 + 4 * pw) + q.id)) * w * 0.14, jx = tx + vx * L * 0.1, jy = ty + vy * L * 0.1; // челюсти-мастакс
-    for (const s of [-1, 1]) bodies.sphere(jx - vy * s * (w * 0.1 + chew), jy + vx * s * (w * 0.1 + chew), w * 0.17, [0.95, 0.75, 0.45], [1, 0.95, 0.7], q.id + s, 0.8);
-    const hx = tx + vx * L * 0.22, hy = ty + vy * L * 0.22;
-    for (const s of [-1, 1]) { // два колеса: реснички бегут по кругу навстречу друг другу, быстрее на полной силе
-      const cx = hx - vy * s * w * 0.55, cy = hy + vx * s * w * 0.55, R = w * 0.55;
-      glow.put(cx, cy, R * 1.8, 0.75, 0.92, 1, 0.1 + 0.15 * pw);
-      for (let k = 0; k < 22; k++) { const t = k / 22 * 6.283 + s * time * (3 + 14 * pw);
-        ink.put(cx + Math.cos(t) * R, cy + Math.sin(t) * R, 1.1 * z + 0.4, 0.9, 1, 1, 0.45 + 0.45 * pw);
-        if (k % 2 === 0) ink.put(cx + Math.cos(t) * R * 1.25, cy + Math.sin(t) * R * 1.25, 0.8 * z + 0.3, 0.9, 1, 1, 0.25 + 0.35 * pw); }
-    }
+    vid.roti({ tx, ty, vx, vy, L, w, pw, time, id: q.id, z, glow, ink, bite: q.bite || 0 }); // венец, зубцы панциря, кишка и челюсти — vid.js
     const [mx, my] = scr(...world.head(q));
     for (let k = 0; k < 30; k++) { // поток в рот: крупинки прямо к голове, гуще и быстрее на полной силе
       const ph = time * (0.3 + 0.6 * pw) + k / 30, f = ph % 1, R = cfg.roti_r * z * (1 - f), t = q.a + ((k * 2.399 + Math.floor(ph) * 1.7) % 2.4 - 1.2);
