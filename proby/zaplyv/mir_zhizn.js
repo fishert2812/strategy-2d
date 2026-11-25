@@ -20,11 +20,11 @@ export function pole_setka(W, H, P, rnd) { const nx = Math.ceil(W / P.shag), ny 
 
 // Паспорт записи для жизни: законы тела и размер. Считается один раз на запись (у мутанта запись новая — паспорт новый).
 const PASP = new WeakMap();
-function pasport(zapis) { let p = PASP.get(zapis); if (p) return p; const h = schitay(zapis), v = velichiny(zapis), Z = zony(zapis), rz = zapis.zhizn?.razmer ?? 1;
+export function pasport(zapis) { let p = PASP.get(zapis); if (p) return p; const h = schitay(zapis), v = velichiny(zapis), Z = zony(zapis), rz = zapis.zhizn?.razmer ?? 1;
   p = { h, rz, cena1: h.k_cena / (v.obem / velichiny(VC.vidy.nasha).obem), telo: v.obem * rz * rz * rz / velichiny(VC.vidy.nasha).obem, L: v.L, Z, ohotnik: zapis.zhizn?.est === 'dobycha', oruzhie: ['rot', 'udar'].filter(k => Z[k]) }; PASP.set(zapis, p); return p; }
 
 export function sozdat(imya = 'kaplya', seed = 1, M0 = MR) { const R = M0.miry[imya], [W, H] = R.razmer; let s = seed * 2654435761 % 2147483647 || 1; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
-  const M = { t: 0, W, H, K: M0, rnd, pole: pole_setka(W, H, M0.pole, rnd), sv: [], id: 1, schet: { rodilos: 0, golod: 0, syel: 0, proboy: 0, mutantov: 0 }, sobytiya: [] };
+  const M = { t: 0, W, H, K: M0, rnd, pole: pole_setka(W, H, M0.pole, rnd), sv: [], id: 1, schet: { rodilos: 0, golod: 0, syel: 0, proboy: 0, mutantov: 0, zaneslo: 0 }, sobytiya: [], mir: R, zanos_t: 0 };
   if (typeof process !== 'undefined' && process.env?.MIR_LOMAT) M.K = { ...M0, pravila: [] };
   for (const [vid, n] of Object.entries(R.naselenie)) for (let i = 0; i < n; i++) rodit(M, vid, { ...VC.vidy[vid], gruppa: undefined }, rnd() * W, rnd() * H, 1 + rnd() * 0.8);
   return M; }
@@ -56,15 +56,19 @@ export function shag(M, dt) { const Z = M.K.zhizn, S = M.sv, kl = 120, G = new M
     if (p.oruzhie.length && !q.syt) ryadom(q, w * (p.L + 1) + kl * 0.5, o => { if (q.mertv || o.mertv || o.vid === q.vid) return; const wo = tolshchina(M, o), po = pasport(o.zapis); if (Math.hypot(q.x - o.x, q.y - o.y) > w * (p.L / 2 + 1) + wo * (po.L / 2 + 1)) return;
       const K = kasanie(obvod_zon(q.zapis, { x: q.x, y: q.y, a: q.a, tolshchina: w }, 32), obvod_zon(o.zapis, { x: o.x, y: o.y, a: o.a, tolshchina: wo }, 32), w * 0.15);
       for (const pr of M.K.pravila) if (K.some(k => k.a === pr.a && k.b === pr.b) && po_pravilu(M, pr, q, o)) { const Bo = massa(o); o.mertv = pr.ishod; M.schet[pr.ishod]++; M.sobytiya.push({ chto: pr.ishod, kto: q.id, kogo: o.id, x: o.x, y: o.y });
-        const dob = pr.ishod === 'syel' ? 1 : pr.dolya; q.syt = (pr.perevarivaet ?? Z.perevarivaet) * Math.max(0.02, Math.min(1, Bo / B)); q.m += Bo * dob * Z.kpd / p.telo; if (dob < 1) M.pole.prolit(o.x, o.y, Bo * (1 - dob) * Z.ostatki); break; } }); }
+        const dob = pr.ishod === 'syel' ? 1 : pr.dolya; q.syt = (pr.perevarivaet ?? Z.perevarivaet) * Math.max(0.002, Math.min(1, Bo / B)); q.m += Bo * dob * Z.kpd / p.telo; if (dob < 1) M.pole.prolit(o.x, o.y, Bo * (1 - dob) * Z.ostatki); break; } }); }
   // гибель от голода, деление, уборка
   const novye = []; for (const q of S) { if (q.mertv) continue; const p = pasport(q.zapis);
     if (q.m < Z.smert) { q.mertv = 'golod'; M.schet.golod++; M.pole.prolit(q.x, q.y, massa(q) * Z.ostatki); M.sobytiya.push({ chto: 'golod', kogo: q.id, x: q.x, y: q.y }); continue; }
     if (q.m >= Z.delitsya && S.length + novye.length < Z.predel) { q.m /= 2; const w = tolshchina(M, q), d = p.L * w * 0.5; let zp = q.zapis; if (M.rnd() < Z.mutaciya.shans) { zp = mutaciya(q.zapis, M.rnd, Z.mutaciya.sila); M.schet.mutantov++; }
       const o = { id: M.id++, vid: q.vid, zapis: zp, x: q.x - Math.cos(q.a) * d, y: q.y - Math.sin(q.a) * d, a: q.a + (M.rnd() - 0.5), m: q.m, beg: 0, bylo: 0, plyvet: 1, mat: q.id }; q.x += Math.cos(q.a) * d; q.y += Math.sin(q.a) * d; novye.push(o); M.schet.rodilos++; M.sobytiya.push({ chto: 'delenie', kto: q.id, kogo: o.id, x: q.x, y: q.y }); } }
-  M.sv = S.filter(q => !q.mertv).concat(novye); M.pritok = M.pole.shag(dt); return M; }
+  M.sv = S.filter(q => !q.mertv).concat(novye); M.pritok = M.pole.shag(dt);
+  // занос: капля открыта, из воды за краем изредка приносит того, кого внутри почти не осталось (одно существо у края, без запаса)
+  const zn = M.K.zanos; if (zn && (M.zanos_t += dt) >= zn.kazhdye) { M.zanos_t = 0; const n = perepis(M); for (const vid of Object.keys(M.mir.naselenie)) if ((n[vid] || 0) < zn.nizhe && M.sv.length < Z.predel) { const kr = M.rnd() * 4 | 0, t = M.rnd();
+    rodit(M, vid, { ...VC.vidy[vid], gruppa: undefined }, kr === 0 ? 20 : kr === 1 ? M.W - 20 : t * M.W, kr === 2 ? 20 : kr === 3 ? M.H - 20 : t * M.H, 1.2); M.schet.zaneslo++; } }
+  return M; }
 // Может ли охотник взять эту добычу своим оружием (то же условие, что в правилах): рот — по размеру, удар — по прочности оболочки.
-function po_pravilu(M, pr, q, o) { const p = pasport(q.zapis), po = pasport(o.zapis); if (pr.ishod === 'syel') return massa(o) <= p.Z.rot.do * massa(q); if (pr.ishod === 'proboy') return p.Z.udar.sila * p.rz > po.Z.obolochka.prochnost * po.h.k_prochnost * po.rz * 0.999 && !po.Z.udar; return false; }
+export function po_pravilu(M, pr, q, o) { const p = pasport(q.zapis), po = pasport(o.zapis); if (pr.ishod === 'syel') return massa(o) <= p.Z.rot.do * massa(q); if (pr.ishod === 'proboy') return p.Z.udar.sila * p.rz > po.Z.obolochka.prochnost * po.h.k_prochnost * po.rz * 0.999 && !po.Z.udar; return false; }
 const po_zubam = (M, q, o) => M.K.pravila.some(pr => pasport(q.zapis).Z[pr.a] && po_pravilu(M, pr, q, o));
 export const perepis = M => { const n = {}; for (const q of M.sv) n[q.vid] = (n[q.vid] || 0) + 1; return n; };
 export const zhivogo = M => M.sv.reduce((s, q) => s + massa(q), 0);
