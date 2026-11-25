@@ -45,6 +45,15 @@ const whole = async (sels, where) => { const out = await p.evaluate(ss => ss.map
 say(!(await on('menu')), 'самый первый запуск — сразу заплыв, без меню (дизайнер)');
 let m = await marks();
 await whole(['#pause', '#flag'], 'заплыв');
+// test_L040 (Роман 25.11: «Здоровье и опыт можешь показать полосой… линию… заменить на опыт. Размер оставить только числом»):
+// полоса внизу растёт к делению и ползёт назад, когда клетка теряет; заражение — красная засечка; размер — число в микрометрах.
+{ const fill = () => p.evaluate(() => parseFloat(document.getElementById('growfill').style.width) || 0);
+  await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 1; w.me[0].m = w.split() * 0.8; }); await p.waitForTimeout(400); const hi = await fill();
+  await p.evaluate(() => { const w = zaplyvWorld(); w.me[0].m = w.split() * 0.6; }); await p.waitForTimeout(400); const lo = await fill();
+  await p.evaluate(() => { zaplyvWorld().me[0].sick = 3; }); await p.waitForTimeout(300);
+  const notch = await p.evaluate(() => document.getElementById('sicknotch').getBoundingClientRect().width), cnt = await p.textContent('#count');
+  await p.evaluate(() => { const a = zaplyvWorld().me[0]; a.sick = -1; a.m = 1; });
+  say(hi > 50 && lo < hi - 20 && lo > 5 && notch > 4 && /мкм/.test(cnt) && await seen('#growbar'), 'test_L040: полоса роста ' + hi.toFixed(0) + '% → ' + lo.toFixed(0) + '% назад, засечка заражения ' + notch.toFixed(0) + ' px, «' + cnt + '»'); }
 if (await tap('#flag', 'флажок в игре')) say(await seen('#note') && await marks() === m + 1, 'флажок в игре: отметка записана и надпись видна');
 if (await tap('#pause', 'пауза')) say(await on('genome'), 'пауза открывает геном');
 if (await tap('#ring .slot', 'ген на кольце')) say(await p.evaluate(() => !!document.querySelector('#gcard h2')), 'касание гена открывает карточку');
