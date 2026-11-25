@@ -909,15 +909,7 @@ function paint(time) {
     const [x, y] = scr(m.x, m.y); if (!on(x, y, 320)) continue;
     const side = m.m < big * 0.8 ? 2 : 1, r = radius(m.m) * z, sp = Math.hypot(m.vx, m.vy);
     const head = sp > 3 ? Math.atan2(m.vy, m.vx) : m.id, hx = Math.cos(head), hy = Math.sin(head);
-    bodies.blobby(x, y, r * 0.95, head, sp > 3 ? 1 : 0.3, side === 2 ? BALL[2] : [1, 0.4, 0.12], side === 2 ? BRIM[2] : [1, 0.75, 0.35], m.id); // ложноножки — в шейдере
-    for (let k = 0; k < 26; k++) { // ток зёрен к ведущей ложноножке
-      const s = (time * 0.12 + k * 0.618) % 1, t = k * 2.39996 + Math.sin(time * 0.3 + k) * 0.4, d = r * 0.5 * ((k * 0.381) % 1);
-      ink.put(x + Math.cos(t) * d + hx * r * 0.4 * (s - 0.5), y + Math.sin(t) * d + hy * r * 0.4 * (s - 0.5), 1.4 * z + 0.6, 0.12, 0.04, 0.08, 0.4);
-    }
-    const nx = x - hx * r * 0.2 + hy * r * 0.12, ny = y - hy * r * 0.2 - hx * r * 0.12; // ядро с ядрышком
-    ink.put(nx, ny, r * 0.2, 0.3, 0.1, 0.15, 0.4); glow.put(nx, ny, r * 0.07, 1, 0.85, 0.9, 0.25);
-    const v = (time / 6 + m.id * 0.37) % 1; // сократительная вакуоль: набухает и выплёскивает
-    bubbles.put(x - hx * r * 0.45 - hy * r * 0.2, y - hy * r * 0.45 + hx * r * 0.2, r * 0.18 * Math.sqrt(v) + 1, 0.85, 0.95, 1, 0.3 * (1 - v * v * v));
+    vid.amoeba({ m, x, y, r, head, sp, side, time, z, glow, ink, bubbles, col: side === 2 ? BALL[2] : null });
   }
   const [cr, cg, cb] = [CELL[0].r, CELL[0].g, CELL[0].b], fc = cfg.flag.color;
   const b = genome.blink, lkAll = look(b && Math.sin(time * 9) > 0 ? { ...world.genes, [b]: !world.genes[b] } : world.genes, cfg.look, world.spacers.size); // на паузе мигает часть клетки, которую меняет выбранный ген
