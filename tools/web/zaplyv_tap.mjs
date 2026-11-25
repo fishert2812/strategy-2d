@@ -43,6 +43,9 @@ const whole = async (sels, where) => { const out = await p.evaluate(ss => ss.map
   if (st.display === 'none' || r.width < 1) return null; return r.top >= 0 && r.bottom <= innerHeight + 0.5 ? null : `${s} ${Math.round(r.top)}–${Math.round(r.bottom)} при высоте ${innerHeight}`; }).filter(Boolean), sels);
   say(!out.length, `test_L025: ${where} — все кнопки на экране без прокрутки` + (out.length ? ': ' + out.join('; ') : '')); };
 say(!(await on('menu')), 'самый первый запуск — сразу заплыв, без меню (дизайнер)');
+// Обход проверяет кнопки, а не деление: само деление по таймеру во время шагов открывало выбор «Две дочки», он по замыслу прячет
+// паузу и флажок — шаги краснели случайно (WebKit, #204). Выбор дочки шаги, которым он нужен, ставят сами (w.choice = …).
+await p.evaluate(() => { zaplyvWorld().cfg.auto_split = 1e9; });
 let m = await marks();
 await whole(['#pause', '#flag'], 'заплыв');
 // test_L038 (Роман 25.11: «даже еда стала чуть-чуть размытая. И как будто сама бактерия стала чуть-чуть размытая»): на телефоне с плотностью 3
