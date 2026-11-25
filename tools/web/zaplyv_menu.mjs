@@ -13,7 +13,7 @@ const SCREENS = [
   { name: 'Пауза', level: 1, title: 'Пауза', primary: '#gon', exit: 'game', nav: { '#phub [data-t=genome]': 'Геном', '#phub [data-t=alm]': 'Альманах', '#phub [data-t=map]': 'Карта' }, actions: ['#pnew', '#gmenu'], service: ['#psound', '#gflag'] },
   { name: 'Геном', level: 2, title: 'Геном', primary: '#gon', back: '#gback', to: 'Пауза', service: ['#gflag'] },
   { name: 'Альманах', level: 2, title: 'Альманах', primary: '#gon', back: '#gback', to: 'Пауза', service: ['#gflag'] },
-  { name: 'Режимы', level: 2, tsel: '#mtop h1', title: 'Заплыв', primary: '#mgo', back: '#mback', to: 'Пауза', nav: { '#malm': 'Альманах' }, actions: ['#mnew'], service: ['#mquiet'] },
+  { name: 'Режимы', level: 2, tsel: '#mtop h1', title: 'Режимы', primary: '#mgo', back: '#mback', to: 'Пауза', nav: { '#malm': 'Альманах' }, actions: ['#mnew'], service: ['#mquiet'] },
   { name: 'Карта', level: 2, title: 'Карта', primary: '#gon', back: '#gback', to: 'Пауза', service: ['#gflag'] },
 ];
 // Нарочно сломанные меню для самопроверки: каждое обязано дать красное.
@@ -23,6 +23,7 @@ const BROKEN = {
   'главное сверху': '#gbar { order: -1; margin-top: 0 !important; }',
   'нет заголовка': '#gtitle { display: none !important; }',
   'связи не строками': '.kl { width: 120px !important; }',
+  'значков нет': '.pico { display: none !important; }',
   'Альманах в режимах чипом': '#malm { width: 120px !important; min-height: 44px !important; border-radius: 22px !important; }',
 };
 async function walk(css) {
@@ -60,6 +61,8 @@ async function walk(css) {
   // Из игры: пауза → каждый раздел → назад → продолжить. Глубина не больше двух касаний до игры.
   if (await tap('#pause')) {
     const hub = SCREENS[0]; say(await title() === 'Пауза', 'test_L037: пауза всегда открывается первым уровнем «Пауза»'); await check(hub);
+    await p.waitForTimeout(600); const ic = await p.evaluate(() => [...document.querySelectorAll('#phub .prow')].map(b => { const i = b.querySelector('.pico'); return [b.dataset.t, i && i.getBoundingClientRect().width >= 40 && i.naturalWidth >= 52 && i.src.length > 2000]; }));
+    say(ic.length && ic.every(x => x[1]), 'test_L037: у каждой строки справочника — значок-снимок раздела (кольцо ДНК, встреченный, разрез пруда)' + (ic.every(x => x[1]) ? '' : ': пусто у ' + ic.filter(x => !x[1]).map(x => x[0]).join(', ')));
     for (const [s, name] of Object.entries(hub.nav)) {
       if (!(await tap(s))) { say(false, `test_L037: раздела «${name}» не видно`); continue; } if (name === 'Альманах') await p.waitForTimeout(800);
       const S = SCREENS.find(x => x.name === name); await check(S);
@@ -85,6 +88,10 @@ async function walk(css) {
     say((await tap('#gon')) && !(await p.evaluate(() => document.getElementById('genome').classList.contains('on'))), 'test_L037: «Продолжить» из раздела — сразу в игру, одним касанием');
     await p.waitForTimeout(400); say(await p.evaluate(t => zaplyvWorld().stats.time > t, t0), 'test_L037: после «Продолжить» тот же заплыв идёт дальше');
   } else say(false, 'test_L037: кнопки паузы не видно');
+  // С экрана гибели «Кто это · … в Альманахе» — сразу карточка убийцы, «‹ Альманах» внизу ведёт на полку (прогон 0.68: вела в общий список)
+  await p.evaluate(() => { const w = zaplyvWorld(); w.genes.spore = false; w.stats.killer = 'amoeba'; w.me.length = 0; }); await p.waitForTimeout(1500);
+  if (await tap('#cab')) { await p.waitForTimeout(500); say(await p.evaluate(() => !document.getElementById('kcard').hidden && document.getElementById('kname').textContent === 'Амёба') && (await box('#back'))?.text === '‹ Альманах', 'test_L037: с экрана гибели Альманах открывает карточку того, кто съел, «‹ Альманах» — на полку'); }
+  else say(false, 'test_L037: на экране гибели нет кнопки Альманаха');
   say(!errs.length, 'ошибок страницы нет' + (errs.length ? ': ' + errs.join('; ') : ''));
   await p.close(); return bad;
 }

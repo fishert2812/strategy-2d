@@ -6,6 +6,7 @@ import * as THREE from './three.module.min.js';
 import { World, radius } from './sim.js';
 import * as mut from './mutacii.js';
 import * as rost from './rost.js';
+import * as evo from './evo.js'; // режим «Эволюция»: пока только по адресу ?rezhim=evo, плитка в меню — когда все умения нарисованы
 import { Stick } from './controls.js';
 import { follow } from './soft.js';
 import { look } from './look.js';
@@ -26,7 +27,7 @@ const W = 720; // ширина экрана в единицах игры
 const canvas = document.getElementById('c');
 const gl = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' });
 // Плотность кадра (Роман 25.11: «мутнота», ночью: «расплывчатое»): на iPhone сразу полная — 3 точки на точку экрана. Если телефон её не тянет
-// (средний кадр за cfg.dpr_check кадров дольше cfg.dpr_slow мс), один раз и насовсем на этот заход откатываемся до cfg.dpr_max (L047).
+// (средний кадр за cfg.dpr_check кадров дольше cfg.dpr_slow мс), один раз и насовсем на этот заход откатываемся до cfg.dpr_max (L052).
 let dprNow = Math.min(devicePixelRatio, cfg.dpr_full); gl.setPixelRatio(dprNow);
 let H = W;
 const cam = new THREE.OrthographicCamera(0, W, 0, W, -1, 1);
@@ -215,7 +216,9 @@ const MODES = {
   night: { go: 'Начать ночь', line: 'Тысяча поколений за полминуты. Ставишь одну опасность' },
   sel: { lock: 'Пройди ночь рода — и сможешь растить свои породы' },
   rost: { go: 'Расти', line: 'Клетка не делится, а растёт. Чем крупнее, тем больше еды и тем меньше пастей' },
+  evo: { go: 'Расти и меняйся', line: 'Растёшь без предела, на каждом росте новая способность' },
   mut: { go: 'Плыть с мутациями', line: 'Та же капля, но дочки и соседки приносят новые мутации' },
+  golod: { go: 'Плыть в голод', line: 'Без еды клетка худеет и гибнет. Дочки учат копить запас и голодать дольше' },
   hunt: { lock: 'Погибни от красной запятой трижды — и сыграешь за неё' },
   deep: { lock: 'Доплыви до ила — и увидишь, что было в капле миллиард лет назад' },
   dry: { lock: 'Скоро: выжить, когда воды почти не осталось' },
@@ -319,7 +322,7 @@ const KAB = await (await fetch('almanah.json')).json();
 const GENY = await fetch('kniga/teksty_genov.json').then(r => r.ok ? r.json() : {}).catch(() => ({})); // гены: имена и тексты книги
 mut.addGenes(cfg); mut.names(cfg, GENY); // новые мутации: имена из книги
 const SVYAZI = await fetch('kniga/kto_s_kem.json').then(r => r.ok ? r.json() : {}).catch(() => ({})); // кто кого ест — связи карточек Альманаха
-const TEKSTY = await fetch('kniga/teksty_sushchestv.json').then(r => r.ok ? r.json() : {}).then(j => j.sushchestva || {}).catch(() => ({})); // тексты книги
+const KNIGA = await fetch('kniga/teksty_sushchestv.json').then(r => r.ok ? r.json() : {}).catch(() => ({})), TEKSTY = KNIGA.sushchestva || {}, PODPISI = KNIGA.podpisi || {}; // тексты книги
 // Снимок модели: на миг подменяем мир студией с одним существом в середине кадра, рисуем тем же paint и вырезаем середину.
 const LISTS = { me: 'me', phage: 'phages', bdello: 'bdellos', amoeba: 'amoebas', slipper: 'slippers', bell: 'bells', roti: 'rotis',
   pseudo: 'pseudos', strain: 'pseudos', donor: 'donors', coccus: 'prey', plant: 'plants', crumb: 'crumbs' };
@@ -394,19 +397,19 @@ function geneShot(g, NW, NH, crop = 0) {
 }
 const geneColor = g => { for (const a of genomeData.arcs) if (a.slots.some(x => x.id === g)) return a.color; const p = genomeData.plasmids.find(x => x.id === g); return p ? p.color : '#7cc8ff'; }; // рамка значка — цвет группы гена
 function icon(g) {
-  if (!icons.has(g)) { let url = ''; try { url = geneShot(g, 320, 320, 128); } catch (e) { url = ''; } icons.set(g, url); }
+  if (!icons.has(g)) { let url = ''; try { url = geneShot(g, 320, 320, 128); } catch (e) { url = ""; } icons.set(g, url); }
   return icons.get(g);
 }
 const idle = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 2000 }) : setTimeout(f, 300));
 setTimeout(function warm(i = 0) { const g = Object.keys(cfg.genes)[i]; if (!g) return; idle(() => { if (!paused && !ended) icon(g); setTimeout(() => warm(i + 1), 400); }); }, 6000); // значки заранее, по одному в свободную минуту: без рывка при первом гене и под пальцем
-const geneBook = g => Object.values(GENY.geny || {}).find(q => q.klyuch === g) || {}, geneName = g => geneBook(g).imya || g; // имя и тексты гена — только из книги
+const geneBook = g => Object.values(GENY.geny || {}).find(q => q.klyuch === g) || Object.values(GENY.geny || {}).find(q => q.plan === g) || {}, /* plan — умение ещё строится (скрытый режим «Эволюция») */ geneName = g => geneBook(g).imya || g; // имя и тексты гена — только из книги
 genomeData.book = GENY.geny || {};
 GENY.gruppa = Object.fromEntries([...genomeData.arcs.flatMap(a => a.slots.map(x => [x.id, a.name])), ...genomeData.plasmids.map(x => [x.id, 'Чужие'])].filter(x => x[0])); // группа гена — дуга кольца
-const kab = almanahScreen({ K: KAB, cards, T: TEKSTY, G: GENY, S: SVYAZI, met, snap, onNav: () => { if (curTab === 'alm') $('gback').textContent = '‹ ' + (kab.where() || 'Пауза'); }, onSwim: () => { if (ended || $('menu').classList.contains('on')) start(); else if (paused) genome.close(); } });
+const kab = almanahScreen({ K: KAB, cards, T: TEKSTY, P: PODPISI, G: GENY, S: SVYAZI, met, snap, onNav: () => { if (curTab === 'alm') $('gback').textContent = '‹ ' + (kab.where() || 'Пауза'); }, onSwim: () => { if (ended || $('menu').classList.contains('on')) start(); else if (paused) genome.close(); } });
 const cabLabel = () => { $('cab').textContent = kab.label(); };
 cabLabel();
 const knowGenes = () => { let add = false; for (const g in world.genes) if (!met.has('gene:' + g)) { met.add('gene:' + g); add = true; } if (add) { saveMet(); cabLabel(); } }; // ген, который у тебя был, — запись в Альманахе
-$('cab').onclick = () => { knowGenes(); kab.open(); };
+$('cab').onclick = () => { knowGenes(); kab.open(); const kk = world.stats.killer; if (ended && kk && KAB.items[kk] && kk !== 'me') { met.add(kk); kab.openCard(kk); } }; // с гибели — сразу карточка того, кто съел; «‹ Альманах» внизу ведёт на полку
 let toastT = 0;
 // Пауза с геномом: мир замирает, твоя клетка крупно в середине кольца ДНК.
 let paused = false;
@@ -445,7 +448,19 @@ function hubFill() { // первый уровень паузы: что в каж
   $('psound').textContent = ROD.quiet ? 'Звук выключен' : 'Звук включён';
   const n = $('pnew'); n.sure = false; n.classList.remove('sure'); n.textContent = 'Новый заплыв';
 }
-function openTab() { tab('hub'); }
+// Значки строк паузы — живые снимки разделов (Роман 25.11: «значок генома можно найти красивый»): твоё кольцо ДНК со включёнными генами
+// вокруг твоей клетки, последний встреченный в Альманахе, разрез пруда с отметками. Меняются вместе с игрой.
+function hubIcons() {
+  const [gi, ai, mi] = $('phub').querySelectorAll('.pico'), S = 104, cv = document.createElement('canvas'); cv.width = cv.height = S; const x = cv.getContext('2d');
+  const own = genomeData.arcs.flatMap(a => a.slots.map(sl => [sl, a.color])), step = Math.PI * 2 / own.length, me = new Image();
+  me.onload = () => { x.fillStyle = '#061018'; x.fillRect(0, 0, S, S); x.save(); x.beginPath(); x.arc(S / 2, S / 2, 31, 0, 7); x.clip(); x.drawImage(me, S / 2 - 46, S / 2 - 46, 92, 92); x.restore();
+    x.lineWidth = 11; own.forEach(([sl, c], i) => { const on = sl.id && world.genes[sl.id]; x.strokeStyle = c; x.globalAlpha = on ? 1 : 0.22; x.beginPath(); x.arc(S / 2, S / 2, 42, -Math.PI / 2 + i * step + 0.05, -Math.PI / 2 + (i + 1) * step - 0.05); x.stroke(); });
+    x.globalAlpha = 1; gi.src = cv.toDataURL(); };
+  me.src = snap('me', KAB.items.me);
+  const last = [...met].reverse().find(k => KAB.items[k] && k !== 'me') || 'me'; ai.src = snap(last, KAB.items[last]);
+  const mc = document.createElement('canvas'); mc.width = mc.height = 320; karta.draw(mc.getContext('2d'), 320, 320, { P: cfg.pond, seen: new Set(KARTA.seen), marks: KARTA.marks, icons: {}, me: null, t: 9, hot: -1 }); mi.src = mc.toDataURL();
+}
+function openTab() { tab('hub'); try { hubIcons(); } catch (e) {} }
 function leaveTabs() { const C = $('cabinet'); if (C.classList.contains('inpause')) { kab.close(); kab.back = null; C.classList.remove('inpause'); C.style.top = C.style.bottom = ''; } curTab = null; }
 for (const b of $('phub').querySelectorAll('.prow')) b.onclick = () => tab(b.dataset.t);
 $('gback').onclick = () => { if (curTab === 'alm' && kab.where()) kab.goBack(); else tab('hub'); }; // в Альманахе «назад» идёт по шагам: карточка → прошлая карточка → полка → пауза
@@ -610,8 +625,8 @@ function meet(k) { // первая встреча в заплыве: имя и �
 function say(text, ms, gene) { $('toast').textContent = text; if (gene) { const im = new Image(); im.src = icon(gene); im.className = 'ticon'; im.alt = ''; im.style.borderColor = geneColor(gene); $('toast').prepend(im); } $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => $('toast').classList.remove('on'), ms); }
 const told = new Set(); // подсказка — один раз и только в момент, когда она нужна
 function tell(k, text) { if (told.has(k)) return; told.add(k); say(text, 2600); }
-start();
-if (ROD.visits || ROD.deaths) menuOpen(); // со второго запуска игра открывается меню режимов (Роман: «почему нет меню выбора режима»); самый первый — сразу заплыв, без непонятных слов (дизайнер)
+start(null, new URLSearchParams(location.search).get('rezhim') === 'evo' ? 'evo' : undefined); // скрытый режим «Эволюция»
+if ((ROD.visits || ROD.deaths) && !evo.on(world)) menuOpen(); // со второго запуска игра открывается меню режимов (Роман: «почему нет меню выбора режима»); самый первый — сразу заплыв, без непонятных слов (дизайнер)
 ROD.visits = (ROD.visits || 0) + 1; saveRod();
 
 const toWorld = (sx, sy) => ({ x: (sx - W / 2) / view.z + view.x, y: (sy - H / 2) / view.z + view.y });
@@ -640,6 +655,8 @@ canvas.addEventListener('pointercancel', up);
 
 function ask() {
   if ($('genes').classList.contains('on')) return;
+  const h = $('genes').querySelector('h1'), hp = $('genes').querySelector('p'); h.dataset.d ??= h.textContent; hp.dataset.d ??= hp.textContent; // в «Эволюции» выбор на росте, а не из двух дочек
+  h.textContent = evo.on(world) ? evo.E.zagolovok : h.dataset.d; hp.textContent = evo.on(world) ? evo.E.podskazka : hp.dataset.d;
   const box = $('cards'); box.innerHTML = ''; $('genes').querySelectorAll('.kid').forEach(e => e.remove());
   kids = world.choice.map((g, i) => ({ g, x: 0, y: 0, vx: 0, vy: 0, m: 1.7, a: -Math.PI / 2, id: 900 + i, sick: -1 })); // две дочки крупно: мутация видна на теле
   world.choice.forEach((g, i) => {
@@ -669,6 +686,7 @@ function events() {
     fx.on(k, x, y, size, y2); // вид — fx.js, здесь звук и подписи
     if (k === 'spore') { beep(200, 0.6, 0.06, 'sine', 0.5); say('Уснула! Спящую не берут — переждёшь беду', 2600); }
     if (k === 'rost') { beep(440, 0.5, 0.05, 'sine', 1.5); say(rost.text(size), 3200); world.rostT = world.stats.time; } // режим «Рост»: подросла, что теперь можно есть
+    if (k === 'gulp') { beep(200, 0.35, 0.06, 'sine', 0.6); } // проглотила живую клетку
     if (k === 'spit') { beep(260, 0.15, 0.04, 'sine', 0.7); tell('spit', 'Пасть тебя не взяла: ты больше её рта'); }
     if (k === 'sprout') { beep(520, 0.3, 0.05, 'sine', 2); }
     if (k === 'gene') { beep(780, 0.3, 0.05, 'sine', 1.6); say('Ген от сородича: ' + geneName(size) + ' — ' + (geneBook(size).daet || ''), 2600, size); addMark({ kind: 'gene', x, y, who: 'gene:' + size }); } // конъюгация
@@ -678,7 +696,7 @@ function events() {
     if (k === 'eat') { const n = performance.now(); if (n - lastEat > 60) { beep(300 + Math.random() * 200, 0.09, 0.04); lastEat = n; } }
     if (k === 'leave') { tell('leave', 'Дочка уплыла жить сама — мутации копятся дальше'); }
     if (k === 'meet') meet(x);
-    if (k === 'stick') { beep(520, 0.06, 0.04, 'square'); } // прилип фаг: резко развернись — стряхнёшь
+    if (k === 'stick') { beep(520, 0.06, 0.04, 'square'); tell('stick', 'Сел вирус! Резко развернись — стряхнёшь, пока не впрыснул'); } // прилип фаг: сказать сразу, а не на экране гибели (L042)
     if (k === 'shake') { beep(700, 0.07, 0.03); }
     if (k === 'learn') { beep(620, 0.4, 0.05, 'sine', 1.4); say('Пережила фага! Его кусок — новая полоска CRISPR: теперь T4 не страшен', 3000); }
     if (k === 'snap') { beep(1200, 0.06, 0.04, 'square', 0.3); } // сувойка сжалась пружиной
@@ -688,7 +706,9 @@ function events() {
     if (k === 'pop') { beep(260, 0.25, 0.06, 'triangle', 0.6); } // чужая клетка лопнула
     if (k === 'pinch') { beep(1400, 0.05, 0.03, 'square', 0.6); tell('pinch', 'Кокк щиплет своим ядом — отплыви'); }
     if (k === 'sick') { beep(180, 0.3, 0.05, 'sawtooth', 0.7); }
-    if (k === 'burst' || k === 'eaten') { shake = 0.35; beep(110, 0.45, 0.09, 'triangle', 0.5); }
+    if (k === 'burst' || k === 'eaten') { shake = 0.35; beep(110, 0.45, 0.09, 'triangle', 0.5);
+      const [sx, sy] = scr(x, y), who = k === 'burst' ? 'phage' : size; // погибла за краем экрана — говорим, кто её взял (урок L039)
+      if (world.me.length && !(sx > 0 && sx < W && sy > 0 && sy < H)) { probe.lostFar = (probe.lostFar || 0) + 1; say('Сестра погибла за краем экрана: ' + ((cards[who] && cards[who].name) || 'хищник'), 2600); } }
   }
   world.events.length = 0;
 }
@@ -705,6 +725,7 @@ function tick(dt) {
       if (world.stats.where && kk) addMark({ kind: 'death', x: world.stats.where[0], y: world.stats.where[1], who: kk }); keepSeen(); // отметка на карте: где погиб и кто убил (Э19)
       $('who').textContent = t.ubil || k.who; $('cname').textContent = t.imya || k.name; $('ctext').textContent = t.kto || k.text;
       $('cfact').textContent = t.priroda || k.fact; $('ctip').textContent = t.sovet || k.tip || '';
+      if (kk && KAB.items[kk] && kk !== 'me') $('cab').textContent = 'Кто это · ' + (t.imya || k.name) + ' в Альманахе'; else cabLabel(); // прогон 0.68: «Альманах» с гибели вёл в общий список, а не к убийце
       $('ckill').src = KAB.items[kk] ? snap(kk, KAB.items[kk]) : ''; $('ckill').hidden = !KAB.items[kk];
       $('stats').innerHTML = pathText(world);
       ROD.deaths = (ROD.deaths || 0) + 1; ROD.genes = Object.keys(world.genes).filter(g => world.genes[g]); ROD.most = world.stats.most; ROD.seed = world.seed; // род для ночи и меню
@@ -730,7 +751,8 @@ function tick(dt) {
   view.z += (Math.max(want, C.min_px / radius(lead.m)) - view.z) * Math.min(1, dt * 1.5); // клетка на экране не мельче min_px в радиусе
   const t = TINT[world.biome(view.x, view.y)];
   for (let i = 0; i < 3; i++) view.tint[i] += (t[i] - view.tint[i]) * Math.min(1, dt * 0.8);
-  $('count').textContent = 'клеток ' + world.me.length;
+  { const b = world.me.reduce((q, a) => a.m > q.m ? a : q, world.me[0] || { m: 1 }), sp = world.split(); // размер числом: длина палочки в микрометрах (260 единиц — 10 мкм)
+    const um = 2 * 8.5 * Math.pow(b.m, 0.3) * (1.6 + Math.min(b.m, sp) / sp) / 26; $('count').textContent = 'клеток ' + world.me.length + ' · ' + um.toFixed(1).replace('.', ',') + ' мкм'; }
   $('eaten').textContent = world.rush > 0.05 ? 'рост ×' + (1 + world.rush).toFixed(1) : 'съедено ' + world.stats.eaten; // серия кусков подряд — рост быстрее
   if (world.readyToSplit() && !world.me.some(a => a.grab || a.held > 0)) tell('split', 'Выросла! Коснись — поделишься. Или подожди');
 }
@@ -753,9 +775,14 @@ function paint(time) {
     for (let i = 0; i <= n; i++) {
       const u = (i / n - 0.5) * g.len, v = Math.sin(u / g.len * 6.283 + g.id) * g.w * 0.8 + Math.sin(time * 0.4 + i * 0.3) * 2;
       const px = x + (ca * u - sa * v) * z, py = y + (sa * u + ca * v) * z, edge = 1 - Math.abs(i / n - 0.5) * 2;
-      glow.put(px, py, g.w * z * (0.7 + 0.5 * edge), 0.55, 0.8, 0.95, 0.045 * Math.min(1, edge * 3));
+      const S = cfg.slime_look, fade = Math.min(1, edge * 3); // гель прозрачный: внутри едва заметен, видна только граница — тонкая светлая кромка, а не пелена (Роман 25.11: «мутнота… фильтр»)
+      glow.put(px, py, g.w * z * S.core, 0.55, 0.8, 0.95, S.core_a * fade);
+
       if (i % 3 === 0) ink.put(px + Math.sin(i * 7.1) * g.w * 0.5 * z, py + Math.cos(i * 5.3) * g.w * 0.5 * z, 0.8 * z + 0.3, 0.8, 0.9, 1, 0.35);
     }
+    const S = cfg.slime_look, m = Math.ceil(g.len * z / S.rim_step); // кромка геля сплошной тонкой линией с двух сторон
+    for (let j = 0; j <= m; j++) { const u = (j / m - 0.5) * g.len, v = Math.sin(u / g.len * 6.283 + g.id) * g.w * 0.8 + Math.sin(time * 0.4 + j / m * n * 0.3) * 2, f = Math.min(1, (1 - Math.abs(j / m - 0.5) * 2) * 3);
+      for (const sd of [-1, 1]) { const vv = v + sd * g.w * 0.5 * S.core; ink.put(x + (ca * u - sa * vv) * z, y + (sa * u + ca * vv) * z, S.rim * z + 0.3, 0.75, 0.92, 1, S.rim_a * f); } }
   }
   { const Zc = cfg.zone, wn = world.warning(); // край зоны затягивания: тонкая сплошная линия (точки — язык еды, их не занимаем), еле видна всегда, ярче в полутора радиусах, разгорается только у ближайшей (L030)
     for (const zn of world.zones()) { const [wx, wy, R] = zn, [x, y] = scr(wx, wy), Rz = R * z; if (!on(x, y, Rz)) continue;
@@ -768,11 +795,16 @@ function paint(time) {
       for (const a of world.me) { if (Math.hypot(a.x - wx, a.y - wy) > R) continue; const [ax, ay] = scr(a.x, a.y); // тебя тянет: штрихи бегут от клетки к рту
         for (let k = 0; k < Zc.streak; k++) { const f = (time * 1.2 + k / Zc.streak) % 1;
           for (let i = 0; i < 6; i++) { const u = (f + i * 0.015) * 0.7; ink.put(ax + (x - ax) * u, ay + (y - ay) * u, 1.1 * z + 0.5, cr, cg, cb, Zc.warn * (1 - f) * (0.4 + i * 0.12)); } } } } }
+  const edgeArrow = (x, y, [cr, cg, cb], al, big = 1) => { // стрелка у края экрана, острием к тому, что за кадром
+    const [cx, cy] = scr(view.x, view.y), a = Math.atan2(y - cy, x - cx), ux = Math.cos(a), uy = Math.sin(a), m = 34;
+    const t = Math.min((ux > 0 ? W - m - cx : m - cx) / (ux || 1e-9), (uy > 0 ? H - m - cy : m - cy) / (uy || 1e-9)), px = cx + ux * t, py = cy + uy * t;
+    for (let i = 0; i < 12; i++) { const s = i * 1.6 * big; ink.put(px + ux * s * 1.4, py + uy * s * 1.4, 4 * big, cr, cg, cb, al); ink.put(px + ux * 18 * big - (ux + uy) * s * 0.75, py + uy * 18 * big - (uy - ux) * s * 0.75, 4 * big, cr, cg, cb, al); ink.put(px + ux * 18 * big - (ux - uy) * s * 0.75, py + uy * 18 * big - (uy + ux) * s * 0.75, 4 * big, cr, cg, cb, al); } };
   { const wn = world.warning(); if (wn && wn.level > 0) { const [x, y] = scr(wn.zone[0], wn.zone[1]); // источник тревоги за кадром: стрелка у края экрана, острием к нему (L030)
-    if (!on(x, y, wn.zone[2] * z - 12)) { const [cx, cy] = scr(world.center().x, world.center().y), a = Math.atan2(y - cy, x - cx), ux = Math.cos(a), uy = Math.sin(a), m = 34;
-      const t = Math.min((ux > 0 ? W - m - cx : m - cx) / (ux || 1e-9), (uy > 0 ? H - m - cy : m - cy) / (uy || 1e-9)), px = cx + ux * t, py = cy + uy * t, [cr, cg, cb] = cfg.zone.color, al = 0.45 + 0.4 * wn.level;
-      probe.edge = (probe.edge || 0) + 1;
-      for (let i = 0; i < 12; i++) { const s = i * 1.6; ink.put(px + ux * s * 1.4, py + uy * s * 1.4, 4, cr, cg, cb, al); ink.put(px + ux * 18 - (ux + uy) * s * 0.75, py + uy * 18 - (uy - ux) * s * 0.75, 4, cr, cg, cb, al); ink.put(px + ux * 18 - (ux - uy) * s * 0.75, py + uy * 18 - (uy + ux) * s * 0.75, 4, cr, cg, cb, al); } } } }
+    if (!on(x, y, wn.zone[2] * z - 12)) { probe.edge = (probe.edge || 0) + 1; edgeArrow(x, y, cfg.zone.color, 0.45 + 0.4 * wn.level); } } }
+  // Сестра за кадром (Роман 25.11: «они просто уплывают куда-то, исчезают»): камера не ждёт схваченную, заражённую и отставшую,
+  // поэтому у края — маленькая стрелка к ней; в беде стрелка красная и крупнее (урок L039).
+  probe.sisEdge = 0; for (const a of world.me) { const [x, y] = scr(a.x, a.y); if (on(x, y, -8)) continue; const bad = a.grab || a.held > 0 || a.sick >= 0;
+    probe.sisEdge++; edgeArrow(x, y, bad ? [1, 0.35, 0.3] : [CELL[0].r, CELL[0].g, CELL[0].b], bad ? 0.55 + 0.35 * Math.sin(time * 8) ** 2 : 0.45, bad ? 0.8 : 0.55); }
   for (const p of world.slippers) { // туфелька: огромная клетка в ресничках, воронка-рот на боку, поток в рот виден
     const [x, y] = scr(p.x, p.y), L = cfg.slipper_len * z; if (!on(x, y, L)) continue;
     const ux = Math.cos(p.a), uy = Math.sin(p.a), w = L * 0.27;
@@ -793,10 +825,8 @@ function paint(time) {
   }
   for (const v of world.bells) { // сувойка: колокольчик на стебле-пружине, венчик ресничек крутит вихрь
     const [x, y] = scr(v.x, v.y); if (!on(x, y, 200)) continue;
-    const [bx, by] = scr(...world.bell(v)), r = cfg.bell_r * z, dx = Math.cos(v.dir), dy = Math.sin(v.dir), Ls = Math.hypot(bx - x, by - y);
-    for (let k = 0; k <= 30; k++) { const f = k / 30, coil = v.shut > 0 ? Math.sin(f * 40) * 5 * z : Math.sin(f * 5 + time) * 2 * z;
-      ink.put(x + dx * Ls * f - dy * coil, y + dy * Ls * f + dx * coil, 0.9 * z + 0.4, 0.7, 0.85, 0.8, 0.6); }
-    bodies.sphere(bx, by, r, [0.75, 0.9, 0.88], [0.9, 1, 1], v.id, 0.7);
+    const r = cfg.bell_r * z, dx = Math.cos(v.dir), dy = Math.sin(v.dir), [bx, by, open] = vid.bell({ x, y, dir: v.dir, Ls: cfg.bell_stalk * z, r, shut: v.shut || 0, time, id: v.id, z, ink }); // стебель: сжатие в спираль и развёртка — vid.js
+    bodies.sphere(bx, by, r * (0.8 + 0.2 * open), [0.75, 0.9, 0.88], [0.9, 1, 1], v.id, 0.7); // свёрнутый бокал сжат в шарик
     if (v.shut > 0) continue;
     for (let k = 0; k < 20; k++) { const t = k / 20 * 6.283 + time * 6, cx = bx + dx * r * 0.9, cy = by + dy * r * 0.9;
       ink.put(cx + Math.cos(t) * r * 0.8, cy + Math.sin(t) * r * 0.35 * Math.abs(dx) + Math.sin(t) * r * 0.35, 0.9 * z + 0.3, 0.85, 1, 0.95, 0.6); }
@@ -817,16 +847,7 @@ function paint(time) {
     bodies.shell(tx, ty, a, L * 0.24, w, skin, q.id, Math.sin(time * 0.9 + q.id) * w * 0.15); // туловище
     bodies.sphere(tx - vx * L * 0.08, ty - vy * L * 0.08, w * 0.5, [0.85, 0.65, 0.3], [1, 0.85, 0.5], q.id, 0.6); // желудок: съеденное
     for (let k = 0; k < 5; k++) ink.put(tx - vx * L * (0.04 + k * 0.03) + vy * Math.sin(k * 2.3) * w * 0.3, ty - vy * L * (0.04 + k * 0.03) - vx * Math.sin(k * 2.3) * w * 0.3, 1.3 * z + 0.4, 0.4, 0.9, 0.3, 0.6); // зелёные съеденные водоросли
-    const chew = Math.abs(Math.sin(time * (4 + 4 * pw) + q.id)) * w * 0.14, jx = tx + vx * L * 0.1, jy = ty + vy * L * 0.1; // челюсти-мастакс
-    for (const s of [-1, 1]) bodies.sphere(jx - vy * s * (w * 0.1 + chew), jy + vx * s * (w * 0.1 + chew), w * 0.17, [0.95, 0.75, 0.45], [1, 0.95, 0.7], q.id + s, 0.8);
-    const hx = tx + vx * L * 0.22, hy = ty + vy * L * 0.22;
-    for (const s of [-1, 1]) { // два колеса: реснички бегут по кругу навстречу друг другу, быстрее на полной силе
-      const cx = hx - vy * s * w * 0.55, cy = hy + vx * s * w * 0.55, R = w * 0.55;
-      glow.put(cx, cy, R * 1.8, 0.75, 0.92, 1, 0.1 + 0.15 * pw);
-      for (let k = 0; k < 22; k++) { const t = k / 22 * 6.283 + s * time * (3 + 14 * pw);
-        ink.put(cx + Math.cos(t) * R, cy + Math.sin(t) * R, 1.1 * z + 0.4, 0.9, 1, 1, 0.45 + 0.45 * pw);
-        if (k % 2 === 0) ink.put(cx + Math.cos(t) * R * 1.25, cy + Math.sin(t) * R * 1.25, 0.8 * z + 0.3, 0.9, 1, 1, 0.25 + 0.35 * pw); }
-    }
+    vid.roti({ tx, ty, vx, vy, L, w, pw, time, id: q.id, z, glow, ink, bite: q.bite || 0 }); // венец, зубцы панциря, кишка и челюсти — vid.js
     const [mx, my] = scr(...world.head(q));
     for (let k = 0; k < 30; k++) { // поток в рот: крупинки прямо к голове, гуще и быстрее на полной силе
       const ph = time * (0.3 + 0.6 * pw) + k / 30, f = ph % 1, R = cfg.roti_r * z * (1 - f), t = q.a + ((k * 2.399 + Math.floor(ph) * 1.7) % 2.4 - 1.2);
@@ -897,6 +918,7 @@ function paint(time) {
       glow.put(x - ux * (w * 2.3 + f * w * 7) - uy * wv, y - uy * (w * 2.3 + f * w * 7) + ux * wv, 1.1 * Math.max(z, 0.7), 0.6, 1, 0.8, 0.55 * (1 - f * 0.5)); }
     if (q.cool > 0) glow.put(x, y, w * 3.5, 0.5, 1, 0.75, 0.25 * q.cool); // только что стреляла
   }
+  for (const e of world.events) if (e[0] === 'split') vid.splitAt(e[3], e[4]); // деление касанием случилось между шагами: рисуем его с первого же кадра, а не после шага
   fx.drawUnder({ scr, z, time, glow, ink }); mut.drawWorld({ w: world, scr, z, glow, ink }); // пузырьки-обманки
   for (const b of world.bdellos) { // бделловибрион: запятая вдвое мельче тебя, один толстый жгутик; на рывке — след
     const [x, y] = scr(b.x, b.y); if (!on(x, y) && !b.aim) continue; // целится из-за кадра — линия прицела всё равно видна
@@ -914,15 +936,7 @@ function paint(time) {
     const [x, y] = scr(m.x, m.y); if (!on(x, y, 320)) continue;
     const side = m.m < big * 0.8 ? 2 : 1, r = radius(m.m) * z, sp = Math.hypot(m.vx, m.vy);
     const head = sp > 3 ? Math.atan2(m.vy, m.vx) : m.id, hx = Math.cos(head), hy = Math.sin(head);
-    bodies.blobby(x, y, r * 0.95, head, sp > 3 ? 1 : 0.3, side === 2 ? BALL[2] : [1, 0.4, 0.12], side === 2 ? BRIM[2] : [1, 0.75, 0.35], m.id); // ложноножки — в шейдере
-    for (let k = 0; k < 26; k++) { // ток зёрен к ведущей ложноножке
-      const s = (time * 0.12 + k * 0.618) % 1, t = k * 2.39996 + Math.sin(time * 0.3 + k) * 0.4, d = r * 0.5 * ((k * 0.381) % 1);
-      ink.put(x + Math.cos(t) * d + hx * r * 0.4 * (s - 0.5), y + Math.sin(t) * d + hy * r * 0.4 * (s - 0.5), 1.4 * z + 0.6, 0.12, 0.04, 0.08, 0.4);
-    }
-    const nx = x - hx * r * 0.2 + hy * r * 0.12, ny = y - hy * r * 0.2 - hx * r * 0.12; // ядро с ядрышком
-    ink.put(nx, ny, r * 0.2, 0.3, 0.1, 0.15, 0.4); glow.put(nx, ny, r * 0.07, 1, 0.85, 0.9, 0.25);
-    const v = (time / 6 + m.id * 0.37) % 1; // сократительная вакуоль: набухает и выплёскивает
-    bubbles.put(x - hx * r * 0.45 - hy * r * 0.2, y - hy * r * 0.45 + hx * r * 0.2, r * 0.18 * Math.sqrt(v) + 1, 0.85, 0.95, 1, 0.3 * (1 - v * v * v));
+    vid.amoeba({ m, x, y, r, head, sp, side, time, z, glow, ink, bubbles, col: side === 2 ? BALL[2] : null });
   }
   const [cr, cg, cb] = [CELL[0].r, CELL[0].g, CELL[0].b], fc = cfg.flag.color;
   const b = genome.blink, lkAll = look(b && Math.sin(time * 9) > 0 ? { ...world.genes, [b]: !world.genes[b] } : world.genes, cfg.look, world.spacers.size); // на паузе мигает часть клетки, которую меняет выбранный ген
@@ -936,16 +950,20 @@ function paint(time) {
     if (a.spore > 0) continue; // перёд ведёт, корма и пучок жгутиков идут по его следу
     const lk = a.g ? look({ ...world.genes, [a.g]: true }, cfg.look, world.spacers.size) : lkAll, w = 8.5 * Math.pow(a.m, rost.vid(world)) * z * (a.g ? 1.9 : 1), sp = Math.hypot(a.vx, a.vy);
     const run = sp > 25 && !a.tumble, wob = run ? 0.035 : 0.015; // встречное вращение тела к пучку: 3 раза в секунду
-    const half = a.held > 0 ? w * (1.05 + 0.6 * a.held / cfg.bdello_kill) : w * (1.6 + 1.0 * Math.min(a.m, cfg.split) / cfg.split), tailW = w * 7.5 / z; // хищник внутри — клетка округляется в шарик
+    const half = a.held > 0 ? w * (1.05 + 0.6 * a.held / cfg.bdello_kill) : w * (1.6 + 1.0 * Math.min(a.m, world.split()) / world.split()), tailW = w * 7.5 / z; // хищник внутри — клетка округляется в шарик
     const body = follow(a, half / z, tailW);
-    const [x0, y0] = scr(body.cx, body.cy), sag = body.sag * z;
-    const ang = body.ang + Math.sin(time * 18.8 + a.id) * wob, ax = Math.cos(ang), ay = Math.sin(ang);
+    const wm = w * Math.pow(2, rost.vid(world)); // мать: вдвое тяжелее, полудлина как у созревшей (см. half)
+    const bo = vid.birth(a, time, world.me, body.ang, half / z, w / z, body.cx, body.cy, wm * 2.6 / z, wm / z); // деление: мать стягивается, дочки расходятся торец к торцу (vid.json split)
+    if (bo) { probe.birth = time; if (bo.hide) continue; } // обход пальцем (test_L050) видит, что рождение рисуется; вторая дочка ещё часть матери
+    const [x0, y0] = scr(bo ? bo.x : body.cx, bo ? bo.y : body.cy), sag = body.sag * z * (bo ? bo.sag : 1), hl = bo ? half * bo.fl : half, wl = bo ? w * bo.fw : w;
+    const ang = (bo ? bo.ang : body.ang) + Math.sin(time * 18.8 + a.id) * wob, ax = Math.cos(ang), ay = Math.sin(ang);
     const x = x0 - ay * sag * 0.675, y = y0 + ax * sag * 0.675; // центр модели так, чтобы концы легли на хорду
     const along = (s, o = 0) => [x + ax * s - ay * o, y + ay * s + ax * o];
     const arc = u => -sag * 0.675 + sag * (1 - Math.min(1, (u * z / half) ** 2)); // прогиб в точке u (u — в единицах мира от центра)
-    const pinch = a.m >= cfg.split && !rost.on(world) ? 0.62 + 0.12 * Math.sin(time * 6) : 0; // перетяжка: вот-вот две
-    bodies.rod(x, y, ang, half, w, pinch, [CELL[0].r, CELL[0].g, CELL[0].b], [CORE[0].r, CORE[0].g, CORE[0].b], a.id, -sag);
+    const pinch = bo ? bo.pinch : (a.m >= world.split() && !rost.on(world) ? 0.62 + 0.12 * Math.sin(time * 6) : 0); // перетяжка: вот-вот две
+    bodies.rod(x, y, ang, hl, wl, pinch, [CELL[0].r, CELL[0].g, CELL[0].b], [CORE[0].r, CORE[0].g, CORE[0].b], a.id, -sag);
     rost.draw({ w: world, a, x, y, ang, half, wd: w, z, glow, time, scr }); // контур следующего роста, струйки от комка
+    evo.draw({ w: world, a, x, y, z, glow, scr }); // «Эволюция»: нити глотания
     if (a.grab) glow.put(x, y, half * 1.8, 1, 0.25, 0.15, 0.22 + 0.15 * Math.sin(time * 14)); // схвачена: бьётся в пасти
     if (world.rush > 0.05) glow.put(x, y, half * (1.4 + world.rush * 0.6), 1, 0.75, 0.35, 0.08 + 0.1 * world.rush); // разгон роста: рибосомы работают на всю
     if (pinch) for (let k = 0; k < 18; k++) { const t = k * 0.349, R = half * (1.35 + 0.08 * Math.sin(time * 5)); glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 2.2, 1, 1, 1, 0.4); }
@@ -977,11 +995,7 @@ function paint(time) {
     bodies.phage(x, y, d, s);
     if (g.host === 'me') glow.put(...P(-2.1 * s, 0), s * 1.8, ...cfg.danger.phage, g.on ? 0.3 + 0.2 * Math.sin(time * 14) : 0.12); // белёсое свечение: опасен тебе; красный — только у хищной запятой (урок L022)
     pink(P(0.85 * s, -0.35 * s), s * 0.22); pink(P(0.85 * s, 0.35 * s), s * 0.22);
-    for (let k = 0; k < 6; k++) {
-      const sd = k < 3 ? -1 : 1, i = k % 3, wig = Math.sin(time * 9 + k + g.x) * s * 0.15;
-      const kx = 0.85 * s + s * (0.35 + 0.15 * i), ky = sd * s * (0.7 + 0.4 * i), ex = 0.85 * s + s * (1.4 + 0.25 * i) + wig, ey = sd * s * (0.55 + 0.45 * i);
-      for (let t = 0.33; t <= 1; t += 0.33) { pink(P(0.85 * s + (kx - 0.85 * s) * t, sd * 0.35 * s + (ky - sd * 0.35 * s) * t), s * 0.11, 0.8); pink(P(kx + (ex - kx) * t, ky + (ey - ky) * t), s * 0.11, 0.8); }
-    }
+    vid.phageLegs({ P, s, on: !!g.on, key: g, seed: g.x, time, ink }); // шесть лап: плывёт — поджаты, сел — веером на плёнке, хвост поперёк борта (vid.js)
   }
   fx.drawOver({ scr, z, time, glow, ink });
   if (down) { // джойстик под большим пальцем: кольцо в точке касания и шарик за пальцем
@@ -1013,7 +1027,10 @@ function paint(time) {
     for (const s of [-1, 0, 1]) near.put(x + Math.cos(a) * s * L, y + Math.sin(a) * s * L, r, 0.35 + view.tint[0] * 3, 0.6 + view.tint[1] * 3, 0.68 + view.tint[2] * 3, al);
   }
   bodies.end(time);
-  $('scale').style.width = (260 * z * innerWidth / W) + 'px';
+  { const sp = world.split(), top = world.me.reduce((b, a) => a.m > b.m ? a : b, world.me[0] || { m: 0 }); // полоса: самая близкая к делению сестра, от половинки до деления
+    const g = Math.max(0, Math.min(1, (top.m - sp / 2) / (sp / 2))); $('growfill').style.width = (g * 100).toFixed(1) + '%'; probe.grow = g;
+    const ill = world.me.filter(a => a.sick >= 0), k = ill.length ? Math.min(...ill.map(a => a.sick)) / cfg.sick : 0; // заражена — красная засечка на конце, тает к разрыву
+    const n = $('sicknotch'); n.style.width = (ill.length ? 4 + 18 * k : 0) + '%'; n.style.left = Math.max(0, g * 100 - (ill.length ? 4 + 18 * k : 0)).toFixed(1) + '%'; probe.sickNotch = ill.length ? k : -1; }
   U.tint.value.set(...view.tint);
   U.drift.value.set(view.x * view.z / W, -view.y * view.z / W); // в ширинах экрана: слои сзади сдвигаются медленнее
   for (const d of [far, glow, ink, near, dust, bubbles, wake]) d.done();
@@ -1032,6 +1049,7 @@ function render(t, after) {
 }
 // Замер для проверки: кадры, худший и средний кадр за последние 5 с, число клеток и точек.
 window.zaplyvWorld = () => world; // для проверок и кадров
+window.zaplyvScr = (x, y) => { const [sx, sy] = scr(x, y); return [sx * innerWidth / W, sy * innerHeight / H]; }; // для проверок: где на экране точка мира (в точках CSS)
 const probe = window.zaplyvProbe = { dpr0: dprNow, warn: {}, frames: 0, worst: 0, avg: 0, js: 0, jsWorst: 0, cells: 0, dots: 0, errors: 0 };
 addEventListener('error', () => probe.errors++);
 let last = performance.now(), acc = [], js = [];

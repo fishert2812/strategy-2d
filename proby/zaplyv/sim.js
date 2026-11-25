@@ -9,6 +9,7 @@
 import * as mut from './mutacii.js'; // новые мутации: свой файл, здесь только узкие крюки
 import { zhizn } from './zhizn.js'; // соседи живут сами: движок по паспорту существ (zhizn.json)
 import * as rost from './rost.js'; // режим «Рост»: клетка не делится, а растёт (rost.json)
+import * as evo from './evo.js'; // режим «Эволюция»: рост «Роста» и выбор способности на каждом росте (evo.json)
 
 export const radius = m => 13 * Math.sqrt(m);
 
@@ -143,9 +144,11 @@ export class World {
       if (c.m < this.split() || c.sick >= 0 || c.held > 0 || c.grab || c.spore > 0) continue;
       c.m /= 2; c.gen = (c.gen || 0) + 1; this.stats.gen = Math.max(this.stats.gen, c.gen);
       const ax = Math.cos(c.a), ay = Math.sin(c.a), r = radius(c.m);
-      born.push({ x: c.x - ax * r * 1.2, y: c.y - ay * r * 1.2, vx: c.vx - ax * 60, vy: c.vy - ay * 60, m: c.m, a: c.a, sick: -1, gen: c.gen, id: ++this.ids });
-      c.x += ax * r * 0.6; c.y += ay * r * 0.6;
-      this.events.push(['split', c.x, c.y]);
+      const D = this.cfg.split_apart * r / 2; // дочки торец к торцу: центры на полдлины палочки от точки деления, иначе палочки наложены и колония складывает их бок о бок
+      const kid = { x: c.x - ax * D, y: c.y - ay * D, vx: c.vx - ax * 60, vy: c.vy - ay * 60, m: c.m, a: c.a, sick: -1, gen: c.gen, id: ++this.ids }; born.push(kid);
+      const spin = c.spin ?? (c.id % 2 ? 1 : -1); c.spin = kid.spin = spin; kid.drift = c.drift; // сёстры дрейфуют вместе и поворачивают в одну сторону: цепочка, а не «две таблетки» бок о бок
+      c.x += ax * D; c.y += ay * D;
+      this.events.push(['split', c.x, c.y, c.id, kid.id]); // вид деления знает пару: мать и дочка (vid.birth)
     }
     const room = leave ? 0 : Math.max(0, this.cfg.me_max - this.me.length);
     for (const b of born.slice(room)) { this.away.push({ ...b, t: 0 }); this.events.push(['leave', b.x, b.y]); }
@@ -182,6 +185,9 @@ export class World {
       else if (target) {
         const tx = target.x - a.x, ty = target.y - a.y, l = len(tx, ty) || 1;
         want = Math.atan2(ty, tx); s = speed / rost.hod(this, a) * Math.min(1, l / 60);
+      } else if (this.genes.sense) { // палец убран, а клетка чует сахар: сама плывёт к ближайшей еде, спокойнее, чем под пальцем (книга: «убери палец — поплывёт сама»)
+        let best = null, bd = c.sense_r; for (const f of this.food) { const d = Math.hypot(f.x - a.x, f.y - a.y); if (d < bd) { bd = d; best = f; } }
+        if (best) { want = Math.atan2(best.y - a.y, best.x - a.x); s = speed / rost.hod(this, a) * c.sense_idle; }
       }
       if (want !== null && this.genes.sense) { // хемотаксис: клетка сама подруливает к ближайшей еде впереди, еда не движется
         let best = null, bd = c.sense_r;
@@ -197,7 +203,7 @@ export class World {
           a.tumble = mut.snap(this, a) ? 0 : mut.tumbleTime(this, sw.tumble_time); // разворот рывком вместо кувырка (режим «Мутации»); кувырок стряхивает фага, который ещё не впрыснул
           if (a.grab) this.escape(a);
           if (a.held > c.bdello_kill - c.bdello_loose) for (const b of this.bdellos) if (b.on === a) { b.on = null; b.t = 0; a.held = 0; a.free = c.free; this.events.push(['shake', b.x, b.y]); } // прилип, но ещё не вошёл — стряхнёшь
-          for (const g of this.phages) if (g.on === a) { g.on = null; g.cool = 1.5; g.vx = -Math.cos(g.d) * 60; g.vy = -Math.sin(g.d) * 60; this.events.push(['shake', g.x, g.y]); }
+          for (const g of this.phages) if (g.on === a && c.inject - g.t < c.phage_shake) { g.on = null; g.cool = 1.5; g.vx = -Math.cos(g.d) * 60; g.vy = -Math.sin(g.d) * 60; this.events.push(['shake', g.x, g.y]); }
         }
         // поворот с разгоном и доводкой: скорость поворота меняется плавно (не больше spin_acc рад/с²)
         // и гаснет к цели — без скачков позы ни на дуге, ни в кувырке
@@ -208,7 +214,7 @@ export class World {
       } else { // палец отпущен: в воде клетка встаёт сразу (вязкость); её медленно сносит и поворачивает (~90° за 10 с)
         a.drift = (a.drift ?? r() * 6.283) + (r() - 0.5) * dt * 1.5;
         a.om = (a.om || 0) * Math.max(0, 1 - 6 * dt);
-        a.a += (a.id % 2 ? 0.16 : -0.16) * dt + a.om * dt;
+        a.a += (a.spin ?? (a.id % 2 ? 1 : -1)) * 0.16 * dt + a.om * dt;
       }
       const ux = Math.cos(a.a), uy = Math.sin(a.a);
       let fwd = a.vx * ux + a.vy * uy, side = -a.vx * uy + a.vy * ux;
@@ -244,7 +250,7 @@ export class World {
     this.life(dt);
     this.eat(dt);
     zhizn(this, dt, radius);
-    rost.step(this, dt, radius);
+    rost.step(this, dt, radius); evo.step(this, dt, radius);
     this.hunters(dt);
     this.hold(dt);
     this.rush = Math.max(0, this.rush - (this.stats.time - this.lastEat > c.rush_gap ? c.rush_fall * dt : 0));
@@ -366,7 +372,7 @@ export class World {
       for (const q of this.prey) { // кокк: долго висишь вплотную — выпускает бактериоцин, щиплет (замедление, не смерть)
         if (dist(a, q) > r + radius(q.m) * 0.6 + 4) continue;
         q.touch = (q.touch || 0) + dt;
-        if (q.touch > c.pinch_t) { q.touch = 0; if (!mut.shut(this)) { a.pinch = c.pinch; this.events.push(['pinch', q.x, q.y]); } } // закрытая дверь: яд не входит
+        if (q.touch > c.pinch_t) { q.touch = 0; if (!mut.shut(this, a, q)) { a.pinch = c.pinch; this.events.push(['pinch', q.x, q.y]); } } // закрытая дверь: яд не входит
       }
       for (const k of this.crumbs) if (rost.can(this, 'crumb') && dist(a, k) < r + radius(k.m) * 0.8) { // детрит растворяется медленно
         const bite = Math.min(k.m, rost.gryzt(this, a, 0.4, dt)); k.m -= bite; this.grow(a, bite);
@@ -567,7 +573,7 @@ export class World {
         const ground = this.biome(m.x, m.y) === 2 || this.plants.some(p => dist(p, m) < 160) || this.crumbs.some(k => dist(k, m) < 120);
         const v = c.amoeba * (ground ? 1 : c.amoeba_open);
         wx = (a.x - m.x) / d * v; wy = (a.y - m.y) / d * v;
-        if (d < radius(m.m) + radius(a.m) * 0.3 && !this.genes.capsule) { this.lose(a, m.x, m.y, 'amoeba'); m.m += a.m * 0.5; }
+        if (d < radius(m.m) + radius(a.m) * 0.3 && !this.genes.capsule) { this.lose(a, m.x, m.y, 'amoeba'); m.m += a.m * 0.5; mut.bite(this, m); }
         else if (d < radius(m.m) + radius(a.m) * 0.3 && !(m.slip > this.stats.time)) { m.slip = this.stats.time + 1; this.events.push(['slip', a.x, a.y]); } // капсула сработала: видно, что выскользнула // амёба обтекает целиком — из неё не вырваться, спасает капсула
       }
       const k = Math.min(1, dt);
@@ -586,7 +592,7 @@ export class World {
           g.gone = true;
           // CRISPR — память: знакомого фага режет без вреда. Незнакомого клетка переживает ценой сил и вписывает его кусок новой полоской (упрощение: в природе так выживают немногие).
           if (g.host === 'me' && this.genes.crispr) { if (this.spacers.has('T4')) this.events.push(['cut', g.x, g.y]); else { this.spacers.add('T4'); h.m = Math.max(0.6, h.m * c.crispr_cost); this.events.push(['learn', g.x, g.y]); } continue; }
-          if (h.sick === undefined || h.sick < 0) { h.sick = c.sick; if (g.host === 'me') this.events.push(['sick', h.x, h.y]); }
+          if (h.sick === undefined || h.sick < 0) { h.sick = c.sick; if (g.host === 'me') { this.events.push(['sick', h.x, h.y]); mut.landed(this, h); } } // сцепка: в плоту заболевает и соседняя
         }
         continue;
       }

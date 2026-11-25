@@ -46,12 +46,19 @@ ONLY=L019 case_ "test_L019: существо без места в Альмана
 case_ "test_L017: невидимый слой поверх кнопок «Заплыва»" 52_zaplyv_tap.sh red "sed -i 's|<div id=\"note\"|<div style=\"position:fixed;inset:0;z-index:99\"></div>&|' proby/zaplyv/index.html"
 case_ "test_L017: флажок молчит после касания" 52_zaplyv_tap.sh red "sed -i 's|n.classList.add(.on.);|/* нет отклика */|' proby/zaplyv/main.js"
 ONLY=L043 case_ "test_L043: опасный встречается молча" 52_zaplyv_tap.sh red "sed -i \"s/if (fresh || t.otnoshenie === 'opasen') say/if (fresh) say/\" $Z/main.js"
-ONLY=L047 case_ "test_L047: кадр снова не в полную плотность" 52_zaplyv_tap.sh red "sed -i 's/\"dpr_full\": 3,/\"dpr_full\": 2.5,/' $Z/data.json"
+ONLY=L046 case_ "test_L046: слизь снова мутной пеленой" 52_zaplyv_tap.sh red "sed -i 's/\"core\": 0.55, \"core_a\": 0.02/\"core\": 1.2, \"core_a\": 0.06/' $Z/data.json"
+ONLY=L042 case_ "test_L042: вирус сел молча" 52_zaplyv_tap.sh red "sed -i \"s/tell('stick', 'Сел вирус! Резко развернись — стряхнёшь, пока не впрыснул');//\" $Z/main.js"
+ONLY=L044 case_ "test_L044: Альманах молчит, что цвета — метки" 52_zaplyv_tap.sh red "sed -i 's/\$(.knote.).hidden = !S.note;/\$(\"knote\").hidden = true;/' $Z/almanah.js"
+ONLY=L050 case_ "test_L050: деление снова рывком (vid.birth не вызван)" 52_zaplyv_tap.sh red "sed -i 's/vid.birth(a, time, world.me)/({ d: [0, 0], pinch: 0 })/' $Z/main.js"
+ONLY=L045 case_ "test_L045: вирус снова слетает от любого поворота" 50_zaplyv.sh red "sed -i 's/ \&\& c.inject - g.t < c.phage_shake//' $Z/sim.js"
+ONLY=L052 case_ "test_L052: кадр снова не в полную плотность" 52_zaplyv_tap.sh red "sed -i 's/\"dpr_full\": 3,/\"dpr_full\": 2.5,/' $Z/data.json"
 ONLY=L021 case_ "test_L021: значки генов пропали" 52_zaplyv_tap.sh red "sed -i 's/^function icon(g) {/function icon(g) { return String();/' $Z/main.js"
 case_ "test_L035: слова не впечатаны в картинку" 52_zaplyv_tap.sh red "sed -i 's/lines.forEach((l, k) => g.fillText/lines.forEach((l, k) => String/; s/g.fillText(.⚑ . + head, pad, ih + pad + 22);//' $Z/main.js"
 case_ "test_L034: ✕ не убирает отметку" 52_zaplyv_tap.sh red "sed -i 's/marks.splice(i, 1); keepMarks();/keepMarks();/' $Z/main.js"
 case_ "test_L036: ночь пересоздаёт холст каждый кадр" 52_zaplyv_tap.sh red "sed -i 's/if (oc.width !== ow || oc.height !== oh) { oc.width = ow; oc.height = oh; }/oc.width = ow; oc.height = oh;/' $Z/main.js"
 case_ "test_L038: кадр в двойной плотности на экране тройной" 52_zaplyv_tap.sh red "sed -i 's/\"dpr_max\": 2.5/\"dpr_max\": 2/' $Z/data.json"
+case_ "test_L039: сестра за кадром без стрелки" 52_zaplyv_tap.sh red "sed -i 's/if (on(x, y, -8)) continue; const bad/continue; const bad/' $Z/main.js"
+case_ "test_L040: полоса роста стоит на месте" 52_zaplyv_tap.sh red "sed -i 's/(top.m - sp \/ 2) \/ (sp \/ 2)/1/' $Z/main.js"
 case_ "test_L031: лист гибели помнит прокрутку" 52_zaplyv_tap.sh red "sed -i 's/\$(.end.).scrollTop = 0; //' $Z/main.js"
 case_ "test_L025: кнопки гибели ниже края экрана" 52_zaplyv_tap.sh red "sed -i 's/flex-shrink: 0; position: sticky;/flex-shrink: 0;/' $Z/index.html"
 # L018 (расширен) и L024 «антибред»: черновая строка умения мимо книги, описание в data.json, слово мира без имени из Альманаха, умение без теста-обещания — красное.
@@ -63,6 +70,16 @@ ONLY=L024 case_ "test_L024: умение без теста-обещания" 50_
 # L032: амёба снова ждёт у спящей — проснувшуюся съедает
 ONLY=L032 case_ "test_L032: спора просыпается у амёбы" 50_zaplyv.sh red "sed -i 's/if (a \&\& a.spore > 0) { const d/if (false) { const d/; s/if (!this.amoebas.some(m => dist(m, a) < radius(m.m) + c.spore_safe)/if (true/' $Z/sim.js"
 ONLY=L032 case_ "test_L032: спящую снова держат запятые и колокольчик" 50_zaplyv.sh red "sed -i 's/a.free = Math.max(a.free || 0, 1); //' $Z/sim.js"
+# L047: пунктирная нить, свой рендер образцом, навык в игре без приёмки — красное
+ONLY=L047 case_ "test_L047: нить снова пунктиром" 60_kirpichi.sh red "sed -i 's/tube\.put(pts, ws, mix(P\.skin, P\.skin2, [^;]*;/pts.forEach((q, k) => k % 4 || glow.put(...q, ws[k], ...P.energy, 0.9));/' $Z/kirpichi.js"
+ONLY=L047 case_ "test_L047: образец — свой рендер" 60_kirpichi.sh red "sed -i 's/\"obrazec\": \"ref_21.jpg\"/\"obrazec\": \"niti_ryadom_s_obrazcom.png\"/' $Z/kirpichi.json"
+ONLY=L047 case_ "test_L047: навык в игре без приёмки" 60_kirpichi.sh red "sed -i '0,/\"v_igre\": false/s//\"v_igre\": true/' $Z/kirpichi.json"
+# L033: «Чует еду» без пальца снова стоит
+ONLY=L033 case_ "test_L033: без пальца клетка с умением стоит" 50_zaplyv.sh red "sed -i 's/} else if (this.genes.sense) {/} else if (false) {/' $Z/sim.js"
+# L051: дочки снова складываются бок о бок
+ONLY=L051 case_ "test_L051: сёстры дрейфуют врозь" 50_zaplyv.sh red "sed -i 's/ kid.drift = c.drift;//' $Z/sim.js"
+# L049: колония снова застревает на четырёх
+ONLY=L049 case_ "test_L049: само-деление снова отпускает дочек с четырёх" 50_zaplyv.sh red "sed -i 's/\"auto_max\": 10/\"auto_max\": 4/' $Z/data.json"
 case_ "test_L029: камера тянется к отставшим вдали" 52_zaplyv_tap.sh red "sed -i 's/const flock = live.filter(a => Math.hypot(a.x - lead.x, a.y - lead.y) < C.group)/const flock = world.me/' $Z/main.js"
 ONLY=L022 case_ "test_L022: вирус снова красный, как запятая" 50_zaplyv.sh red "sed -i 's/\"phage\": \[0.92, 0.9, 1.0\]/\"phage\": [1.0, 0.3, 0.4]/' $Z/data.json"
 ONLY=L023 case_ "test_L023: флажок не вырезает кадр" 52_zaplyv_tap.sh red "sed -i 's/^function flagAt(cx, cy) {/function flagAt(cx, cy) { return;/' $Z/main.js"
