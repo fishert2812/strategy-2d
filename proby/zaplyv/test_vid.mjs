@@ -66,6 +66,19 @@ check('test_vid_sleep_shape: спящая — короткий овал той �
   if (w > w0) return 'спящая толще бодрой';
   return '';
 });
+check('test_vid_split: при делении мать и дочка выходят из одной точки и разъезжаются за V.split.slide, перетяжка гаснет', () => {
+  const mom = { id: 901, x: 6, y: 0 }, kid = { id: 902, x: -12, y: 0 }, all = [mom, kid];
+  vid.splitAt(mom.x, mom.y);
+  const b0 = vid.birth(mom, 100, all), k0 = vid.birth(kid, 100, all);
+  if (Math.abs(mom.x + b0.d[0] - (kid.x + k0.d[0])) > 1e-6) return 'в миг деления две клетки не в одной точке — дочка просто появилась';
+  if (b0.pinch < 0.5) return 'нет перетяжки в миг деления';
+  const h = vid.birth(mom, 100 + vid.V.split.slide / 2, all), hk = vid.birth(kid, 100 + vid.V.split.slide / 2, all);
+  const gap = Math.abs(mom.x + h.d[0] - (kid.x + hk.d[0]));
+  if (gap < 3 || gap > 17.9) return 'на середине не видно разъезда: ' + gap.toFixed(1);
+  const e = vid.birth(mom, 100 + vid.V.split.slide + 0.01, all);
+  if (e.d[0] || e.d[1] || e.pinch) return 'разъезд не кончился за V.split.slide';
+  return '';
+});
 check('test_vid_capsule_dent: капсула прогибается от удара хищника и пружинит обратно', () => {
   vid.stepVid(5); const was = paint({ capsule: true }).join('|'); vid.poke(-15, 13); const hit = paint({ capsule: true }).join('|');
   vid.stepVid(5); const after = paint({ capsule: true }).join('|');

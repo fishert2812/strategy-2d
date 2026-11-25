@@ -185,3 +185,20 @@ export function marks(q, d) {
   if (g.toxin) for (let f = 0; f < 4; f++) { const [u0, o0, nu, no] = rim(f / 4 + 0.12, L, w); for (let k = 1; k <= 5; k++) { const s = k / 5 * w * V.toxin.len, [x, y] = P(u0 + nu * s, o0 + no * s); ink.put(x, y, (k === 5 ? 1.4 : 0.8) * z, 0.95, 0.5, 0.3, 0.8); } }
   if (g.crispr) for (let i = 0; i < 3; i++) { const [x, y] = P(-L * 0.6 + i * w * 0.35, 0); ink.put(x, y, 1.3 * z, 0.7, 1, 0.6, 0.8); }
 }
+
+// Деление (Роман 25.11: «расширялась и делилась, разъезжалась»). sim.js ставит мать и дочку на новые места мгновенно;
+// здесь обе сначала рисуются в точке деления — одна вытянутая клетка с перетяжкой — и за V.split.slide с вязко разъезжаются.
+// fx.on('split') зовёт splitAt; main.js добавляет birth(a, time).d к центру тела и birth(...).pinch к перетяжке.
+const splits = []; const born = new Map();
+export function splitAt(x, y) { splits.push({ x, y, t: null }); if (splits.length > 8) splits.shift(); }
+export function birth(a, time, all) {
+  const P = V.split;
+  for (const s of splits) if (s.t === null) { // первый кадр после деления: пара — две ближайшие к точке, общая середина
+    s.t = time; const two = (all || [a]).map(c => [Math.hypot(c.x - s.x, c.y - s.y), c]).sort((p, q) => p[0] - q[0]).slice(0, 2).map(p => p[1]);
+    if (two.length === 2) { const mx = (two[0].x + two[1].x) / 2, my = (two[0].y + two[1].y) / 2; for (const c of two) born.set(c.id, { t: time, dx: mx - c.x, dy: my - c.y }); } }
+  while (splits.length && splits[0].t !== null && time - splits[0].t > P.slide) splits.shift();
+  const b = born.get(a.id); if (!b) return { d: [0, 0], pinch: 0 };
+  const k = (time - b.t) / P.slide; if (k >= 1 || k < 0) { born.delete(a.id); return { d: [0, 0], pinch: 0 }; }
+  const e = 1 - (1 - k) * (1 - k) * (1 - k); // вязко: быстро в начале, мягко в конце, без отскока
+  return { d: [b.dx * (1 - e), b.dy * (1 - e)], pinch: P.pinch * (1 - e) };
+}

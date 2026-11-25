@@ -1,7 +1,7 @@
 // Анимации взаимодействий: что видно, когда мир сообщает событие (съела, поделилась, схватили, лопнула, прилип фаг…).
 // Файл слоя «вид и анимации» (свой строитель). main.js зовёт fx.on() на каждое событие мира, fx.draw() в кадре, fx.step(dt).
 // Звук и подписи остаются в main.js. Список событий — sim.js, world.events: [вид, x, y, size, y2].
-import { poke, stepVid, seen, rim, V } from './vid.js';
+import { poke, stepVid, seen, rim, V, splitAt } from './vid.js';
 export class Fx {
   constructor(cfg, CELL) { this.cfg = cfg; this.CELL = CELL; this.reset(); }
   save() { const s = {}; for (const k of Object.keys(this)) if (Array.isArray(this[k])) s[k] = this[k]; return s; } // снимок значка зовёт reset — без этого гасли все идущие анимации
@@ -16,7 +16,7 @@ export class Fx {
     if (k === 'zap') this.zaps.push({ x, y, x2: size, y2, t: 0 }); // выстрел гарпуна синегнойки
     if (k === 'grab') R(1, 40);
     if (k === 'eat') this.melts.push({ x, y, s: size, t: 0 }); // зерно не летит в рот: тает на месте (биолог, «Всасывание еды»)
-    if (k === 'split') { R(0, 30); for (const s of [-1, 1]) this.drops.push({ x, y, vx: s * 90, vy: 0, t: 0.6, r: 0.5, c: 0 }); } // перехват лопнул: дочки отскочили рывком, рывок гаснет вязко
+    if (k === 'split') { splitAt(x, y); R(0, 30); for (const s of [-1, 1]) this.drops.push({ x, y, vx: s * 90, vy: 0, t: 0.6, r: 0.5, c: 0 }); } // перехват лопнул: дочки отскочили рывком, рывок гаснет вязко
     if (k === 'leave') R(0, 50);
     if (k === 'stick') R(1, 22); // прилип фаг
     if (k === 'shake') this.shake(x, y);
