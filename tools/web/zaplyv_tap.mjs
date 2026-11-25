@@ -206,6 +206,8 @@ await p.waitForTimeout(600);
 // test_L021 (Роман: «в меню генома нет ни одного значка»): у вариантов выбора — значок гена, снимок клетки, не пустой.
 say(await p.evaluate(() => [...document.querySelectorAll('#obtns .gicon')].length === 2 && [...document.querySelectorAll('#obtns .gicon')].every(i => i.naturalWidth >= 64 && i.src.length > 3000)), 'test_L021: у вариантов выбора — значки генов');
 await notBook(await p.evaluate(() => [...document.querySelectorAll('#obtns button span, #obtns button small')].map(e => e.textContent)), 'выбор навыка');
+// свайп и сверки выше идут дольше offer_fold (6 с), и полоса успевала свернуться в значок до касания: новый выбор — полоса снова раскрыта
+await p.evaluate(() => { const w = zaplyvWorld(); w.choice = [...w.choice].reverse(); }); await p.waitForFunction(() => document.getElementById('offer').classList.contains('on'), null, { timeout: 3000 }).catch(() => {});
 const g1 = await p.evaluate(() => zaplyvWorld().choice[1]);
 if (await tap('#obtns button:nth-child(2)', 'второй вариант')) say(await p.evaluate(g => !zaplyvWorld().genes[g] && document.querySelector('#obtns button:nth-child(2)').classList.contains('sel') && document.getElementById('odesc').textContent.length > 10, g1), 'test_L053: первое касание только выбирает вариант и показывает над ним, что он даёт («' + await p.textContent('#odesc') + '»)');
 if (await tap('#obtns button:nth-child(2)', 'второй вариант ещё раз')) say(await p.evaluate(g => zaplyvWorld().genes[g] && !document.getElementById('offer').classList.contains('on') && document.getElementById('toast').textContent.startsWith('Взято'), g1), 'второе касание даёт ген, убирает полосу и пишет «Взято: …»');
