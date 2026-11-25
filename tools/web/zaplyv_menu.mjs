@@ -83,6 +83,12 @@ async function walk(css) {
     // «Режимы» из паузы: тот же режим — «Продолжить», рядом «Новый заплыв»; «‹ Пауза» возвращает в паузу
     if (await tap('#gmenu')) { await p.waitForTimeout(400); const S = SCREENS.find(x => x.name === 'Режимы'); await check(S);
       say((await box('#mgo'))?.text === 'Продолжить', 'test_L037: в меню режимов из паузы главная — «Продолжить» тот же заплыв');
+      say(await p.evaluate(() => !/обитател/.test(document.getElementById('mknow').textContent)), 'test_L037: в «Режимах» обитателей считает одна строка Альманаха, второго счёта нет (прогон 0.74: «12 обитателей» рядом с «10 из 10»)');
+      await p.evaluate(() => { zaplyvWorld().probe = 1; }); await tap('#mnew'); say(await p.evaluate(() => zaplyvWorld().probe === 1 && document.getElementById('menu').classList.contains('on')) && (await box('#mnew'))?.text === 'Точно заново?', 'test_L037: одно касание «Новый заплыв» в «Режимах» не бросает заплыв, спрашивает «Точно заново?» (прогон 0.76: смахнул — заплыв пропал)');
+      const ov = await p.evaluate(() => { const r = [...document.querySelectorAll('#mscene .mo')].flatMap(o => [...o.querySelectorAll('img, .art, b, small')].map(e => [o.dataset.m, e.getBoundingClientRect()])).filter(x => x[1].width); const bad = []; for (let i = 0; i < r.length; i++) for (let j = i + 1; j < r.length; j++) { const a = r[i][1], b = r[j][1]; if (r[i][0] !== r[j][0] && a.left < b.right - 4 && b.left < a.right - 4 && a.top < b.bottom - 4 && b.top < a.bottom - 4) bad.push(r[i][0] + '+' + r[j][0]); } return [...new Set(bad)]; });
+      say(!ov.length, 'test_L037: в «Режимах» режимы не налезают друг на друга' + (ov.length ? ': ' + ov.join(', ') : ''));
+      const miss = await p.evaluate(() => [...document.querySelectorAll('#mscene .mo')].filter(o => { o.scrollIntoView({ block: 'center' }); const r = (o.querySelector('img, .art') || o).getBoundingClientRect(); const e = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return e?.closest('.mo') !== o; }).map(o => o.dataset.m));
+      say(!miss.length, 'test_L037: в «Режимах» касание по картинке каждого режима выбирает именно его' + (miss.length ? ': мимо ' + miss.join(', ') : '') + ' (прогон 0.80: «Рост» под «Голодом» не выбрать)');
       say((await tap('#mback')) && await title() === 'Пауза', 'test_L037: из «Режимов» «‹ Пауза» возвращает в паузу'); }
     await tap('#phub [data-t=genome]'); const t0 = await p.evaluate(() => zaplyvWorld().stats.time);
     say((await tap('#gon')) && !(await p.evaluate(() => document.getElementById('genome').classList.contains('on'))), 'test_L037: «Продолжить» из раздела — сразу в игру, одним касанием');
@@ -90,7 +96,8 @@ async function walk(css) {
   } else say(false, 'test_L037: кнопки паузы не видно');
   // С экрана гибели «Кто это · … в Альманахе» — сразу карточка убийцы, «‹ Альманах» внизу ведёт на полку (прогон 0.68: вела в общий список)
   await p.evaluate(() => { const w = zaplyvWorld(); w.genes.spore = false; w.stats.killer = 'amoeba'; w.me.length = 0; }); await p.waitForTimeout(1500);
-  if (await tap('#cab')) { await p.waitForTimeout(500); say(await p.evaluate(() => !document.getElementById('kcard').hidden && document.getElementById('kname').textContent === 'Амёба') && (await box('#back'))?.text === '‹ Альманах', 'test_L037: с экрана гибели Альманах открывает карточку того, кто съел, «‹ Альманах» — на полку'); }
+  say(await p.evaluate(() => { const s = document.getElementById('path').getBoundingClientRect(), b = document.getElementById('ebtns').getBoundingClientRect(); return s.top + 60 < b.top; }), 'test_L037: на экране гибели «Твой путь» виден над кнопками, без прокрутки (прогон 0.76)');
+  if (await tap('#cab')) { await p.waitForTimeout(500); say(await p.evaluate(() => !/Запись |в книге игры/.test(document.getElementById('kcard').textContent)), 'test_L037: на карточке Альманаха нет служебных меток книги («Запись С3 в книге игры», прогон 0.74)'); say(await p.evaluate(() => !document.getElementById('kcard').hidden && document.getElementById('kname').textContent === 'Амёба') && (await box('#back'))?.text === '‹ Альманах', 'test_L037: с экрана гибели Альманах открывает карточку того, кто съел, «‹ Альманах» — на полку'); }
   else say(false, 'test_L037: на экране гибели нет кнопки Альманаха');
   say(!errs.length, 'ошибок страницы нет' + (errs.length ? ': ' + errs.join('; ') : ''));
   await p.close(); return bad;

@@ -33,12 +33,12 @@ export function page(k, K, E, cards, T, G, met) {
     const g = Object.values(G.geny).find(x => x.klyuch === it.gene), P = G.podpisi;
     const grp = (G.gruppa || {})[it.gene]; // подзаголовок — группа и номер записи, текст только в блоке (приёмка дизайнера)
     return { name: g.imya, line: (grp ? grp + ' · ' : '') + g.nomer, size: '', color, met: true,
-      blocks: [[P[0].toUpperCase(), g.daet, '#7cc8ff'], [P[1].toUpperCase(), g.priroda, '#b79cff', `Запись ${g.nomer} в книге игры · проверено биологом`]] };
+      blocks: [[P[0].toUpperCase(), g.daet, '#7cc8ff'], [P[1].toUpperCase(), g.priroda, '#b79cff', 'Проверено биологом', g.nomer]] }; // номер записи книги — для проверок, игроку не показываем (прогон 0.74)
   }
   const c = cards[k], t = T[k] || {};
   const blocks = [['КТО ЭТО', t.kto || c.text, '#7cc8ff']];
   if (t.sovet || c.tip) blocks.push(['СОВЕТ', t.sovet || c.tip, '#ff8a4c']);
-  if (t.priroda || c.fact) blocks.push(['В ПРИРОДЕ', t.priroda || c.fact, '#b79cff', t.nomer ? `Запись ${t.nomer} в книге игры · проверено биологом` : 'Из книги игры']);
+  if (t.priroda || c.fact) blocks.push(['В ПРИРОДЕ', t.priroda || c.fact, '#b79cff', t.nomer ? 'Проверено биологом' : 'Из книги игры', t.nomer]);
   return { name: t.imya || c.name, line: it.line, size: it.size || '', color, blocks, met: true };
 }
 
