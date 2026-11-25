@@ -60,6 +60,7 @@ case_ "test_L036: ночь пересоздаёт холст каждый кад
 case_ "test_L038: кадр в двойной плотности на экране тройной" 52_zaplyv_tap.sh red "sed -i 's/\"dpr_max\": 2.5/\"dpr_max\": 2/' $Z/data.json"
 case_ "test_L039: сестра за кадром без стрелки" 52_zaplyv_tap.sh red "sed -i 's/if (on(x, y, -8)) continue; const bad/continue; const bad/' $Z/main.js"
 case_ "test_L040: полоса роста стоит на месте" 52_zaplyv_tap.sh red "sed -i 's/(top.m - sp \/ 2) \/ (sp \/ 2)/1/' $Z/main.js"
+ONLY=L041 case_ "test_L041: клетка снова проходит сквозь кокка" 50_zaplyv.sh red "sed -i 's/ q.x += (q.x - a.x) \* k; q.y += (q.y - a.y) \* k;//' $Z/sim.js"
 case_ "test_L031: лист гибели помнит прокрутку" 52_zaplyv_tap.sh red "sed -i 's/\$(.end.).scrollTop = 0; //' $Z/main.js"
 case_ "test_L025: кнопки гибели ниже края экрана" 52_zaplyv_tap.sh red "sed -i 's/flex-shrink: 0; position: sticky;/flex-shrink: 0;/' $Z/index.html"
 # L018 (расширен) и L024 «антибред»: черновая строка умения мимо книги, описание в data.json, слово мира без имени из Альманаха, умение без теста-обещания — красное.
@@ -84,11 +85,15 @@ ONLY=L054 case_ "test_L054: гнездо без передышки" 50_zaplyv.sh
 ONLY=L047 case_ "test_L047: кисть без запаса" 52_zaplyv_tap.sh red "sed -i 's/\"kist\": { \"glow\": 20000, \"ink\": 20000 }/\"kist\": { \"glow\": 3000, \"ink\": 3000 }/' $Z/data.json"
 # L047: след за клеткой снова бусами
 ONLY=L047 case_ "test_L047: след бусами" 53_zaplyv_vid.sh red "sed -i 's/wake.put(x, y, (5 + 9 \\* p.t)/wake.put(x, y, (1.1 + 9 * p.t)/' $Z/main.js"
+# L057: колония снова делится рывком, проходит сквозь себя и расплывается
+ONLY=L057 case_ "test_L057: само-деление разом" 50_zaplyv.sh red "sed -i 's/this.divide(this.me.length >= c.auto_max, true)/this.divide(this.me.length >= c.auto_max)/' $Z/sim.js"
+ONLY=L057 case_ "test_L057: толчок кружками" 50_zaplyv.sh red "sed -i 's/const \\[dx, dy, d, rr\\] = this.rodGap(a, o);/const dx = a.x - o.x, dy = a.y - o.y, d = len(dx, dy), rr = radius(a.m) + radius(o.m);/' $Z/sim.js"
+ONLY=L057 case_ "test_L057: без тяги к своим" 50_zaplyv.sh red "sed -i 's/if (d > K.r) {/if (false) {/' $Z/sim.js"
 # L055: деление снова с толчком и с выдуманной перетяжкой
 ONLY=L055 case_ "test_L055: дочка с толчком" 53_zaplyv_vid.sh red "sed -i 's/vx: c.vx, vy: c.vy,/vx: c.vx - ax * 60, vy: c.vy - ay * 60,/' $Z/sim.js"
 ONLY=L055 case_ "test_L055: палочка толстеет, а не длиннеет" 53_zaplyv_vid.sh red "sed -i 's/half: D.half0 \\* 2 \\* fm/half: D.half0 * (1 + fm)/' $Z/vid.js"
 # L051: дочки снова складываются бок о бок
-ONLY=L051 case_ "test_L051: сёстры дрейфуют врозь" 50_zaplyv.sh red "sed -i 's/ kid.drift = c.drift;//' $Z/sim.js"
+ONLY=L051 case_ "test_L051: дочки снова на месте матери" 50_zaplyv.sh red "sed -i 's/const D = this.cfg.split_apart \\* r \\/ 2;/const D = 0;/' $Z/sim.js"
 # L049: колония снова застревает на четырёх
 ONLY=L049 case_ "test_L049: само-деление снова отпускает дочек с четырёх" 50_zaplyv.sh red "sed -i 's/\"auto_max\": 10/\"auto_max\": 4/' $Z/data.json"
 case_ "test_L029: камера тянется к отставшим вдали" 52_zaplyv_tap.sh red "sed -i 's/const flock = live.filter(a => Math.hypot(a.x - lead.x, a.y - lead.y) < C.group)/const flock = world.me/' $Z/main.js"
