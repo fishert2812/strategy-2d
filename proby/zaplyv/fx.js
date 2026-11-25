@@ -22,7 +22,7 @@ export class Fx {
     if (k === 'zap') this.zaps.push({ x, y, x2: size, y2, t: 0 }); // выстрел гарпуна синегнойки
     if (k === 'grab') R(1, 40);
     if (k === 'eat') this.melts.push({ x, y, s: size, t: 0 }); // зерно не летит в рот: тает на месте (биолог, «Всасывание еды»)
-    if (k === 'split') { splitAt(size, y2); R(0, 30); for (const s of [-1, 1]) this.drops.push({ x, y, vx: s * 90, vy: 0, t: 0.6, r: 0.5, c: 0 }); } // перехват лопнул: дочки отскочили рывком, рывок гаснет вязко
+    if (k === 'split') splitAt(size, y2); // деление без кольца и без брызг: дочки расклеиваются тихо, торец к торцу (физика, п. 14)
     if (k === 'leave') R(0, 50);
     if (k === 'stick') R(1, 22); // прилип фаг
     if (k === 'shake') this.shake(x, y);

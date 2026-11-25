@@ -152,6 +152,8 @@ function tail(w, a, dt, th) {
 export const loud = w => has(w, 'tail') ? M.tail.loud : 1;
 
 // Память о вирусах (sim.js, вирус впрыснул): true — память сработала, обычного заражения нет.
+// Память о вирусах: вирус клетку уже не убьёт, поэтому совет «резко развернись» не нужен (main.js, событие stick).
+export const calm = w => has(w, 'memory');
 export function immune(w, h, g) {
   if (g.host !== 'me' || !has(w, 'memory')) return false;
   if (h.knows) { w.events.push(['cut', h.x, h.y], ['recall', h.x, h.y, g.x, g.y]); /* биолог, круг 17: память внутри — вирус вошёл и распался в клетке; recall: центр клетки, затем где сидел вирус (кирпич треда вида) */ w.stats.cutKnown = (w.stats.cutKnown || 0) + 1;

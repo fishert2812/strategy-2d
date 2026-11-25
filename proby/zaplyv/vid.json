@@ -13,7 +13,7 @@
  "eat": { "melt": 0.5 },
  "dash": { "life": 0.45, "reach": 60, "min_v": 150, "trail": 1.2, "line": 1.4, "line_w": 0.7, "side": 1.5, "a": 0.75, "col": [1, 0.92, 0.7] },
   "pili": { "n": 7, "r": 0.5, "a": 0.45, "col": [0.55, 0.9, 1] },
-  "whip": { "n": 64, "a": 0.7 },
+  "whip": { "n": 64, "a": 0.7, "len": 8, "step": 0.5, "max": 220 },
   "legs": { "land": 0.25, "knee": 1.05, "foot": 1.45, "spread": 0.42, "w": 0.08, "a": 0.95, "col": [0.86, 0.84, 0.95] },
   "bell": { "unfold": 2.0, "short": 0.5, "amp": 0.3, "turns": 6, "dots": 44, "col": [0.7, 0.85, 0.8] },
  "roti": { "gut": 14, "gut_col": [0.28, 0.22, 0.12], "beat": 6, "beat_pw": 2, "cilia": 34, "cil_dots": 4, "disc": 0.12, "lobe": 0.55, "wave": 0.9, "len0": 0.15, "len1": 0.35, "cil_col": [0.88, 1.0, 1.0], "teeth": 2, "shell": [0.8, 0.92, 0.98], "snap": 0.15, "jaw": [0.35, 0.22, 0.1] },
@@ -43,5 +43,5 @@
  "pulse": { "life": 0.5, "reach": 70, "band": 0.9, "dots": 48, "r": 2.6, "color": [1.0, 0.78, 0.32], "on": ["shrug", "cut", "learn", "slip", "bump", "shake"] },
  "virus": { "len": 0.5, "wid": 0.38, "dot": 0.45, "coil": 18, "turn": 1.1, "gold": [1.0, 0.78, 0.3] },
  "shell": { "gap": 1.22, "n": 120, "w": 1.1, "alpha": 0.5, "color": [0.85, 0.93, 1.0], "dark": [0.04, 0.06, 0.12], "sniff": 120, "crack": 12, "heal": 1, "step": 0.018, "zig": 0.14 },
-  "split": { "slide": 1.3, "join": 0.45, "pinch": 0.62, "gap": 0.15, "free": 0.6 }
+  "split": { "slide": 0.8, "join": 0.375, "pinch": 0.99, "gap": 0, "free": 0.6 }
 }
