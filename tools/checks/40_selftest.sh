@@ -70,6 +70,8 @@ ONLY=L032 case_ "test_L032: спора просыпается у амёбы" 50_
 ONLY=L032 case_ "test_L032: спящую снова держат запятые и колокольчик" 50_zaplyv.sh red "sed -i 's/a.free = Math.max(a.free || 0, 1); //' $Z/sim.js"
 # L033: «Чует еду» без пальца снова стоит
 ONLY=L033 case_ "test_L033: без пальца клетка с умением стоит" 50_zaplyv.sh red "sed -i 's/} else if (this.genes.sense) {/} else if (false) {/' $Z/sim.js"
+# L051: дочки снова складываются бок о бок
+ONLY=L051 case_ "test_L051: сёстры дрейфуют врозь" 50_zaplyv.sh red "sed -i 's/ kid.drift = c.drift;//' $Z/sim.js"
 case_ "test_L029: камера тянется к отставшим вдали" 52_zaplyv_tap.sh red "sed -i 's/const flock = live.filter(a => Math.hypot(a.x - lead.x, a.y - lead.y) < C.group)/const flock = world.me/' $Z/main.js"
 ONLY=L022 case_ "test_L022: вирус снова красный, как запятая" 50_zaplyv.sh red "sed -i 's/\"phage\": \[0.92, 0.9, 1.0\]/\"phage\": [1.0, 0.3, 0.4]/' $Z/data.json"
 ONLY=L023 case_ "test_L023: флажок не вырезает кадр" 52_zaplyv_tap.sh red "sed -i 's/^function flagAt(cx, cy) {/function flagAt(cx, cy) { return;/' $Z/main.js"
