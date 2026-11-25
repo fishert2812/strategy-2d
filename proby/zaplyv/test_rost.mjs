@@ -34,8 +34,9 @@ check('test_rost_bez_potolka: в «Росте» клетка не делится
   const out = runs.map(r => `${r.most}кл m${(r.w.me[0]?.m ?? 0).toFixed(0)}`);
   console.log('    за 150 с:', out.join(', '), '| потолок заплыва', cfg.max_m);
   if (runs.some(r => r.most > 1)) return 'клетка поделилась';
-  const big = runs.filter(r => r.w.me[0] && r.w.me[0].m > cfg.max_m * 3).length;
-  if (big < 4) return `больше трёх потолков выросли ${big} из ${runs.length}`;
+  const alive = runs.filter(r => r.w.me[0]), big = alive.filter(r => r.w.me[0].m > cfg.max_m * 3).length; // погибшую съели — расти ей было некогда
+  if (alive.length < 3) return `дожили до конца ${alive.length} из ${runs.length}`;
+  if (big < alive.length) return `больше трёх потолков выросли ${big} из ${alive.length} доживших`;
 });
 
 check('test_rost_zamedlyaetsya: каждый следующий рост требует больше времени', () => {

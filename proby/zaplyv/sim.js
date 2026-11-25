@@ -6,6 +6,7 @@
 // забываются позади. Среда в точке — по шуму: чистая вода, сладкая вода, ил.
 // Числа — в data.json. Модуль без экрана: его гоняет test.mjs (node) и рисует main.js.
 
+import * as vokrug from './vokrug.js';
 import * as mut from './mutacii.js'; // новые мутации: свой файл, здесь только узкие крюки
 import { zhizn } from './zhizn.js'; // соседи живут сами: движок по паспорту существ (zhizn.json)
 import * as rost from './rost.js'; // режим «Рост»: клетка не делится, а растёт (rost.json)
@@ -272,7 +273,7 @@ export class World {
         if (!this.met.has(k) && list.some(o => this.me.some(a => dist(a, o) < R))) { this.met.add(k); this.events.push(['meet', k]); }
     }
     this.tidy -= dt;
-    if (this.tidy <= 0 && this.me.length) { this.tidy = 1; this.fill(c1.x, c1.y); this.forget(c1.x, c1.y); this.see(c1.x, c1.y); }
+    if (this.tidy <= 0 && this.me.length) { this.tidy = 1; this.fill(c1.x, c1.y); vokrug.regrow(this, c1); this.forget(c1.x, c1.y); this.see(c1.x, c1.y); }
   }
 
   // Рот туфельки: сбоку у переднего конца. Рот сувойки: верх колокольчика на стебле.

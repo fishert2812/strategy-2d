@@ -852,6 +852,28 @@ check('test_L051 (проверка кадров деления 25.11: «дочк
   if (along < L * 0.95) return `дочки вдоль оси ближе длины палочки (${along.toFixed(0)} < ${L.toFixed(0)}): палочки наложены, колония сложит их бок о бок`;
   if (across > L * 0.3) return 'дочку утянуло вбок: ' + across.toFixed(0);
 });
+check('test_L052 (Роман 25.11, Заплыв 0.78, 7:15, клеток 10: «плаваю уже минут 5 нет еды вообще… Опять у нас нет еды? Еда на каждом шагу должна быть»): еда на экране не кончается ни у растущей колонии, ни у стоящей', () => {
+  const V = cfg.eda_vokrug, R = 200, row = [], bad = [];
+  for (const seed of [1, 2, 3, 4]) {
+    const w = new World(cfg, seed); let dir = 0, gap = 0, worst = 0, acc = 0, n = 0; const mins = [];
+    for (let t = 0; t < 360 && w.me.length; t += 1 / 30) { // бот видит только экран: к крошке на экране, иначе прямо, изредка поворачивая
+      const c = w.center(); let best = null, bd = R; for (const f of w.food) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } }
+      if (!best && (t * 30 | 0) % 300 === 0) dir += 1.3;
+      w.step(1 / 30, best ? { x: best.x, y: best.y } : { x: c.x + Math.cos(dir) * 300, y: c.y + Math.sin(dir) * 300 }); w.events.length = 0; if (w.choice.length) w.pick(w.choice[0]);
+      let k = 0; for (const f of w.food) if (Math.hypot(f.x - c.x, f.y - c.y) < R) k++;
+      gap = k ? 0 : gap + 1 / 30; worst = Math.max(worst, gap); acc += k; n++; if (n === 1800) { mins.push(acc / n); acc = n = 0; }
+    }
+    const still = w.me.length; for (let t = 0; t < 60 && w.me.length; t += 1 / 30) { w.step(1 / 30, null); w.events.length = 0; if (w.choice.length) w.pick(w.choice[0]); } // палец убран минуту: колония стоит
+    const c = w.center(); let k = 0; for (const f of w.food) if (Math.hypot(f.x - c.x, f.y - c.y) < R) k++;
+    row.push(`${seed}: ${mins.map(m => m.toFixed(0)).join('/')} клеток ${still}, стоя ${k}, без еды ${worst.toFixed(0)} с`);
+    if (mins.slice(1).some(m => m < V.baza * 0.8)) bad.push(`мир ${seed}: в минуту на экране меньше ${V.baza * 0.8} крошек (${mins.map(m => m.toFixed(1)).join(' ')})`);
+    if (worst > 5) bad.push(`мир ${seed}: ${worst.toFixed(0)} с на экране ни крошки`);
+    if (w.me.length && k < V.baza * 0.5) bad.push(`мир ${seed}: колония простояла минуту — на экране ${k} крошек`);
+  }
+  console.log('    паспорт: еды на экране по минутам (6 мин), клеток, после минуты стоя, дольше всего без еды —', row.join(' | '));
+  return bad.join('; ');
+});
+
 check('test_L033 (прогон 0.54, О33: «Убери палец, и клетка сама поплывёт к ближайшей еде» — стояли 11 с): с «Чует еду» без пальца клетка сама доплывает до куска', () => {
   const go = sense => { const w = new World(cfg, 600); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9;
     const a = w.me[0]; w.genes.sense = sense; w.food = [{ x: a.x + 110, y: a.y - 60, vx: 0, vy: 0, s: 1 }]; const e0 = w.stats.eaten; let t = 0;
