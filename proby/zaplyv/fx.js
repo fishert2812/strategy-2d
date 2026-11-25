@@ -6,8 +6,8 @@ export class Fx {
   constructor(cfg, CELL) { this.cfg = cfg; this.CELL = CELL; this.reset(); }
   save() { const s = {}; for (const k of Object.keys(this)) if (Array.isArray(this[k])) s[k] = this[k]; return s; } // снимок значка зовёт reset — без этого гасли все идущие анимации
   load(s) { Object.assign(this, s); }
-  reset() { this.rings = []; this.zaps = []; this.drops = []; this.ghosts = []; this.melts = []; this.dead = []; this.eats = []; this.flicks = []; this.genes = []; this.naps = []; }
-  busy() { return this.rings.length + this.zaps.length + this.drops.length + this.ghosts.length + this.melts.length + this.dead.length + this.eats.length + this.flicks.length + this.genes.length + this.naps.length; }
+  reset() { this.rings = []; this.zaps = []; this.drops = []; this.clouds = []; this.ghosts = []; this.melts = []; this.dead = []; this.eats = []; this.flicks = []; this.genes = []; this.naps = []; }
+  busy() { return this.rings.length + this.zaps.length + this.drops.length + this.clouds.length + this.ghosts.length + this.melts.length + this.dead.length + this.eats.length + this.flicks.length + this.genes.length + this.naps.length; }
   ring(x, y, side, r) { this.rings.push({ x, y, side, r, t: 0 }); }
   on(k, x, y, size = 1, y2) {
     const R = (s, r) => this.ring(x, y, s, r);
@@ -65,14 +65,17 @@ export class Fx {
     if (who === 'pseudo') for (let i = 0; i < 12; i++) { const t = Math.random() * 6.283; this.drops.push({ x: g.x, y: g.y, vx: Math.cos(t) * 60, vy: Math.sin(t) * 60, t: 0.4, r: 0.5 }); }
   }
   // Лопание от фага (биолог, «Вирус: лопание»): стенка держит давление и в один миг прорывается в одном месте —
-  // сок брызжет из прорыва и вязко гаснет за секунду (в такой воде нет выката), а пустая оболочка-призрак
+  // сок брызжет из прорыва и встаёт за 0,1 с в паре размеров клетки (физика п.9: jet_drag), а там, где брызги встали,
+  // сок расплывается облаком по Ф4: радиус √(4·D·t), густота ∝ 1/t. Пустая оболочка-призрак
   // с дырой остаётся, её носит водой, она мнётся и тает. Новые фаги — настоящие, их выпускает sim.js.
   lyse(x, y, g, nd) {
     const P = V.lysis, ang = g ? g.ang : Math.random() * 6.283, L = g ? g.L : 8, w = g ? g.w : 6, p0 = Math.random();
     const [u, o, nu, no] = rim(p0, L, w), ca = Math.cos(ang), sa = Math.sin(ang);
     const rx = x + ca * u - sa * o, ry = y + sa * u + ca * o, nx = ca * nu - sa * no, ny = sa * nu + ca * no;
-    for (let i = 0; i < (nd || P.drops); i++) { const sp = P.speed * (0.4 + Math.random()), t = Math.atan2(ny, nx) + (Math.random() - 0.5) * (i % 2 ? 2.2 : 6.283);
-      this.drops.push({ x: rx, y: ry, vx: Math.cos(t) * sp, vy: Math.sin(t) * sp, t: 0, r: 0.6 + Math.random() * 0.8 }); }
+    const n = nd || P.drops, sc = n / P.drops; // мелкая чужая клетка — и облако мельче
+    for (let i = 0; i < n; i++) { const sp = P.speed * (0.4 + Math.random()) * Math.sqrt(sc), t = Math.atan2(ny, nx) + (Math.random() - 0.5) * (i % 2 ? 2.2 : 6.283), vx = Math.cos(t) * sp, vy = Math.sin(t) * sp;
+      this.drops.push({ x: rx, y: ry, vx, vy, t: 0, r: 0.6 + Math.random() * 0.8, dg: P.jet_drag });
+      if (i % P.per_cloud === 0) this.clouds.push({ x: rx + vx / P.jet_drag, y: ry + vy / P.jet_drag, t: 0, k: sc }); } // где брызги встанут
     this.ghosts.push({ x, y, ang, L, w, p0, t: 0, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, seed: Math.random() * 9 });
     this.ring(rx, ry, 1, 18); // вспышка прорыва — маленькая, в точке разрыва
   }
@@ -131,6 +134,7 @@ export class Fx {
       if (!q.kind) for (let i = 0; i < F.arc; i++) { const s = (i / (F.arc - 1) - 0.5) * F.span, [x, y] = scr(q.x + px * s - q.dx * s * s * 0.04, q.y + py * s - q.dy * s * s * 0.04); glow.put(x, y, 2.4 * z, c[0], c[1], c[2], 0.85 * (1 - f)); }
       for (const a of q.kind ? [-0.5, 0, 0.5] : [0]) { const cx = Math.cos(a), sx = Math.sin(a), ux = q.dx * cx - q.dy * sx, uy = q.dy * cx + q.dx * sx; // новая дверь — один след отлёта; стряхнула — веер из трёх
         for (let i = 0; i < F.streak; i++) { const d = F.gap + F.len * (0.15 + f) * (0.3 + i / F.streak), [x, y] = scr(q.x + ux * d, q.y + uy * d); glow.put(x, y, 2 * z, c[0], c[1], c[2], 0.75 * (1 - f) * (1 - 0.6 * i / F.streak)); } } }
+    { const P = V.lysis; for (const c of this.clouds) { const t = c.t + P.t0, [x, y] = scr(c.x, c.y); glow.put(x, y, Math.sqrt(4 * P.D * t) * z * c.k, ...P.cloud, P.cloud_a * P.t0 / t); } } // облако сока по Ф4
     for (const p of this.drops) { const [x, y] = scr(p.x, p.y), f = p.t / V.lysis.life, c = p.c === 0 ? [0.75, 0.93, 1] : [0.95, 0.35, 0.7]; glow.put(x, y, (2.2 * p.r * (1 - f * 0.5)) * z + 0.5, c[0], c[1], c[2], 0.75 * (1 - f)); } // брызги сока (розовые) и искры рывка деления (голубые)
     for (const m of this.melts) { const [x, y] = scr(m.x, m.y), f = m.t / V.eat.melt, k = Math.sqrt(m.s || 1) * (1 - f) * (1 - f); // зерно тает на месте: меньше и тусклее, ореол растекается
       glow.put(x, y, 4 * z * k + 0.5, 1, 0.93, 0.65, 0.95 * (1 - f)); glow.put(x, y, 10 * z * Math.sqrt(m.s || 1) * (1 + 1.5 * f), 1, 0.8, 0.35, 0.22 * (1 - f)); }
@@ -153,10 +157,12 @@ export class Fx {
   }
   step(dt) { stepVid(dt);
     const P = V.lysis, k = Math.exp(-P.drag * dt);
-    for (const p of this.drops) { p.vx *= k; p.vy *= k; p.x += p.vx * dt; p.y += p.vy * dt; p.t += dt; }
+    for (const p of this.drops) { const q = p.dg ? Math.exp(-p.dg * dt) : k; p.vx *= q; p.vy *= q; p.x += p.vx * dt; p.y += p.vy * dt; p.t += dt; }
     this.drops = this.drops.filter(p => p.t < P.life);
+    for (const c of this.clouds) c.t += dt; this.clouds = this.clouds.filter(c => c.t < P.cloud_life);
     for (const m of this.melts) m.t += dt; this.melts = this.melts.filter(m => m.t < V.eat.melt);
-    for (const g of this.ghosts) { g.vx += (Math.random() - 0.5) * 20 * dt; g.vy += (Math.random() - 0.5) * 20 * dt; g.vx *= 0.98; g.vy *= 0.98; g.x += g.vx * dt; g.y += g.vy * dt; g.ang += (Math.random() - 0.5) * 0.6 * dt; g.t += dt; } // дрейф и дрожь воды
+    const j = Math.sqrt(2 * P.ghost_D * dt) * 3.46, ja = Math.sqrt(2 * P.ghost_Dr * dt) * 3.46; // Ф3: дрожь двигает положение, не скорость (равномерный разброс с той же силой, √12)
+    for (const g of this.ghosts) { g.x += (Math.random() - 0.5) * j; g.y += (Math.random() - 0.5) * j; g.ang += (Math.random() - 0.5) * ja; g.t += dt; } // пустую оболочку трясёт вода, она топчется на месте
     this.ghosts = this.ghosts.filter(g => g.t < P.ghost);
     this.tt = (this.tt || 0) + dt; for (const q of this.genes) q.t += dt; this.genes = this.genes.filter(q => q.t < V.gene.life); for (const q of this.naps) q.t += dt; this.naps = this.naps.filter(q => q.t < V.nap.life);
     for (const q of this.flicks) q.t += dt; this.flicks = this.flicks.filter(q => q.t < V.flick.life);
