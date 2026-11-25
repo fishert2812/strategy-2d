@@ -792,6 +792,22 @@ check('test_L032 (прогон 0.50, О22: «Спящую не берут», а 
   console.log('    паспорт: спала / амёба на пробуждении —', out.join(' | '));
 });
 
+check('test_L032 (прогон 0.54, О22 повтор): уснула среди трёх запятых, колокольчика и амёбы — никто не держит спящую, и она просыпается сама', () => {
+  const out = [];
+  for (let s = 1; s <= 4; s++) { const w = new World(cfg, 500 + s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; w.stats.gen = 1;
+    w.genes.spore = true; const a = w.me[0];
+    w.bells = [{ x: a.x + 70, y: a.y, dir: Math.PI, shut: 0, id: 61 }];
+    w.bdellos = [0, 1, 2].map(i => ({ x: a.x + Math.cos(i * 2) * 40, y: a.y + Math.sin(i * 2) * 40, vx: 0, vy: 0, a: i * 2 + Math.PI, t: 0, id: 70 + i }));
+    w.amoebas = [{ x: a.x - 5, y: a.y, vx: 0, vy: 0, m: 9, id: 50 }]; w.step(1 / 30, null);
+    if (!(a.spore > 0)) return 'клетка не уснула';
+    let t = 0, held = 0; while (w.me.includes(a) && a.spore > 0 && t < 60) { w.step(1 / 30, null); t += 1 / 30; if (a.grab || a.held > 0 || w.bdellos.some(b => b.on === a)) held++; }
+    out.push(t.toFixed(1) + ' с');
+    if (!w.me.includes(a)) return 'спящую съели (заплыв ' + s + ')';
+    if (held) return 'спящую держали ' + (held / 30).toFixed(1) + ' с (заплыв ' + s + ')';
+    if (a.spore > 0) return 'не проснулась за 60 с (заплыв ' + s + ')';
+    if (t > cfg.spore + cfg.spore_max + 1) return 'спала ' + t.toFixed(0) + ' с — дольше обещанного'; }
+  console.log('    паспорт: спала среди охотников, с —', out.join(' '));
+});
 check('test_L033 (прогон 0.54, О33: «Убери палец, и клетка сама поплывёт к ближайшей еде» — стояли 11 с): с «Чует еду» без пальца клетка сама доплывает до куска', () => {
   const go = sense => { const w = new World(cfg, 600); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9;
     const a = w.me[0]; w.genes.sense = sense; w.food = [{ x: a.x + 110, y: a.y - 60, vx: 0, vy: 0, s: 1 }]; const e0 = w.stats.eaten; let t = 0;
@@ -839,6 +855,28 @@ check('test_L024: у каждого умения есть тест «сдела�
   const none = Object.keys(cfg.genes).filter(k => !TITLES.some(t => t.includes('[' + k + ']')) && !mut.includes("check('[" + k + ']'));
   console.log('    паспорт: умений без теста-обещания', none.length, none.join(', '));
   if (none.length) return 'обещание умения не проверено поведением: ' + none;
+});
+
+// Еда трёх видов (книга Е2, Е4): у каждого свой цвет и своя сытость; сок лопнувших клеток чуется сильнее сахара.
+const EB = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
+check('test_food_kinds: в мире три вида еды, сок лопнувшей клетки кормит вдвое сильнее глюкозы', () => {
+  const w = new World(cfg, 3); w.tidy = 1e9; w.spill(w.me[0].x + 400, w.me[0].y); run(w, 20, null);
+  const kinds = new Set(w.food.map(f => f.kind || 'bits')), K = cfg.food_kinds;
+  const eat = kind => { const v = EB(7), a = v.me[0]; a.m = 2; v.food = [{ x: a.x, y: a.y, vx: 0, vy: 0, kind }]; v.eat(0); return a.m - 2; };
+  const g = eat('glucose'), l = eat('lysate'), b = eat(undefined);
+  console.log(`    паспорт: видов в мире ${kinds.size} (${[...kinds].join(', ')}), прибавка с куска: крошка ${b.toFixed(3)}, глюкоза ${g.toFixed(3)}, сок ${l.toFixed(3)}`);
+  if (kinds.size < 3) return 'в мире видов еды меньше трёх: ' + [...kinds];
+  if (new Set(Object.values(K).map(k => k.gain)).size < 3) return 'у видов еды одинаковая сытость';
+  if (Math.abs(l / g - 2) > 0.01) return 'сок кормит не вдвое сильнее глюкозы: ' + (l / g).toFixed(2);
+  if (!(g > b)) return 'глюкоза не сытнее крошек';
+});
+check('test_food_smell: с хемотаксисом клетку ведёт к соку лопнувшей клетки, хотя глюкоза ближе', () => {
+  const go = sense => { const w = EB(11), a = w.me[0]; a.a = 0; if (sense) w.genes.sense = true;
+    w.food = [{ x: a.x + 80, y: a.y - 40, vx: 0, vy: 0, kind: 'glucose' }, { x: a.x + 150, y: a.y + 30, vx: 0, vy: 0, kind: 'lysate' }];
+    let got = null; for (let i = 0; i < 120 && !got; i++) { const n = w.food.slice(); w.step(1 / 30, { dx: 1, dy: 0, p: 1 }); const gone = n.find(f => !w.food.includes(f)); if (gone) got = gone.kind; } return got; };
+  const a = go(true), b = go(false);
+  console.log(`    паспорт: с хемотаксисом первым съеден ${a}, без него ${b}`);
+  if (a !== 'lysate') return 'с хемотаксисом первым съеден не сок: ' + a;
 });
 
 console.log(bad ? 'ЗАПЛЫВ: провалов ' + bad : 'ЗАПЛЫВ: все проверки прошли');

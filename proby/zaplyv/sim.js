@@ -186,7 +186,7 @@ export class World {
       }
       if (want !== null && this.genes.sense) { // хемотаксис: клетка сама подруливает к ближайшей еде впереди, еда не движется
         let best = null, bd = c.sense_r;
-        for (const f of this.food) { const d = Math.hypot(f.x - a.x, f.y - a.y); if (d < bd) { bd = d; best = f; } }
+        for (const f of this.food) { const d = Math.hypot(f.x - a.x, f.y - a.y) / c.sense_like[f.kind || 'bits']; if (d < bd) { bd = d; best = f; } } // белковый сок чуется сильнее сахара (Е4)
         if (best) { const d = wrap(Math.atan2(best.y - a.y, best.x - a.x) - want); if (Math.abs(d) < 1.2) want += d * c.sense_pull; }
       }
       const a0 = a.a;
@@ -194,8 +194,8 @@ export class World {
       let thrust = 0;
       if (want !== null && s > 1) {
         const d = wrap(want - a.a);
-        if (!a.tumble && Math.abs(d) > sw.tumble_angle && (len(a.vx, a.vy) > s * 0.4 || a.grab || a.held > 0)) {
-          a.tumble = mut.snap(this, a) ? 0 : sw.tumble_time; // разворот рывком вместо кувырка (режим «Мутации»); кувырок стряхивает фага, который ещё не впрыснул
+        if (!a.tumble && Math.abs(d) > mut.tumbleAngle(this, sw.tumble_angle) && (len(a.vx, a.vy) > s * 0.4 || a.grab || a.held > 0)) {
+          a.tumble = mut.snap(this, a) ? 0 : mut.tumbleTime(this, sw.tumble_time); // разворот рывком вместо кувырка (режим «Мутации»); кувырок стряхивает фага, который ещё не впрыснул
           if (a.grab) this.escape(a);
           if (a.held > c.bdello_kill - c.bdello_loose) for (const b of this.bdellos) if (b.on === a) { b.on = null; b.t = 0; a.held = 0; a.free = c.free; this.events.push(['shake', b.x, b.y]); } // прилип, но ещё не вошёл — стряхнёшь
           for (const g of this.phages) if (g.on === a) { g.on = null; g.cool = 1.5; g.vx = -Math.cos(g.d) * 60; g.vy = -Math.sin(g.d) * 60; this.events.push(['shake', g.x, g.y]); }
@@ -230,13 +230,15 @@ export class World {
       { const E = this.pond(), r = radius(a.m); // края пруда: плёнка сверху, дно, берега — дальше не проплыть
         if (a.x < E.x0 + r) { a.x = E.x0 + r; a.vx = Math.max(0, a.vx); } if (a.x > E.x1 - r) { a.x = E.x1 - r; a.vx = Math.min(0, a.vx); }
         if (a.y < E.y0 + r) { a.y = E.y0 + r; a.vy = Math.max(0, a.vy); } if (a.y > E.y1 - r) { a.y = E.y1 - r; a.vy = Math.min(0, a.vy); } }
-      if (!a.stuck) { const [sx, sy] = this.suck(a.x, a.y); a.x += sx * dt; a.y += sy * dt; } // течение воронок туфелек и вихрей сувоек
+      if (!a.stuck && !(a.spore > 0)) { const [sx, sy] = this.suck(a.x, a.y); a.x += sx * dt; a.y += sy * dt; } // течение воронок туфелек и вихрей сувоек
       a.w = wrap(a.a - a0) / dt; // скорость поворота — по ней тело и пучок жгутиков гнутся дугой
       if (a.sick >= 0) a.sick -= dt;
       if (a.stun > 0) a.stun -= dt;
       if (a.pinch > 0) a.pinch -= dt;
       if (this.genes.fast) a.m = Math.max(0.6, a.m - c.fast_burn * dt); // …но и голодаешь быстрее: рибосомы едят силы
-      if (a.spore > 0) { if (!this.amoebas.some(m => dist(m, a) < radius(m.m) + c.spore_safe) && !this.bdellos.some(b => dist(b, a) < c.spore_safe)) a.spore -= dt; if (a.spore <= 0) { a.free = 1; this.events.push(['sprout', a.x, a.y]); } } // спора проросла — только когда охотник ушёл (L032)
+      if (a.spore > 0) { a.slept = (a.slept || 0) + dt; a.free = Math.max(a.free || 0, 1); for (const b of this.bdellos) if (b.on === a) b.on = null; // спящую никто не держит: ни запятая, ни колокольчик (L032, О22 повтор)
+        if (a.slept > c.spore_max || (!this.amoebas.some(m => dist(m, a) < radius(m.m) + c.spore_safe) && !this.bdellos.some(b => dist(b, a) < c.spore_safe))) a.spore -= dt;
+        if (a.spore <= 0) { a.free = 1.5; a.slept = 0; this.events.push(['sprout', a.x, a.y]); } } // проснулась: охотник ушёл или сон дольше spore_max — просыпается сама, как обещано
     }
     const c1 = this.center();
     this.stats.path += dist(c0, c1);
@@ -319,7 +321,7 @@ export class World {
 
   // Фаг: точка облака; v — с какой силой разлетаются новые фаги из лопнувшей клетки.
   // Лопнувшая клетка разливает своё содержимое: кольцо еды (а рядом — новые фаги).
-  spill(x, y) { for (let i = 0; i < this.cfg.spill; i++) { const t = i / this.cfg.spill * 6.283 + this.r(); this.food.push({ x: x + Math.cos(t) * 14, y: y + Math.sin(t) * 14, vx: Math.cos(t) * 50, vy: Math.sin(t) * 50 }); } }
+  spill(x, y) { for (let i = 0; i < this.cfg.spill; i++) { const t = i / this.cfg.spill * 6.283 + this.r(); this.food.push({ x: x + Math.cos(t) * 14, y: y + Math.sin(t) * 14, vx: Math.cos(t) * 50, vy: Math.sin(t) * 50, kind: 'lysate' }); } } // сок лопнувшей клетки (Е4)
 
   cloud(x, y, host, v) { const t = this.r() * 6.283; this.phages.push({ x, y, vx: Math.cos(t) * v, vy: Math.sin(t) * v, host, d: t }); }
 
@@ -329,6 +331,7 @@ export class World {
   grow(a, v) { a.m = Math.min(this.cfg.max_m, a.m + v * (this.genes.lock ? this.cfg.lock_food : 1) * mut.food(this) * (1 + this.rush)); } // сменил замок: та же пора впускает и еду — медленнее
   split() { return this.genes.fast ? this.cfg.split * this.cfg.fast_split : this.cfg.split; } // быстрый рост: больше рибосом — делишься раньше
   // Съел — серия: куски подряд (не дольше cfg.rush_gap между ними) разгоняют рост, как в экспоненциальной фазе.
+  gain(f) { return this.cfg.food_kinds[f.kind || 'bits'].gain; } // три вида еды: крошки, глюкоза, белковый сок
   fed(x, y, size) { const c = this.cfg; this.rush = Math.min(c.rush_max, this.rush + (this.stats.time - this.lastEat < c.rush_gap ? c.rush_step * size : 0)); this.lastEat = this.stats.time; this.stats.eaten++; this.events.push(['eat', x, y, size]); }
 
   // Неживое и соседи: водоросль понемногу выделяет сахар вокруг себя (фикосфера), детрит тонет,
@@ -341,7 +344,7 @@ export class World {
       p.t -= 1;
       let near = 0;
       for (const f of this.food) if (Math.abs(f.x - p.x) < 90 && Math.abs(f.y - p.y) < 90) near++;
-      if (near < c.halo_max) { const t = r() * 6.283, d = radius(p.m) * 1.6 + r() * 40; this.food.push({ x: p.x + Math.cos(t) * d, y: p.y + Math.sin(t) * d, vx: 0, vy: 0 }); }
+      if (near < c.halo_max) { const t = r() * 6.283, d = radius(p.m) * 1.6 + r() * 40; this.food.push({ x: p.x + Math.cos(t) * d, y: p.y + Math.sin(t) * d, vx: 0, vy: 0, kind: 'glucose' }); } // водоросль на свету выделяет глюкозу (Е2)
     }
     for (const k of this.crumbs) k.y += c.sink * dt;
     for (const f of this.food) if (f.vx || f.vy) { const q = Math.max(0, 1 - 4 * dt); f.vx *= q; f.vy *= q; f.x += f.vx * dt; f.y += f.vy * dt; if (Math.abs(f.vx) + Math.abs(f.vy) < 1) f.vx = f.vy = 0; }
@@ -353,7 +356,7 @@ export class World {
       const r = radius(a.m);
       for (const f of this.food) {
         const dx = a.x - f.x, dy = a.y - f.y, d = len(dx, dy);
-        if (d < r + 6 && !f.gone) { f.gone = true; const z = f.s || 1; this.grow(a, this.cfg.food * z); this.fed(f.x, f.y, z); } // кусок кормит по размеру
+        if (d < r + 6 && !f.gone) { f.gone = true; const z = f.s || 1; this.grow(a, this.cfg.food * z * this.gain(f)); this.fed(f.x, f.y, z); } // кусок кормит по размеру
       }
       // Бактерии клетки не глотают. Ген CDI (cdiA): нить с ядом на кончике бьёт при касании только родню — чужой штамм
       // кишечной палочки, он лопается облаком еды. Свои сородичи защищены противоядием CdiI, кокки — толстой стенкой (сверка биолога, Г18).

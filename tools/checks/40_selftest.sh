@@ -43,6 +43,8 @@ ONLY=L019 case_ "test_L019: существо без места в Альмана
 case_ "test_L017: невидимый слой поверх кнопок «Заплыва»" 52_zaplyv_tap.sh red "sed -i 's|<div id=\"note\"|<div style=\"position:fixed;inset:0;z-index:99\"></div>&|' proby/zaplyv/index.html"
 case_ "test_L017: флажок молчит после касания" 52_zaplyv_tap.sh red "sed -i 's|n.classList.add(.on.);|/* нет отклика */|' proby/zaplyv/main.js"
 ONLY=L021 case_ "test_L021: значки генов пропали" 52_zaplyv_tap.sh red "sed -i 's/^function icon(g) {/function icon(g) { return String();/' $Z/main.js"
+case_ "test_L034: ✕ не убирает отметку" 52_zaplyv_tap.sh red "sed -i 's/marks.splice(i, 1); keepMarks();/keepMarks();/' $Z/main.js"
+case_ "test_L036: ночь пересоздаёт холст каждый кадр" 52_zaplyv_tap.sh red "sed -i 's/if (oc.width !== ow || oc.height !== oh) { oc.width = ow; oc.height = oh; }/oc.width = ow; oc.height = oh;/' $Z/main.js"
 case_ "test_L031: лист гибели помнит прокрутку" 52_zaplyv_tap.sh red "sed -i 's/\$(.end.).scrollTop = 0; //' $Z/main.js"
 case_ "test_L025: кнопки гибели ниже края экрана" 52_zaplyv_tap.sh red "sed -i 's/flex-shrink: 0; position: sticky;/flex-shrink: 0;/' $Z/index.html"
 # L018 (расширен) и L024 «антибред»: черновая строка умения мимо книги, описание в data.json, слово мира без имени из Альманаха, умение без теста-обещания — красное.
@@ -53,6 +55,7 @@ ONLY=L024 case_ "test_L024: умение дочке до встречи" 50_zapl
 ONLY=L024 case_ "test_L024: умение без теста-обещания" 50_zaplyv.sh red "sed -i 's/сон-персистер \[spore\]/сон-персистер/' $Z/test.mjs"
 # L032: амёба снова ждёт у спящей — проснувшуюся съедает
 ONLY=L032 case_ "test_L032: спора просыпается у амёбы" 50_zaplyv.sh red "sed -i 's/if (a \&\& a.spore > 0) { const d/if (false) { const d/; s/if (!this.amoebas.some(m => dist(m, a) < radius(m.m) + c.spore_safe)/if (true/' $Z/sim.js"
+ONLY=L032 case_ "test_L032: спящую снова держат запятые и колокольчик" 50_zaplyv.sh red "sed -i 's/a.free = Math.max(a.free || 0, 1); //' $Z/sim.js"
 # L033: «Чует еду» без пальца снова стоит
 ONLY=L033 case_ "test_L033: без пальца клетка с умением стоит" 50_zaplyv.sh red "sed -i 's/} else if (this.genes.sense) {/} else if (false) {/' $Z/sim.js"
 case_ "test_L029: камера тянется к отставшим вдали" 52_zaplyv_tap.sh red "sed -i 's/const flock = live.filter(a => Math.hypot(a.x - lead.x, a.y - lead.y) < C.group)/const flock = world.me/' $Z/main.js"
