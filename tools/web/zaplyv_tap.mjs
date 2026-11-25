@@ -192,6 +192,12 @@ await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 0; }); await p.w
 await p.reload(); await p.waitForFunction(() => window.zaplyvProbe && zaplyvProbe.frames > 5, null, { timeout: 30000 }); await p.waitForTimeout(800);
 if (await tap('#mscene [data-m=mut]', 'объект «Мутации»')) say((await p.textContent('#mgo')) === 'Плыть с мутациями', 'касание «Мутаций» меняет подпись кнопки');
 if (await tap('#mgo', '«Плыть с мутациями»')) say(!(await on('menu')) && await p.evaluate(() => zaplyvWorld().mode === 'mut' && zaplyvWorld().me.length > 0), '«Плыть с мутациями» начинает заплыв в режиме мутаций');
+// Режим «Голод» (Роман 25.11: «Да отдельным режимом давай попробуем»): объект в меню, кнопка запускает заплыв, где без еды худеешь.
+await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 0; }); await p.waitForTimeout(1200);
+await p.reload(); await p.waitForFunction(() => window.zaplyvProbe && zaplyvProbe.frames > 5, null, { timeout: 30000 }); await p.waitForTimeout(800);
+if (await tap('#mscene [data-m=golod]', 'объект «Голод»')) say((await p.textContent('#mgo')) === 'Плыть в голод', 'касание «Голода» меняет подпись кнопки');
+if (await tap('#mgo', '«Плыть в голод»')) { const m0 = await p.evaluate(() => { const w = zaplyvWorld(); w.food.length = 0; return w.me[0].m; }); await p.waitForTimeout(1500);
+  say(!(await on('menu')) && await p.evaluate(m0 => { const w = zaplyvWorld(); w.food.length = 0; return w.mode === 'golod' && w.me.length > 0 && w.me[0].m < m0; }, m0), '«Плыть в голод» начинает заплыв, и без еды клетка худеет'); }
 say(!errs.length, 'ошибок страницы нет' + (errs.length ? ': ' + errs.join('; ') : ''));
 await b.close();
 console.log(bad ? `КАСАНИЯ: провалов ${bad}` : 'КАСАНИЯ: все кнопки отвечают пальцу');

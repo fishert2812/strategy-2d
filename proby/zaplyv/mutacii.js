@@ -29,21 +29,24 @@ export function names(cfg, GENY) {
   for (const c of Object.values((GENY && GENY.geny) || {})) if (c.klyuch in M.genes) cfg.genes[c.klyuch] = [c.imya, c.daet];
 }
 // Мутации живут только в режиме «Мутации» (Роман 24.11: «Мы тестируем разные режимы!»); обычный заплыв как был.
-const on = w => w.mode === 'mut';
-const has = (w, g) => (on(w) || everywhere(g)) && !!w.genes[g];
+// Режим «Голод» (Роман 25.11 08:47: «Да отдельным режимом давай попробуем»): клетка без еды худеет; его умения — M.golod.genes.
+const hungry = w => w.mode === 'golod';
+const own = (w, g) => M.golod.genes.includes(g) ? hungry(w) : w.mode === 'mut';
+const on = w => w.mode === 'mut' || hungry(w);
+const has = (w, g) => (own(w, g) || everywhere(g)) && !!w.genes[g];
 const fresh = (w, list) => list.filter(g => !w.genes[g]);
 // Из чего выбирают дочки при делении. В режиме — одна новая мутация (кроме чужих) и одно прежнее умение.
 export function pool(w) {
   const old = Object.keys(w.cfg.genes).filter(g => !(g in M.genes) || everywhere(g));
   if (!on(w)) return old;
   const ok = g => !w.offer || w.offer(g), one = l => l.length ? [l[Math.floor(w.r() * l.length)]] : [];
-  const mine = fresh(w, Object.keys(M.genes).filter(g => !M.pipe.includes(g))).filter(ok), was = old.filter(g => !w.genes[g] && ok(g));
+  const mine = fresh(w, Object.keys(M.genes).filter(g => !M.pipe.includes(g) && own(w, g))).filter(ok), was = old.filter(g => !w.genes[g] && ok(g));
   return [...one(mine), ...one(was)]; // одна дочка — с новой мутацией, другая — с прежним умением (прогон 0.61, О43: «Ядовитое касание» и «Запасная жизнь» не выпадали)
 }
 // Что передаёт по трубочке золотистая соседка. В режиме — сначала чужие мутации.
 export function pipe(w) {
   const base = w.cfg.plasmid_genes;
-  if (!on(w)) return base;
+  if (w.mode !== 'mut') return base;
   const mine = fresh(w, M.pipe);
   return mine.length ? mine : base;
 }
@@ -78,12 +81,13 @@ export function cell(w, a, dt, th) {
     a.vx += (vx / w.me.length - a.vx) * al; a.vy += (vy / w.me.length - a.vy) * al;
   }
   if (a.snap > 0) a.snap = Math.max(0, a.snap - dt);
+  if (hungry(w)) starve(w, a, dt);
   if (has(w, 'decoy') && !(a.spore > 0) && (a.ves = (a.ves || 0) + dt) > M.decoy.every) { // обманки: пузырёк отщипывается у кормы
     a.ves = 0; const r = 13 * Math.sqrt(a.m); a.m = Math.max(0.6, a.m - M.decoy.cost);
     (w.vesicles ||= []).push({ x: a.x - Math.cos(a.a) * r, y: a.y - Math.sin(a.a) * r, t: 0 });
     if (w.vesicles.length > M.decoy.max) w.vesicles.shift();
   }
-  if (a === w.me[0] && on(w)) citrate(w);
+  if (a === w.me[0] && w.mode === 'mut') citrate(w);
   if (has(w, 'citrate') && w.cit) for (const q of w.cit) if (!q.gone && Math.hypot(q.x - a.x, q.y - a.y) < 13 * Math.sqrt(a.m) + M.citrate.r) { // голубую точку съедает только клетка с геном
     q.gone = true; w.grow(a, M.citrate.food); w.stats.citrate = (w.stats.citrate || 0) + 1; w.fed(q.x, q.y, 1); } // как обычная еда: счёт «съедено», звук
   if (a === w.me[0] && w.refuse) { for (const g of w.refuse) g.t += dt; w.refuse = w.refuse.filter(g => g.t < M.door.flash); }
@@ -92,6 +96,19 @@ export function cell(w, a, dt, th) {
   if (!has(w, 'gas')) return;
   const up = !th && !a.stuck && !(a.spore > 0) && !(w.genes.sense && w.food.some(f => Math.hypot(f.x - a.x, f.y - a.y) < w.cfg.sense_r)); // чует еду рядом — ждёт у неё, а не всплывает
   a.lift = (a.lift || 0) + ((up ? M.gas.up : 0) - (a.lift || 0)) * Math.min(1, M.gas.ease * dt); a.y -= a.lift * dt; // вода гасит любой ход, а пузырьки тянут вверх всё время
+}
+
+// Голод: каждая клетка тратит силы на жизнь. Сначала тают крупинки запаса, потом масса; ниже порога клетка гибнет.
+// «Копит запас» (Г42): масса сверх over × порога деления уходит в крупинки (до n), поэтому делится чуть позже.
+// «Дольше без еды» (Г40): выше small клетка худеет быстрее (fast), ниже — тратит в k раз меньше.
+function starve(w, a, dt) {
+  const G = M.golod, S = M.store, L = M.lean;
+  if (has(w, 'store') && (a.store || 0) < S.n && a.m > w.split() * S.over) { a.m -= S.grain; a.store = (a.store || 0) + 1; w.stats.stored = (w.stats.stored || 0) + 1; }
+  let burn = G.burn * dt;
+  if (has(w, 'lean')) burn *= a.m > L.small ? L.fast : L.k;
+  if (has(w, 'store') && a.store > 0) { a.storeLeft = (a.storeLeft ?? S.grain) - burn; if (a.storeLeft <= 0) { a.store--; a.storeLeft = S.grain; w.stats.melted = (w.stats.melted || 0) + 1; } return; }
+  a.m -= burn;
+  if (a.m < G.die) { w.stats.starved = (w.stats.starved || 0) + 1; w.lose(a, a.x, a.y, 'me'); }
 }
 
 // Голубые точки режима «Мутации»: держим их число вокруг семьи, дальние уходят. Никто, кроме клетки с геном, их не ест.
@@ -177,7 +194,7 @@ export const food = w => has(w, 'door') ? M.door.food : 1;
 
 // Что рисовать на теле (дополнение к look.js).
 export function mutLook(genes) {
-  return { ...(genes.snap ? { flagella: M.snap.look } : {}), snap: !!genes.snap, gas: genes.gas ? M.gas.n : 0, abort: !!genes.abort, door: !!genes.door, decoy: !!genes.decoy, flu: genes.flu ? M.flu.pins : 0, steady: genes.steady ? M.steady.look : 0, citrate: !!genes.citrate };
+  return { ...(genes.snap ? { flagella: M.snap.look } : {}), snap: !!genes.snap, gas: genes.gas ? M.gas.n : 0, abort: !!genes.abort, door: !!genes.door, decoy: !!genes.decoy, flu: genes.flu ? M.flu.pins : 0, steady: genes.steady ? M.steady.look : 0, citrate: !!genes.citrate, store: !!genes.store, lean: !!genes.lean };
 }
 
 // Вид мутаций на теле плывущей клетки (зовёт vid.js skin()). Цвет — из палитры клетки, без чистого белого (урок L020).
@@ -203,5 +220,9 @@ export function mutSkin({ a, lk, ink, glow, at, w, L, time }) {
     const u = -L - w * (0.15 + k * 0.16), o = (k % 2 ? 1 : -1) * w * 0.12; const [px, py] = at(u, o); ink.put(px, py, w * 0.13, 0.1, 0.16, 0.26, 0.75); glow.put(px, py, w * 0.06, 0.55, 0.8, 1, 0.3); }
   if (lk.citrate) for (let k = 0; k < 5; k++) { // ест голубую еду: внутри голубые крупинки съеденного
     const [px, py] = at((k / 4 - 0.5) * L * 1.2, (k % 2 ? 1 : -1) * w * 0.18); glow.put(px, py, w * 0.14, 0.25, 0.65, 0.95, 0.55); ink.put(px, py, w * 0.17, 0.05, 0.12, 0.22, 0.25); }
+  if (lk.store) for (let k = 0; k < (a.store || 0); k++) { // копит запас: тёмные плотные крупинки внутри, по одной на крупинку запаса
+    const [px, py] = at((k / 5 - 0.5) * L * 1.3, (k % 2 ? 1 : -1) * w * 0.22); ink.put(px, py, w * 0.2, 0.1, 0.06, 0.04, 0.8); glow.put(px - w * 0.05, py - w * 0.05, w * 0.06, 0.9, 0.75, 0.45, 0.35); }
+  if (lk.lean) for (let k = 0; k < 6; k++) { // дольше без еды: по бокам частые складки оболочки — ей есть куда сжаться
+    const s = k % 2 ? 1 : -1, [px, py] = at(((k >> 1) / 2 - 0.5) * L * 1.1, s * w * 0.86); ink.put(px, py, w * 0.08, 0.1, 0.16, 0.26, 0.6); glow.put(px, py + s * w * 0.05, w * 0.05, 0.6, 0.85, 1, 0.3); }
   if (lk.snap && a.snap > 0) { const [px, py] = at(-L - w, 0); glow.put(px, py, w * 0.6, 0.6, 0.8, 1, 0.15 * a.snap / M.snap.time); } // щелчок: вспышка у кормы, где подломился хвост
 }
