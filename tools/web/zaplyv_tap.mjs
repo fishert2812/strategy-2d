@@ -62,8 +62,10 @@ await p.waitForTimeout(700); { const t = await p.evaluate(() => [...document.que
   say(n === 2, `test_L043: схватили второй раз — совет «развернись» снова на экране (показан ${n} из 2)`); }
 // test_L052 (Роман 25.11: «мутнота», ночью «расплывчатое»): на экране плотности 3 кадр начинается в полную плотность; на тяжёлом кадре
 // (здесь — программная видеокарта) один раз откатывается до cfg.dpr_max и дальше не скачет.
-{ await p.waitForFunction(() => zaplyvProbe.frames > 90 + 2 * 60 + 10, null, { timeout: 30000 }).catch(() => {});
-  await p.evaluate(() => { const w = zaplyvWorld(); w.choice.length = 0; w.me.length = 1; w.me[0].m = 1; }); // пока ждали, клетка могла вырасти до выбора дочки — он прячет кнопки
+{ await p.evaluate(() => { const w = zaplyvWorld(); w.tidy = 1e9; for (const l of ['amoebas', 'bdellos', 'slippers', 'bells', 'rotis', 'pseudos', 'phages']) if (w[l]) w[l].length = 0; }); // пока ждём кадры, клетку никто не съест
+  await p.waitForFunction(() => zaplyvProbe.frames > 90 + 2 * 60 + 10, null, { timeout: 30000 }).catch(() => {});
+  await p.evaluate(() => { zaplyvWorld().tidy = 0; });
+  await p.evaluate(() => { const w = zaplyvWorld(); w.choice.length = 0; if (w.me.length) { w.me.length = 1; w.me[0].m = 1; } }); // пока ждали, клетка могла вырасти до выбора дочки — он прячет кнопки
   const d = await p.evaluate(() => ({ slow: zaplyvWorld().cfg.dpr_slow, d0: zaplyvProbe.dpr0, d: zaplyvProbe.dpr, drop: zaplyvProbe.dprDrop, avg: zaplyvProbe.avg, dpr: devicePixelRatio }));
   say(d.dpr >= 3 && d.d0 === 3 && (d.avg > d.slow ? d.drop && d.d === 2.5 : d.d === 3), `test_L052: кадр в полную плотность 3, на тяжёлом кадре откат до 2,5 (было ${d.d0}, сейчас ${d.d}, откат на кадре ${d.drop || '—'}, средний кадр ${Math.round(d.avg)} мс)`); }
 // test_L046 (Роман 25.11 на 0.68: «Почему какая то мутнота стала? Какой то фильтр мутно стоит?»): тяж слизи — прозрачный гель с тонкой
