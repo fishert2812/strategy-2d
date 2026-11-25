@@ -173,13 +173,14 @@ check('мутации только в режиме «Мутации»: в обы
   if (u.snaps || yy - y0.me[0].y > 30) return 'мутации действуют вне режима';
 });
 
-check('режим «Мутации»: дочки приносят свои новые мутации, а чужие — только соседка по трубочке', () => {
+check('режим «Мутации»: одна дочка приносит новую мутацию, другая — прежнее умение; чужие — только соседка по трубочке', () => {
   const w = mw(13); const got = [];
-  for (let i = 0; i < 6; i++) { w.choice = []; w.splits = i * cfg.gene_every; w.me.length = 1; w.me[0].m = 9; w.divide(); if (w.choice[0]) { got.push(...w.choice); w.pick(w.choice[0]); } }
+  for (let i = 0; i < 8; i++) { w.choice = []; w.splits = i * cfg.gene_every; w.me.length = 1; w.me[0].m = 9; w.divide(); if (w.choice[0]) { got.push(...w.choice); w.pick(w.choice.find(g => g in M.genes) || w.choice[0]); } }
   const own = Object.keys(M.genes).filter(g => !M.pipe.includes(g));
   console.log(`    паспорт: дочки предложили ${got.join(',')}`);
   if (!own.every(g => got.includes(g))) return 'не все свои мутации пришли дочкам';
   if (got.some(g => M.pipe.includes(g))) return 'чужая мутация пришла дочке, а не по трубочке';
+  if (!got.some(g => !(g in M.genes))) return 'прежние умения дочкам не приходят (О43)';
 });
 
 // Бот режима «Мутации»: делится, плывёт к еде, от опасных отворачивает, берёт первую дочку. Встречает ли он то, где мутация важна.

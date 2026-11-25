@@ -32,12 +32,13 @@ export function names(cfg, GENY) {
 const on = w => w.mode === 'mut';
 const has = (w, g) => (on(w) || everywhere(g)) && !!w.genes[g];
 const fresh = (w, list) => list.filter(g => !w.genes[g]);
-// Из чего выбирают дочки при делении. В режиме — сначала новые мутации (кроме чужих), потом прежние гены.
+// Из чего выбирают дочки при делении. В режиме — одна новая мутация (кроме чужих) и одно прежнее умение.
 export function pool(w) {
   const old = Object.keys(w.cfg.genes).filter(g => !(g in M.genes) || everywhere(g));
   if (!on(w)) return old;
-  const mine = fresh(w, Object.keys(M.genes).filter(g => !M.pipe.includes(g)));
-  return mine.length ? mine : old;
+  const ok = g => !w.offer || w.offer(g), one = l => l.length ? [l[Math.floor(w.r() * l.length)]] : [];
+  const mine = fresh(w, Object.keys(M.genes).filter(g => !M.pipe.includes(g))).filter(ok), was = old.filter(g => !w.genes[g] && ok(g));
+  return [...one(mine), ...one(was)]; // одна дочка — с новой мутацией, другая — с прежним умением (прогон 0.61, О43: «Ядовитое касание» и «Запасная жизнь» не выпадали)
 }
 // Что передаёт по трубочке золотистая соседка. В режиме — сначала чужие мутации.
 export function pipe(w) {
