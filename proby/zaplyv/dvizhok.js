@@ -107,19 +107,23 @@ export function vitrina(K, cards, T) {
     cards[k] ??= { name: t.imya || k, who: t.imya || k, text: t.kto || '', fact: t.priroda || '', tip: t.sovet || '' }; }
 }
 
+// Существо целиком из частей (vid_chasti.js): на каждую клетку тела — запись частей и поза. Части одни на все формы:
+// запись частей вида + поправки из анкеты; форма, размеры, изгиб и место клетки в цепочке или грозди — из анкеты.
+export function sborka(q, { x, y, z, time }) {
+  const A = anketa(klyuch(q)), T = A.telo, S = A.sborka, Z = VC.vidy[S.vid], w = V.mera.tolshchina * z, wt = w * T.tolshchina, ux = Math.cos(q.a), uy = Math.sin(q.a);
+  const fm = T.forma || 'palochka', krug = fm === 'shar' || fm === 'grozd', n = kletok(A, q), hl = krug ? wt : w * T.dlina, shag = hl * 2 * T.zazor;
+  const dolya = krug ? T.tolshchina / T.dlina : 1, po = (k, v, i) => k === 'zhgutiki' ? { ...v, n: Math.floor(v.n / n) + (i < v.n % n ? 1 : 0) } : k === 'vorsinki' || k === 'ribosomy' ? { ...v, n: Math.round(v.n * dolya) } : v; // жгутики делятся между клетками, ворса и зёрен на шаре меньше
+  const idet = q.t > (q.rest ?? 0) && fm !== 'grozd' ? 1 : 0, dt = Math.min(0.1, Math.max(0, time - (q.vt ?? time))); q.vt = time; q.beg = (q.beg ?? idet) + (idet - (q.beg ?? idet)) * Math.min(1, dt * S.sbor);
+  return Array.from({ length: n }, (_, i) => { const o = (i - (n - 1) / 2) * shag, t = i * 2.4 + q.id, d = wt * 1.15 * Math.sqrt(i), [cx, cy] = fm === 'grozd' ? [x + Math.cos(t + q.a) * d, y + Math.sin(t + q.a) * d] : [x + ux * o, y + uy * o];
+    return [{ forma: { tip: krug ? 'shar' : 'palochka' }, chasti: Object.fromEntries(Object.entries(Z.chasti).map(([k, v]) => [k, po(k, { ...VC.chasti[k], ...v, ...(S.chasti?.[k] || {}) }, i)])) },
+      { x: cx, y: cy, a: q.a, dlina: hl * 2, tolshchina: wt, z, time, id: q.id + i * 37, beg: q.beg, izgib: fm === 'zapyataya' ? w * T.izgib : 0, hvost: fm === 'grozd' ? 0 : o + (n - 1) / 2 * shag }]; });
+}
 // Рисунок палочки по анкете: тело (одна клетка или цепочка концами), цвет-метка, жгутики. Кисти даёт main.js (и песочница).
 // Нить жгутика сплошная: шаг точек не больше их размера (урок L047: пунктир и бусы — брак).
 export function risuy(q, { x, y, z, time, bodies, glow }) {
   const A = anketa(klyuch(q)), T = A.telo, F = T.zhgutiki, w = V.mera.tolshchina * z, ux = Math.cos(q.a), uy = Math.sin(q.a), wt = w * T.tolshchina;
   if (q.held > 0) { bodies.sphere(x, y, w * 1.5, T.cvet, [1, 0.5, 0.3], q.id); glow.put(x, y, w * 3, 1, 0.3, 0.1, 0.15); return; } // в ней хищник: шарик
-  if (A.sborka && bodies.seg) { // существо целиком из частей (vid_chasti.js): запись частей вида + свои поправки из анкеты; поза, форма и размеры — отсюда
-    const S = A.sborka, Z = VC.vidy[S.vid], fm = T.forma || 'palochka', krug = fm === 'shar' || fm === 'grozd', n = kletok(A, q), hl = krug ? wt : w * T.dlina, shag = hl * 2 * T.zazor;
-    const dolya = krug ? T.tolshchina / T.dlina : 1, po = (k, v, i) => k === 'zhgutiki' ? { ...v, n: Math.floor(v.n / n) + (i < v.n % n ? 1 : 0) } : k === 'vorsinki' || k === 'ribosomy' ? { ...v, n: Math.round(v.n * dolya) } : v; // жгутики делятся между клетками, ворса и зёрен на шаре меньше
-    const idet = q.t > (q.rest ?? 0) && fm !== 'grozd' ? 1 : 0, dt = Math.min(0.1, Math.max(0, time - (q.vt ?? time))); q.vt = time; q.beg = (q.beg ?? idet) + (idet - (q.beg ?? idet)) * Math.min(1, dt * S.sbor);
-    for (let i = 0; i < n; i++) { const o = (i - (n - 1) / 2) * shag, t = i * 2.4 + q.id, d = wt * 1.15 * Math.sqrt(i), [cx, cy] = fm === 'grozd' ? [x + Math.cos(t + q.a) * d, y + Math.sin(t + q.a) * d] : [x + ux * o, y + uy * o];
-      const zap = { forma: { tip: krug ? 'shar' : 'palochka' }, chasti: Object.fromEntries(Object.entries(Z.chasti).map(([k, v]) => [k, po(k, { ...VC.chasti[k], ...v, ...(S.chasti?.[k] || {}) }, i)])) };
-      sobrat(zap, { x: cx, y: cy, a: q.a, dlina: hl * 2, tolshchina: wt, z, time, id: q.id + i * 37, beg: q.beg, izgib: fm === 'zapyataya' ? w * T.izgib : 0, hvost: fm === 'grozd' ? 0 : o + (n - 1) / 2 * shag }, bodies); }
-    return; }
+  if (A.sborka && bodies.seg) { for (const [zap, poza] of sborka(q, { x, y, z, time })) sobrat(zap, poza, bodies); return; } // существо целиком из частей
   const hl = w * T.dlina, C = T.cepochka, n = kletok(A, q), // [от, до]: у каждой цепочки своя длина
      shag = (T.forma === 'shar' ? wt : hl) * 2 * T.zazor, all = hl + shag * (n - 1) / 2, [fr, fg, fb] = F.cvet;
   const fm = T.forma || 'palochka', kach = i => Math.sin(time * T.kach[0] + q.id + i) * w * T.kach[1];

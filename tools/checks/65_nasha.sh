@@ -12,3 +12,9 @@ if grep -q 'ПРОВАЛ test_nasha_niti' <<<"$off"; then
 else
   echo "  САМОПРОВЕРКА: нить порвана, а test_nasha_niti зелёный — проверка ничего не доказывает"; exit 1
 fi
+off=$(NASHA_OTORVAT=1 timeout 60 node proby/zaplyv/test_nasha.mjs 2>&1)
+if grep -q 'ПРОВАЛ test_nasha_matrica' <<<"$off"; then
+  echo "  самопроверка: жгутики оторваны от тела — test_nasha_matrica красный (так и должно быть)"
+else
+  echo "  САМОПРОВЕРКА: жгутики оторваны от тела, а test_nasha_matrica зелёный — проверка ничего не доказывает"; exit 1
+fi

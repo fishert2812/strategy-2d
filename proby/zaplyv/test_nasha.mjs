@@ -1,5 +1,6 @@
 // Проверки «нашей клетки из частей» (vid_chasti.js, запись vidy.nasha) без экрана: node proby/zaplyv/test_nasha.mjs. Провал — код 1.
 // NASHA_LOMAT=1 рвёт нить жгутика (каждое второе звено пропущено): test_nasha_niti обязан покраснеть (самопроверка шага 65_nasha).
+// NASHA_OTORVAT=1 сдвигает корни жгутиков от тела: test_nasha_matrica обязан покраснеть.
 import { sobrat, VC } from './vid_chasti.js';
 import * as dv from './dvizhok.js';
 import * as kn from './konstruktor.js';
@@ -57,6 +58,22 @@ check('test_nasha_konstruktor: в конструкторе образец — н
   console.log('    паспорт: трубок при 2 жгутиках', a.seg, '| при 8', b.seg, '| при 2 и 160 ворсинках', c.seg);
   if (b.seg - a.seg !== 6 * a.zh) return 'шесть лишних жгутиков дали ' + (b.seg - a.seg) + ' звеньев, а не ' + 6 * a.zh;
   if (c.seg <= a.seg) return 'ворсинки не появились';
+});
+
+check('test_nasha_matrica: каждая часть ложится на каждую форму тела (палочка, шар, цепочка, запятая, гроздь) — рисуется, непустая, жгутик растёт из оболочки (Роман 25.11: «почему ножки отдельно от тела?», «почему движок конструктора не универсальный?»)', () => {
+  const E = { ...kn.K.etalon }, formy = [['palochka', 1], ['palochka', 3], ['shar', 1], ['shar', 4], ['zapyataya', 1], ['grozd', 6]], chasti = Object.keys(Z.chasti), dyry = []; let zazor = 0;
+  for (const [forma, cepochka] of formy) { dv.V.vidy.svoya = kn.anketa({ ...E, forma, cepochka, zhgutiki: 8 }, cfg);
+    const kl = dv.sborka({ x: 0, y: 0, a: 0.3, t: 1, rest: process.env.NASHA_OTORVAT ? 0 : 2, vid: 'svoya', id: 5 }, { x: 300, y: 400, z: 4, time: 1 });
+    if (kl.length !== cepochka) return forma + ': клеток ' + kl.length + ' вместо ' + cepochka;
+    for (const ch of chasti) { let n = 0; for (const [zap, poza] of kl) { const B = tela(); sobrat({ forma: zap.forma, chasti: { [ch]: zap.chasti[ch] } }, poza, B); n += B.L.seg.length + B.L.sphere.length + B.L.put.length; }
+      if (!n) dyry.push(ch + ' × ' + forma + (cepochka > 1 ? ' ×' + cepochka : '')); }
+    for (const [zap, poza] of kl) { const B = tela(), zh = zap.chasti.zhgutiki; if (!zh.n) continue; sobrat({ forma: zap.forma, chasti: { zhgutiki: zh } }, { ...poza, hvost: process.env.NASHA_OTORVAT ? -poza.dlina * 2 : poza.hvost }, B);
+      const ux = Math.cos(poza.a), uy = Math.sin(poza.a), hl = poza.dlina / 2, w = poza.tolshchina, L = hl - w;
+      for (let i = 0; i < B.L.seg.length; i += zh.zvenya) { const s = B.L.seg[i], dx = s.x0 - poza.x, dy = s.y0 - poza.y, u = dx * ux + dy * uy, o = -dx * uy + dy * ux - poza.izgib * (Math.min(1, (u / hl) ** 2) - 0.325);
+        zazor = Math.max(zazor, (Math.hypot(Math.max(0, Math.abs(u) - L), o) - w) / w); } } }
+  console.log('    паспорт: форм', formy.length, '× частей', chasti.length, '| дыр', dyry.length, '| корень жгутика дальше всего от оболочки на', (zazor * 100).toFixed(0) + '% толщины тела');
+  if (dyry.length) return 'пусто: ' + dyry.join('; ');
+  if (zazor > 0.05) return 'жгутик висит отдельно от тела: зазор ' + (zazor * 100).toFixed(0) + '% толщины';
 });
 
 console.log(bad ? `НАША КЛЕТКА: провалов ${bad}` : 'НАША КЛЕТКА: все проверки прошли'); process.exit(bad ? 1 : 0);

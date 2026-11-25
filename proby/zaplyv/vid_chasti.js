@@ -85,7 +85,7 @@ const RIS = {
         if (i) B.seg(lx, ly, nx, ny, w * st.tolsh * (1 - 0.75 * s), st.cvet, st.a * (1 - 0.5 * s)); lx = nx; ly = ny; } } },
   // Гранулы запаса (включения): несколько плотных шариков у полюсов, в стороне от клубка ДНК.
   vklyucheniya(st, F, P, B, at) { B.vyshe = P.tolshchina * 0.8; const w = P.tolshchina;
-    for (let k = 0; k < st.n; k++) { const [px, py] = at((k % 2 ? 1 : -1) * (0.5 + 0.2 * hash(P.id, k + 300)), (hash(P.id, k + 301) - 0.5) * 0.7); B.sphere(px, py, w * st.r * (0.8 + 0.4 * hash(P.id, k + 302)), st.cvet, st.kromka, P.id + k + 20, 0.9); } },
+    for (let k = 0; k < st.n; k++) { const [px, py] = at((k % 2 ? 1 : -1) * (0.5 + 0.2 * hash(P.id, k + 300)) * (1 - w / (P.dlina / 2) * 0.35), (hash(P.id, k + 301) - 0.5) * 0.6); B.sphere(px, py, w * st.r * (0.8 + 0.4 * hash(P.id, k + 302)), st.cvet, st.kromka, P.id + k + 20, 0.9); } },
 };
 
 export function sobrat(zapis, poza, B) {
