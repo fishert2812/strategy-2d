@@ -101,6 +101,8 @@ ONLY=L054 case_ "test_L054: гнездо без передышки" 50_zaplyv.sh
 ONLY=L056 case_ "test_L056: чутьё без детрита и водоросли" 50_zaplyv.sh red "sed -i 's/\\[\\[this.crumbs, .crumb.\\], \\[this.plants, .plant.\\]\\]/[]/' $Z/sim.js"
 # L047: кисть снова с малым запасом — в людном кадре точки выпадают, кольцо рвётся бусами
 ONLY=L047 case_ "test_L047: кисть без запаса" 52_zaplyv_tap.sh red "sed -i 's/\"kist\": { \"glow\": 20000, \"ink\": 20000 }/\"kist\": { \"glow\": 3000, \"ink\": 3000 }/' $Z/data.json"
+# L062: кольцо зоны снова бледное и без подложки — в людном кадре его не видно
+ONLY=L062 case_ "test_L062: кольцо зоны бледное" 52_zaplyv_tap.sh red "sed -i 's/\"far\": 0.45, \"near\": 0.6/\"far\": 0.12, \"near\": 0.3/; s/\"podlozhka_a\": 0.3/\"podlozhka_a\": 0/' $Z/data.json"
 # L047: след за клеткой снова бусами
 ONLY=L047 case_ "test_L047: след бусами" 53_zaplyv_vid.sh red "sed -i 's/wake.put(x, y, (5 + 9 \\* p.t)/wake.put(x, y, (1.1 + 9 * p.t)/' $Z/main.js"
 # L057: колония снова делится рывком, проходит сквозь себя и расплывается
