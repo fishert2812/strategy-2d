@@ -80,6 +80,8 @@ ONLY=L033 case_ "test_L033: без пальца клетка с умением �
 # L054: запятые снова плодят рой и нападают без передышки
 ONLY=L054 case_ "test_L054: выводок без предела" 50_zaplyv.sh red "sed -i 's/c.bdello_nest.cap - near)/99)/' $Z/sim.js"
 ONLY=L054 case_ "test_L054: гнездо без передышки" 50_zaplyv.sh red "sed -i 's/if (prey \\&\\& !calm \\&\\& r()/if (prey \\&\\& r()/' $Z/sim.js"
+# L047: след за клеткой снова бусами
+ONLY=L047 case_ "test_L047: след бусами" 53_zaplyv_vid.sh red "sed -i 's/wake.put(x, y, (5 + 9 \\* p.t)/wake.put(x, y, (1.1 + 9 * p.t)/' $Z/main.js"
 # L055: деление снова с толчком и с выдуманной перетяжкой
 ONLY=L055 case_ "test_L055: дочка с толчком" 53_zaplyv_vid.sh red "sed -i 's/vx: c.vx, vy: c.vy,/vx: c.vx - ax * 60, vy: c.vy - ay * 60,/' $Z/sim.js"
 ONLY=L055 case_ "test_L055: палочка толстеет, а не длиннеет" 53_zaplyv_vid.sh red "sed -i 's/half: D.half0 \\* 2 \\* fm/half: D.half0 * (1 + fm)/' $Z/vid.js"
