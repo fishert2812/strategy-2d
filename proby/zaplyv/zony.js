@@ -6,7 +6,7 @@
 import { os, iz_formy } from './telo_os.js';
 import { VC } from './vid_chasti.js';
 const D = VC.zony, TAU = 6.283185;
-const telo = z => os(z.forma?.tochki || iz_formy(z.forma?.tip || 'palochka', (z.forma?.dlina || 2.14) / 2, 1, z.forma?.izgib || 0));
+const telo = z => os(z.forma?.tochki || iz_formy(z.forma?.tip || 'palochka', z.forma?.dlina || 2.14, 1, z.forma?.izgib || 0));
 // Где у зоны середины на обводе (в радианах обвода): нос, корма, оба бока, всё тело или своё место долей обвода от носа.
 const centry = (O, m) => m === 'nos' ? [O.nos_t] : m === 'korma' ? [O.korma_t] : m === 'boka' ? O.boka_t : typeof m === 'number' ? [O.nos_t + m * TAU] : null;
 const krug = d => Math.abs(((d % TAU) + TAU + Math.PI) % TAU - Math.PI);
