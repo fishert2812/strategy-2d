@@ -85,6 +85,7 @@ export function cell(w, a, dt, th) {
   if (a === w.me[0] && on(w)) citrate(w);
   if (has(w, 'citrate') && w.cit) for (const q of w.cit) if (!q.gone && Math.hypot(q.x - a.x, q.y - a.y) < 13 * Math.sqrt(a.m) + M.citrate.r) { // голубую точку съедает только клетка с геном
     q.gone = true; w.grow(a, M.citrate.food); w.stats.citrate = (w.stats.citrate || 0) + 1; w.fed(q.x, q.y, 1); } // как обычная еда: счёт «съедено», звук
+  if (a === w.me[0] && w.aborts) { for (const g of w.aborts) g.t += dt; w.aborts = w.aborts.filter(g => g.t < M.abort.show); }
   if (a === w.me[0] && w.vesicles) { for (const v of w.vesicles) v.t += dt; w.vesicles = w.vesicles.filter(v => v.t < M.decoy.life); }
   if (!has(w, 'gas')) return;
   const up = !th && !a.stuck && !(a.spore > 0) && !(w.genes.sense && w.food.some(f => Math.hypot(f.x - a.x, f.y - a.y) < w.cfg.sense_r)); // чует еду рядом — ждёт у неё, а не всплывает
@@ -113,6 +114,7 @@ export function burst(w, a) {
   const x = a.x, y = a.y, ang = a.a, m = a.m;
   w.lose(a, x, y, 'phage');
   if (w.me.indexOf(a) < 0) w.events.push(['abort', x, y, ang, m]); // спора могла спасти последнюю — тогда не гибель
+  if (w.me.indexOf(a) < 0) { (w.aborts ||= []).push({ x, y, ang, m, t: 0, n: w.cfg.burst }); w.stats.trapped = (w.stats.trapped || 0) + w.cfg.burst; } // вирусы заперты внутри — их видно, пока тело гаснет
   return true;
 }
 
@@ -135,6 +137,11 @@ export function drawWorld({ w, scr, z, glow, ink }) {
   }
   for (const q of w.cit || []) { const [x, y] = scr(q.x, q.y), r = 3.4 * z + 1.5; // голубая точка: плотная, с тёмной кромкой — не похожа на пустые кольца пузырей фона
     ink.put(x, y, r * 1.3, 0.03, 0.08, 0.16, 0.7); glow.put(x, y, r, 0.3, 0.75, 1, 0.95); glow.put(x - r * 0.3, y - r * 0.3, r * 0.4, 0.75, 0.92, 1, 0.7); }
+  for (const g of w.aborts || []) { // тихая гибель: внутри погасшего тела видны запертые вирусы — тёмные головки с хвостиком, они тускнеют вместе с телом и не выходят
+    const f = Math.max(0, 1 - g.t / M.abort.show), L = 13 * Math.sqrt(g.m), ux = Math.cos(g.ang), uy = Math.sin(g.ang);
+    for (let k = 0; k < g.n; k++) { const u = (k / (g.n - 1 || 1) - 0.5) * L * 1.2, o = (k % 2 ? 1 : -1) * L * 0.18;
+      const [x, y] = scr(g.x + ux * u - uy * o, g.y + uy * u + ux * o), r = 1.6 * z + 0.8;
+      ink.put(x, y, r * 1.4, 0.2, 0.05, 0.12, 0.8 * f); glow.put(x, y, r * 0.7, 0.85, 0.35, 0.55, 0.45 * f); ink.put(x + ux * r * 1.8, y + uy * r * 1.8, r * 0.5, 0.2, 0.05, 0.12, 0.6 * f); } }
   for (const v of w.vesicles || []) { const [x, y] = scr(v.x, v.y), f = 1 - v.t / M.decoy.life, r = 2.2 * z + 1;
     for (let k = 0; k < 8; k++) { const t = k / 8 * 6.283; glow.put(x + Math.cos(t) * r, y + Math.sin(t) * r, 0.8 * z + 0.4, 0.55, 0.8, 0.95, 0.35 * f); }
     ink.put(x, y, r * 0.8, 0.2, 0.3, 0.45, 0.25 * f); }

@@ -2,6 +2,7 @@
 import { World } from './sim.js';
 import { look } from './look.js';
 import { M } from './mutacii.js';
+import * as mut from './mutacii.js';
 import * as vid from './vid.js';
 import { readFileSync } from 'node:fs';
 const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
@@ -44,6 +45,16 @@ check('[abort] вирус остаётся внутри: заражённая с
   if (b.phages.length < cfg.burst) return 'без умения клетка не лопнула вирусами — сравнение не работает';
 });
 
+check('[abort] видно разницу: без умения из сестры выходит облако вирусов, с умением они заперты внутри погасшего тела', () => {
+  const go = genes => { const w = mw(5, genes); w.me.push({ ...w.me[0], x: 200, id: 2, vx: 0, vy: 0 }); w.me[0].sick = 0.05; run(w, 0.5, null);
+    w.cit = []; const pts = []; const brush = { put: (...v) => pts.push(v) }; mut.drawWorld({ w, scr: (x, y) => [x, y], z: 1, glow: brush, ink: brush });
+    return { pts: pts.length, free: w.phages.length, trapped: w.stats.trapped || 0 }; };
+  const a = go(['abort']), b = go([]);
+  console.log(`    паспорт: с умением вирусов на воле ${a.free}, заперто ${a.trapped}, точек запертых на экране ${a.pts} | без умения на воле ${b.free}`);
+  if (a.free || !a.trapped) return 'с умением вирусы вышли';
+  if (a.pts < a.trapped * 2) return 'запертых вирусов не видно';
+  if (!b.free) return 'без умения облака нет — сравнения нет';
+});
 check('[gas] всплывает сама: убрал палец — клетка поднимается вверх, без умения стоит', () => {
   const lift = genes => { const w = mw(7, genes); const y0 = w.me[0].y; run(w, 4, null); return y0 - w.me[0].y; };
   const a = lift(['gas']), b = lift([]);
