@@ -13,7 +13,7 @@ export function entries(K, G) {
 }
 
 // Полка: счёт словами, разделы (пустые, кроме открытых с начала, спрятаны), записи раздела по порядку.
-export function shelf(K, E, met, sec = 'life') {
+export function shelf(K, E, met, sec = 'life', P = {}) {
   const keys = Object.keys(E), of = s => keys.filter(k => E[k].sec === s && E[k].group !== 'me');
   const n = s => of(s).filter(k => met.has(k)).length;
   const life = n('life'), food = n('food'), genes = n('gene');
@@ -21,7 +21,8 @@ export function shelf(K, E, met, sec = 'life') {
     ` · ${food} ${plural(food, 'еду', 'еды', 'еды')} из ${of('food').length}` + (genes ? ` · ${genes} ${plural(genes, 'ген', 'гена', 'генов')}` : '');
   const pills = K.sections.filter(([s]) => K.open.includes(s) || n(s)).map(([s, name]) => ({ s, label: n(s) ? `${name} · ${n(s)}` : name }));
   const list = keys.filter(k => E[k].sec === sec);
-  return { count, part: (life + food) / (of('life').length + of('food').length), pills, list };
+  const note = { life: P.almanah_cveta, food: P.eda_tochki }[sec] || ''; // как в жизни и как у нас (книга, подписи): цвета — наши метки, еду не видно
+  return { count, part: (life + food) / (of('life').length + of('food').length), pills, list, note };
 }
 
 // Страница: модель, имя, ярлык, блоки книги; невстреченное — только где искать.
@@ -55,7 +56,7 @@ export function links(k, S) {
   return out;
 }
 
-export function almanahScreen({ K, cards, T, G, S, met, snap, onSwim, onNav = () => {} }) {
+export function almanahScreen({ K, cards, T, G, S, P = {}, met, snap, onSwim, onNav = () => {} }) {
   const $ = id => document.getElementById(id);
   const E = entries(K, G), keys = Object.keys(E), shots = new Map();
   let sec = 'life', queue = [], top = 0, cur = null; const hist = []; // hist — карточки, с которых пришёл по связи: «‹ имя» возвращает туда
@@ -64,7 +65,7 @@ export function almanahScreen({ K, cards, T, G, S, met, snap, onSwim, onNav = ()
   let opened; try { opened = new Set(JSON.parse(localStorage.getItem('zaplyv.opened') || '[]')); } catch (_) { opened = new Set(); }
   function fill() { const job = queue.shift(); if (!job) return; job.img.src = shot(job.k); requestAnimationFrame(fill); } // по снимку за кадр
   function drawShelf() {
-    const S = shelf(K, E, met, sec);
+    const S = shelf(K, E, met, sec, P); $('knote').textContent = S.note; $('knote').hidden = !S.note;
     $('kcount').textContent = S.count; $('kbar').firstElementChild.style.width = Math.round(S.part * 100) + '%';
     const pills = $('kpills'); pills.innerHTML = '';
     for (const p of S.pills) { const b = document.createElement('button'); b.textContent = p.label; b.className = p.s === sec ? 'on' : ''; b.dataset.g = p.s;

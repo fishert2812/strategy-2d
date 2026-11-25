@@ -93,6 +93,7 @@ body:has(.layer.on) #hud, body:has(.layer.on) #scalebox, body:has(.layer.on) #ve
 .khead { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
 .khead h1 { margin: 0; font-size: 26px; font-weight: 700; }
 button.round { width: 44px; height: 44px; min-height: 44px; padding: 0; border-radius: 50%; flex-shrink: 0; font-size: 22px; background: rgba(2, 4, 10, 0.4); border-color: rgba(255, 255, 255, 0.25); }
+#knote { margin: 0 0 10px; font-size: 14px; line-height: 1.35; opacity: 0.75; text-align: left; }
 #kcount { margin: 4px 0 8px; font-size: 16px; opacity: 0.8; text-align: left; }
 #kbar { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.12); margin-bottom: 14px; }
 #kbar i { display: block; height: 100%; border-radius: 2px; background: #3ee0a8; }
@@ -300,7 +301,7 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
 </div>
 <div class="layer" id="cabinet">
   <div id="kshelf"><div class="khead"><h1>Альманах</h1></div>
-    <p id="kcount"></p><div id="kbar"><i></i></div><div id="kpills"></div><div id="shelf"></div></div>
+    <p id="kcount"></p><div id="kbar"><i></i></div><div id="kpills"></div><p id="knote" hidden></p><div id="shelf"></div></div>
   <div id="kcard" hidden><div class="khead"><h1>Альманах</h1></div><div id="kframe"><img id="kimg" alt=""><div id="ksize"></div></div><h2 id="kname"></h2><div id="ktag"></div><div id="kblocks"></div>
     <div id="klinks"></div></div>
   <div id="kbot"><button id="back" class="ghost">‹ Назад</button><button id="kswim">Плыть</button></div>
