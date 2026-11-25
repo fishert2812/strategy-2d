@@ -92,7 +92,8 @@ await p.waitForTimeout(700); { const t = await p.evaluate(() => [...document.que
 // test_L039 (Роман 25.11: «в процессе игры они просто уплывают куда-то, исчезают. И я не понимаю, почему»): сестра за кадром видна стрелкой у края,
 // а гибель за краем называет убийцу.
 { await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.me.push({ ...a, id: 990, x: a.x + 2500, y: a.y, held: 1, vx: 0, vy: 0 }); });
-  await p.waitForTimeout(400); const e = await p.evaluate(() => zaplyvProbe.sisEdge);
+  // ждём кадр со стрелкой, а не 400 мс: на медленном WebKit за 400 мс кадр мог не прийти, и счёт брался с прошлого кадра (0); не пришла стрелка за 3 с — красный
+  await p.waitForFunction(() => zaplyvProbe.sisEdge >= 1, null, { timeout: 3000 }).catch(() => {}); const e = await p.evaluate(() => zaplyvProbe.sisEdge);
   await p.evaluate(() => { const w = zaplyvWorld(), b = w.me.find(q => q.id === 990); if (b) w.lose(b, b.x, b.y, 'bdello'); }); await p.waitForTimeout(300);
   const t = await p.textContent('#toast');
   say(e >= 1 && /за краем/.test(t) && t.includes('Бделловибрион'), 'test_L039: сестра за кадром — стрелка у края (' + e + '), гибель за краем названа: «' + t + '»'); }
