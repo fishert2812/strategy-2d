@@ -201,7 +201,7 @@ export class World {
           a.tumble = mut.snap(this, a) ? 0 : mut.tumbleTime(this, sw.tumble_time); // разворот рывком вместо кувырка (режим «Мутации»); кувырок стряхивает фага, который ещё не впрыснул
           if (a.grab) this.escape(a);
           if (a.held > c.bdello_kill - c.bdello_loose) for (const b of this.bdellos) if (b.on === a) { b.on = null; b.t = 0; a.held = 0; a.free = c.free; this.events.push(['shake', b.x, b.y]); } // прилип, но ещё не вошёл — стряхнёшь
-          for (const g of this.phages) if (g.on === a) { g.on = null; g.cool = 1.5; g.vx = -Math.cos(g.d) * 60; g.vy = -Math.sin(g.d) * 60; this.events.push(['shake', g.x, g.y]); }
+          for (const g of this.phages) if (g.on === a && c.inject - g.t < c.phage_shake) { g.on = null; g.cool = 1.5; g.vx = -Math.cos(g.d) * 60; g.vy = -Math.sin(g.d) * 60; this.events.push(['shake', g.x, g.y]); }
         }
         // поворот с разгоном и доводкой: скорость поворота меняется плавно (не больше spin_acc рад/с²)
         // и гаснет к цели — без скачков позы ни на дуге, ни в кувырке
@@ -370,7 +370,7 @@ export class World {
       for (const q of this.prey) { // кокк: долго висишь вплотную — выпускает бактериоцин, щиплет (замедление, не смерть)
         if (dist(a, q) > r + radius(q.m) * 0.6 + 4) continue;
         q.touch = (q.touch || 0) + dt;
-        if (q.touch > c.pinch_t) { q.touch = 0; if (!mut.shut(this)) { a.pinch = c.pinch; this.events.push(['pinch', q.x, q.y]); } } // закрытая дверь: яд не входит
+        if (q.touch > c.pinch_t) { q.touch = 0; if (!mut.shut(this, a, q)) { a.pinch = c.pinch; this.events.push(['pinch', q.x, q.y]); } } // закрытая дверь: яд не входит
       }
       for (const k of this.crumbs) if (rost.can(this, 'crumb') && dist(a, k) < r + radius(k.m) * 0.8) { // детрит растворяется медленно
         const bite = Math.min(k.m, rost.gryzt(this, a, 0.4, dt)); k.m -= bite; this.grow(a, bite);
