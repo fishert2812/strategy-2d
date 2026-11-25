@@ -18,7 +18,7 @@ const prinyata = k => Object.values(K.navyki).some(n => n.priemka?.verdikt === '
 // Шаги принятого навыка той же заготовки (время уже принято приёмкой) — на зону способности.
 const shagiZagotovki = (k, zona) => { const N = Object.values(K.navyki).find(n => n.priemka?.verdikt === 'принято' && n.shagi.some(s => s.k === k)); const s = N.shagi.find(q => q.k === k); return { ...s, zona }; };
 export function vidno(key, S = SP) { const r = S[key]; if (!r) return null; const seen = new Map(), neizv = [];
-  const svoyo = r.vidno && r.vidno.map(v => ({ storona: v.k, k: v.k, zona: v.zona || 'obolochka' }));
+  const vd = !r.vidno ? null : Array.isArray(r.vidno) ? r.vidno : [{ k: r.vidno.zagotovka, zona: r.vidno.na }], svoyo = vd && vd.map(v => ({ storona: v.k, k: v.k, zona: v.zona || r.gde || 'obolochka' })); // в sposobnosti.json (main, #324) vidno — запись { zagotovka, na }
   for (const p of priznaki(key, S)) { const st = SV.priznaki[p]; if (!st) { neizv.push(p); continue; }
     const d = SV.storony[st], zona = d.zona || SV.zona_chasti[p.split(':')[1]] || 'obolochka', kl = st + '|' + d.k + '|' + zona; if (!seen.has(kl)) seen.set(kl, { storona: st, k: d.k, zona }); }
   const storony = (svoyo || [...seen.values()]).map(s => ({ ...s, est: s.k === null || prinyata(s.k) }));
