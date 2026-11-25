@@ -116,7 +116,9 @@ await p.waitForTimeout(700); { const t = await p.evaluate(() => [...document.que
   say(hi > 50 && lo < hi - 20 && lo > 5 && notch > 4 && /мкм/.test(cnt) && await seen('#growbar'), 'test_L040: полоса роста ' + hi.toFixed(0) + '% → ' + lo.toFixed(0) + '% назад, засечка заражения ' + notch.toFixed(0) + ' px, «' + cnt + '»'); }
 // test_L042 (прогоны 0.61 и 0.63, О44: «вирус молчит в момент посадки… совет только на экране гибели»): вирус сел на клетку —
 // в ту же секунду надпись, что случилось и что делать пальцем.
-await p.evaluate(() => { window.__toasts = []; new MutationObserver(() => window.__toasts.push(document.getElementById('toast').textContent)).observe(document.getElementById('toast'), { childList: true, characterData: true, subtree: true }); }); // все надписи подряд: знакомство с вирусом может сразу перекрыть совет
+// Все надписи подряд, каждая из своей записи изменения: совет и знакомство с вирусом могут смениться в одном кадре, и тогда
+// наблюдатель зовётся один раз — прежний сбор по textContent видел только последнюю (CI 25.11: «Вирус: Прилипнет… | Вирус: …» без совета).
+await p.evaluate(() => { window.__toasts = []; new MutationObserver(rs => { for (const r of rs) { if (r.type === 'characterData') window.__toasts.push(r.target.data); for (const n of r.addedNodes) if (n.textContent) window.__toasts.push(n.textContent); } }).observe(document.getElementById('toast'), { childList: true, characterData: true, subtree: true }); });
 await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.phages.length = 0; w.cfg.inject_was = w.cfg.inject; w.cfg.inject = 1e9; w.phages.push({ x: a.x + 8, y: a.y, vx: 0, vy: 0, d: Math.PI, t: 0, id: 91, host: 'me', cool: 0 }); }); // вирус садится, но не впрыскивает: шаги дальше идут живой клеткой (L045 — стряхнуть только сразу)
 await p.waitForTimeout(600); { const t = await p.evaluate(() => (window.__toasts || []).concat([...document.querySelectorAll('#toast.on')].map(e => e.textContent)).join(' | ')); say(/Сел вирус![^|]*развернись/.test(t) && /развернись/.test(t), 'test_L042: вирус сел на клетку — сразу надпись, что делать (' + (t || 'надписи нет') + ')'); }
 await p.evaluate(() => { const w = zaplyvWorld(); w.phages.length = 0; w.cfg.inject = w.cfg.inject_was; for (const a of w.me) a.sick = -1; });
@@ -205,9 +207,14 @@ if (await p.evaluate(() => { const w = zaplyvWorld(); w.choice = []; }) === unde
 // не останавливает мир и не закрывает экран — полоса у нижнего края, касание на ходу берёт ген; не выбрал — сворачивается в значок.
 await p.evaluate(() => { const w = zaplyvWorld(), all = Object.keys(w.cfg.genes).filter(g => !w.genes[g]); w.choice = all.slice(0, 2); });
 await p.waitForTimeout(600);
-{ const r = await p.evaluate(async () => { const w = zaplyvWorld(), t0 = w.stats.time; await new Promise(q => setTimeout(q, 500)); const b = document.getElementById('offer').getBoundingClientRect();
-    return { go: w.stats.time - t0, top: b.top, hh: b.height, h: innerHeight, pause: getComputedStyle(document.getElementById('pause')).display !== 'none' }; });
-  say(r.go > 0.3 && r.top > r.h * 0.6 && r.pause, `test_L053: при выборе навыка мир плывёт (${r.go.toFixed(2)} с за 0,5 с), полоса у нижнего края (верх ${Math.round(r.top)} из ${r.h}), пауза на месте`);
+// Мир плывёт — значит, время мира идёт с той же скоростью, что у кадров: сравниваем с тем, сколько прошло бы без выбора
+// (сумма шагов кадров, каждый не больше 0,05 с, как в main.js). Прежний замер «0,3 с мира за 0,5 с часов» краснел на загруженной
+// машине: при 8 кадрах в секунду мир и без выбора проходит меньше (тред «Эволюции» 25.11, чистый main). Пауза или замедление — красный.
+{ const r = await p.evaluate(async () => { const w = zaplyvWorld(), t0 = w.stats.time, s0 = performance.now(); let last = s0, norm = 0;
+    while (norm < 0.5 && performance.now() - s0 < 4000) { const now = await new Promise(q => requestAnimationFrame(q)); norm += Math.min(0.05, (now - last) / 1000); last = now; }
+    const b = document.getElementById('offer').getBoundingClientRect();
+    return { go: w.stats.time - t0, norm, ms: performance.now() - s0, top: b.top, hh: b.height, h: innerHeight, pause: getComputedStyle(document.getElementById('pause')).display !== 'none' }; });
+  say(r.norm > 0.2 && r.go > 0.6 * r.norm && r.top > r.h * 0.6 && r.pause, `test_L053: при выборе навыка мир плывёт (${r.go.toFixed(2)} с мира при ${r.norm.toFixed(2)} с шагов кадров за ${Math.round(r.ms)} мс), полоса у нижнего края (верх ${Math.round(r.top)} из ${r.h}), пауза на месте`);
   say(r.hh < r.h * 0.16, `test_L053 (прогон 0.84, О86: «полоса закрывает нижнюю четверть экрана»): полоса низкая — ${Math.round(r.hh)} из ${r.h} (${Math.round(r.hh / r.h * 100)}%)`); }
 // test_L053 (О86: «свайп, начатый на полосе, выделяет навык вместо плавания»): палец лёг на вариант и повёл — это плавание, вариант не выбран
 { const bb = await p.evaluate(() => { const r = document.querySelector('#obtns button').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; });
