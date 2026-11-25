@@ -742,7 +742,8 @@ function tick(dt) {
   view.z += (Math.max(want, C.min_px / radius(lead.m)) - view.z) * Math.min(1, dt * 1.5); // клетка на экране не мельче min_px в радиусе
   const t = TINT[world.biome(view.x, view.y)];
   for (let i = 0; i < 3; i++) view.tint[i] += (t[i] - view.tint[i]) * Math.min(1, dt * 0.8);
-  $('count').textContent = 'клеток ' + world.me.length;
+  { const b = world.me.reduce((q, a) => a.m > q.m ? a : q, world.me[0] || { m: 1 }), sp = world.split(); // размер числом: длина палочки в микрометрах (260 единиц — 10 мкм)
+    const um = 2 * 8.5 * Math.pow(b.m, 0.3) * (1.6 + Math.min(b.m, sp) / sp) / 26; $('count').textContent = 'клеток ' + world.me.length + ' · ' + um.toFixed(1).replace('.', ',') + ' мкм'; }
   $('eaten').textContent = world.rush > 0.05 ? 'рост ×' + (1 + world.rush).toFixed(1) : 'съедено ' + world.stats.eaten; // серия кусков подряд — рост быстрее
   if (world.readyToSplit() && !world.me.some(a => a.grab || a.held > 0)) tell('split', 'Выросла! Коснись — поделишься. Или подожди');
 }
@@ -1035,7 +1036,10 @@ function paint(time) {
     for (const s of [-1, 0, 1]) near.put(x + Math.cos(a) * s * L, y + Math.sin(a) * s * L, r, 0.35 + view.tint[0] * 3, 0.6 + view.tint[1] * 3, 0.68 + view.tint[2] * 3, al);
   }
   bodies.end(time);
-  $('scale').style.width = (260 * z * innerWidth / W) + 'px';
+  { const sp = world.split(), top = world.me.reduce((b, a) => a.m > b.m ? a : b, world.me[0] || { m: 0 }); // полоса: самая близкая к делению сестра, от половинки до деления
+    const g = Math.max(0, Math.min(1, (top.m - sp / 2) / (sp / 2))); $('growfill').style.width = (g * 100).toFixed(1) + '%'; probe.grow = g;
+    const ill = world.me.filter(a => a.sick >= 0), k = ill.length ? Math.min(...ill.map(a => a.sick)) / cfg.sick : 0; // заражена — красная засечка на конце, тает к разрыву
+    const n = $('sicknotch'); n.style.width = (ill.length ? 4 + 18 * k : 0) + '%'; n.style.left = Math.max(0, g * 100 - (ill.length ? 4 + 18 * k : 0)).toFixed(1) + '%'; probe.sickNotch = ill.length ? k : -1; }
   U.tint.value.set(...view.tint);
   U.drift.value.set(view.x * view.z / W, -view.y * view.z / W); // в ширинах экрана: слои сзади сдвигаются медленнее
   for (const d of [far, glow, ink, near, dust, bubbles, wake]) d.done();

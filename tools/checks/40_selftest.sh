@@ -53,6 +53,7 @@ case_ "test_L034: ✕ не убирает отметку" 52_zaplyv_tap.sh red "
 case_ "test_L036: ночь пересоздаёт холст каждый кадр" 52_zaplyv_tap.sh red "sed -i 's/if (oc.width !== ow || oc.height !== oh) { oc.width = ow; oc.height = oh; }/oc.width = ow; oc.height = oh;/' $Z/main.js"
 case_ "test_L038: кадр в двойной плотности на экране тройной" 52_zaplyv_tap.sh red "sed -i 's/\"dpr_max\": 2.5/\"dpr_max\": 2/' $Z/data.json"
 case_ "test_L039: сестра за кадром без стрелки" 52_zaplyv_tap.sh red "sed -i 's/if (on(x, y, -8)) continue; const bad/continue; const bad/' $Z/main.js"
+case_ "test_L040: полоса роста стоит на месте" 52_zaplyv_tap.sh red "sed -i 's/(top.m - sp \/ 2) \/ (sp \/ 2)/1/' $Z/main.js"
 case_ "test_L031: лист гибели помнит прокрутку" 52_zaplyv_tap.sh red "sed -i 's/\$(.end.).scrollTop = 0; //' $Z/main.js"
 case_ "test_L025: кнопки гибели ниже края экрана" 52_zaplyv_tap.sh red "sed -i 's/flex-shrink: 0; position: sticky;/flex-shrink: 0;/' $Z/index.html"
 # L018 (расширен) и L024 «антибред»: черновая строка умения мимо книги, описание в data.json, слово мира без имени из Альманаха, умение без теста-обещания — красное.
