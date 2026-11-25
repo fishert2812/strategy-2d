@@ -10,7 +10,10 @@ const b = await pw[kind].launch(opts);
 const p = await (await b.newContext({ ...pw.devices['iPhone 13'] })).newPage();
 await p.addInitScript(() => { if (!localStorage.getItem('zaplyv.met')) localStorage.setItem('zaplyv.met', JSON.stringify(['me', 'phage', 'amoeba', 'plant'])); }); // Альманах: есть что листать
 const errs = []; p.on('pageerror', e => errs.push(e.message));
-let bad = 0; const say = (ok, t) => { console.log((ok ? '  ок   ' : '  ПРОВАЛ ') + t); if (!ok) bad++; };
+let bad = 0; const say = (ok, t) => { console.log((ok ? '  ок   ' : '  ПРОВАЛ ') + t); if (!ok) bad++; only(ok, t); };
+// ONLY=Lxxx (самопроверка ломает защиту урока и ждёт красного): как только проверка этого урока покраснела, обход сразу выходит с провалом —
+// не гонять весь обход ради одного случая. Зелёный исход по-прежнему только после всего обхода, так что сторож не слабеет.
+function only(ok, t) { if (ok || !process.env.ONLY || !new RegExp('test_' + process.env.ONLY + '\\b').test(t)) return; console.log(`КАСАНИЯ: провалов ${bad} (покраснел ${process.env.ONLY}, дальше не идём)`); process.exit(1); }
 // test_L018 (расширен 24.11, Роман: «описание талантов писал… имбицил»): на каждом экране, где игра говорит про умение или существо,
 // каждая строка — из файлов книги. Раньше сверка смотрела только Альманах, а выбор дочки и «Ген от сородича» брали черновые строки из data.json.
 const BOOK = async () => p.evaluate(async () => { const out = [], walk = o => { if (typeof o === 'string') out.push(o.trim()); else if (o && typeof o === 'object') Object.values(o).forEach(walk); };
