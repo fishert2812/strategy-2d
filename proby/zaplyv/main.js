@@ -6,6 +6,7 @@ import * as THREE from './three.module.min.js';
 import { World, radius } from './sim.js';
 import * as mut from './mutacii.js';
 import * as rost from './rost.js';
+import * as dv from './dvizhok.js'; // палочки-соседи рисуются по анкетам (vidy.json)
 import * as evo from './evo.js'; // режим «Эволюция»: пока только по адресу ?rezhim=evo, плитка в меню — когда все умения нарисованы
 import { Stick } from './controls.js';
 import { follow } from './soft.js';
@@ -324,12 +325,13 @@ const KNIGA = await fetch('kniga/teksty_sushchestv.json').then(r => r.ok ? r.jso
 // Снимок модели: на миг подменяем мир студией с одним существом в середине кадра, рисуем тем же paint и вырезаем середину.
 const LISTS = { me: 'me', phage: 'phages', bdello: 'bdellos', amoeba: 'amoebas', slipper: 'slippers', bell: 'bells', roti: 'rotis',
   pseudo: 'pseudos', strain: 'pseudos', donor: 'donors', coccus: 'prey', plant: 'plants', crumb: 'crumbs' };
+for (const k of dv.zhivut()) LISTS[k] = 'pseudos'; dv.vitrina(KAB, cards, TEKSTY); // виды из анкет: снимок и карточка собираются сами
 function studio(k, it) {
   const w = new World(cfg, 7), a = it.a, id = 9001;
   if (it.gene) { w.genes = { [it.gene]: true }; k = 'me'; } // ген — твоя клетка с этим геном: видно, что он меняет на теле
   for (const l of new Set([...Object.values(LISTS), 'food', 'slime', 'away'])) w[l] = [];
   const e = { x: 0, y: 0, vx: 0, vy: 0, a, d: a, dir: a, m: k === 'amoeba' ? 5 : k === 'plant' ? 4 : k === 'crumb' ? 3 : k === 'coccus' ? 1 : 1.1, id,
-    sick: -1, gen: 0, t: 0, cool: 0, held: 0, shut: 0, sit: true, link: 0, host: null, strain: k === 'strain' };
+    sick: -1, gen: 0, t: 0, cool: 0, held: 0, shut: 0, sit: true, link: 0, host: null, strain: k === 'strain', vid: dv.V.vidy[k] ? k : undefined };
   if (k === 'bell') { e.x = -Math.cos(a) * cfg.bell_stalk / 2; e.y = -Math.sin(a) * cfg.bell_stalk / 2; }
   if (k === 'amoeba') e.vx = 20; // ползёт: видна ложноножка
   if (k === 'coccus') e.id = 9004; // гроздь: самая узнаваемая форма кокков
@@ -898,23 +900,7 @@ function paint(time) {
       for (let k = 0; k <= 14; k++) { const u = k / 14 * f; ink.put(x + (tx - x) * u, y + (ty - y) * u, 1.2 * z + 0.4, 1, 0.95, 0.6, 0.8); }
       glow.put(x + (tx - x) * ((time * 2) % 1) * f, y + (ty - y) * ((time * 2) % 1) * f, 3 * z, 1, 0.9, 0.5, 0.6); }
   }
-  for (const q of world.pseudos) { // синегнойка: палочка как ты, зеленоватая, один жгутик сзади
-    const [x, y] = scr(q.x, q.y); if (!on(x, y)) continue;
-    const w = 7.5 * z, ux = Math.cos(q.a), uy = Math.sin(q.a);
-    const col = q.strain ? [0.66, 0.7, 0.76] : [0.45, 0.95, 0.72], rim = q.strain ? [0.32, 0.36, 0.44] : [0.15, 0.55, 0.42];
-    if (q.held > 0) { bodies.sphere(x, y, w * 1.5, col, [1, 0.5, 0.3], q.id); glow.put(x, y, w * 3, 1, 0.3, 0.1, 0.15); continue; } // в ней хищник: шарик
-    if (q.strain) { // чужой штамм кишечной палочки: серая, жгутики со всех сторон, как у тебя
-      bodies.rod(x, y, q.a, w * 2.4, w * 1.05, 0, col, rim, q.id, Math.sin(time * 3 + q.id) * w * 0.15);
-      for (let j = 0; j < 4; j++) for (let k = 1; k <= 12; k++) { const f = k / 12, s = j < 2 ? 1 : -1, b = (j % 2 ? 0.6 : -0.6) * w * 2;
-        const wv = Math.sin(f * 9 - time * 22 + j) * w * 0.6 * f, dx = -uy * s * 3.5 - ux * 2.5, dy = ux * s * 3.5 - uy * 2.5, L = Math.hypot(dx, dy); // нить отходит вбок-назад и вьётся
-        glow.put(x + ux * b - uy * s * w + dx * f * w - dy / L * wv, y + uy * b + ux * s * w + dy * f * w + dx / L * wv, Math.max(z, 0.7), 0.75, 0.8, 0.9, 0.4 * (1 - f * 0.5)); }
-      continue;
-    }
-    bodies.rod(x, y, q.a, w * 2.3, w, 0, col, rim, q.id, Math.sin(time * 4 + q.id) * w * 0.2);
-    for (let k = 1; k <= 28; k++) { const f = k / 28, wv = Math.sin(f * 10 - time * 26) * w * 0.6 * f;
-      glow.put(x - ux * (w * 2.3 + f * w * 7) - uy * wv, y - uy * (w * 2.3 + f * w * 7) + ux * wv, 1.1 * Math.max(z, 0.7), 0.6, 1, 0.8, 0.55 * (1 - f * 0.5)); }
-    if (q.cool > 0) glow.put(x, y, w * 3.5, 0.5, 1, 0.75, 0.25 * q.cool); // только что стреляла
-  }
+  for (const q of world.pseudos) { const [x, y] = scr(q.x, q.y); if (on(x, y)) dv.risuy(q, { x, y, z, time, bodies, glow }); } // палочки из анкет (vidy.json): тело, цепочка, цвет-метка, жгутики
   for (const e of world.events) if (e[0] === 'split') vid.splitAt(e[3], e[4]); // деление касанием случилось между шагами: рисуем его с первого же кадра, а не после шага
   fx.drawUnder({ scr, z, time, glow, ink }); mut.drawWorld({ w: world, scr, z, glow, ink }); // пузырьки-обманки
   for (const b of world.bdellos) { // бделловибрион: запятая вдвое мельче тебя, один толстый жгутик; на рывке — след
