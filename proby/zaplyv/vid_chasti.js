@@ -66,13 +66,13 @@ const RIS = {
     st.sloi.forEach(s => { const g = (1 - s.r) * F.O.poperechnik / 2, O = g > 0 ? os(F.tochki, 28, 0.2, g) : F.O;
       B.loft(O.kolca().map(q => ({ x: P.x + (q.x * ux - q.y * uy) * w, y: P.y + (q.x * uy + q.y * ux) * w, tx: q.tx * ux - q.ty * uy, ty: q.tx * uy + q.ty * ux, r: q.r * w, dr: q.dr, a: q.a })), !!s.plotno, s.cvet, s.kromka || sv(s.cvet), P.id, s.a ?? 1); }); },
   // Нуклеоид: одна длинная нить ДНК, уложенная клубком в середине клетки; медленно шевелится.
-  nukleoid(st, F, P, B, at) { B.vyshe = P.tolshchina * 0.8; const w = P.tolshchina, Hh = F.O ? F.O.H : P.dlina / 2 / w, p = Math.max(2, Math.round(st.petli)), vit = p * 4, N = Math.max(st.zvenya, vit * 22), T = P.time * st.temp, h = k => hash(P.id, k + 900) * 6.283;
+  nukleoid(st, F, P, B, at) { B.vyshe = P.nad; const w = P.tolshchina, Hh = F.O ? F.O.H : P.dlina / 2 / w, p = Math.max(2, Math.round(st.petli)), vit = p * 4, N = Math.max(st.zvenya, vit * 22), T = P.time * st.temp, h = k => hash(P.id, k + 900) * 6.283;
     // нить идёт вдоль клетки туда и обратно и всё время вьётся круглыми петлями; петли круглые в настоящих размерах (не растянуты длиной тела), обратный ход ложится поверх прямого со сдвигом: клубок
     const ru = st.shirina * 0.5 / Hh, hod = Math.max(0, st.dlina - ru); let lx, ly;
     for (let i = 0; i <= N; i++) { const t = i / N * 6.283, f = t * vit + 1.3 * Math.sin(t * 3 + h(3)) + h(1), k = 0.55 + 0.45 * Math.sin(t * 5 + h(2) + T), u = hod * Math.sin(t + h(6)) + ru * k * Math.cos(f) + ru * 0.35 * Math.sin(t * (vit * 0.37 + 2) + T + h(4)), o = 0.3 * st.shirina * Math.sin(t * 2 + h(5) + T * 0.7) + st.shirina * k * Math.sin(f);
       const [px, py] = at(u, o); if (i) B.seg(lx, ly, px, py, w * st.tolsh, st.cvet, st.a); lx = px; ly = py; } },
   // Рибосомы: мелкие зёрна по всей цитоплазме, дрожат (броуновское движение).
-  ribosomy(st, F, P, B, at) { B.vyshe = P.tolshchina * 0.8; const w = P.tolshchina, hl = P.dlina / 2, kx = 1 - w / hl * 0.45;
+  ribosomy(st, F, P, B, at) { B.vyshe = P.nad; const w = P.tolshchina, hl = P.dlina / 2, kx = 1 - w / hl * 0.45;
     for (let k = 0; k < st.n; k++) { const t = hash(P.id, k + 800) * 6.283, r = Math.sqrt(hash(P.id, k + 801)), j = st.drozh, [px, py] = at(Math.cos(t) * r * kx + Math.sin(P.time * 31 + k * 7.1) * j, Math.sin(t) * r * 0.62 + Math.sin(P.time * 27 + k * 3.3) * j);
       B.sphere(px, py, w * st.r * (0.7 + 0.6 * hash(P.id, k + 802)), st.cvet, st.kromka, P.id + k + 90, 0.8); } },
   // Жгутики по всему телу (перитрих): моторы на боках. Покой (P.beg = 0): нити расходятся вбок и назад, вяло колышутся.
@@ -93,7 +93,7 @@ const RIS = {
         const nx = xr + (xb - xr) * beg, ny = yr + (yb - yr) * beg;
         if (i) B.seg(lx, ly, nx, ny, w * st.tolsh * (1 - 0.75 * s), st.cvet, st.a * (1 - 0.5 * s)); lx = nx; ly = ny; } } },
   // Гранулы запаса (включения): несколько плотных шариков у полюсов, в стороне от клубка ДНК.
-  vklyucheniya(st, F, P, B, at) { B.vyshe = P.tolshchina * 0.8; const w = P.tolshchina;
+  vklyucheniya(st, F, P, B, at) { B.vyshe = P.nad; const w = P.tolshchina;
     for (let k = 0; k < st.n; k++) { const [px, py] = at((k % 2 ? 1 : -1) * (0.5 + 0.2 * hash(P.id, k + 300)) * (1 - w / (P.dlina / 2) * 0.35), (hash(P.id, k + 301) - 0.5) * 0.6); B.sphere(px, py, w * st.r * (0.8 + 0.4 * hash(P.id, k + 302)), st.cvet, st.kromka, P.id + k + 20, 0.9); } },
 };
 
@@ -102,10 +102,10 @@ export function sobrat(zapis, poza, B) {
   const forma = zapis.forma || { tip: 'palochka' }, tip = forma.tip, P = { ...poza, tip }, ux = Math.cos(P.a), uy = Math.sin(P.a), w = P.tolshchina; let F, at;
   if (tip === 'tuflya') { const hl = P.dlina / 2; F = FORMY.tuflya({ ...VC.formy.tuflya, ...forma, dl: P.dlina, tol: w }); at = (u, o) => [P.x + ux * u * hl - uy * o * w, P.y + uy * u * hl + ux * o * w]; }
   else { // тело свободной формы: осевая линия через опорные точки (telo_os.js); палочка и шар — её частные случаи. Части берут край, нормаль и нутро отсюда
-    const tochki = forma.tochki || iz_formy(tip, P.dlina / 2 / w, 1, (P.izgib || 0) / w), O = os(tochki); P.dlina = O.dlina * w;
+    const tochki = forma.tochki || iz_formy(tip, P.dlina / 2 / w, 1, (P.izgib || 0) / w), O = os(tochki); P.dlina = O.dlina * w; P.nad = O.poperechnik / 2 * w * 1.05; // нутро рисуется перед сердцевиной: выше самой толстой её точки
     F = { O, tochki, kray: t => { const k = O.kray(t); return { u: k.u, o: k.o, n: k.n, g: 0 }; }, vnutri: (u, o) => [u * 0.7, o * 0.6] };
     at = (u, o) => { const [x, y] = O.at(u, o); return [P.x + (x * ux - y * uy) * w, P.y + (x * uy + y * ux) * w]; }; }
-  let n = 0;
+  P.nad ??= w * 0.8; let n = 0;
   for (const [kl, svoi] of Object.entries(zapis.chasti || {})) { const r = RIS[kl]; if (!r) continue; r({ ...VC.chasti[kl], ...svoi }, F, P, B, at); B.vyshe = 0; n++; }
   return n; // сколько частей нарисовано (тест: все части записи нашлись)
 }

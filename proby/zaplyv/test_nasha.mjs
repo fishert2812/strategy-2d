@@ -49,6 +49,9 @@ check('test_nasha_niti: жгутики и клубок ДНК сплошные �
   if (hud > 0) return 'между соседними звеньями зазор ' + hud.toFixed(2);
 });
 
+// У толстого тела сердцевина выступает к зрителю дальше: нутро и ДНК должны лежать перед самой толстой её точкой, иначе нить рвётся на обрывки (приёмка 25.11).
+const sobrat_tolstoe = () => { const B = tela(); sobrat({ forma: { tochki: [[-1, 0, 1.25], [1, 0, 1.25]] }, chasti: Z.chasti }, P(), B); const serd = B.L.put.find(s => s.plotno), top = Math.max(...serd.kolca.map(q => q.r));
+  return [...B.L.sphere, ...B.L.seg.filter(s => s.v > 0)].some(s => s.v < top) ? 'у толстого тела нутро утонуло в сердцевине: ДНК видна обрывками' : ''; };
 check('test_nasha_sloi: слои оболочки лежат ровно один в другом (одна осевая линия, один узор), нутро внутри тела и перед сердцевиной', () => {
   const B = tela(), p = P(); sobrat(Z, p, B); const S = B.L.put;
   if (S.length < 3) return 'слоёв ' + S.length + ', нужно не меньше трёх (наружная мембрана, стенка, цитоплазма)';
@@ -58,6 +61,7 @@ check('test_nasha_sloi: слои оболочки лежат ровно один
   const M = obvod({ forma: { tochki: [[-(150 / 70 - 1), 0, 1], [150 / 70 - 1, 0, 1]] } }, p), vne = B.L.sphere.filter(s => !vnutri(M, s.x, s.y) || do_kraya(M, s.x, s.y) < p.tolshchina * 0.15);
   if (vne.length) return vne.length + ' зёрен нутра вылезли за оболочку';
   if (B.L.sphere.some(s => !(s.v > 0))) return 'нутро не поднято к зрителю: сердцевина его закроет';
+  { const tol = sobrat_tolstoe(); if (tol) return tol; }
 });
 
 check('test_nasha_konstruktor: в конструкторе образец — наша клетка из частей, ползунки меняют число жгутиков и ворсинок', () => {
