@@ -441,7 +441,19 @@ function hubFill() { // первый уровень паузы: что в каж
   $('psound').textContent = ROD.quiet ? 'Звук выключен' : 'Звук включён';
   const n = $('pnew'); n.sure = false; n.classList.remove('sure'); n.textContent = 'Новый заплыв';
 }
-function openTab() { tab('hub'); }
+// Значки строк паузы — живые снимки разделов (Роман 25.11: «значок генома можно найти красивый»): твоё кольцо ДНК со включёнными генами
+// вокруг твоей клетки, последний встреченный в Альманахе, разрез пруда с отметками. Меняются вместе с игрой.
+function hubIcons() {
+  const [gi, ai, mi] = $('phub').querySelectorAll('.pico'), S = 104, cv = document.createElement('canvas'); cv.width = cv.height = S; const x = cv.getContext('2d');
+  const own = genomeData.arcs.flatMap(a => a.slots.map(sl => [sl, a.color])), step = Math.PI * 2 / own.length, me = new Image();
+  me.onload = () => { x.fillStyle = '#061018'; x.fillRect(0, 0, S, S); x.save(); x.beginPath(); x.arc(S / 2, S / 2, 31, 0, 7); x.clip(); x.drawImage(me, S / 2 - 46, S / 2 - 46, 92, 92); x.restore();
+    x.lineWidth = 11; own.forEach(([sl, c], i) => { const on = sl.id && world.genes[sl.id]; x.strokeStyle = c; x.globalAlpha = on ? 1 : 0.22; x.beginPath(); x.arc(S / 2, S / 2, 42, -Math.PI / 2 + i * step + 0.05, -Math.PI / 2 + (i + 1) * step - 0.05); x.stroke(); });
+    x.globalAlpha = 1; gi.src = cv.toDataURL(); };
+  me.src = snap('me', KAB.items.me);
+  const last = [...met].reverse().find(k => KAB.items[k] && k !== 'me') || 'me'; ai.src = snap(last, KAB.items[last]);
+  const mc = document.createElement('canvas'); mc.width = mc.height = 320; karta.draw(mc.getContext('2d'), 320, 320, { P: cfg.pond, seen: new Set(KARTA.seen), marks: KARTA.marks, icons: {}, me: null, t: 9, hot: -1 }); mi.src = mc.toDataURL();
+}
+function openTab() { tab('hub'); try { hubIcons(); } catch (e) {} }
 function leaveTabs() { const C = $('cabinet'); if (C.classList.contains('inpause')) { kab.close(); kab.back = null; C.classList.remove('inpause'); C.style.top = C.style.bottom = ''; } curTab = null; }
 for (const b of $('phub').querySelectorAll('.prow')) b.onclick = () => tab(b.dataset.t);
 $('gback').onclick = () => { if (curTab === 'alm' && kab.where()) kab.goBack(); else tab('hub'); }; // в Альманахе «назад» идёт по шагам: карточка → прошлая карточка → полка → пауза
