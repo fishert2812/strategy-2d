@@ -66,8 +66,9 @@ say(await p.evaluate(() => [...document.querySelectorAll('#shelf .kc img')].ever
 if (await tap('#kpills button:nth-child(2)', 'раздел «Еда»')) say(await p.evaluate(() => document.querySelectorAll('#shelf .kc').length > 0 && document.querySelector('#kpills .on').dataset.g === 'food'), 'раздел «Еда» открылся');
 if (await tap('#kpills button:nth-child(1)', 'раздел «Обитатели»')) say(await p.evaluate(() => !!document.querySelector('#shelf .kc[data-k=me]')), 'раздел «Обитатели» открылся');
 if (await tap('#shelf .kc[data-k=me]', 'карточка «Ты»')) say(await seen('#kcard') && await p.evaluate(() => document.querySelectorAll('#kblocks .kb').length >= 2 && document.getElementById('kimg').naturalWidth > 100), 'карточка открылась: модель и блоки текста');
-if (await tap('#knext', 'следующая карточка')) say(await p.evaluate(() => document.getElementById('kname').textContent !== 'Ты, кишечная палочка'), 'листается к следующей');
-if (await tap('#kback', 'назад к полке')) say(await seen('#kshelf'), 'полка снова видна');
+if (await tap('#klinks .kl:not(.no)', 'связь «кто ест» на карточке')) say(await seen('#kcard') && await p.evaluate(() => document.getElementById('kname').textContent !== 'Ты, кишечная палочка'), 'связь открывает карточку того, о ком речь');
+if (await tap('#gback', '«‹ Ты» назад по связи')) say(await p.evaluate(() => document.getElementById('kname').textContent === 'Ты, кишечная палочка'), '«назад» возвращает на карточку, с которой пришёл');
+if (await tap('#gback', '«‹ Альманах» к полке')) say(await seen('#kshelf'), 'полка снова видна');
 if (await tap('#gback', '«‹ Пауза» из Альманаха') && await tap('#phub [data-t=genome]', 'снова «Геном»')) say(!(await on('cabinet')) && await on('genome') && await seen('#ring'), '«Геном»: Альманах закрылся, кольцо на месте');
 // Карта на паузе (Э17–Э18): вкладка открывает разрез пруда, на нём нарисовано (не пустой холст), «ты» в шапке словами.
 if (await tap('#gback', '«‹ Пауза» из генома') && await tap('#phub [data-t=map]', 'строка «Карта»')) { await p.waitForTimeout(400);
@@ -83,7 +84,7 @@ if (await tap('#gback', '«‹ Пауза» с карты')) say(!(await seen('#
 // «Отправить» в геноме: меню «Поделиться» телефона подменяем, отметки должны уйти одним сообщением.
 await p.evaluate(() => { navigator.share = async d => { window.shared = d.text; }; });
 m = await marks();
-if (await tap('#gsend', '«Отметки» в геноме') && await tap('#mlsend', '«Отправить» в списке отметок')) say(await p.evaluate(n => (window.shared || '').includes('отметок ' + n), m) && await marks() === 0, '«Отправить» отдаёт отметки и очищает их');
+if (await tap('#gsend', '«Отметки» в геноме') && await tap('#mlsend', '«Отправить» в списке отметок') && await p.waitForFunction(() => window.shared, null, { timeout: 5000 }).then(() => true, () => true)) say(await p.evaluate(n => (window.shared || '').includes('отметок ' + n), m) && await marks() === 0, '«Отправить» отдаёт отметки и очищает их');
 const t0 = await p.evaluate(() => zaplyvWorld().stats.time);
 // test_L021: на кольце у каждого живого гена значок-снимок, карточка гена — со значком 64.
 say(await p.evaluate(() => { const live = Object.keys(zaplyvWorld().cfg.genes).length, im = [...document.querySelectorAll('#ring image')];
@@ -108,9 +109,16 @@ if (await p.evaluate(() => { const w = zaplyvWorld(); w.choice = []; }) === unde
   await p.fill('#ftext', 'тут странно'); if (await tap('#fsave', '«Записать» отметку с картинкой')) {
     const last = await p.evaluate(() => { const q = JSON.parse(localStorage.getItem('zaplyv.marks') || '[]'); return q[q.length - 1] || {}; });
     say(await marks() === m + 1 && (last.text || '').includes('тут странно') && (last.img || '').length > 3000 && !(await on('fsheet')), 'test_L023: отметка со словами и картинкой записана, лист закрыт');
-    await p.evaluate(() => { navigator.canShare = () => true; navigator.share = async d => { window.shared = d.text; window.sharedFiles = (d.files || []).map(f => [f.name, f.size, f.type]); }; window.sharedFiles = null; });
+    await p.evaluate(() => { navigator.canShare = () => true; navigator.share = async d => { window.shared = d.text; window.sharedFiles = (d.files || []).map(f => [f.name, f.size, f.type]); window.sharedRaw = d.files || []; }; window.sharedFiles = null; });
+    await p.evaluate(() => { zaplyvWorld().choice.length = 0; }); await p.waitForTimeout(250); // случайное деление прячет паузу выбором «Две дочки»: снимаем его, шаг про отправку
     if (await tap('#pause', 'пауза перед отправкой') && await tap('#gsend', '«Отметки» перед отправкой') && await tap('#mlsend', '«Отправить» отметку с местом')) { await p.waitForFunction(() => window.sharedFiles, null, { timeout: 5000 }).catch(() => {}); const sf = await p.evaluate(() => [window.shared || '', window.sharedFiles || []]);
-      say(sf[0].includes('тут странно') && sf[1].some(f => f[1] > 3000 && /mesto/.test(f[0]) && f[2] === 'image/jpeg'), 'test_L023: «Отправить» отдаёт слова и картинку места (' + sf[1].map(f => f[0]).join(', ') + ')'); }
+      say(sf[0].includes('тут странно') && sf[1].some(f => f[1] > 3000 && /mesto/.test(f[0]) && f[2] === 'image/jpeg'), 'test_L023: «Отправить» отдаёт слова и картинку места (' + sf[1].map(f => f[0]).join(', ') + ')');
+      // test_L035 (Роман 25.11: «фото поделится без текста идут… текст куда ушел я не знаю»): слова отметки впечатаны в картинку —
+      // под куском кадра полоса подписи, в ней светлые буквы; дойдёт даже там, где «Поделиться» отдаёт одни фото.
+      const cap = await p.evaluate(async () => { const f = window.sharedRaw.find(x => /_1_mesto/.test(x.name)); if (!f) return null; const b = await createImageBitmap(f), c = document.createElement('canvas'); c.width = b.width; c.height = b.height;
+        const g = c.getContext('2d'); g.drawImage(b, 0, 0); const top = b.width, d = g.getImageData(0, top, b.width, b.height - top).data; let lit = 0; for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 450) lit++;
+        const k = window.sharedRaw.find(x => /_1_kadr/.test(x.name)), kb = k && await createImageBitmap(k); return { w: b.width, h: b.height, lit, kadr: kb ? kb.width : 0 }; });
+      say(cap && cap.h > cap.w + 100 && cap.lit > 400 && cap.kadr >= 720, 'test_L035: под картинкой отметки впечатана подпись со словами, весь кадр не уже 720 точек (' + JSON.stringify(cap) + ')'); }
     if (await on('genome')) await tap('#gon', '«Плыть дальше» после отправки'); } }
 // Выбор дочки при делении: касание самой дочки берёт её ген.
 await p.evaluate(() => { const w = zaplyvWorld(), all = Object.keys(w.cfg.genes).filter(g => !w.genes[g]); w.choice = all.slice(0, 2); });
