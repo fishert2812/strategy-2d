@@ -535,10 +535,23 @@ function flag(screen, btn) {
   if (btn) { btn.classList.remove('hit'); void btn.offsetWidth; btn.classList.add('hit'); }
   try { beep(880, 0.08, 0.04, 'sine', 0.8); } catch (_) {}
 }
+// Картинка отметки с подписью снизу: номер, время и все слова отметки. Без картинки — карточка из одних слов.
+async function signed(url, head, text) {
+  let im = null; if (url) { im = new Image(); im.src = url; await im.decode(); }
+  const W = Math.max(640, im ? im.width : 0), pad = 20, c = document.createElement('canvas'), g = c.getContext('2d'); // кадр не ужимаем
+  const ih = im ? Math.round(W * im.height / im.width) : 0, font = '22px -apple-system, system-ui, sans-serif'; g.font = font;
+  const lines = []; for (const para of text.split('\n')) { let l = ''; for (const w of para.split(' ')) { const t = l ? l + ' ' + w : w; if (g.measureText(t).width > W - 2 * pad && l) { lines.push(l); l = w; } else l = t; } lines.push(l); }
+  c.width = W; c.height = ih + pad * 2 + 34 + lines.length * 28; g.fillStyle = '#081a22'; g.fillRect(0, 0, W, c.height);
+  if (im) g.drawImage(im, 0, 0, W, ih);
+  g.fillStyle = '#ffc9a8'; g.font = 'bold 24px -apple-system, system-ui, sans-serif'; g.fillText('⚑ ' + head, pad, ih + pad + 22);
+  g.fillStyle = '#e8f2f2'; g.font = font; lines.forEach((l, k) => g.fillText(l, pad, ih + pad + 56 + k * 28));
+  return await new Promise((ok, no) => c.toBlob(b => b ? ok(b) : no(new Error('нет картинки')), 'image/jpeg', 0.85));
+}
 async function send() {
   const text = message(marks);
   try {
-    const files = []; for (const [i, m] of marks.entries()) for (const [u, nm] of [[m.img, 'mesto'], [m.full, 'kadr']]) if (u) try { files.push(new File([await (await fetch(u)).blob()], `ne_tak_${i + 1}_${nm}.jpg`, { type: 'image/jpeg' })); } catch (_) {} // кусок и весь кадр
+    const files = []; for (const [i, m] of marks.entries()) { const head = `Отметка ${i + 1} из ${marks.length} · ${m.at}`; // слова впечатаны в картинку: «Поделиться» часто отдаёт только фото (урок L035)
+      for (const [u, nm] of [[m.img, 'mesto'], [m.full, 'kadr']]) if (u || nm === 'mesto') try { files.push(new File([await signed(u, head, m.text)], `ne_tak_${i + 1}_${nm}.jpg`, { type: 'image/jpeg' })); } catch (_) {} }
     if (navigator.share && files.length && navigator.canShare?.({ files })) await navigator.share({ text, files }); // картинки мест — вместе со словами
     else if (navigator.share) await navigator.share({ text });
     else { await navigator.clipboard.writeText(text); say('Скопировано — вставь в чат', 2200); }
@@ -567,7 +580,7 @@ function flagAt(cx, cy) { // вырезаем кусок кадра вокруг
   const fx = (cx - x0) / S * 320, fy = (cy - y0) / S * 320; g.strokeStyle = 'rgba(0,0,0,0.55)'; g.lineWidth = 7; g.beginPath(); g.arc(fx, fy, 22, 0, 6.283); g.stroke(); g.strokeStyle = '#ffb48a'; g.lineWidth = 3; g.stroke(); // где стоял флажок: рамка 3 на тёмном гало
   const [ux, uy] = unit({ clientX: cx, clientY: cy }), wp = toWorld(ux, uy);
   FLAG.img = c.toDataURL('image/jpeg', 0.8); FLAG.wp = wp;
-  const a = document.createElement('canvas'); a.width = 360; a.height = Math.round(360 * innerHeight / innerWidth); a.getContext('2d').drawImage(canvas, 0, 0, a.width, a.height); FLAG.full = a.toDataURL('image/jpeg', 0.7); // и весь кадр — где это было
+  const a = document.createElement('canvas'); a.width = 720; a.height = Math.round(720 * innerHeight / innerWidth); a.getContext('2d').drawImage(canvas, 0, 0, a.width, a.height); FLAG.full = a.toDataURL('image/jpeg', 0.8); // и весь кадр — где это было; 720 в ширину, а не 360: мелкий кадр на телефоне мыльный (Роман 25.11: «Все стало расплывчатое»)
   $('fsheet').classList.toggle('top', cy > innerHeight / 2); // лист от дальнего края: место под флажком остаётся видно
   $('fimg').src = FLAG.img; $('ftext').value = ''; $('fsheet').classList.add('on');
 }
