@@ -49,7 +49,7 @@ const RIS = {
   puzyri_edy(st, F, P, B, at) { if (F.O) B.vyshe = P.nad; const w = P.tolshchina; // съеденное в пузырьках, медленно ходит по кругу
     for (let k = 0; k < st.n; k++) { const [u, o] = F.vnutri((hash(P.id, k + 400) - 0.5) * 1.5 + Math.sin(P.time * 0.3 + k) * 0.08, (hash(P.id, k + 401) - 0.5) * 2), [px, py] = at(u, o);
       B.sphere(px, py, w * st.r * (0.7 + 0.6 * hash(P.id, k + 402)), st.cvet, st.kromka, P.id + k + 3, 0.8); } },
-  sokr_puzyr(st, F, P, B, at) { const w = P.tolshchina; // надувается и разом сдувается; каналы розеткой полнее, когда пузырёк пуст
+  sokr_puzyr(st, F, P, B, at) { if (F.O) B.vyshe = P.nad; const w = P.tolshchina; // надувается и разом сдувается; каналы розеткой полнее, когда пузырёк пуст
     st.gde.forEach((u, i) => { const ph = (P.time / st.period + i * 0.5 + hash(P.id, 7)) % 1, fill = ph < 0.85 ? ph / 0.85 : 1 - (ph - 0.85) / 0.15, [cx, cy] = at(u, 0);
       B.sphere(cx, cy, w * st.r * (0.5 + 0.5 * fill), st.cvet, [1, 1, 1], P.id + i, 0.7);
       const cl = w * st.kanal * (1.25 - fill);
@@ -64,7 +64,7 @@ const RIS = {
         B.meh(F.O.kolca().map(q => ({ x: P.x + (q.x * ux - q.y * uy) * w, y: P.y + (q.x * uy + q.y * ux) * w, tx: q.tx * ux - q.ty * uy, ty: q.tx * uy + q.ty * ux, r: q.r * w })),
           { dlina: w * st.meh_dlina, gustota: st.meh_gustota / w * 10, sloi: Math.ceil(st.meh_sloi / 2), krug: 8, cvet: st.cvet, konchik: st.konchik || st.cvet, a: st.meh_a ?? 0.9 }); } // среднее — вдвое реже слои и грани: издали не видно
       if (w < (st.porog_krupno ?? 0)) { n = st.n_sred ?? st.n_izdali ?? 0; rmin = 0.4; } } }
-    for (let j = 0; j < n; j++) { const k = n < st.n ? Math.floor(j * st.n / n) : j, t = st.sektor ? (F.O ? F.O.nos_t : 0) + st.sektor[0] + (st.sektor[1] - st.sektor[0]) * (k + hash(P.id, k + 602) * 0.8) / st.n : (k + hash(P.id, k + 602) * 0.8) / st.n * 6.283 + P.id, e = F.kray(t), l = w * st.dlina * (1 + 0.25 * Math.sin(P.time * 3 + k * 1.7)) * (1 - (st.razbros || 0) * hash(P.id, k + 600)) * (hash(P.id, k + 604) < (st.na_tele || 0) ? 0.55 : 1); // на лицевой стороне волосок смотрит на зрителя: виден короче
+    for (let j = 0; j < n; j++) { const k = n < st.n ? Math.floor(j * st.n / n) : j, t = st.sektor ? (F.O ? (st.oba && k % 2 ? F.O.korma_t : F.O.nos_t) : 0) + st.sektor[0] + (st.sektor[1] - st.sektor[0]) * (k + hash(P.id, k + 602) * 0.8) / st.n : (k + hash(P.id, k + 602) * 0.8) / st.n * 6.283 + P.id, e = F.kray(t), l = w * st.dlina * (1 + 0.25 * Math.sin(P.time * 3 + k * 1.7)) * (1 - (st.razbros || 0) * hash(P.id, k + 600)) * (hash(P.id, k + 604) < (st.na_tele || 0) ? 0.55 : 1); // на лицевой стороне волосок смотрит на зрителя: виден короче
       let an = P.a + e.n + (hash(P.id, k + 601) - 0.5) * (st.vraznoboy || 0), lic = hash(P.id, k + 604) < (st.na_tele || 0), q = lic ? 0.3 + 0.62 * hash(P.id, k + 605) : 1, [lx, ly] = at(e.u * q, e.o * q); const gn = (hash(P.id, k + 603) - 0.5) * (st.izgib || 0) + Math.sin(P.time * 1.3 + k) * 0.06, Z = st.zvenya || (st.izgib || st.a_konec ? 3 : 1);
       const pts = [lx, ly]; for (let i = 0; i < Z; i++) { lx += Math.cos(an) * l / Z; ly += Math.sin(an) * l / Z; pts.push(lx, ly); an += (gn + (st.volna || 0) * Math.sin(i * 8.4 / Z + k + P.time * 1.1)) * 4 / Z; } // изгиб на всю длину один и тот же при любом числе звеньев: больше звеньев — плавнее дуга
       nit(B, pts, w * st.tolsh, st.cvet, st.a, w * st.tolsh, st.a * (st.a_konec ?? 0.75), lic ? (P.nad ?? w * 0.8) * Math.sqrt(1 - q * q) : undefined, st.konchik || st.cvet, undefined, rmin); }
@@ -86,7 +86,7 @@ const RIS = {
   obolochka(st, F, P, B) { const w = P.tolshchina, sv = c => [c[0] * 0.5 + 0.5, c[1] * 0.5 + 0.5, c[2] * 0.5 + 0.5], ux = Math.cos(P.a), uy = Math.sin(P.a);
     if (!B.loft || !F.O) return;
     // каждый слой это то же тело, только тоньше на свою глубину: та же осевая линия, радиусы меньше. Слои лежат ровно один в другом у любой формы, шапки тоже
-    st.sloi.forEach(s => { if (s.razrez && !P.razrez) return; if (!s.plotno && st.sloi.some(q => q.plotno) && w < (st.porog_stekla ?? 0)) return; const g = (1 - s.r) * F.O.poperechnik / 2, O = g > 0 ? os(F.tochki, 28, 0.2, g) : F.O;
+    st.sloi.forEach(s => { if (s.razrez && !P.razrez) return; B.material = s.bugry != null || s.blik != null ? { bugry: s.bugry, blik: s.blik } : null; if (!s.plotno && st.sloi.some(q => q.plotno) && w < (st.porog_stekla ?? 0)) return; const g = (1 - s.r) * F.O.poperechnik / 2, O = g > 0 ? os(F.tochki, 28, 0.2, g) : F.O;
       // выпуклости (P.vypuklosti: [{ t — место на обводе, shirina, vysota } в толщинах тела]): оболочка сама выгибается в этом месте, все слои вместе;
       // кольцо рядом с местом сдвигается наружу на полвысоты и на столько же толстеет: дальний бок стоит, ближний вырастает бугром, кайма тела переходит в отросток
       const vp = (P.vypuklosti || []).map(v => { const e = F.O.kray(v.t); return { x: e.x, y: e.y, nx: Math.cos(e.n), ny: Math.sin(e.n), sh: v.shirina || 0.5, h: (v.vysota || 0) / 2 }; });
@@ -170,9 +170,10 @@ export function sobrat(zapis, poza, B) {
 export const KLYUCHI = Object.keys(RIS);
 // Группа клеток одной записью (zapis.gruppa: { n, uklad: grozd | cep, zazor }): гроздь кокков, цепочка палочек. Каждая клетка — та же запись.
 export function sobrat_gruppu(zapis, poza, B) { const G = zapis.gruppa; if (!G || G.n < 2) return sobrat(zapis, poza, B); const w = poza.tolshchina, O = os(zapis.forma.tochki), sh = O.dlina * w * (G.zazor ?? 0.9); let n = 0;
-  for (let i = 0; i < G.n; i++) { const t = i * 2.4 + poza.id, d = sh * 0.6 * Math.sqrt(i), o = (i - (G.n - 1) / 2) * sh;
-    const [x, y] = G.uklad === 'grozd' ? [poza.x + Math.cos(t + poza.a) * d, poza.y + Math.sin(t + poza.a) * d] : [poza.x + Math.cos(poza.a) * o, poza.y + Math.sin(poza.a) * o];
-    n += sobrat(zapis, { ...poza, x, y, a: G.uklad === 'grozd' ? poza.a + hash(poza.id, i + 40) * 6.283 : poza.a, id: poza.id + i * 37 }, B); }
+  for (let i = 0; i < G.n; i++) { const t = i * 2.4 + poza.id, d = sh * 0.6 * Math.sqrt(i), o = (i - (G.n - 1) / 2) * sh, iz = (G.izlom || 0) * (hash(poza.id, i + 44) - 0.5) * 2;
+    // izlom — цепочка живая: клетки сдвинуты вбок и повёрнуты вразнобой (в долях шага и радианах)
+    const [x, y] = G.uklad === 'grozd' ? [poza.x + Math.cos(t + poza.a) * d, poza.y + Math.sin(t + poza.a) * d] : [poza.x + Math.cos(poza.a) * o - Math.sin(poza.a) * iz * sh * 0.5, poza.y + Math.sin(poza.a) * o + Math.cos(poza.a) * iz * sh * 0.5];
+    n += sobrat(zapis, { ...poza, x, y, a: G.uklad === 'grozd' ? poza.a + hash(poza.id, i + 40) * 6.283 : poza.a + iz, id: poza.id + i * 37 }, B); }
   return n; }
 
 // Случайная запись существа в допустимых пределах (VC.predely): мутация тела и всех частей разом. Движку — чтобы быстро собирать
