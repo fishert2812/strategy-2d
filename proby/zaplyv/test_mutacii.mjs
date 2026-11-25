@@ -163,6 +163,9 @@ check('режим «Мутации»: дочки приносят свои но�
   if (got.some(g => M.pipe.includes(g))) return 'чужая мутация пришла дочке, а не по трубочке';
 });
 
+// Облако вирусов вокруг клетки (как после лопнувшей соседки): встреча с вирусом в обычной игре редкая (замер 25.11: 7 посадок за 18 минут),
+// поэтому бот-замер умений против вирусов ставит клетку в облако — проверяем, что умение работает в деле, а не то, как часто вирус встречается.
+const virusy = (w, n = 14) => { const a = w.me[0]; for (let i = 0; i < n; i++) { const t = i / n * 6.283; w.cloud(a.x + Math.cos(t) * (120 + 20 * (i % 4)), a.y + Math.sin(t) * (120 + 20 * (i % 4)), 'me', 20); } };
 // Бот режима «Мутации»: делится, плывёт к еде, от опасных отворачивает, берёт первую дочку. Встречает ли он то, где мутация важна.
 const bot = w => {
   if (w.choice.length) w.pick(w.choice[0]);
@@ -178,7 +181,7 @@ check('бот в режиме «Мутации» встречает каждую
   const meet = { snap: 0, abort: 0, gas: 0, door: 0, decoy: 0, flu: 0, steady: 0, citrate: 0 };
   for (const g of Object.keys(meet)) for (const seed of [1, 2, 3, 4, 5, 6]) {
     const w = new World(cfg, seed); w.mode = 'mut'; w.genes[g] = true;
-    if (g === 'abort' || g === 'decoy') { const P = cfg.pond; w.me[0].y = (P.film * 0.6 - P.y0) * P.h; w.tidy = 0; } // вирусы живут в сладкой воде под плёнкой — туда и плывёт голодный
+    if (g === 'abort' || g === 'decoy') { const P = cfg.pond; w.me[0].y = (P.film * 0.6 - P.y0) * P.h; w.tidy = 0; virusy(w); } // вирусы живут в сладкой воде под плёнкой — туда и плывёт голодный
     for (let t = 0; t < 120 && w.me.length; t += 1 / 30) {
       const near = g === 'abort' || g === 'decoy'; // против вирусов бот палец не отпускает: в живой капле стоящего съедают раньше вируса
       const aim = !near && (t % 6) < 1 ? null : bot(w), a0 = w.me[0];
@@ -199,11 +202,11 @@ check('бот в режиме «Мутации» встречает каждую
   if (miss.length) return 'бот не встретил, где важно: ' + miss.join(', ');
 });
 
-// Бот обычного заплыва со сцепкой (новых генов не берёт: память о вирусах закрыла бы заражение). 6 заплывов по 3 минуты.
+// Бот обычного заплыва со сцепкой (новых генов не берёт: память о вирусах закрыла бы заражение). 6 заплывов по 3 минуты, раз в минуту рядом облако вирусов.
 check('[flu] сцепка: в обычном заплыве бот встречает цену — вирус сел на сестру, заболела и соседняя', () => {
   const per = [];
   for (const seed of [1, 2, 3, 4, 5, 6]) { const w = new World(cfg, seed); w.mode = 'swim'; w.genes.flu = true; let sat = 0;
-    for (let t = 0; t < 180 && w.me.length; t += 1 / 30) { w.choice = []; w.step(1 / 30, bot(w)); sat += w.events.filter(e => e[0] === 'sick').length; w.events.length = 0; }
+    virusy(w); for (let t = 0; t < 180 && w.me.length; t += 1 / 30) { w.choice = []; w.step(1 / 30, bot(w)); if (t > 0 && Math.abs(t % 60) < 1 / 60) virusy(w); sat += w.events.filter(e => e[0] === 'sick').length; w.events.length = 0; }
     per.push(`${sat - (w.stats.fluSick || 0)}/${w.stats.fluSick || 0}`); }
   console.log('    паспорт: по заплывам «вирус сел сам / заболела соседняя»:', per.join(' '));
   if (!per.some(x => +x.split('/')[1] > 0)) return 'за 18 минут игры цена ни разу не случилась';
