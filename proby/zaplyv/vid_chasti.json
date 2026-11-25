@@ -20,6 +20,14 @@
     "zhgutiki": { "n": 5, "dlina": 7.5, "tolsh": 0.04, "shag": 2.3, "razmah": 0.3, "oboroty": 2.5, "zvenya": 56, "sbor": 2.5, "puchok": 0.16, "cvet": [0.7, 0.92, 1.0], "a": 1 },
     "zhgutik_vint": { "n": 1, "razlet": 0.25, "dlina": 3.5, "shag": 0.9, "razmah": 0.22, "oboroty": 1.5, "zvenya": 40, "tolsh": 0.06, "cvet": [0.75, 0.8, 0.9], "a": 1 }
   },
+  "zony": {
+    "tochek": 96,
+    "obolochka": { "mesto": "vsyo", "shirina": 1 },
+    "rot": { "mesto": "nos", "shirina": 0.14 },
+    "udar": { "mesto": "nos", "shirina": 0.05 },
+    "scepka": { "mesto": "korma", "shirina": 0.1 },
+    "posadka": { "mesto": "boka", "shirina": 0.2 }
+  },
   "predely": {
     "_": "Допустимые пределы случайной записи (sluchaynaya): тело — число опорных точек, толщина, неровность толщины (доля), шаг между точками и излом оси (доля шага); части — [от, до] на параметр; цвет — тон оболочки случайный, тон нутра сдвинут на sdvig, частям тон и насыщенность относительно оболочки.",
     "telo": { "tochek": [1, 6], "tolshchina": [0.7, 1.25], "nerovno": 0.12, "shar_bez_zhgutikov": true, "shag": [0.7, 1.6], "izlom": 0.3 },
