@@ -255,6 +255,24 @@ check('test_vid_capsule_dent: капсула прогибается от уда�
   vid.stepVid(5); const after = paint({ capsule: true }).join('|');
   return hit === was ? 'удар не виден' : after !== was ? 'плёнка не вернулась' : '';
 });
+check('test_vid_ryvok: рывок — один знак на всю игру: выскользнула из амёбы, вырвалась из пасти, развернулась щелчком — одинаковый след за кормой и две линии хода, гаснет за полсекунды (дизайнер, «Кнопка умения»)', () => {
+  const C = { r: 1, g: 1, b: 1 }, shot = (k, x, y, s) => { const fx = new Fx({}, [C, C, C]); fx.reset(); const a = { id: 3, x: 0, y: 0, m: 1, a: 0, vx: 220, vy: 0 }; fx.world = { me: [a] };
+    paint({ capsule: false }); fx.on(k, x, y, s ?? 1, s === undefined ? undefined : 'turn'); fx.step(0.15); const pts = [], b = { put: (px, py, r, cr, cg, cb, al) => { if ([cr, cg, cb].join() === vid.V.dash.col.join()) pts.push({ x: px, y: py, r, al }); } }; fx.drawOver({ scr: (u, v) => [u, v], z: 1, time: 0, glow: b, ink: b });
+    const shape = pts.map(p => p.x.toFixed(0) + ',' + p.y.toFixed(0)).join('|'); for (let i = 0; i < 12; i++) fx.step(1 / 30); const n0 = pts.length; pts.length = 0; fx.drawOver({ scr: (u, v) => [u, v], z: 1, time: 0, glow: b, ink: b });
+    let gap = 0; for (let i = 1; i < pts.length; i++) { const dd = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y); if (dd < 8 && dd > pts[i].r + pts[i - 1].r) gap++; }
+    return { shape, n0, gap, after: pts.length, pts: shape.split('|').map(q => q.split(',').map(Number)) }; };
+  const slip = shot('slip', 0, 0), torn = shot('shake', 0, 0), snap = shot('snap', 0, 0, 0);
+  if (!slip.n0) return 'выскользнула без рывка'; if (!torn.n0) return 'вырвалась без рывка'; if (!snap.n0) return 'щелчок без рывка';
+  if (slip.shape !== torn.shape || slip.shape !== snap.shape) return 'знак рывка разный у трёх умений';
+  const behind = slip.pts.filter(([x]) => x < -8).length, sides = new Set(slip.pts.filter(([x, y]) => Math.abs(y) > 4).map(([, y]) => Math.sign(y)));
+  if (behind < slip.pts.length * 0.5) return 'след не за кормой: позади ' + behind + ' из ' + slip.pts.length;
+  if (sides.size !== 2) return 'нет двух линий хода по бокам';
+  if (slip.gap) return 'знак пунктиром: разрывов ' + slip.gap + ' (L047: только сплошные линии)';
+  if (slip.after) return 'знак не погас за полсекунды';
+  if (shot('shake', 0, 12).n0) return 'стряхнутый с края вирус даёт рывок';
+  if (shot('snap', 0, 0).n0) return 'сувойка (щелчок без угла) даёт рывок клетке';
+  return '';
+});
 check('test_vid_lysis: клетка от фага лопается прорывом — брызги вязко гаснут, остаётся пустая оболочка с дырой', () => {
   const C = { r: 1, g: 1, b: 1 }, fx = new Fx({}, [C, C, C]); fx.reset();
   // клетка плыла здесь (vid помнит форму), потом лопнула

@@ -11,8 +11,8 @@ export class Fx {
   constructor(cfg, CELL) { this.cfg = cfg; this.CELL = CELL; this.reset(); }
   save() { const s = {}; for (const k of Object.keys(this)) if (Array.isArray(this[k])) s[k] = this[k]; return s; } // снимок значка зовёт reset — без этого гасли все идущие анимации
   load(s) { Object.assign(this, s); }
-  reset() { this.rings = []; this.zaps = []; this.drops = []; this.clouds = []; this.ghosts = []; this.melts = []; this.dead = []; this.eats = []; this.flicks = []; this.genes = []; this.naps = []; this.cuts = []; }
-  busy() { return this.rings.length + this.zaps.length + this.drops.length + this.clouds.length + this.ghosts.length + this.melts.length + this.dead.length + this.eats.length + this.flicks.length + this.genes.length + this.naps.length + this.cuts.length; }
+  reset() { this.rings = []; this.zaps = []; this.drops = []; this.clouds = []; this.ghosts = []; this.melts = []; this.dead = []; this.eats = []; this.flicks = []; this.genes = []; this.naps = []; this.cuts = []; this.dashes = []; }
+  busy() { return this.rings.length + this.zaps.length + this.drops.length + this.clouds.length + this.ghosts.length + this.melts.length + this.dead.length + this.eats.length + this.flicks.length + this.genes.length + this.naps.length + this.cuts.length + this.dashes.length; }
   ring(x, y, side, r) { this.rings.push({ x, y, side, r, t: 0 }); }
   on(k, x, y, size = 1, y2) {
     const R = (s, r) => this.ring(x, y, s, r);
@@ -39,7 +39,9 @@ export class Fx {
     if (k === 'pinch') R(1, 50);
     if (k === 'sick') R(1, 50);
     if (k === 'bore') R(1, 50); // запятая вбуравливается
-    if (k === 'slip') this.slip(x, y); // шуба сработала: амёба не удержала
+    if (k === 'slip') { this.slip(x, y); this.dash(x, y); } // шуба сработала: амёба не удержала — выскользнула рывком
+    if (k === 'shake' && this.near(x, y) && this.near(x, y).d < 5) this.dash(x, y, null, V.dash.min_v); // вырвалась из пасти рывком (событие в самой клетке; стряхнутый вирус и бделло — на краю, рывка нет)
+    if (k === 'snap' && y2 === 'turn') this.dash(x, y, size); // разворот щелчком (mutacii.js)
     if (k === 'shrug') this.flick(x, y, 0); // новая дверь: вирус отброшен
     if (k === 'eaten') this.swallow(x, y, size);
     if (k === 'burst') this.lyse(x, y, seen(x, y));
@@ -57,6 +59,10 @@ export class Fx {
     const v = Math.hypot(n.a.vx || 0, n.a.vy || 0) || 1, bx = -(n.a.vx || 1) / v, by = -(n.a.vy || 0) / v;
     for (let i = 0; i < T.drops; i++) { const t = (Math.random() - 0.5) * 1.2, c = Math.cos(t), s = Math.sin(t), sp = T.speed * (0.5 + Math.random()); this.drops.push({ x: x + bx * 10, y: y + by * 10, vx: (bx * c - by * s) * sp, vy: (by * c + bx * s) * sp, t: 0.3, r: 1.1 }); } }
   // Выскользнула из амёбы: слизь капсулы прогнулась к амёбе и мазок слизи тянется за клеткой.
+  // Рывок — один знак на всю игру (дизайнер, «Кнопка умения»): выскользнула, вырвалась, развернулась щелчком — короткое ускорение
+  // рисуется одинаково: короткий след за кормой и две линии хода вдоль боков. Знак едет с клеткой и гаснет за V.dash.life.
+  dash(x, y, dir = null, minV = 0) { const n = this.near(x, y); if (!n || n.d > V.dash.reach) return; const a = n.a, v = Math.hypot(a.vx || 0, a.vy || 0);
+    if (v < minV) return; this.dashes.push({ a, dir: dir ?? (v > 20 ? Math.atan2(a.vy, a.vx) : a.a || 0), t: 0 }); }
   slip(x, y) { const W = this.world; let m = null, bd = 1e9; for (const o of (W && W.amoebas) || []) { const d = Math.hypot(o.x - x, o.y - y); if (d < bd) { bd = d; m = o; } }
     const n = this.near(x, y), dx = m ? m.x - x : 1, dy = m ? m.y - y : 0, l = Math.hypot(dx, dy) || 1, r = n ? n.d + 8 : 8, S = V.slip;
     poke(x + dx / l * r, y + dy / l * r);
@@ -153,6 +159,13 @@ export class Fx {
     for (let i = 0; i < 5; i++) { const [px, py] = scr(...W((i - 2) * L * 0.3 * (1 - k * 0.8), 0)); ink.put(px, py, w * z * 0.5 * (1 - 0.4 * k), c[0] + (S.dark[0] - c[0]) * k, c[1] + (S.dark[1] - c[1]) * k, c[2] + (S.dark[2] - c[2]) * k, 0.8 * end); }
   }
   drawOver(d) {
+    for (const q of this.dashes) { const D = V.dash, k = q.t / D.life, g = seen(q.a.x, q.a.y, 40), L = g ? g.L : 8, w = g ? g.w : 6; // знак рывка: едет с клеткой по её оси
+      if (g && q.flip === undefined) q.flip = Math.cos(q.dir - g.ang) < 0; const dir = g ? g.ang + (q.flip ? Math.PI : 0) : q.dir, ux = Math.cos(dir), uy = Math.sin(dir);
+      const fade = (1 - k) * Math.min(1, q.t / 0.05), grow = Math.min(1, q.t / (D.life * 0.3)), at = g && g.sx !== undefined ? (u, o) => [g.sx + (ux * u - uy * o) * d.z, g.sy + (uy * u + ux * o) * d.z] : (u, o) => d.scr(q.a.x + ux * u - uy * o, q.a.y + uy * u + ux * o); // по нарисованному телу
+      const tl = D.trail * (L + w) * grow, nt = Math.max(2, Math.ceil(tl / (w * 0.1))); // след за кормой: сплошной клин от кормы, точки внахлёст
+      for (let i = 0; i <= nt; i++) { const f = i / nt, [px, py] = at(-L - w * 0.6 - tl * f, 0); d.glow.put(px, py, w * 0.7 * (1 - f * 0.85) * d.z + 0.4, ...D.col, D.a * fade * (1 - f) ** 1.5 * 0.28); }
+      const ll = D.line * (L + w) * grow, r = D.line_w * d.z + 0.3, nl = Math.max(2, Math.ceil(ll * d.z / (r * 0.6))); // две линии хода вдоль боков: сплошные, тают к хвосту
+      for (const sd of [-1, 1]) for (let i = 0; i <= nl; i++) { const f = i / nl, [px, py] = at(L * 0.3 - ll * f, sd * w * D.side); d.glow.put(px, py, r * (1 - f * 0.5), ...D.col, D.a * fade * (1 - f) * 0.6); } }
     const { scr, z, glow, ink } = d, CELL = this.CELL;
     for (const e of this.eats) { // гибель от едока: поверх хищника — пузырь, куски, пустой шарик должны читаться на телефоне
       if (e.S.cup) { this.engulf(e, d); continue; }
@@ -217,7 +230,7 @@ export class Fx {
       for (let i = 0; i < 28; i++) { const t = i * 0.2244; glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 4 * (1 - k) + 1.2, c.r, c.g, c.b, 0.6 * (1 - k)); }
     }
   }
-  step(dt) { stepVid(dt); this.dt = dt;
+  step(dt) { stepVid(dt); for (const q of this.dashes) q.t += dt; this.dashes = this.dashes.filter(q => q.t < V.dash.life); this.dt = dt;
     const P = V.lysis, k = Math.exp(-P.drag * dt);
     for (const p of this.drops) { const q = p.dg ? Math.exp(-p.dg * dt) : k; p.vx *= q; p.vy *= q; p.x += p.vx * dt; p.y += p.vy * dt; p.t += dt; }
     this.drops = this.drops.filter(p => p.t < P.life);
