@@ -87,11 +87,16 @@ await p.waitForTimeout(700); { const t = await p.evaluate(() => [...document.que
   const one = async () => { const [cx] = await p.evaluate(() => { const a = zaplyvWorld().me[0]; return zaplyvScr(a.x + 70, a.y); }); return lum({ x: cx - 4, y: 120, width: 8, height: 120 }); };
   const strip = async () => { const v = []; for (let k = 0; k < 5; k++) { const f = await p.evaluate(() => zaplyvProbe.frames); await p.waitForFunction(f => zaplyvProbe.frames > f + 1, f, { timeout: 5000 }).catch(() => {}); v.push(await one()); } // медиана пяти дорисованных кадров:
     return v.sort((a, b) => a - b)[2]; }; // один чёрный или пересвеченный кадр (вода плывёт, кадр не дорисован) замер не сбивает
+  // Меряем только рисунок игры: надписи поверх холста (подсказка, карточка встречи) на время замера прячем. Иначе всплывшая
+  // сверху надпись попадала в полосу и давала «пелену» (CI 25.11: «40 / 67» на чистом main, тяж ни при чём). Кто был над полосой — в паспорт.
+  const nad = await p.evaluate(() => { const a = zaplyvWorld().me[0], [x] = zaplyvScr(a.x + 70, a.y), ids = new Set();
+    for (let y = 120; y <= 240; y += 20) for (const e of document.elementsFromPoint(x, y)) if (e.id !== 'c' && e !== document.body && e !== document.documentElement) ids.add(e.id || e.className || e.tagName);
+    const st = document.createElement('style'); st.id = 'zamer046'; st.textContent = 'body > :not(canvas) { visibility: hidden !important; }'; document.head.appendChild(st); return [...ids].join(', '); });
   await p.waitForTimeout(300); const before = await strip();
   await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.slime.push({ x: a.x + 70, y: a.y, a: Math.PI / 2, len: 380, w: 40, id: 77 }); });
   await p.waitForTimeout(400); const inside = await strip();
-  await p.evaluate(() => { const w = zaplyvWorld(); w.slime.length = 0; w.tidy = 0; });
-  say(inside - before < 25, `test_L046: тяж слизи прозрачный, не пелена (яркость полосы без тяжа ${before.toFixed(0)}, с тяжем ${inside.toFixed(0)})`); }
+  await p.evaluate(() => { const w = zaplyvWorld(); w.slime.length = 0; w.tidy = 0; document.getElementById('zamer046')?.remove(); });
+  say(inside - before < 25, `test_L046: тяж слизи прозрачный, не пелена (яркость полосы без тяжа ${before.toFixed(0)}, с тяжем ${inside.toFixed(0)}; надписи над полосой спрятаны: ${nad || 'не было'})`); }
 // test_L039 (Роман 25.11: «в процессе игры они просто уплывают куда-то, исчезают. И я не понимаю, почему»): сестра за кадром видна стрелкой у края,
 // а гибель за краем называет убийцу.
 { await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.me.push({ ...a, id: 990, x: a.x + 2500, y: a.y, held: 1, vx: 0, vy: 0 }); });
