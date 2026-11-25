@@ -27,7 +27,9 @@ export function rim(p, L, R) {
 // Вмятины капсулы: хищник ткнулся — плёнка прогнулась и пружинит обратно (событие bump, fx.js зовёт poke).
 const dents = [];
 export function poke(x, y) { dents.push({ x, y, t: 0 }); if (dents.length > 8) dents.shift(); }
-export function stepVid(dt) { for (const d of dents) d.t += dt; while (dents.length && dents[0].t > V.capsule.dent_t) dents.shift(); }
+const pulses = new Map(); // навык сработал: золотой импульс бежит по телу (эстетика, «Вид 6»); fx.js зовёт pulse()
+export function pulse(id, from) { pulses.set(id, { t: 0, from }); }
+export function stepVid(dt) { for (const [id, p] of pulses) if ((p.t += dt) > V.pulse.life) pulses.delete(id); for (const d of dents) d.t += dt; while (dents.length && dents[0].t > V.capsule.dent_t) dents.shift(); }
 const mem = new Map(); // плавные состояния каждой клетки: нюх разгорается, новая бусина памяти растёт; где была и какой формы — для призрака
 const keep = (a, alive) => { let m = mem.get(a.id); if (!m) { m = { smell: 0, beads: -1, grow: 1, tl: 0 }; mem.set(a.id, m); }
   if (mem.size > 64) for (const k of mem.keys()) if (!alive.some(c => c.id === k)) mem.delete(k); return m; };
@@ -67,6 +69,9 @@ export function skin(c) {
   const fc = cfg.flag.color, L = half - w, m = keep(a, alive);
   const at = (u, o) => along(u, o + arc(u / z));
   Object.assign(m, { id: a.id, x: a.x, y: a.y, ang, L: L / z, w: w / z });
+  const pu = pulses.get(a.id); if (pu) { const P = V.pulse, k = pu.t / P.life, head = pu.from * (L + w) * (1 - 2 * k), bw = P.band * w; // от того конца, где сработало, к другому
+    for (let i = 0; i < P.dots; i++) { const [u, o] = rim(i / P.dots, L, w), d = Math.abs(u - head); if (d > bw) continue; const [px, py] = at(u, o); glow.put(px, py, P.r * z + 1, ...P.color, 0.95 * (1 - d / bw) * Math.sin(Math.PI * k)); }
+    for (let i = -2; i <= 2; i++) { const u = head + i * bw * 0.3; if (Math.abs(u) > L + w * 0.5) continue; const [px, py] = at(u, 0); glow.put(px, py, w * 0.5, ...P.color, 0.35 * Math.sin(Math.PI * k)); } } // свет идёт и внутри: стекло тела
   // Заражена фагом (биолог: «Вирус: впрыск», «Дальше»): снаружи плывёт как обычно, но тело мутнеет от середины,
   // крупинки замирают, жгутик сбивается с ритма; в последнюю четверть стенка натягивается — клетка вспухает перед прорывом.
   const ill = a.sick >= 0 ? Math.min(1, 1 - a.sick / cfg.sick) : 0, I = V.ill;

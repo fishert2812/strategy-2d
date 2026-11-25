@@ -33,5 +33,6 @@
  "cut": { "life": 0.6, "flash": 0.22, "size": 8, "dots": 11, "part": 5, "drift": 16, "color": [0.9, 1.0, 1.0], "shell": [0.62, 0.68, 0.8] },
  "poison": { "dark": 1.2, "fade": 4, "rim": 0.4, "sink": 0.35, "fill": 16, "alpha": 0.7, "color": [0.78, 0.76, 0.72] },
  "learn": { "alpha": 0.85 },
+ "pulse": { "life": 0.5, "reach": 70, "band": 0.9, "dots": 48, "r": 2.6, "color": [1.0, 0.78, 0.32], "on": ["shrug", "cut", "learn", "slip", "bump", "shake"] },
  "split": { "slide": 0.7, "pinch": 0.85 }
 }
