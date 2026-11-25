@@ -154,6 +154,16 @@ check('test_vid_ameba_est: амёба ест как в жизни — надев
   if (!(reachOut(true) < reachOut(false) - 3)) return 'шипики с края, которым обтекает, не втянуты';
   return '';
 });
+check('test_vid_ameba_obrazec: акантамёба ближе к образцам Романа — тело сплюснуто, шипы длинные, изогнутые волной, со светлыми кромками по обоим краям, пузырьки мелкие', () => {
+  const A = vid.V.amoeba, r = 30, ink = [], glow = []; vid.amoeba({ m: { id: 4 }, x: 0, y: 0, r, head: 0, sp: 0, time: 2, z: 1, glow: { put: (x, y, rr, cr, cg, cb, a) => glow.push({ x, y, r: rr, c: [cr, cg, cb] }) }, ink: { put: (x, y, rr, cr, cg, cb, a) => ink.push({ x, y, r: rr, c: [cr, cg, cb] }) } });
+  const edge = glow.filter(p => p.c[0] === A.edge[0] && p.c[2] === A.edge[2]), far = edge.filter(p => Math.hypot(p.x, p.y) > r * 1.2);
+  if (Math.max(...edge.map(p => Math.hypot(p.x, p.y))) < r * 2) return 'шипы короткие, на образцах длиной с тело';
+  const rimR = a => Math.max(0, ...edge.filter(p => p.r > 2 && Math.abs(Math.atan2(p.y, p.x) - a) < 0.2).map(p => Math.hypot(p.x, p.y)));
+  let lo = 1e9, hi = 0; for (let a = -3; a < 3; a += 0.3) { const v = rimR(a); if (v) { lo = Math.min(lo, v); hi = Math.max(hi, v); } } if (hi / lo < 1.25) return 'тело круглое, а на образцах сплюснутое: ' + (hi / lo).toFixed(2);
+  if (far.length < A.spikes * A.seg * 0.8) return 'у шипов нет светлых кромок по краям: ' + far.length;
+  const big = ink.filter(p => p.c[0] === A.vac_col[0] && p.c[1] === A.vac_col[1]).map(p => p.r); if (Math.max(...big) > r * 0.15) return 'розовые пузырьки крупнее, чем на образцах';
+  return '';
+});
 check('test_vid_capsule_dent: капсула прогибается от удара хищника и пружинит обратно', () => {
   vid.stepVid(5); const was = paint({ capsule: true }).join('|'); vid.poke(-15, 13); const hit = paint({ capsule: true }).join('|');
   vid.stepVid(5); const after = paint({ capsule: true }).join('|');
