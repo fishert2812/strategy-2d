@@ -58,6 +58,8 @@ const RIS = {
       const bend = ((hash(P.id, k + 70) - 0.5) * st.izgib + 0.15 * Math.sin(P.time * 0.9 + k)) * L * 0.5, rl = Math.hypot(...at(e.u, e.o).map((v, i) => v - [bx, by][i]));
       B.spine(bx, by, an, L + rl, w * tl * (1 - vr / 2 + vr * hash(P.id, k + 90)), st.cvet, st.kromka, P.id + k, bend, st.volna * (hash(P.id, k + 80) - 0.3)); return { bx, by, an, L, bend, k }; };
     for (let k = 0; k < st.lopasti; k++) one(k + 300, st.lopasti, st.lop_tolsh, st.lop_dlina, st.koren, 0.2);
+    if (st.pered) { const t = (P.kurs ?? P.a) - P.a, e = F.kray(t), [bx, by] = at(e.u * st.koren, e.o * st.koren), an = P.a + e.n, L = w * st.pered_dlina * (0.85 + 0.15 * Math.sin(P.time * 0.8)) * (1 + 0.5 * (P.hod || 0)); // передняя широкая прозрачная лопасть (лобоподия акантамёбы): тупая, ведёт тело
+      B.spine(bx, by, an, L, w * st.pered, st.pered_cvet || st.cvet, st.kromka, P.id + 900, 0, 0.3); }
     for (let k = 0; k < st.n; k++) { const q = one(k, st.n, st.tolsh, st.dlina, st.koren); if (!q || hash(P.id, k + 55) >= st.vetki) continue;
       const f0 = 0.55, sd = hash(P.id, k + 56) < 0.5 ? -1 : 1, d0 = q.L * f0, c = Math.cos(q.an), sn = Math.sin(q.an);
       B.spine(q.bx + c * d0 - sn * q.bend * f0 * f0, q.by + sn * d0 + c * q.bend * f0 * f0, q.an + sd * 0.55, q.L * 0.4, w * st.tolsh * 0.6, st.cvet, st.kromka, P.id + k + 50, 0, st.volna * 0.5);
