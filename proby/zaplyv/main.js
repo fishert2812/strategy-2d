@@ -6,6 +6,7 @@ import * as THREE from './three.module.min.js';
 import { World, radius } from './sim.js';
 import * as mut from './mutacii.js';
 import * as rost from './rost.js';
+import * as evo from './evo.js'; // режим «Эволюция»: пока только по адресу ?rezhim=evo, плитка в меню — когда все умения нарисованы
 import { Stick } from './controls.js';
 import { follow } from './soft.js';
 import { look } from './look.js';
@@ -213,6 +214,7 @@ const MODES = {
   night: { go: 'Начать ночь', line: 'Тысяча поколений за полминуты. Ставишь одну опасность' },
   sel: { lock: 'Пройди ночь рода — и сможешь растить свои породы' },
   rost: { go: 'Расти', line: 'Клетка не делится, а растёт. Чем крупнее, тем больше еды и тем меньше пастей' },
+  evo: { go: 'Расти и меняйся', line: 'Растёшь без предела, на каждом росте новая способность' },
   mut: { go: 'Плыть с мутациями', line: 'Та же капля, но дочки и соседки приносят новые мутации' },
   hunt: { lock: 'Погибни от красной запятой трижды — и сыграешь за неё' },
   deep: { lock: 'Доплыви до ила — и увидишь, что было в капле миллиард лет назад' },
@@ -608,8 +610,8 @@ function meet(k) { // первая встреча в заплыве: имя и �
 function say(text, ms, gene) { $('toast').textContent = text; if (gene) { const im = new Image(); im.src = icon(gene); im.className = 'ticon'; im.alt = ''; im.style.borderColor = geneColor(gene); $('toast').prepend(im); } $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => $('toast').classList.remove('on'), ms); }
 const told = new Set(); // подсказка — один раз и только в момент, когда она нужна
 function tell(k, text) { if (told.has(k)) return; told.add(k); say(text, 2600); }
-start();
-if (ROD.visits || ROD.deaths) menuOpen(); // со второго запуска игра открывается меню режимов (Роман: «почему нет меню выбора режима»); самый первый — сразу заплыв, без непонятных слов (дизайнер)
+start(null, new URLSearchParams(location.search).get('rezhim') === 'evo' ? 'evo' : undefined); // скрытый режим «Эволюция»
+if ((ROD.visits || ROD.deaths) && !evo.on(world)) menuOpen(); // со второго запуска игра открывается меню режимов (Роман: «почему нет меню выбора режима»); самый первый — сразу заплыв, без непонятных слов (дизайнер)
 ROD.visits = (ROD.visits || 0) + 1; saveRod();
 
 const toWorld = (sx, sy) => ({ x: (sx - W / 2) / view.z + view.x, y: (sy - H / 2) / view.z + view.y });
@@ -638,6 +640,8 @@ canvas.addEventListener('pointercancel', up);
 
 function ask() {
   if ($('genes').classList.contains('on')) return;
+  const h = $('genes').querySelector('h1'), hp = $('genes').querySelector('p'); h.dataset.d ??= h.textContent; hp.dataset.d ??= hp.textContent; // в «Эволюции» выбор на росте, а не из двух дочек
+  h.textContent = evo.on(world) ? evo.E.zagolovok : h.dataset.d; hp.textContent = evo.on(world) ? evo.E.podskazka : hp.dataset.d;
   const box = $('cards'); box.innerHTML = ''; $('genes').querySelectorAll('.kid').forEach(e => e.remove());
   kids = world.choice.map((g, i) => ({ g, x: 0, y: 0, vx: 0, vy: 0, m: 1.7, a: -Math.PI / 2, id: 900 + i, sick: -1 })); // две дочки крупно: мутация видна на теле
   world.choice.forEach((g, i) => {
