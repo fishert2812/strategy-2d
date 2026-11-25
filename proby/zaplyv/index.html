@@ -52,7 +52,10 @@ body:has(.layer.on) #hud, body:has(.layer.on) #scalebox, body:has(.layer.on) #ve
 .mo[data-m=swim]::after { content: ""; position: absolute; left: 50%; top: 52px; width: 104px; height: 104px; margin: -52px 0 0 -52px; border-radius: 50%; border: 2px solid rgba(120, 255, 210, 0.6); opacity: 0; animation: mwave 3s infinite; pointer-events: none; }
 @keyframes mwave { 0% { opacity: 0.8; transform: scale(0.9); } 13% { opacity: 0; transform: scale(1.25); } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .mo[data-m=swim]::after { animation: none; } .mo { transition: none; } }
-#menu #mline { margin: 0; min-height: 40px; font-size: 15px; } #mrow { display: flex; gap: 10px; width: 100%; } #mrow button { flex: 1; width: auto; min-height: 44px; font-size: 16px; }
+#menu #mline { margin: 0; min-height: 40px; font-size: 15px; } /* Меню режимов (урок L037): звук — служебное в углу, Альманах — строка справочника, внизу «‹ Пауза» (если пришёл из паузы) и главная кнопка */
+#mtop { position: relative; } #mquiet { position: absolute; right: 0; top: 0; width: auto; min-height: 44px; padding: 0 14px; font-size: 15px; border-color: rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.8); }
+#malm { max-width: 420px; flex-shrink: 0; min-height: 56px; } #mnew { width: 100%; max-width: 420px; flex-shrink: 0; min-height: 48px; font-size: 17px; } #mnew[hidden], #mback[hidden] { display: none; }
+#mbar { display: flex; gap: 10px; width: 100%; max-width: 420px; flex-shrink: 0; } #mbar #mback { flex: 0 0 38%; width: auto; min-height: 56px; font-size: 17px; } #mbar #mgo { flex: 1; width: auto; min-width: 0; font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 10px; }
 #mgo { width: 100%; min-height: 56px; border-radius: 22px; flex-shrink: 0; }
 #night { justify-content: flex-start; gap: 8px; padding: calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 16px); background: #04121a; }
 #nhead { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; } #nhead b { font-size: 16px; white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -247,7 +250,7 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
   <button id="eno" class="flag ghost">⚑ Не так</button><button id="esend" class="ghost" style="display:none"></button></div>
 </div>
 <div class="layer" id="menu">
-  <div id="mtop"><h1>Заплыв</h1><p id="mstate"></p><p id="mknow"></p></div>
+  <div id="mtop"><h1>Заплыв</h1><p id="mstate"></p><p id="mknow"></p><button id="mquiet" class="ghost"></button></div>
   <div id="mscene">
     <div class="mband now"><div class="mo" data-m="night" style="left: 50%; top: 24px;"><div class="art bars"><i></i><i></i><i></i></div><b>Ночь рода</b><small>тысяча поколений</small></div>
       <div class="mfilm"></div>
@@ -259,8 +262,9 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
       <div class="mo lock" data-m="dry" style="left: 70%; top: 260px;"><div class="art crack"></div><b><span class="lk">🔒</span> Засуха</b></div></div>
   </div>
   <p id="mline"></p>
-  <div id="mrow"><button id="mquiet" class="ghost">Тише</button><button id="malm" class="ghost">Альманах</button></div>
-  <button id="mgo">Плыть</button>
+  <button id="malm" class="prow"><span><b>Альманах</b><small id="mak"></small></span><i>›</i></button>
+  <button id="mnew" class="ghost" hidden>Новый заплыв</button>
+  <div id="mbar"><button id="mback" class="ghost" hidden>‹ Пауза</button><button id="mgo">Плыть</button></div>
 </div>
 <div class="layer" id="night">
   <div id="nhead"><button id="nback" class="ghost">Назад</button><b id="ngen"></b><button id="nflag" class="ghost" aria-label="Не так: поставить отметку">⚑</button></div>

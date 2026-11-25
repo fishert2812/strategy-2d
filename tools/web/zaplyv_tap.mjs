@@ -192,8 +192,8 @@ if (await tap('#mscene [data-m=hunt]', 'закрытый режим «Охота
 if (await tap('#mscene [data-m=night]', 'объект «Ночь рода»')) say((await p.textContent('#mgo')) === 'Начать ночь', 'касание объекта меняет подпись кнопки');
 if (await tap('#mgo', '«Начать ночь»')) say(await on('night') && !(await on('menu')), '«Начать ночь» открывает ночь рода');
 if (await tap('#nback', '«Назад» из ночи в меню')) say(await on('menu'), '«Назад» возвращает в меню');
-if (await tap('#mquiet', '«Тише»')) say((await p.textContent('#mquiet')) === 'Звук', '«Тише» выключает звук');
-await tap('#mquiet', '«Звук»');
+if (await tap('#mquiet', '«Звук вкл»')) say((await p.textContent('#mquiet')) === 'Звук выкл', '«Звук вкл» выключает звук');
+await tap('#mquiet', '«Звук выкл»');
 if (await tap('#mscene [data-m=swim]', 'объект «Заплыв»') && await tap('#mgo', '«Плыть» из меню')) say(!(await on('menu')) && await p.evaluate(() => zaplyvWorld().me.length > 0), '«Плыть» начинает заплыв');
 // Режим «Мутации» (новые мутации, mutacii.js): объект в меню, кнопка запускает заплыв в этом режиме.
 await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 0; }); await p.waitForTimeout(1200);
