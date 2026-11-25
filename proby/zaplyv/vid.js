@@ -214,3 +214,21 @@ export function amoeba(c) {
     ink.put(px, py, vr * 2, ...A.vac_col, 0.5); glow.put(px - vr * 0.3, py - vr * 0.3, vr * 0.6, 1, 1, 1, 0.45); }
   if (bubbles) { const v = (time / 6 + id * 0.37) % 1; bubbles.put(x - hx * r * 0.45 - hy * r * 0.2, y - hy * r * 0.45 + hx * r * 0.2, r * 0.16 * Math.sqrt(v) + 1, 0.95, 0.9, 1, 0.35 * (1 - v * v * v)); } // сократительная вакуоль: набухает и выплёскивает
 }
+// Коловратка как в жизни (биолог, «Вид существ» №2): на голове венец — два мерцающих полукруга ресничек, по ним бежит волна, и кажется,
+// что колёса крутятся; по переднему краю панциря зубцы; сквозь прозрачное тело видны тёмная кишка и челюсти-мастакс, которые щёлкают.
+export function roti(c) {
+  const { tx, ty, vx, vy, L, w, pw, time, id, z, glow, ink, bite } = c, R = V.roti, P = (u, o) => [tx + vx * u - vy * o, ty + vy * u + vx * o];
+  for (let i = 0; i < R.gut; i++) { const f = i / (R.gut - 1), [x, y] = P(L * (0.1 - 0.3 * f), Math.sin(f * 7 + id) * w * 0.12); ink.put(x, y, w * 0.18, ...R.gut_col, 0.35); } // кишка
+  const speed = R.beat * (1 + R.beat_pw * pw), hu = L * 0.22;
+  for (const s of [-1, 1]) { const cu = hu, co = s * w * 0.55, Rr = w * R.lobe; // венец: полукруг вперёд-наружу, по ресничкам бежит волна
+    { const [x, y] = P(cu, co); glow.put(x, y, Rr * 2.2, ...R.cil_col, R.disc * (0.6 + 0.4 * pw)); } // мутный диск лопасти
+    for (let k = 0; k < R.cilia; k++) { const a = -Math.PI / 2 * s * 0.2 + (k / (R.cilia - 1) - 0.5) * Math.PI * 1.25, ca = Math.cos(a), sa = Math.sin(a) * s;
+      const wave = 0.5 + 0.5 * Math.sin(k * R.wave - s * time * speed), len = Rr * (R.len0 + R.len1 * wave);
+      for (let j = 0; j < R.cil_dots; j++) { const d = Rr + len * j / (R.cil_dots - 1), [x, y] = P(cu + ca * d, co + sa * d); glow.put(x, y, (1.1 - j * 0.15) * z + 0.3, ...R.cil_col, (0.3 + 0.6 * wave) * (0.5 + 0.5 * pw) * (1 - j * 0.15)); } } }
+  for (const s of [-1, 1]) for (let k = 0; k < R.teeth; k++) { const o = s * w * (0.8 + 0.18 * k), [bx, by] = P(hu - w * 0.2, o), [px, py] = P(hu + w * 0.25, o + s * w * 0.12); // зубцы по переднему краю панциря
+    for (let j = 0; j <= 5; j++) { const f = j / 5; glow.put(bx + (px - bx) * f, by + (py - by) * f, (1.6 - f * 1.1) * z + 0.3, ...R.shell, 0.8); } }
+  const open = bite > 0 ? Math.max(0, 1 - bite / R.snap) : 0.5 + 0.5 * Math.sin(time * (3 + 5 * pw) + id), ju = L * 0.1; // челюсти: две тёмные клешни, щёлк
+  for (const s of [-1, 1]) for (let j = 0; j <= 6; j++) { const f = j / 6, ang = s * (0.25 + 0.6 * open) * (1 - f * 0.3), u = ju + Math.cos(ang) * w * 0.35 * f, o = Math.sin(ang) * w * 0.35 * f + s * w * 0.04 * f * f, [x, y] = P(u, o);
+    ink.put(x, y, (1.6 - f * 0.8) * z + 0.4, ...R.jaw, 0.85); }
+  if (open < 0.12) { const [x, y] = P(ju + w * 0.3, 0); glow.put(x, y, w * 0.35, 1, 0.95, 0.8, 0.5 * (1 - open / 0.12)); } // щелчок
+}
