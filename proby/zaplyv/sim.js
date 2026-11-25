@@ -399,7 +399,7 @@ export class World {
 
   rodNear(p, reach) { // ближайшая палочка любого рода: ты, синегнойка, сородич (кокки — не его добыча)
     let best = null, bd = reach;
-    for (const a of [...this.me, ...this.pseudos, ...this.donors]) { if (a.held > 0) continue; const d = Math.hypot(a.x - p.x, a.y - p.y); if (d < bd) { bd = d; best = a; } }
+    for (const a of [...this.me, ...this.pseudos, ...this.donors]) { if (a.held > 0) continue; const d = Math.hypot(a.x - p.x, a.y - p.y) / (this.me.includes(a) ? mut.loud(this) : 1); if (d < bd) { bd = d; best = a; } } // сильный хвост шумит: тебя замечают дальше
     return best;
   }
   nearest(p, reach) {
@@ -555,7 +555,7 @@ export class World {
     }
     this.food = this.food.filter(f => !f.gone);
     for (const m of this.amoebas) { // амёба ползёт только по дну и нитям; в открытой воде почти стоит
-      const a = this.nearest(m, 340);
+      const a = this.nearest(m, 340 * mut.loud(this)); // сильный хвост шумит: амёба слышит дальше
       let wx = 0, wy = 0;
       m.hunt = !!(a && a.m < m.m * 0.8 && !(m.syt > 0) && !this.genes.capsule && !(a.spore > 0)); // охотится: видна её зона захвата (L030); спящую не ловит
       if (a && a.spore > 0) { const d = dist(a, m) || 1; wx = (m.x - a.x) / d * c.amoeba * c.spore_shy; wy = (m.y - a.y) / d * c.amoeba * c.spore_shy; } // спящую не берут: обнюхала и уползает (L032)

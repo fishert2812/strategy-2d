@@ -45,6 +45,10 @@
      "gene": "steady"
     },
     {
+     "id": "tail",
+     "gene": "flhDC+"
+    },
+    {
      "id": "magnet",
      "gene": "tar"
     }

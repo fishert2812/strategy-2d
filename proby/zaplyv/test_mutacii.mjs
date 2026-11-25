@@ -156,6 +156,22 @@ check('[shield] защита от вирусов и яда: с каждым ур
   if (got.has('lock') || got.has('door')) return 'в режиме «Мутации» замок и дверь приходят по отдельности, а должны ступенями защиты';
 });
 
+// Сильный хвост (З5, книга Г49): 1 — ровный ход (steady), 2 — слизь не тормозит и за клеткой коридор, 3 — разгон на прямой. Цена: хищники замечают дальше.
+const tailAt = L => { const w = mw(12); for (let i = 0; i < L; i++) w.pick('tail'); return w; };
+check('[tail] сильный хвост: с каждым уровнем — ровнее, через слизь без торможения, разгон на прямой; хищники замечают дальше', () => {
+  const swim = (L, slime) => { const w = tailAt(L), a = w.me[0]; if (slime) w.slime.push({ x: a.x + 150, y: a.y, a: 0, len: 600, w: 60, id: 995 }); const x0 = a.x; let top = 0;
+    for (let t = 0; t < 4; t += 1 / 30) { w.step(1 / 30, { dx: 1, dy: 0, p: 1 }); top = Math.max(top, a.boost || 0); } return { path: a.x - x0, top, cor: (w.corridor || []).length, genes: Object.keys(w.genes).join(','), turn: mut.turnRate(w, { boost: 1 }, 1) / mut.turnRate(w, { boost: 0 }, 1) }; };
+  const r = [0, 1, 2, 3].map(L => ({ L, water: swim(L, false), slime: swim(L, true) }));
+  console.log('    паспорт: уровень → путь за 4 с в воде / в слизи, разгон, точек коридора:', r.map(x => `${x.L}: ${x.water.path.toFixed(0)}/${x.slime.path.toFixed(0)} ↑${x.water.top.toFixed(1)} ⋯${x.slime.cor} [${x.water.genes}]`).join(' | '));
+  const [o, a, b, c] = r;
+  if (!a.water.genes.includes('steady')) return 'уровень 1 должен дать ровный ход (steady)';
+  if (!(b.slime.path > a.slime.path * 1.2) || !b.slime.cor || a.slime.cor) return 'уровень 2: в слизи не тормозит и оставляет коридор';
+  if (!(c.water.top >= 1) || !(c.water.path > b.water.path * 1.1) || b.water.top) return 'уровень 3: разгон на прямой только у третьего';
+  if (!(c.water.turn < 1)) return 'на разгоне поворот должен быть шире';
+  const hear = L => { const w = tailAt(L), a = w.me[0]; return !!w.rodNear({ x: a.x + 115, y: a.y }, 100); };
+  if (hear(0) || !hear(1) || !hear(3)) return 'цена: хищники должны замечать клетку с хвостом дальше, на каждом уровне';
+});
+
 // Режим «Голод» (Роман 25.11 08:47: «Да отдельным режимом давай попробуем»): без еды клетка худеет и гибнет.
 const starveT = (genes, m0 = 1, mode = 'golod') => { const w = mw(4, genes, mode), a = w.me[0]; a.m = m0; let t = 0; for (; t < 200 && w.me.length; t += 1 / 30) w.step(1 / 30, null); return { t, w, a }; };
 check('режим «Голод»: в пустой воде клетка худеет и гибнет от голода, в обычном заплыве — нет', () => {
@@ -268,7 +284,7 @@ const bot = w => {
 };
 // Для каждой мутации — 6 заплывов бота, у которого с начала только она: встречает ли он то, где она важна.
 check('бот в режиме «Мутации» встречает каждую мутацию в деле: щелчок, тихая гибель, всплытие, кокк у закрытой двери, вирус на пузырьке', () => {
-  const meet = { snap: 0, abort: 0, gas: 0, door: 0, decoy: 0, flu: 0, steady: 0, citrate: 0, lean: 0, store: 0, magnet: 0, shield: 0 };
+  const meet = { snap: 0, abort: 0, gas: 0, door: 0, decoy: 0, flu: 0, steady: 0, citrate: 0, lean: 0, store: 0, magnet: 0, shield: 0, tail: 0 };
   for (const g of Object.keys(meet)) for (const seed of [1, 2, 3, 4, 5, 6]) {
     const w = new World(cfg, seed); w.mode = M.golod.genes.includes(g) ? 'golod' : 'mut'; if (g in M.levels) w.pick(g); else w.genes[g] = true; // умение с уровнями приходит, как от дочки
     if (g === 'abort' || g === 'decoy' || g === 'shield') { const P = cfg.pond; w.me[0].y = (P.film * 0.6 - P.y0) * P.h; w.tidy = 0; virusy(w); } // вирусы живут в сладкой воде под плёнкой; бот заплывает в их облако
@@ -287,10 +303,11 @@ check('бот в режиме «Мутации» встречает каждую
     if (g === 'decoy') meet.decoy += w.stats.decoy || 0;
     if (g === 'flu') meet.flu += w.stats.raft || 0;
     if (g === 'citrate') meet.citrate += w.stats.citrate || 0;
+    if (g === 'tail') meet.tail += Math.round(w.stats.boost || 0) + (w.stats.corridor || 0); // разгон на прямой и коридор в слизи
     if (g === 'magnet') meet.magnet += w.stats.magnet || 0; // крупинка сама приплыла и съедена
     if (g === 'store') meet.store += w.stats.melted || 0; // крупинка растаяла, когда еды не было рядом
   }
-  console.log('    паспорт: за 6 заплывов по 120 с — щелчков', meet.snap, '| тихих гибелей', meet.abort, '| кадров всплытия', meet.gas, '| кадров у кокка с закрытой дверью', meet.door, '| вирусов на пузырьках', meet.decoy, '| ровно на крутом повороте', meet.steady, '| голубых точек съедено', meet.citrate, '| кадров голода мелкой', meet.lean, '| растаяло крупинок', meet.store, '| приплыло магнитом', meet.magnet, '| вирус отскочил от защиты', meet.shield, '| пасть сорвалась с плота', meet.flu);
+  console.log('    паспорт: за 6 заплывов по 120 с — щелчков', meet.snap, '| тихих гибелей', meet.abort, '| кадров всплытия', meet.gas, '| кадров у кокка с закрытой дверью', meet.door, '| вирусов на пузырьках', meet.decoy, '| ровно на крутом повороте', meet.steady, '| голубых точек съедено', meet.citrate, '| кадров голода мелкой', meet.lean, '| растаяло крупинок', meet.store, '| приплыло магнитом', meet.magnet, '| вирус отскочил от защиты', meet.shield, '| хвост: секунд разгона и точек коридора', meet.tail, '| пасть сорвалась с плота', meet.flu);
   const miss = Object.keys(meet).filter(g => !meet[g]);
   if (miss.length) return 'бот не встретил, где важно: ' + miss.join(', ');
 });
