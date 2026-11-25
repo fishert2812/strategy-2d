@@ -122,6 +122,7 @@ export const BRICKS = {
       const L = P.dlina * W * g * (1 - P.razbros + 2 * P.razbros * rnd(seed + j * 7 + 2)), pts = [], ws = [];
       for (let i = 0; i <= M; i++) { const u = i / M, d = -P.koren * W + (L + P.koren * W) * u, sw = P.volna * W * Math.sin(u * 2.5 - t * P.temp + j) * u * u * g;
         pts.push([q.x + nx * d - ny * sw, q.y + ny * d + nx * sw]); ws.push(W * (P.konec + (P.shir - P.konec) * Math.pow(1 - u, P.profil)) * Math.sqrt(Math.max(0, 1 - Math.pow(Math.max(0, (u - P.kaplya) / (1 - P.kaplya)), 2))) * (0.5 + 0.5 * g)); } // кончик скруглён, основание расходится в оболочку
+      if (c.bodies && P.vetka) return; // отросток растит само тело (kp.vetki → poza.vetki): те же слои и материал, без шва у основания
       if (c.bodies && c.bodies.loft) { // объёмом, тем же стеклом, что и тело (body3d.js loft): оболочка отростка и плотная сердцевина в ней
         const kolca = pts.map(([x, y], i) => { const [ax, ay] = pts[Math.max(0, i - 1)], [bx, by] = pts[Math.min(M, i + 1)], l = Math.hypot(bx - ax, by - ay) || 1;
           return { x, y, tx: (bx - ax) / l, ty: (by - ay) / l, r: ws[i], dr: (ws[Math.min(M, i + 1)] - ws[Math.max(0, i - 1)]) / l, a: i / M }; });
@@ -211,8 +212,17 @@ export class Kirpichi {
   // свою оболочку под отростком, и он растёт из бугра, а не лежит поверх каймы.
   vypuklosti(zapis) { const V = [];
     for (const e of this.list) if (e.zapis === zapis) for (const s of e.N.shagi) { if (s.k !== 'vyrost' || e.t < s.ot || e.t > s.do) continue;
-      const P = { ...this.K.kirpichi.vyrost, ...s }, Z = kuski(zapis, s.zona || 'obolochka');
+      const P = { ...this.K.kirpichi.vyrost, ...s }, Z = kuski(zapis, s.zona || 'obolochka'); if (P.vetka) continue; // у ветки тело подаётся бугром само
       for (const { g, q } of mestaVyrosta(P, (e.t - s.ot) / (s.do - s.ot), Z, e.seed)) V.push({ t: q.t, shirina: P.bugor_shir, vysota: P.bugor * g }); }
+    return V; }
+  // Ветки тела от идущих выростов: [{ t, dlina, r, izgib, ugol, rost }] — тело (vid_chasti.js, poza.vetki) само выращивает отросток
+  // своими слоями и материалом, без шва у основания. Объект ветки один и тот же между кадрами (по нему тело запоминает точки), меняется только rost.
+  vetki(zapis) { const V = [];
+    for (const e of this.list) if (e.zapis === zapis) for (const [si, s] of e.N.shagi.entries()) { if (s.k !== 'vyrost' || e.t < s.ot || e.t > s.do) continue;
+      const P = { ...this.K.kirpichi.vyrost, ...s }, Z = kuski(zapis, s.zona || 'obolochka'), vt = (e.vt ??= {});
+      for (const { j, g, q } of mestaVyrosta(P, (e.t - s.ot) / (s.do - s.ot), Z, e.seed)) { const sd = e.seed + j * 7, key = si + ':' + j;
+        const v = vt[key] ??= { t: q.t, dlina: P.dlina * (1 - P.razbros + 2 * P.razbros * rnd(sd + 2)), r: [P.r_v[0], P.r_v[1]], izgib: P.izgib_v * (rnd(sd + 5) - 0.5), ugol: (rnd(e.seed + j * 3 + 1) - 0.5) * P.naklon, rost: 0 };
+        v.rost = g; V.push(v); } }
     return V; }
   step(dt) { for (const e of this.list) { e.t += dt; if (e.hold != null && e.to && e.to.gone === false && e.t > e.hold) e.t = e.hold; } // derzhat: нити держат цель, пока она не исчезла (to.gone)
     this.list = this.list.filter(e => e.t < e.N.dlit); }
