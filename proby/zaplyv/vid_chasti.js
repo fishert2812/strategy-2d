@@ -70,7 +70,12 @@ const RIS = {
     if (!B.loft || !F.O) return;
     // каждый слой это то же тело, только тоньше на свою глубину: та же осевая линия, радиусы меньше. Слои лежат ровно один в другом у любой формы, шапки тоже
     st.sloi.forEach(s => { if (s.razrez && !P.razrez) return; const g = (1 - s.r) * F.O.poperechnik / 2, O = g > 0 ? os(F.tochki, 28, 0.2, g) : F.O;
-      B.loft(O.kolca().map(q => ({ x: P.x + (q.x * ux - q.y * uy) * w, y: P.y + (q.x * uy + q.y * ux) * w, tx: q.tx * ux - q.ty * uy, ty: q.tx * uy + q.ty * ux, r: q.r * w, dr: q.dr, a: q.a })), !!s.plotno, s.cvet, s.kromka || sv(s.cvet), P.id, s.a ?? 1); }); },
+      // выпуклости (P.vypuklosti: [{ t — место на обводе, shirina, vysota } в толщинах тела]): оболочка сама выгибается в этом месте, все слои вместе;
+      // кольцо рядом с местом сдвигается наружу на полвысоты и на столько же толстеет: дальний бок стоит, ближний вырастает бугром, кайма тела переходит в отросток
+      const vp = (P.vypuklosti || []).map(v => { const e = F.O.kray(v.t); return { x: e.x, y: e.y, nx: Math.cos(e.n), ny: Math.sin(e.n), sh: v.shirina || 0.5, h: (v.vysota || 0) / 2 }; });
+      const kol = vp.length ? O.kolca().map(q => { let x = q.x, y = q.y, r = q.r; for (const v of vp) { const d = Math.hypot(q.x - (v.x - v.nx * q.r), q.y - (v.y - v.ny * q.r)) / v.sh, k = v.h * Math.exp(-d * d); x += v.nx * k; y += v.ny * k; r += k; } return { ...q, x, y, r }; }) : O.kolca();
+      if (vp.length) for (let i = 1; i < kol.length - 1; i++) if (Math.abs(kol[i].dr) < 100) kol[i] = { ...kol[i], dr: (kol[i + 1].r - kol[i - 1].r) / ((kol[i + 1].a - kol[i - 1].a) || 1) }; // наклон стенки для света заново: бугор освещается как бугор
+      B.loft(kol.map(q => ({ x: P.x + (q.x * ux - q.y * uy) * w, y: P.y + (q.x * uy + q.y * ux) * w, tx: q.tx * ux - q.ty * uy, ty: q.tx * uy + q.ty * ux, r: q.r * w, dr: q.dr, a: q.a })), !!s.plotno, s.cvet, s.kromka || sv(s.cvet), P.id, s.a ?? 1); }); },
   // Нуклеоид: одна длинная нить ДНК, уложенная клубком в середине клетки; медленно шевелится.
   nukleoid(st, F, P, B, at) { B.vyshe = P.nad; const w = P.tolshchina, Hh = F.O ? F.O.H : P.dlina / 2 / w, p = Math.max(2, Math.round(st.petli)), vit = p * 4, N = Math.max(st.zvenya, vit * 22), T = P.time * st.temp, h = k => hash(P.id, k + 900) * 6.283;
     // нить идёт вдоль клетки туда и обратно и всё время вьётся круглыми петлями; петли круглые в настоящих размерах (не растянуты длиной тела), обратный ход ложится поверх прямого со сдвигом: клубок

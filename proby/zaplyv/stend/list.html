@@ -42,7 +42,7 @@ let seed = +(q.get('seed') || 11); const rnd = () => (seed = (seed * 16807) % 21
 const KOL = q.get('vidy') ? q.get('vidy').split(',').length : +(q.get('n') || 16), stolb = +(q.get('stolb') || 4), ryad = Math.ceil(KOL / stolb), zap = q.get('vidy') ? q.get('vidy').split(',').map(k => VC.vidy[k]) : Array.from({ length: KOL }, () => sluchaynaya(VC.vidy.nasha, rnd)), ugly = zap.map(() => (rnd() - 0.5) * 1.4);
 let time = 0;
 window.stend = dt => { time += dt; bodies.begin();
-  zap.forEach((zp, i) => sobrat_gruppu(zp, { x: W * (i % stolb + 0.55) / stolb, y: H * (Math.floor(i / stolb) + 0.5) / ryad, a: q.get('vidy') ? -0.35 : ugly[i] - 0.3, tolshchina: 8.5 * z, z, time, id: i + 3, beg: +(q.get('beg') ?? (i % 3 === 0 ? 1 : 0)) }, bodies));
+  zap.forEach((zp, i) => sobrat_gruppu(zp, { x: W * (i % stolb + 0.55) / stolb, y: H * (Math.floor(i / stolb) + 0.5) / ryad, a: q.get('vidy') ? -0.35 : ugly[i] - 0.3, tolshchina: 8.5 * z, z, time, id: i + 3, vypuklosti: q.get('vyp') ? q.get('vyp').split(';').map(v => { const [t, shirina, vysota] = v.split(',').map(Number); return { t, shirina, vysota }; }) : undefined, beg: +(q.get('beg') ?? (i % 3 === 0 ? 1 : 0)) }, bodies));
   bodies.end(time); glow.done(); ink.done(); gl.clear(); gl.render(back, cam); gl.render(bodies.scene, bodies.cam); gl.render(scene, cam); };
 window.zapisi = zap;
 if (!q.get('zapis')) { let last = performance.now(); const go = now => { window.stend(Math.min(0.05, (now - last) / 1000)); last = now; requestAnimationFrame(go); }; requestAnimationFrame(go); }
