@@ -89,14 +89,18 @@ async function walk(css) {
       say(!ov.length, 'test_L037: в «Режимах» режимы не налезают друг на друга' + (ov.length ? ': ' + ov.join(', ') : ''));
       const miss = await p.evaluate(() => [...document.querySelectorAll('#mscene .mo')].filter(o => { o.scrollIntoView({ block: 'center' }); const r = (o.querySelector('img, .art') || o).getBoundingClientRect(); const e = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return e?.closest('.mo') !== o; }).map(o => o.dataset.m));
       say(!miss.length, 'test_L037: в «Режимах» касание по картинке каждого режима выбирает именно его' + (miss.length ? ': мимо ' + miss.join(', ') : '') + ' (прогон 0.80: «Рост» под «Голодом» не выбрать)');
-      say((await tap('#mback')) && await title() === 'Пауза', 'test_L037: из «Режимов» «‹ Пауза» возвращает в паузу'); }
+      await p.evaluate(() => { zaplyvWorld().probe = 2; document.querySelector('#mscene [data-m=rost]').scrollIntoView({ block: 'center' }); }); await tap('#mscene [data-m=rost] img'); await tap('#mgo'); say(await p.evaluate(() => zaplyvWorld().probe === 2 && document.getElementById('menu').classList.contains('on')) && (await box('#mgo'))?.text === 'Бросить заплыв?', 'test_L037: другой режим из паузы не бросает идущий заплыв с первого касания, спрашивает «Бросить заплыв?» (прогон 0.81, О77)');
+      await p.evaluate(() => { document.getElementById('mscene').scrollTop = 9999; });
+      say((await tap('#mback')) && await title() === 'Пауза', 'test_L037: из «Режимов» «‹ Пауза» возвращает в паузу');
+      if (await tap('#gmenu')) { await p.waitForTimeout(300); say(await p.evaluate(() => document.getElementById('mscene').scrollTop < 150), 'test_L037: «Режимы» открываются сверху, а не там, где долистали (О78)'); await tap('#mback'); } }
     await tap('#phub [data-t=genome]'); const t0 = await p.evaluate(() => zaplyvWorld().stats.time);
     say((await tap('#gon')) && !(await p.evaluate(() => document.getElementById('genome').classList.contains('on'))), 'test_L037: «Продолжить» из раздела — сразу в игру, одним касанием');
     await p.waitForTimeout(400); say(await p.evaluate(t => zaplyvWorld().stats.time > t, t0), 'test_L037: после «Продолжить» тот же заплыв идёт дальше');
   } else say(false, 'test_L037: кнопки паузы не видно');
   // С экрана гибели «Кто это · … в Альманахе» — сразу карточка убийцы, «‹ Альманах» внизу ведёт на полку (прогон 0.68: вела в общий список)
+  await p.setViewportSize({ width: 393, height: 659 }); // видимая часть Safari на iPhone 16 (О80)
   await p.evaluate(() => { const w = zaplyvWorld(); w.genes.spore = false; w.stats.killer = 'amoeba'; w.me.length = 0; }); await p.waitForTimeout(1500);
-  say(await p.evaluate(() => { const s = document.getElementById('path').getBoundingClientRect(), b = document.getElementById('ebtns').getBoundingClientRect(); return s.top + 60 < b.top; }), 'test_L037: на экране гибели «Твой путь» виден над кнопками, без прокрутки (прогон 0.76)');
+  say(await p.evaluate(() => { const s = document.getElementById('path').getBoundingClientRect(), b = document.getElementById('ebtns').getBoundingClientRect(); return s.bottom <= b.top + 2; }), 'test_L037: на экране гибели «Твой путь» виден целиком над кнопками на 393×659, без прокрутки (прогоны 0.76, 0.81)');
   if (await tap('#cab')) { await p.waitForTimeout(500); say(await p.evaluate(() => !/Запись |в книге игры/.test(document.getElementById('kcard').textContent)), 'test_L037: на карточке Альманаха нет служебных меток книги («Запись С3 в книге игры», прогон 0.74)'); say(await p.evaluate(() => !document.getElementById('kcard').hidden && document.getElementById('kname').textContent === 'Амёба') && (await box('#back'))?.text === '‹ Альманах', 'test_L037: с экрана гибели Альманах открывает карточку того, кто съел, «‹ Альманах» — на полку'); }
   else say(false, 'test_L037: на экране гибели нет кнопки Альманаха');
   say(!errs.length, 'ошибок страницы нет' + (errs.length ? ': ' + errs.join('; ') : ''));
