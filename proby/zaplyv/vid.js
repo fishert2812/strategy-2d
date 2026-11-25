@@ -206,6 +206,9 @@ export function marks(q, d) {
 const pairs = new Map();
 export function splitAt(mom, kid) { if (mom && kid && born.get(mom)?.kid !== kid) pairs.set(mom, { kid, t: null }); } // повторный вызов той же пары не перезапускает деление
 // ang, hd, wr, cx, cy — как дочка нарисовалась бы сама: угол, полудлина и полуширина в мире, центр; hm, wm — полудлина и полуширина матери.
+// Рост палочки к делению по физике (design/zaplyv_fizika_kak_v_zhizni.md, п. 14). fm — доля массы от массы деления (0,5 у новорождённой, 1 у созревшей).
+// half — полудлина в толщинах (L = L0·m/m0, толщина постоянная), u — путь кольца 0..u_max (шейка r = R·√(1−u²), только сужается), dna — нуклеоид делится надвое.
+export function grow(fm, D) { const q = v => Math.max(0, Math.min(1, v)); return { half: D.half0 * 2 * fm, u: Math.min(D.u_max, q((fm - D.ring) / (1 - D.ring))), dna: q((fm - D.dna) / (D.ring - D.dna)) }; }
 export function birth(a, time, all, ang, hd, wr, cx, cy, hm, wm) {
   const P = V.split;
   for (const [mom, q] of pairs) if (q.t === null) { const A = all.find(c => c.id === mom), B = all.find(c => c.id === q.kid); pairs.delete(mom);

@@ -21,6 +21,7 @@ import { night } from './night.js';
 import * as karta from './karta.js';
 
 const cfg = await (await fetch('data.json')).json();
+const DL = cfg.delenie; // деление по физике (design/zaplyv_fizika_kak_v_zhizni.md, п. 14)
 const NJ = await (await fetch('night.json')).json(); // «Ночь рода»: числа ночи
 const cards = await (await fetch('cards.json')).json();
 const genomeData = await (await fetch('genome.json')).json();
@@ -935,25 +936,26 @@ function paint(time) {
   }
   for (const a of kids || world.me) { // палочка: мягкое тело
     if (a.spore > 0) continue; // перёд ведёт, корма и пучок жгутиков идут по его следу
-    const lk = a.g ? look({ ...world.genes, [a.g]: true }, cfg.look, world.spacers.size) : lkAll, w = 8.5 * Math.pow(a.m, rost.vid(world)) * z * (a.g ? 1.9 : 1), sp = Math.hypot(a.vx, a.vy);
+    const lk = a.g ? look({ ...world.genes, [a.g]: true }, cfg.look, world.spacers.size) : lkAll, w = (rost.on(world) ? 8.5 * Math.pow(a.m, rost.vid(world)) : DL.w) * z * (a.g ? 1.9 : 1), sp = Math.hypot(a.vx, a.vy); // толщина постоянная (физика п. 14), в «Росте» видно, что растёшь
+    const fm = Math.min(a.m, world.split()) / world.split(), gr = vid.grow(fm, DL); // доля пути к делению: 0,5 у новорождённой, 1 у созревшей
     const run = sp > 25 && !a.tumble, wob = run ? 0.035 : 0.015; // встречное вращение тела к пучку: 3 раза в секунду
-    const half = a.held > 0 ? w * (1.05 + 0.6 * a.held / cfg.bdello_kill) : w * (1.6 + 1.0 * Math.min(a.m, world.split()) / world.split()), tailW = w * 7.5 / z; // хищник внутри — клетка округляется в шарик
+    const half = a.held > 0 ? w * (1.05 + 0.6 * a.held / cfg.bdello_kill) : rost.on(world) ? w * (1.6 + 1.0 * fm) : w * gr.half, tailW = w * 7.5 / z; // хищник внутри — клетка округляется в шарик
     const body = follow(a, half / z, tailW);
     const wm = w * Math.pow(2, rost.vid(world)); // мать: вдвое тяжелее, полудлина как у созревшей (см. half)
-    const bo = vid.birth(a, time, world.me, body.ang, half / z, w / z, body.cx, body.cy, wm * 2.6 / z, wm / z); // деление: мать стягивается, дочки расходятся торец к торцу (vid.json split)
+    const bo = vid.birth(a, time, world.me, body.ang, half / z, w / z, body.cx, body.cy, rost.on(world) ? wm * 2.6 / z : half * 2 / z, rost.on(world) ? wm / z : w / z); // мать ровно вдвое длиннее дочки той же толщины // деление: мать стягивается, дочки расходятся торец к торцу (vid.json split)
     if (bo) { probe.birth = time; if (bo.hide) continue; } // обход пальцем (test_L050) видит, что рождение рисуется; вторая дочка ещё часть матери
-    const [x0, y0] = scr(bo ? bo.x : body.cx, bo ? bo.y : body.cy), sag = body.sag * z * (bo ? bo.sag : 1), hl = bo ? half * bo.fl : half, wl = bo ? w * bo.fw : w;
+    const [x0, y0] = scr(bo ? bo.x : body.cx, bo ? bo.y : body.cy), sag = Math.max(-w * DL.sag, Math.min(w * DL.sag, body.sag * z)) * (bo ? bo.sag : 1), /* стенка жёсткая: длинная палочка не гнётся бананом */ hl = bo ? half * bo.fl : half, wl = bo ? w * bo.fw : w;
     const ang = (bo ? bo.ang : body.ang) + Math.sin(time * 18.8 + a.id) * wob, ax = Math.cos(ang), ay = Math.sin(ang);
     const x = x0 - ay * sag * 0.675, y = y0 + ax * sag * 0.675; // центр модели так, чтобы концы легли на хорду
     const along = (s, o = 0) => [x + ax * s - ay * o, y + ay * s + ax * o];
     const arc = u => -sag * 0.675 + sag * (1 - Math.min(1, (u * z / half) ** 2)); // прогиб в точке u (u — в единицах мира от центра)
-    const pinch = bo ? bo.pinch : (a.m >= world.split() && !rost.on(world) ? 0.62 + 0.12 * Math.sin(time * 6) : 0); // перетяжка: вот-вот две
-    bodies.rod(x, y, ang, hl, wl, pinch, [CELL[0].r, CELL[0].g, CELL[0].b], [CORE[0].r, CORE[0].g, CORE[0].b], a.id, -sag);
+    const pinch = bo ? bo.pinch : rost.on(world) ? 0 : gr.u; // кольцо сжимается по массе и только в одну сторону, у созревшей тонкая перемычка (п. 14)
+    const dna = bo ? (bo.pinch > 0 ? 1 : 0) : rost.on(world) ? 0 : gr.dna; // две ДНК расходятся раньше кольца
+    bodies.rod(x, y, ang, hl, wl, pinch, [CELL[0].r, CELL[0].g, CELL[0].b], [CORE[0].r, CORE[0].g, CORE[0].b], a.id, -sag, dna);
     rost.draw({ w: world, a, x, y, ang, half, wd: w, z, glow, time, scr }); // контур следующего роста, струйки от комка
     evo.draw({ w: world, a, x, y, z, glow, scr }); // «Эволюция»: нити глотания
     if (a.grab) glow.put(x, y, half * 1.8, 1, 0.25, 0.15, 0.22 + 0.15 * Math.sin(time * 14)); // схвачена: бьётся в пасти
     if (world.rush > 0.05) glow.put(x, y, half * (1.4 + world.rush * 0.6), 1, 0.75, 0.35, 0.08 + 0.1 * world.rush); // разгон роста: рибосомы работают на всю
-    if (pinch) for (let k = 0; k < 18; k++) { const t = k * 0.349, R = half * (1.35 + 0.08 * Math.sin(time * 5)); glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 2.2, 1, 1, 1, 0.4); }
     vid.skin({ a, lk, x, y, ang, ax, ay, half, w, z, along, arc, body, scr, time, pdt, run, phageNear, foodNear, spacers: world.spacers.size, plasmid: world.plasmid, cfg, alive: world.me, glow, ink });
     if (a.sick >= 0) glow.put(x, y, half, 1, 0.2, 0.3, 0.25 + 0.2 * Math.sin(time * 20));
   }

@@ -4,9 +4,9 @@ import { readFileSync } from 'node:fs';
 import { Fx } from './fx.js';
 import * as vid from './vid.js';
 import { look } from './look.js';
-const sim = readFileSync(new URL('./sim.js', import.meta.url), 'utf8');
+const sim = readFileSync(new URL('./sim.js', import.meta.url), 'utf8'), main = readFileSync(new URL('./main.js', import.meta.url), 'utf8'), fx = readFileSync(new URL('./fx.js', import.meta.url), 'utf8'), body3d = readFileSync(new URL('./body3d.js', import.meta.url), 'utf8');
 const kinds = [...new Set([...sim.matchAll(/events\.push\(\[['"](\w+)/g)].map(m => m[1]))];
-const quiet = new Set(['meet']); // встречу показывает main.js подписью у края
+const quiet = new Set(['meet', 'split']); // встречу показывает main.js подписью у края; деление — само тело (vid.birth: перемычка и расклеивание, test_vid_split), без кольца и брызг (L055)
 let bad = 0;
 const check = (name, f) => { let r; try { r = f(); } catch (e) { r = 'ошибка скрипта: ' + e.message; } if (r) bad++; console.log((r ? '  ПРОВАЛ ' : '  ок    ') + name + (r ? ' — ' + r : '')); };
 check('test_vid_events: у каждого события мира есть своя анимация', () => {
@@ -78,6 +78,20 @@ check('test_vid_split: деление — мать стягивается пер
   if (Math.abs(a1.x - b1.x - 2 * hd) > 0.1 || Math.abs(at(mom, P.join * 0.999).fl - 2) > 0.01) return 'после перетяжки дочки не половинки матери торец к торцу: ' + (a1.x - b1.x).toFixed(2);
   let prev = a1.x - b1.x; for (let t = P.join + 0.03; t < P.join + (1 - P.join) * P.free; t += 0.03) { const d = at(mom, t).x - at(kid, t).x; if (d < prev - 1e-6) return 'дочки сходятся обратно'; if (d - prev > hd * 0.3) return 'рывок в расхождении на ' + t.toFixed(2); prev = d; }
   if (at(mom, 1.01)) return 'деление не кончилось за V.split.slide';
+  return '';
+});
+check('test_L055 (Роман 25.11: «деление… не реалистична физика разделения клетки… бери реальную физику!»): палочка растёт в длину при постоянной толщине, ДНК делится раньше кольца, кольцо сжимается по массе только в одну сторону, деление без кольца-свечения и без толчка', () => {
+  const D = cfgD.delenie, P = vid.V.split, g = fm => vid.grow(fm, D);
+  if (Math.abs(g(1).half / g(0.5).half - 2) > 1e-9) return 'к делению палочка не вдвое длиннее новорождённой: ' + (g(1).half / g(0.5).half).toFixed(2);
+  if (g(0.79).u > 0 || g(0.69).dna > 0) return 'кольцо или ДНК начинаются раньше срока';
+  if (g(0.8).dna < 1) return 'к началу кольца ДНК ещё не разошлась надвое';
+  let prev = -1; for (let fm = 0.5; fm <= 1.0001; fm += 0.01) { const u = g(fm).u; if (u < prev - 1e-12) return 'кольцо разжимается обратно при массе ' + fm.toFixed(2); prev = u; }
+  if (Math.abs(g(1).u - D.u_max) > 1e-9 || D.u_max >= 1) return 'у созревшей нет тонкой перемычки';
+  const neck = u => Math.sqrt(1 - u * u); if (Math.abs(neck(0.5) - 0.866) > 0.001) return 'шейка не по формуле r = R·√(1−u²)';
+  if (!/max\(0\.0, prm\.x - abs\(p\.y\)\)/.test(body3d)) return 'перетяжка не куполами будущих полюсов (body3d.js)';
+  if (/R\(0, 30\)/.test(fx) || /Math\.sin\(time \* 6\)/.test(main) || /0\.62 \+ 0\.12/.test(main)) return 'вернулось кольцо-свечение или пульсация перетяжки';
+  if (Math.abs(P.slide * P.join - 0.3) > 0.02 || Math.abs(P.slide * (1 - P.join) - 0.5) > 0.02 || P.gap) return 'перемычка не 0,3 с или расклеивание не 0,5 с, или между дочками зазор';
+  if (/vx: c\.vx - ax \* \d+/.test(sim)) return 'дочка снова рождается с толчком';
   return '';
 });
 check('test_vid_cut: CRISPR и обманка срабатывают видимо — светлый разрез на вирусе, половинки расходятся, за V.cut.life всё гаснет; не красный', () => {
