@@ -4,6 +4,7 @@
 import { sobrat, VC } from './vid_chasti.js';
 import * as dv from './dvizhok.js';
 import * as kn from './konstruktor.js';
+import { os } from './telo_os.js';
 import { readFileSync } from 'node:fs';
 const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
 let bad = 0;
@@ -16,7 +17,12 @@ const tela = () => { const L = { seg: [], sphere: [], put: [] }, lom = process.e
   return { L, skin: 'skin', core: 'core', ball: 'ball', vyshe: 0,
     seg(x0, y0, x1, y1, r, c, a) { if (lom && n++ % 2) return; L.seg.push({ x0, y0, x1, y1, r, a, v: this.vyshe }); },
     sphere(x, y, r) { L.sphere.push({ x, y, r, v: this.vyshe }); },
-    put(m, x, y, ang, sx, sy, sz, ca, cb, prm) { L.put.push({ m, x, y, r: sx, seed: prm[1], E: prm[3] }); }, rod() { L.put.push({ m: 'rod' }); } }; };
+    put(m, x, y, ang, sx, sy, sz, ca, cb, prm) { L.put.push({ m, x, y, r: sx, seed: prm[1], E: prm[3] }); }, rod() { L.put.push({ m: 'rod' }); },
+    loft(kolca, plotno, col, rim, seed) { L.put.push({ kolca, plotno, seed }); } }; };
+// Обвод тела на экране (многоугольник) по записи и позе; расстояние точки до него в толщинах тела; внутри ли точка.
+const obvod = (zap, poza) => { const O = os(zap.forma.tochki), ux = Math.cos(poza.a), uy = Math.sin(poza.a), w = poza.tolshchina; return Array.from({ length: 360 }, (_, i) => { const k = O.kray(i / 360 * 6.2832); return [poza.x + (k.x * ux - k.y * uy) * w, poza.y + (k.x * uy + k.y * ux) * w]; }); };
+const do_kraya = (M, x, y) => Math.min(...M.map(p => Math.hypot(p[0] - x, p[1] - y)));
+const vnutri = (M, x, y) => { let c = false; for (let i = 0, j = M.length - 1; i < M.length; j = i++) if ((M[i][1] > y) !== (M[j][1] > y) && x < (M[j][0] - M[i][0]) * (y - M[i][1]) / (M[j][1] - M[i][1]) + M[i][0]) c = !c; return c; };
 const P = (o = {}) => ({ x: 300, y: 400, a: -0.45, dlina: 150, tolshchina: 35, z: 4, time: 1.7, id: 3, beg: 0, ...o });
 const Z = VC.vidy.nasha;
 
@@ -38,13 +44,13 @@ check('test_nasha_niti: жгутики и клубок ДНК сплошные �
   if (hud > 0) return 'между соседними звеньями зазор ' + hud.toFixed(2);
 });
 
-check('test_nasha_sloi: слои оболочки лежат ровно один в другом (один центр, один узор), нутро внутри тела и перед сердцевиной', () => {
+check('test_nasha_sloi: слои оболочки лежат ровно один в другом (одна осевая линия, один узор), нутро внутри тела и перед сердцевиной', () => {
   const B = tela(), p = P(); sobrat(Z, p, B); const S = B.L.put;
   if (S.length < 3) return 'слоёв ' + S.length + ', нужно не меньше трёх (наружная мембрана, стенка, цитоплазма)';
-  if (S.some(s => s.x !== p.x || s.y !== p.y || s.seed !== S[0].seed)) return 'слои съехали: разные центры или узоры';
-  for (let i = 1; i < S.length; i++) if (!(S[i].r < S[i - 1].r)) return 'слой ' + i + ' не тоньше предыдущего';
-  if (S[S.length - 1].m !== 'core') return 'внутри нет плотной сердцевины: клетка без объёма';
-  const ux = Math.cos(p.a), uy = Math.sin(p.a), hl = p.dlina / 2, w = p.tolshchina, vne = B.L.sphere.filter(s => { const dx = s.x - p.x, dy = s.y - p.y, u = dx * ux + dy * uy, o = -dx * uy + dy * ux, L = hl - w; return Math.hypot(Math.max(0, Math.abs(u) - L), o) > w * 0.8; });
+  if (S.some(s => s.seed !== S[0].seed || s.kolca.some((q, i) => Math.abs(q.x - S[0].kolca[i].x) > 1e-9 || Math.abs(q.y - S[0].kolca[i].y) > 1e-9))) return 'слои съехали: разные оси или узоры';
+  for (let i = 1; i < S.length; i++) if (S[i].kolca.some((q, k) => q.r > S[i - 1].kolca[k].r + 1e-9) || !(S[i].kolca[20].r < S[i - 1].kolca[20].r)) return 'слой ' + i + ' не тоньше предыдущего';
+  if (!S[S.length - 1].plotno) return 'внутри нет плотной сердцевины: клетка без объёма';
+  const M = obvod({ forma: { tochki: [[-(150 / 70 - 1), 0, 1], [150 / 70 - 1, 0, 1]] } }, p), vne = B.L.sphere.filter(s => !vnutri(M, s.x, s.y) || do_kraya(M, s.x, s.y) < p.tolshchina * 0.15);
   if (vne.length) return vne.length + ' зёрен нутра вылезли за оболочку';
   if (B.L.sphere.some(s => !(s.v > 0))) return 'нутро не поднято к зрителю: сердцевина его закроет';
 });
@@ -63,17 +69,30 @@ check('test_nasha_konstruktor: в конструкторе образец — н
 check('test_nasha_matrica: каждая часть ложится на каждую форму тела (палочка, шар, цепочка, запятая, гроздь) — рисуется, непустая, жгутик растёт из оболочки (Роман 25.11: «почему ножки отдельно от тела?», «почему движок конструктора не универсальный?»)', () => {
   const E = { ...kn.K.etalon }, formy = [['palochka', 1], ['palochka', 3], ['shar', 1], ['shar', 4], ['zapyataya', 1], ['grozd', 6]], chasti = Object.keys(Z.chasti), dyry = []; let zazor = 0;
   for (const [forma, cepochka] of formy) { dv.V.vidy.svoya = kn.anketa({ ...E, forma, cepochka, zhgutiki: 8 }, cfg);
-    const kl = dv.sborka({ x: 0, y: 0, a: 0.3, t: 1, rest: process.env.NASHA_OTORVAT ? 0 : 2, vid: 'svoya', id: 5 }, { x: 300, y: 400, z: 4, time: 1 });
+    const kl = dv.sborka({ x: 0, y: 0, a: 0.3, t: 1, rest: 2, vid: 'svoya', id: 5 }, { x: 300, y: 400, z: 4, time: 1 });
     if (kl.length !== cepochka) return forma + ': клеток ' + kl.length + ' вместо ' + cepochka;
     for (const ch of chasti) { let n = 0; for (const [zap, poza] of kl) { const B = tela(); sobrat({ forma: zap.forma, chasti: { [ch]: zap.chasti[ch] } }, poza, B); n += B.L.seg.length + B.L.sphere.length + B.L.put.length; }
       if (!n) dyry.push(ch + ' × ' + forma + (cepochka > 1 ? ' ×' + cepochka : '')); }
-    for (const [zap, poza] of kl) { const B = tela(), zh = zap.chasti.zhgutiki; if (!zh.n) continue; sobrat({ forma: zap.forma, chasti: { zhgutiki: zh } }, { ...poza, hvost: process.env.NASHA_OTORVAT ? -poza.dlina * 2 : poza.hvost }, B);
-      const ux = Math.cos(poza.a), uy = Math.sin(poza.a), hl = poza.dlina / 2, w = poza.tolshchina, L = hl - w;
-      for (let i = 0; i < B.L.seg.length; i += zh.zvenya) { const s = B.L.seg[i], dx = s.x0 - poza.x, dy = s.y0 - poza.y, u = dx * ux + dy * uy, o = -dx * uy + dy * ux - poza.izgib * (Math.min(1, (u / hl) ** 2) - 0.325);
-        zazor = Math.max(zazor, (Math.hypot(Math.max(0, Math.abs(u) - L), o) - w) / w); } } }
+    for (const [zap, poza] of kl) { const B = tela(), zh = zap.chasti.zhgutiki; if (!zh.n) continue; sobrat({ forma: zap.forma, chasti: { zhgutiki: zh } }, process.env.NASHA_OTORVAT ? { ...poza, x: poza.x + poza.tolshchina } : poza, B);
+      const M = obvod(zap, poza); for (let i = 0; i < B.L.seg.length; i += zh.zvenya) zazor = Math.max(zazor, do_kraya(M, B.L.seg[i].x0, B.L.seg[i].y0) / poza.tolshchina - 0.03); } }
   console.log('    паспорт: форм', formy.length, '× частей', chasti.length, '| дыр', dyry.length, '| корень жгутика дальше всего от оболочки на', (zazor * 100).toFixed(0) + '% толщины тела');
   if (dyry.length) return 'пусто: ' + dyry.join('; ');
   if (zazor > 0.05) return 'жгутик висит отдельно от тела: зазор ' + (zazor * 100).toFixed(0) + '% толщины';
+});
+
+check('test_nasha_svoboda: тело свободной формы (Роман 25.11: «Где свобода формы?… сам понимает это тело»): 60 случайных форм — у каждой все части на месте, жгутики растут из оболочки, нутро и ДНК внутри тела, слои один в другом', () => {
+  let r = 7; const rnd = () => (r = (r * 16807) % 2147483647) / 2147483647, chasti = Object.keys(Z.chasti); let zazor = 0, hud = '';
+  for (let k = 0; k < 60 && !hud; k++) { const n = 2 + Math.floor(rnd() * 5), tochki = []; let x = 0, y = 0; for (let i = 0; i < n; i++) { tochki.push([x, y, 0.5 + rnd()]); const dx = 0.7 + rnd() * 1.2; x += dx; y += (rnd() - 0.5) * dx * 0.9; } // в допустимых пределах: ось не ломается круче, чем на 25°
+    const zap = { forma: { tip: 'os', tochki }, chasti: Z.chasti }, poza = P({ a: rnd() * 6.28, beg: k % 2 }), M = obvod(zap, poza), w = poza.tolshchina, imya = 'форма ' + k + ' ' + JSON.stringify(tochki.map(t => t.map(v => +v.toFixed(2))));
+    for (const ch of chasti) { const B = tela(); sobrat({ forma: zap.forma, chasti: { [ch]: Z.chasti[ch] } }, process.env.NASHA_OTORVAT && ch === 'zhgutiki' ? { ...poza, x: poza.x + w } : poza, B); const L = B.L;
+      if (!(L.seg.length + L.sphere.length + L.put.length)) hud = imya + ': пусто у части ' + ch;
+      if (ch === 'zhgutiki') for (let i = 0; i < L.seg.length; i += VC.chasti.zhgutiki.zvenya) zazor = Math.max(zazor, do_kraya(M, L.seg[i].x0, L.seg[i].y0) / w - 0.03);
+      if (ch === 'vorsinki') { const Zv = Z.chasti.vorsinki.izgib ? 3 : 1; for (let i = 0; i < L.seg.length; i += Zv) if (do_kraya(M, L.seg[i].x0, L.seg[i].y0) > w * 0.05) hud = imya + ': ворсинка растёт не из края'; }
+      if (['ribosomy', 'vklyucheniya'].includes(ch) && L.sphere.some(s => !vnutri(M, s.x, s.y))) hud = imya + ': зёрна части ' + ch + ' вылезли за тело';
+      if (ch === 'nukleoid' && L.seg.some(s => !vnutri(M, s.x0, s.y0))) hud = imya + ': ДНК вылезла за тело';
+      if (ch === 'obolochka') for (let i = 1; i < L.put.length; i++) if (L.put[i].kolca.some((q, j) => q.r > L.put[i - 1].kolca[j].r + 1e-9)) hud = imya + ': слой ' + i + ' толще наружного'; } }
+  console.log('    паспорт: случайных форм 60 | корень жгутика дальше всего от оболочки на', (zazor * 100).toFixed(0) + '% толщины тела');
+  if (hud) return hud; if (zazor > 0.05) return 'жгутик висит отдельно от тела: зазор ' + (zazor * 100).toFixed(0) + '% толщины';
 });
 
 console.log(bad ? `НАША КЛЕТКА: провалов ${bad}` : 'НАША КЛЕТКА: все проверки прошли'); process.exit(bad ? 1 : 0);

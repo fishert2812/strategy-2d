@@ -22,9 +22,9 @@ export function fizika(f, cfg, k = K) {
 // Запись для движка существ: вариация серой соперницы с этой формой и посчитанным поведением.
 export function anketa(f, cfg, k = K) {
   const F = fizika(f, cfg, k);
-  return { ot: 'strain', telo: { forma: f.forma, izgib: f.izgib, dlina: f.dlina, tolshchina: f.tolshchina, cepochka: f.cepochka, zazor: 0.86, cvet: k.cvet, kromka: k.kromka.map(x => x * f.yarkost),
+  return { ot: 'strain', telo: { forma: f.forma, izgib: f.izgib, ...(f.tochki ? { tochki: f.tochki } : {}), dlina: f.dlina, tolshchina: f.tolshchina, cepochka: f.cepochka, zazor: 0.86, cvet: k.cvet, kromka: k.kromka.map(x => x * f.yarkost),
       zhgutiki: f.zhgutiki === 1 ? { gde: 'korma', dlina: f.zh_dlina * 1.6, vitkov: 10, ...k.zhgutik } : { gde: 'krugom', n: f.zhgutiki, dlina: f.zh_dlina, ...k.zhgutik } },
-    ...(f.sborka ? { sborka: { vid: f.sborka, sbor: k.sborka.sbor, chasti: { zhgutiki: { n: f.zhgutiki, dlina: f.zh_dlina * k.sborka.zh_dlina / f.tolshchina }, vorsinki: { n: Math.round(f.vorsinki * f.dlina / k.etalon.dlina) }, ribosomy: { n: Math.round(k.sborka.ribosom * f.dlina * f.tolshchina) } } } } : {}),
+    ...(f.sborka ? { sborka: { vid: f.sborka, sbor: k.sborka.sbor, chasti: { zhgutiki: { n: f.zhgutiki, dlina: f.zh_dlina * k.sborka.zh_dlina / f.tolshchina }, vorsinki: { n: f.vorsinki } } } } : {}),
     hod: { skorost: F.skorost, ryskanie: F.ryskanie }, eda: { r: F.eda_r }, rodnya: false, mir: { shans: [0, 0, 0], s_rosta: 0, zhrebiy: 'svoy' } };
 }
 // Строки под ползунками: имя, процент от серой соперницы, слова и формула закона с подставленными числами.

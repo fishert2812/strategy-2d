@@ -5,6 +5,7 @@
 // Первый шаг: палочки-соседи (гарпунщица, серая соперница и их вариации), они живут в списке мира pseudos.
 // sim.js зовёт poyavlenie() и shag(); main.js рисует по telo(); слова карточек — только книга.
 import { sobrat, VC } from './vid_chasti.js';
+import { os, iz_formy } from './telo_os.js';
 const url = new URL('./vidy.json', import.meta.url);
 export const V = url.protocol === 'file:' ? JSON.parse((await import('node:fs')).readFileSync(url, 'utf8')) : await (await fetch(url)).json();
 
@@ -111,12 +112,12 @@ export function vitrina(K, cards, T) {
 // запись частей вида + поправки из анкеты; форма, размеры, изгиб и место клетки в цепочке или грозди — из анкеты.
 export function sborka(q, { x, y, z, time }) {
   const A = anketa(klyuch(q)), T = A.telo, S = A.sborka, Z = VC.vidy[S.vid], w = V.mera.tolshchina * z, wt = w * T.tolshchina, ux = Math.cos(q.a), uy = Math.sin(q.a);
-  const fm = T.forma || 'palochka', krug = fm === 'shar' || fm === 'grozd', n = kletok(A, q), hl = krug ? wt : w * T.dlina, shag = hl * 2 * T.zazor;
-  const dolya = krug ? T.tolshchina / T.dlina : 1, po = (k, v, i) => k === 'zhgutiki' ? { ...v, n: Math.floor(v.n / n) + (i < v.n % n ? 1 : 0) } : k === 'vorsinki' || k === 'ribosomy' ? { ...v, n: Math.round(v.n * dolya) } : v; // жгутики делятся между клетками, ворса и зёрен на шаре меньше
+  const fm = T.forma || 'palochka', n = kletok(A, q), tochki = T.tochki || iz_formy(fm, T.dlina / T.tolshchina, 1, (T.izgib || 0) / T.tolshchina), O = os(tochki), shag = O.dlina * wt * T.zazor; // тело — свободная форма: опорные точки в толщинах тела
+  const dolya = O.ploshchad / os(iz_formy('palochka', V.vidy.strain.telo.dlina / V.vidy.strain.telo.tolshchina, 1)).ploshchad, po = (k, v, i) => k === 'zhgutiki' ? { ...v, n: Math.floor(v.n / n) + (i < v.n % n ? 1 : 0) } : k === 'vorsinki' || k === 'ribosomy' ? { ...v, n: Math.round(v.n * dolya) } : v; // жгутики делятся между клетками; ворса и зёрен столько, сколько поверхности
   const idet = q.t > (q.rest ?? 0) && fm !== 'grozd' ? 1 : 0, dt = Math.min(0.1, Math.max(0, time - (q.vt ?? time))); q.vt = time; q.beg = (q.beg ?? idet) + (idet - (q.beg ?? idet)) * Math.min(1, dt * S.sbor);
-  return Array.from({ length: n }, (_, i) => { const o = (i - (n - 1) / 2) * shag, t = i * 2.4 + q.id, d = wt * 1.15 * Math.sqrt(i), [cx, cy] = fm === 'grozd' ? [x + Math.cos(t + q.a) * d, y + Math.sin(t + q.a) * d] : [x + ux * o, y + uy * o];
-    return [{ forma: { tip: krug ? 'shar' : 'palochka' }, chasti: Object.fromEntries(Object.entries(Z.chasti).map(([k, v]) => [k, po(k, { ...VC.chasti[k], ...v, ...(S.chasti?.[k] || {}) }, i)])) },
-      { x: cx, y: cy, a: q.a, dlina: hl * 2, tolshchina: wt, z, time, id: q.id + i * 37, beg: q.beg, izgib: fm === 'zapyataya' ? w * T.izgib : 0, hvost: fm === 'grozd' ? 0 : o + (n - 1) / 2 * shag }]; });
+  return Array.from({ length: n }, (_, i) => { const o = (i - (n - 1) / 2) * shag, t = i * 2.4 + q.id, d = shag * 0.66 * Math.sqrt(i), [cx, cy] = fm === 'grozd' ? [x + Math.cos(t + q.a) * d, y + Math.sin(t + q.a) * d] : [x + ux * o, y + uy * o];
+    return [{ forma: { tip: 'os', tochki }, chasti: Object.fromEntries(Object.entries(Z.chasti).map(([k, v]) => [k, po(k, { ...VC.chasti[k], ...v, ...(S.chasti?.[k] || {}) }, i)])) },
+      { x: cx, y: cy, a: q.a, tolshchina: wt, z, time, id: q.id + i * 37, beg: q.beg, hvost: fm === 'grozd' ? 0 : o + (n - 1) / 2 * shag }]; });
 }
 // Рисунок палочки по анкете: тело (одна клетка или цепочка концами), цвет-метка, жгутики. Кисти даёт main.js (и песочница).
 // Нить жгутика сплошная: шаг точек не больше их размера (урок L047: пунктир и бусы — брак).

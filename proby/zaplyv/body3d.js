@@ -83,7 +83,7 @@ export class Bodies {
     this.core = kind(cap.clone(), 200, pinch, { bump: 0.55, order: 1, rimK: 0.5, vp: 'pe' });
     this.skin = kind(cap.clone(), 200, pinch, { bump: 0.25, alpha0: 0.22, order: 3, rimK: 1.6, vp: 'pe' });
     const ball = new THREE.IcosahedronGeometry(1, 3);
-    this.ball = kind(ball.clone(), 600, 'p += nn * 0.05 * sin(time * 2.0 + prm.y + p.x * 4.0);', { bump: 0.5, order: 1 });
+    this.ball = kind(ball.clone(), 2600, 'p += nn * 0.05 * sin(time * 2.0 + prm.y + p.x * 4.0);', { bump: 0.5, order: 1 });
     this.knob = kind(new THREE.IcosahedronGeometry(1, 1), 1500, '', { bump: 0.2, order: 1 });
     this.amoeba = kind(new THREE.IcosahedronGeometry(1, 6), 12, // дробно: край гладкий, без граней (Роман: «не профессионально»)
       `vec3 dir = normalize(position);
@@ -99,7 +99,7 @@ export class Bodies {
       'float u = (p.y + 1.0) * 0.5; float wv = prm.w * sin(u * 4.5 + time * 0.8 + prm.y) * u; p.x += prm.z * u * u + wv; nn.x -= prm.z * u; nn = normalize(nn); p += nn * 0.04 * sin(time * 2.0 + prm.y + p.y * 3.0);',
       { bump: 0.05, alpha0: 0.3, edgeA: 0.95, order: 1, rimK: 1.2, ridge: 0, after: 'vA.a *= smoothstep(-1.0, -0.55, position.y);' }); // раньше тела; основание тает в теле — сквозь стекло не видно срезов
     // Нить: короткая стеклянная трубка между двумя точками экрана. Из таких звеньев внахлёст — жгутики и ворсинки сплошными, без бус (кисти точек на тонких нитях дают пунктир).
-    this.rope = kind(new THREE.CylinderGeometry(1, 1, 2, 6, 1, true), 6000, '', { bump: 0, alpha0: 0.95, edgeA: 0.35, order: 1, rimK: 0.5 });
+    this.rope = kind(new THREE.CylinderGeometry(1, 1, 2, 6, 1, true), 12000, '', { bump: 0, alpha0: 0.95, edgeA: 0.35, order: 1, rimK: 0.5 });
     // Туфелька: прозрачное тело-туфля — тупой нос, корма уже, на боку косая ротовая бороздка; плотнее в середине, край тает в кромку.
     const slipV = 'float u = clamp(p.y * 0.5, -1.0, 1.0); p.xz *= (1.0 - 0.45 * smoothstep(0.5, -1.0, u)) * (1.0 + 0.18 * smoothstep(0.0, 0.6, u)); float g = exp(-pow((u - 0.25) * 1.4, 2.0)) * smoothstep(-0.4, 1.0, p.x); p.x -= 1.0 * g; nn.x -= 1.5 * g; nn = normalize(nn);'
       + 'p += nn * 0.03 * sin(time * 2.0 + prm.y + p.y * 3.0); p.y += sign(p.y) * prm.w * min(abs(p.y), 1.0);';
@@ -111,9 +111,10 @@ export class Bodies {
     this.all = [this.rope, this.core, this.skin, this.ball, this.knob, this.amoeba, this.spines, this.slip, this.fringe, this.head, this.tail];
     globalThis.zaplyvBodies ??= this; // vid.js рисует амёбу этими телами, даже если main.js не передал их явно
     for (const m of this.all) this.scene.add(m);
+    this.loftC = { m: [], n: 0 }; this.loftS = { m: [], n: 0 }; // тела свободной формы (loft): заводятся по мере надобности
   }
   resize(W, H) { this.cam.right = W; this.cam.bottom = -H; this.cam.updateProjectionMatrix(); }
-  begin() { for (const m of this.all) m.count = 0; }
+  begin() { for (const m of this.all) m.count = 0; this.loftC.n = this.loftS.n = 0; }
   // Одно тело: экранная точка (x, y вниз), угол оси (в экранных координатах), масштабы, цвета, параметры.
   put(m, x, y, ang, sx, sy, sz, ca, cb, prm) {
     if (m.count >= m.instanceMatrix.count) return;
@@ -143,12 +144,28 @@ export class Bodies {
   // Шип: от точки основания (x, y) наружу под углом ang, длина len, полуширина у основания w; bend — отход острия вбок (экранные единицы).
   slipper(x, y, ang, half, w, col, rim, seed, fr = 0, fcol = rim) { this.put(this.slip, x, y, ang, w, w, w * 0.7, [col[0], col[1], col[2], 1], rim, [0, seed, 0, Math.max(half / w - 2, -0.9)]);
     if (fr) { const wf = w * (1 + fr); this.put(this.fringe, x, y, ang, wf, wf, wf * 0.7, [fcol[0], fcol[1], fcol[2], 1], fcol, [0, seed, 0, Math.max((half + w * fr) / wf - 2, -0.9)]); } }
-  seg(x0, y0, x1, y1, r, col, a = 1) { const dx = x1 - x0, dy = y1 - y0, l = Math.hypot(dx, dy); if (l < 1e-3 || this.rope.count >= 6000) return; this.put(this.rope, (x0 + x1) / 2, (y0 + y1) / 2, Math.atan2(dy, dx), r, l / 2, r, [col[0], col[1], col[2], a], col, [0, 0, 0, 0]); } // звено нити встык: внахлёст полупрозрачные концы дают яркие узлы-бусы
+  seg(x0, y0, x1, y1, r, col, a = 1) { const dx = x1 - x0, dy = y1 - y0, l = Math.hypot(dx, dy); if (l < 1e-3 || this.rope.count >= 12000) return; this.put(this.rope, (x0 + x1) / 2, (y0 + y1) / 2, Math.atan2(dy, dx), r, l / 2, r, [col[0], col[1], col[2], a], col, [0, 0, 0, 0]); } // звено нити встык: внахлёст полупрозрачные концы дают яркие узлы-бусы
   spine(x, y, ang, len, w, col, rim, seed, bend = 0, wave = 0) { const c = Math.cos(ang), sn = Math.sin(ang);
     this.put(this.spines, x + c * len / 2, y + sn * len / 2, ang, w, len / 2, w, [col[0], col[1], col[2], 1], rim, [0, seed, bend / w, wave]); }
   phage(x, y, ang, s) {
     this.put(this.head, x - Math.cos(ang) * s * 2.1, y - Math.sin(ang) * s * 2.1, ang, s * 0.85, s * 1.15, s * 0.85, [0.8, 0.92, 1, 1], [1, 0.5, 0.6], [0, 0, 0, 0]);
     this.put(this.tail, x - Math.cos(ang) * s * 0.4, y - Math.sin(ang) * s * 0.4, ang, s, s * 0.8, s, [0.6, 0.62, 0.72, 1], [0.9, 0.9, 1], [0, 0, 0, 0]);
+  }
+  // Тело свободной формы (telo_os.js): кольца вдоль осевой линии, уже в экранных точках — { x, y, tx, ty, r, dr, a }.
+  // plotno — плотная сердцевина, иначе стеклянная оболочка (тот же свет и узор, что у палочки). Сетка своя на каждое тело, пишется каждый кадр.
+  loft(kolca, plotno, col, rim, seed, alfa = 1) {
+    const P = plotno ? this.loftC : this.loftS, R = kolca.length, G = 18; let m = P.m[P.n++];
+    if (!m || m.kolec !== R) { const geo = new THREE.BufferGeometry(), idx = [];
+      for (const [k, n] of [['position', 3], ['normal', 3], ['uv', 2]]) geo.setAttribute(k, new THREE.BufferAttribute(new Float32Array(R * (G + 1) * n), n).setUsage(THREE.DynamicDrawUsage));
+      for (let j = 0; j < R - 1; j++) for (let k = 0; k < G; k++) { const a = j * (G + 1) + k, b = a + G + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); } geo.setIndex(idx);
+      const old = m; m = kind(geo, 1, '', plotno ? { bump: 0.55, order: 1, rimK: 0.5, vp: 'vec3(uv.x, uv.y, normal.z)' } : { bump: 0.25, alpha0: 0.22, order: 3, rimK: 1.6, vp: 'vec3(uv.x, uv.y, normal.z)' });
+      m.setMatrixAt(0, new THREE.Matrix4()); m.kolec = R; if (old) { this.scene.remove(old); this.all[this.all.indexOf(old)] = m; P.m[P.n - 1] = m; } else { this.all.push(m); P.m.push(m); } this.scene.add(m); }
+    const A = m.geometry.attributes, p = A.position.array, nr = A.normal.array, uv = A.uv.array, z0 = this.vyshe || 0; let i = 0;
+    for (const q of kolca) for (let k = 0; k <= G; k++) { const t = k / G * 6.2832, c = Math.cos(t), sn = Math.sin(t), nx = -q.ty * c, ny = q.tx * c; // радиус кольца: в плоскости экрана по нормали оси, из экрана по z
+      p[i * 3] = q.x + nx * q.r; p[i * 3 + 1] = -(q.y + ny * q.r); p[i * 3 + 2] = sn * q.r + z0;
+      const l = Math.hypot(1, q.dr); nr[i * 3] = (nx - q.tx * q.dr) / l; nr[i * 3 + 1] = -(ny - q.ty * q.dr) / l; nr[i * 3 + 2] = sn / l; uv[i * 2] = c; uv[i * 2 + 1] = q.a; i++; }
+    A.position.needsUpdate = A.normal.needsUpdate = A.uv.needsUpdate = true; m.count = 1;
+    m.geometry.attributes.cA.array.set([col[0], col[1], col[2], alfa]); m.geometry.attributes.cB.array.set(rim); m.geometry.attributes.prm.array.set([0, seed, 0, 0]);
   }
   end(time) {
     for (const m of this.all) {
