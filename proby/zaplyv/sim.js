@@ -370,8 +370,10 @@ export class World {
         q.gone = true; this.spill(q.x, q.y); this.events.push(['pop', q.x, q.y]);
       }
       for (const q of this.prey) { // кокк: долго висишь вплотную — выпускает бактериоцин, щиплет (замедление, не смерть)
-        if (dist(a, q) > r + radius(q.m) * 0.6 + 4) continue;
-        q.touch = (q.touch || 0) + dt;
+        const dq = dist(a, q), reach = r + radius(q.m) * 0.6 + 4;
+        if (dq > reach) continue;
+        q.near = true; q.touch = (q.touch || 0) + dt;
+        if (dq > 0.01) { const k = Math.min(1, c.prey_push * dt) * (reach - dq) / dq; q.x += (q.x - a.x) * k; q.y += (q.y - a.y) * k; } // клетка упирается в кокка и отодвигает его, а не проходит насквозь
         if (q.touch > c.pinch_t) { q.touch = 0; if (!mut.shut(this, a, q)) { a.pinch = c.pinch; this.events.push(['pinch', q.x, q.y]); } } // закрытая дверь: яд не входит
       }
     }
@@ -430,6 +432,7 @@ export class World {
   hunters(dt) {
     const c = this.cfg, r = this.r;
     for (const q of this.prey) { // кокки — соседи-соперники: не плавают и не нападают
+      if (!q.near && q.touch > 0) q.touch = Math.max(0, q.touch - dt); q.near = false; // отплыла — яд рассеивается, короткие касания не копятся
       let wx = q.vx, wy = q.vy; // жгутиков у кокков нет: их носит течением и чуть трясёт
       if (r() < dt) { const t = r() * 6.283; wx = Math.cos(t) * 8; wy = Math.sin(t) * 8; }
       const k = Math.min(1, 2 * dt);
