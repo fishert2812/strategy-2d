@@ -951,12 +951,14 @@ function paint(time) {
     const arc = u => -sag * 0.675 + sag * (1 - Math.min(1, (u * z / half) ** 2)); // прогиб в точке u (u — в единицах мира от центра)
     const pinch = bo ? bo.pinch : rost.on(world) ? 0 : gr.u; // кольцо сжимается по массе и только в одну сторону, у созревшей тонкая перемычка (п. 14)
     const dna = bo ? (bo.pinch > 0 ? 1 : 0) : rost.on(world) ? 0 : gr.dna; // две ДНК расходятся раньше кольца
-    bodies.rod(x, y, ang, hl, wl, pinch, [CELL[0].r, CELL[0].g, CELL[0].b], [CORE[0].r, CORE[0].g, CORE[0].b], a.id, -sag, dna);
+    bodies.rod(x, y, ang, hl, wl, pinch, [CELL[0].r, CELL[0].g, CELL[0].b], [CORE[0].r, CORE[0].g, CORE[0].b], a.id, -sag * (1 - pinch * 0.8));
+    if (!rost.on(world) && !a.g && !(a.held > 0)) { const N = DL.nuc, s = hl * N.apart * dna, al = N.a * (0.5 + 0.5 * dna); // светлая ДНК (нуклеоид): одна посередине, к делению вытягивается и расходится к половинкам раньше кольца
+      for (const sd of [-1, 1]) glow.put(x + ax * s * sd, y + ay * s * sd, wl * N.r, ...N.c, al); }
     rost.draw({ w: world, a, x, y, ang, half, wd: w, z, glow, time, scr }); // контур следующего роста, струйки от комка
     evo.draw({ w: world, a, x, y, z, glow, scr }); // «Эволюция»: нити глотания
     if (a.grab) glow.put(x, y, half * 1.8, 1, 0.25, 0.15, 0.22 + 0.15 * Math.sin(time * 14)); // схвачена: бьётся в пасти
     if (world.rush > 0.05) glow.put(x, y, half * (1.4 + world.rush * 0.6), 1, 0.75, 0.35, 0.08 + 0.1 * world.rush); // разгон роста: рибосомы работают на всю
-    vid.skin({ a, lk, x, y, ang, ax, ay, half, w, z, along, arc, body, scr, time, pdt, run, phageNear, foodNear, spacers: world.spacers.size, plasmid: world.plasmid, cfg, alive: world.me, glow, ink });
+    vid.skin({ a, lk, x, y, ang, ax, ay, half: hl, w: wl, z, along, arc, body, scr, time, pdt, run, phageNear, foodNear, spacers: world.spacers.size, plasmid: world.plasmid, cfg, alive: world.me, glow, ink });
     if (a.sick >= 0) glow.put(x, y, half, 1, 0.2, 0.3, 0.25 + 0.2 * Math.sin(time * 20));
   }
   for (const b of world.away) { // уплывшая дочка: уходит своим курсом и тает в толще

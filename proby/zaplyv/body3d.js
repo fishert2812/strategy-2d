@@ -40,7 +40,7 @@ function kind(geo, max, vertexBody, opts = {}) {
       void main(){
         vec3 p = position; vec3 nn = normal;
         ${vertexBody}
-        vP = position + prm.y; vA = cA; vB = cB;
+        vP = ${opts.vp || 'position'} + prm.y; vA = cA; vB = cB;
         vN = normalize(normalMatrix * mat3(instanceMatrix) * nn);
         gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(p, 1.0);
       }`,
@@ -76,10 +76,10 @@ export class Bodies {
     const cap = capsule(); // ось Y, полувысота 2; прямая часть нарезана поперёк, иначе перетяжке негде сжаться
     const pinch = 'p += nn * 0.04 * sin(time * 3.0 + p.y * 5.0 + prm.y);' // лёгкое дыхание оболочки
       + 'p.x += prm.z * (p.y * p.y - 1.3); nn.x -= prm.z * 2.0 * p.y; nn = normalize(nn);' // изгиб дугой в повороте
-      + 'p.y += sign(p.y) * prm.w * min(abs(p.y), 1.0);' // удлинение только прямой частью: торцы остаются круглыми, а не вытягиваются лимоном
+      + 'p.y += sign(p.y) * prm.w * min(abs(p.y), 1.0); vec3 pe = p;' // pe: узор кожи по настоящей длине — у длинной матери он не растянут, при делении не скачет // удлинение только прямой частью: торцы остаются круглыми, а не вытягиваются лимоном
       + 'float dq = max(0.0, prm.x - abs(p.y)); float pf = sqrt(max(0.0, 1.0 - dq * dq)); p.xz *= pf;'; // перетяжка по физике (п. 14): по бокам купола будущих полюсов радиусом R, между ними сужающаяся V; шейка r = R·√(1−u²), prm.x = u
-    this.core = kind(cap.clone(), 200, pinch, { bump: 0.55, order: 1, rimK: 0.5 });
-    this.skin = kind(cap.clone(), 200, pinch, { bump: 0.25, alpha0: 0.22, order: 3, rimK: 1.6 });
+    this.core = kind(cap.clone(), 200, pinch, { bump: 0.55, order: 1, rimK: 0.5, vp: 'pe' });
+    this.skin = kind(cap.clone(), 200, pinch, { bump: 0.25, alpha0: 0.22, order: 3, rimK: 1.6, vp: 'pe' });
     const ball = new THREE.IcosahedronGeometry(1, 3);
     this.ball = kind(ball.clone(), 600, 'p += nn * 0.05 * sin(time * 2.0 + prm.y + p.x * 4.0);', { bump: 0.5, order: 1 });
     this.knob = kind(new THREE.IcosahedronGeometry(1, 1), 1500, '', { bump: 0.2, order: 1 });
