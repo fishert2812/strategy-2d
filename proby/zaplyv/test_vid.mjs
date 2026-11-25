@@ -89,6 +89,17 @@ check('test_vid_roti: коловратка как в жизни — на гол�
   if (!(jaws(shot(1, 0.15)) < jaws(shot(1, 0.001)) * 0.7)) return 'челюсти не смыкаются при укусе';
   return '';
 });
+check('test_vid_bell: колокольчик как в жизни — испугался, стебель сжат тугой спиралью и бокал у опоры, потом стебель плавно распрямляется и бокал раскрыт', () => {
+  const B = vid.V.bell, shot = shut => { const pts = [], ink = { put: (x, y) => pts.push({ x, y }) }; const [bx, by, open] = vid.bell({ x: 0, y: 0, dir: 0, Ls: 70, r: 18, shut, time: 1, id: 3, z: 1, ink }); return { pts, bx, by, open }; };
+  const o = shot(0), c = shot(2.5), m = shot(B.unfold / 2), l = shot(0.05);
+  if (o.open !== 1 || Math.abs(o.bx - 70) > 0.01) return 'раскрытый бокал не на конце стебля: ' + o.bx.toFixed(1);
+  if (!(c.bx < 70 * 0.6) || c.open !== 0) return 'испуганный бокал не подтянут к опоре: ' + c.bx.toFixed(1);
+  const wide = q => Math.max(...q.pts.map(p => Math.abs(p.y))), turns = q => q.pts.filter((p, i) => i && (p.y > 0) !== (q.pts[i - 1].y > 0)).length;
+  if (!(turns(c) >= 8 && wide(c) > 4)) return 'стебель не свёрнут спиралью: витков ' + turns(c) + ', ширина ' + wide(c).toFixed(1);
+  if (!(c.bx < m.bx && m.bx < l.bx && l.bx < 70 && m.open > 0 && m.open < 1)) return 'стебель распрямляется не плавно: ' + [c.bx, m.bx, l.bx].map(v => v.toFixed(0));
+  if (!(wide(o) < wide(c) * 0.5)) return 'раскрытый стебель всё ещё в спирали';
+  return '';
+});
 check('test_vid_capsule_dent: капсула прогибается от удара хищника и пружинит обратно', () => {
   vid.stepVid(5); const was = paint({ capsule: true }).join('|'); vid.poke(-15, 13); const hit = paint({ capsule: true }).join('|');
   vid.stepVid(5); const after = paint({ capsule: true }).join('|');
