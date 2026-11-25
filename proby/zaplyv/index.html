@@ -83,7 +83,7 @@ body:has(.layer.on) #hud, body:has(.layer.on) #scalebox, body:has(.layer.on) #ve
 #card h2 { margin: 2px 0 6px; font-size: 23px; font-weight: 600; }
 #path h3 { margin: 0 0 6px; font-size: 17px; font-weight: 600; opacity: 0.8; }
 #card p, #path p { margin: 0 0 6px; font-size: 15px; line-height: 1.35; text-align: left; opacity: 0.85; }
-#cfact::before { content: "В природе: "; font-weight: 600; } #end #cfact { display: none; } /* «В природе» — в Альманахе по «Кто это»; на гибели «Твой путь» виден над кнопками (прогон 0.76) */
+#cfact::before { content: "В природе: "; font-weight: 600; } #end #cfact { display: none; } @media (max-height: 760px) { #end #ckill { aspect-ratio: 3 / 1; } #end #ctext { display: none; } #end #path p { font-size: 14px; } } /* низкий экран Safari 393×659: «Твой путь» целиком над кнопками, описание — в Альманахе (О80) */ /* «В природе» — в Альманахе по «Кто это»; на гибели «Твой путь» виден над кнопками (прогон 0.76) */
 #ckill { display: block; width: 100%; aspect-ratio: 5 / 2; object-fit: cover; border-radius: 14px; margin: 0 0 8px; border: 1.5px solid rgba(255, 140, 100, 0.5); } /* кто убил — его модель из игры */
 #ctip { color: #9ff5d8; }
 /* Альманах (макет design/zaplyv_almanah_maket.png): полка с разделами и страница по касанию */
@@ -209,7 +209,7 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
 .prow span { flex: 1; } .pico { width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0; object-fit: cover; background: #061018; margin-left: -6px; } /* снимок раздела: твоё кольцо ДНК, последний встреченный, разрез пруда */ .prow b { display: block; font-size: 20px; font-weight: 600; } .prow small { font-size: 14px; margin-top: 2px; } .prow > i { font-style: normal; font-size: 28px; opacity: 0.5; }
 #pserv { display: flex; gap: 10px; margin-top: auto; } #pserv button { flex: 1; width: auto; min-height: 44px; font-size: 15px; border-color: rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.8); }
 #gbar { display: flex; gap: 10px; width: 100%; max-width: 420px; flex-shrink: 0; z-index: 1; margin-top: auto; } #gbar #gback, #kbot #back { flex: 0 0 38%; width: auto; min-width: 0; min-height: 56px; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 12px; } /* «‹ куда» одной строкой */
-#gbar #gon { flex: 1; width: auto; } #genome.tab-hub #gbar { margin-top: 0; } #pnew.sure, #mnew.sure { border-color: #ff8a6a; color: #ffb4a0; }
+#gbar #gon { flex: 1; width: auto; } #genome.tab-hub #gbar { margin-top: 0; } #pnew.sure, #mnew.sure, #mgo.sure { border-color: #ff8a6a; color: #ffb4a0; }
 #gflag { width: 48px; min-height: 48px; height: 48px; padding: 0; border-radius: 50%; flex-shrink: 0; } .gsp { width: 48px; flex-shrink: 0; }
 #genome.tab-map, #genome.tab-alm { background: radial-gradient(120% 80% at 50% 0%, #0a2832, #02040a 60%); }
 #genome.tab-map #gsub, #genome.tab-map #ring, #genome.tab-map #gchips, #genome.tab-map #gcard, #genome.tab-map #grow,
