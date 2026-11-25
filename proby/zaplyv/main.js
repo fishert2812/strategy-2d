@@ -225,8 +225,9 @@ function menuOpen() {
   const n = [...met].filter(k => KAB.items[k] && k !== 'me').length, g = [...met].filter(k => k.startsWith('gene:')).length;
   const pl = (k, a, b, c) => k % 10 === 1 && k % 100 !== 11 ? a : k % 10 >= 2 && k % 10 <= 4 && (k % 100 < 12 || k % 100 > 14) ? b : c;
   $('mknow').textContent = n ? 'Ты знаешь ' + n + ' ' + pl(n, 'обитателя', 'обитателей', 'обитателей') + (g ? ' · ' + g + ' ' + pl(g, 'ген', 'гена', 'генов') : '') : '';
-  $('mquiet').textContent = ROD.quiet ? 'Звук' : 'Тише';
-  menuPick('swim', true); // обычный заплыв — одно касание
+  $('mquiet').textContent = ROD.quiet ? 'Звук выкл' : 'Звук вкл'; $('mak').textContent = kab.label().replace(/^Альманах · /, '');
+  const live = menuGo.back && !ended && world.me.length; $('mback').hidden = !live; // из паузы — путь назад в паузу
+  menuPick(live ? world.mode : 'swim', true); // обычный заплыв — одно касание
 }
 function menuPick(m, quiet) {
   const M = MODES[m];
@@ -237,19 +238,23 @@ function menuPick(m, quiet) {
   }
   $('mline').textContent = M.line;
   for (const o of $('mscene').querySelectorAll('.mo')) o.classList.toggle('sel', o.dataset.m === m);
+  $('mscene').querySelector(`.mo[data-m=${m}]`)?.scrollIntoView({ block: 'nearest' }); // выбранный режим виден целиком, даже когда сцена ниже
   $('mscene').classList.toggle('picked', !quiet);
-  mSel = m; $('mgo').textContent = M.go;
+  mSel = m; const same = menuGo.back && !ended && world.me.length && m === world.mode; // тот же режим из паузы: «Продолжить» тот же заплыв, рядом «Новый заплыв» (О45)
+  $('mgo').textContent = same ? 'Продолжить' : M.go; $('mnew').hidden = !same;
 }
 function menuGo() { if (mSel === 'night') { $('menu').classList.remove('on'); openNight(); } else if (menuGo.back && !ended && world.me.length && mSel === world.mode) { $('menu').classList.remove('on'); menuGo.back = false; } else { menuGo.back = false; start(null, mSel); } } // из паузы: «Плыть» в том же режиме возвращает в тот же заплыв, другой режим — новый заплыв
 for (const o of document.querySelectorAll('#mscene .mo')) { o.onclick = () => menuPick(o.dataset.m); o.ondblclick = () => { menuPick(o.dataset.m); if (!MODES[o.dataset.m].lock) menuGo(); }; }
 $('mgo').onclick = menuGo;
-$('mquiet').onclick = () => { ROD.quiet = !ROD.quiet; saveRod(); $('mquiet').textContent = ROD.quiet ? 'Звук' : 'Тише'; };
+$('mquiet').onclick = () => { ROD.quiet = !ROD.quiet; saveRod(); $('mquiet').textContent = ROD.quiet ? 'Звук выкл' : 'Звук вкл'; };
+$('mnew').onclick = () => { menuGo.back = false; start(null, mSel); };
+$('mback').onclick = () => { $('menu').classList.remove('on'); menuGo.back = false; genome.openScreen(); };
 $('malm').onclick = () => kab.open('Режимы');
 
 // «Ночь рода» (night.js; design/zaplyv_noch_roda_spec.md): после гибели род живёт 1000 поколений, игрок выбирает опасность, потом ветку.
 let NT = null, ntT = 0, ntPick = null;
-$('gmenu').onclick = () => { genome.close(); menuOpen(); menuGo.back = true; }; // путь в меню из паузы (L031)
-$('tomenu').onclick = () => { $('end').classList.remove('on'); menuOpen(); }; // режимы — только в меню: заплыв остаётся заплывом (Роман: «мы тестируем разные режимы»)
+$('gmenu').onclick = () => { genome.close(); menuGo.back = true; menuOpen(); }; // путь в меню из паузы (L031)
+$('tomenu').onclick = () => { $('end').classList.remove('on'); menuGo.back = false; menuOpen(); }; // режимы — только в меню: заплыв остаётся заплывом (Роман: «мы тестируем разные режимы»)
 function openNight() { nightIcons(); NT = null; ntPick = null; $('night').classList.add('on'); $('ndanger').hidden = $('nask').hidden = false; $('npicks').innerHTML = ''; $('ngo').disabled = true; $('ngen').textContent = 'Ночь рода'; drawNight(); }
 function nightIcons() { // значки опасностей — снимки самой опасности из той же студии, что Альманах (правило дизайнера)
   const im = $('ndanger').querySelectorAll('img'); if (im[0].src) return;
