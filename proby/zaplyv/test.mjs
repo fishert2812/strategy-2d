@@ -792,6 +792,23 @@ check('test_L032 (прогон 0.50, О22: «Спящую не берут», а 
   console.log('    паспорт: спала / амёба на пробуждении —', out.join(' | '));
 });
 
+check('test_L032 (прогон 0.54, О22 повтор): уснула среди трёх запятых, колокольчика и амёбы — никто не держит спящую, и она просыпается сама', () => {
+  const out = [];
+  for (let s = 1; s <= 4; s++) { const w = new World(cfg, 500 + s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; w.stats.gen = 1;
+    w.genes.spore = true; const a = w.me[0];
+    w.bells = [{ x: a.x + 70, y: a.y, dir: Math.PI, shut: 0, id: 61 }];
+    w.bdellos = [0, 1, 2].map(i => ({ x: a.x + Math.cos(i * 2) * 40, y: a.y + Math.sin(i * 2) * 40, vx: 0, vy: 0, a: i * 2 + Math.PI, t: 0, id: 70 + i }));
+    w.amoebas = [{ x: a.x - 5, y: a.y, vx: 0, vy: 0, m: 9, id: 50 }]; w.step(1 / 30, null);
+    if (!(a.spore > 0)) return 'клетка не уснула';
+    let t = 0, held = 0; while (w.me.includes(a) && a.spore > 0 && t < 60) { w.step(1 / 30, null); t += 1 / 30; if (a.grab || a.held > 0 || w.bdellos.some(b => b.on === a)) held++; }
+    out.push(t.toFixed(1) + ' с');
+    if (!w.me.includes(a)) return 'спящую съели (заплыв ' + s + ')';
+    if (held) return 'спящую держали ' + (held / 30).toFixed(1) + ' с (заплыв ' + s + ')';
+    if (a.spore > 0) return 'не проснулась за 60 с (заплыв ' + s + ')';
+    if (t > cfg.spore + cfg.spore_max + 1) return 'спала ' + t.toFixed(0) + ' с — дольше обещанного'; }
+  console.log('    паспорт: спала среди охотников, с —', out.join(' '));
+});
+
 check('test_L024: умение не приходит дочке раньше встречи с тем, о ком оно (поле «после встречи с» в книге), а после встречи приходит', () => {
   const posle = Object.fromEntries(Object.keys(cfg.genes).map(k => [k, byKey(k).posle || []])), bad = [], got = new Set();
   for (let s = 1; s <= 6; s++) { const w = new World(cfg, s * 41); w.posle = posle;

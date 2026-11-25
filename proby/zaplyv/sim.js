@@ -191,8 +191,8 @@ export class World {
       let thrust = 0;
       if (want !== null && s > 1) {
         const d = wrap(want - a.a);
-        if (!a.tumble && Math.abs(d) > sw.tumble_angle && (len(a.vx, a.vy) > s * 0.4 || a.grab || a.held > 0)) {
-          a.tumble = mut.snap(this, a) ? 0 : sw.tumble_time; // разворот рывком вместо кувырка (режим «Мутации»); кувырок стряхивает фага, который ещё не впрыснул
+        if (!a.tumble && Math.abs(d) > mut.tumbleAngle(this, sw.tumble_angle) && (len(a.vx, a.vy) > s * 0.4 || a.grab || a.held > 0)) {
+          a.tumble = mut.snap(this, a) ? 0 : mut.tumbleTime(this, sw.tumble_time); // разворот рывком вместо кувырка (режим «Мутации»); кувырок стряхивает фага, который ещё не впрыснул
           if (a.grab) this.escape(a);
           if (a.held > c.bdello_kill - c.bdello_loose) for (const b of this.bdellos) if (b.on === a) { b.on = null; b.t = 0; a.held = 0; a.free = c.free; this.events.push(['shake', b.x, b.y]); } // прилип, но ещё не вошёл — стряхнёшь
           for (const g of this.phages) if (g.on === a) { g.on = null; g.cool = 1.5; g.vx = -Math.cos(g.d) * 60; g.vy = -Math.sin(g.d) * 60; this.events.push(['shake', g.x, g.y]); }
@@ -227,13 +227,15 @@ export class World {
       { const E = this.pond(), r = radius(a.m); // края пруда: плёнка сверху, дно, берега — дальше не проплыть
         if (a.x < E.x0 + r) { a.x = E.x0 + r; a.vx = Math.max(0, a.vx); } if (a.x > E.x1 - r) { a.x = E.x1 - r; a.vx = Math.min(0, a.vx); }
         if (a.y < E.y0 + r) { a.y = E.y0 + r; a.vy = Math.max(0, a.vy); } if (a.y > E.y1 - r) { a.y = E.y1 - r; a.vy = Math.min(0, a.vy); } }
-      if (!a.stuck) { const [sx, sy] = this.suck(a.x, a.y); a.x += sx * dt; a.y += sy * dt; } // течение воронок туфелек и вихрей сувоек
+      if (!a.stuck && !(a.spore > 0)) { const [sx, sy] = this.suck(a.x, a.y); a.x += sx * dt; a.y += sy * dt; } // течение воронок туфелек и вихрей сувоек
       a.w = wrap(a.a - a0) / dt; // скорость поворота — по ней тело и пучок жгутиков гнутся дугой
       if (a.sick >= 0) a.sick -= dt;
       if (a.stun > 0) a.stun -= dt;
       if (a.pinch > 0) a.pinch -= dt;
       if (this.genes.fast) a.m = Math.max(0.6, a.m - c.fast_burn * dt); // …но и голодаешь быстрее: рибосомы едят силы
-      if (a.spore > 0) { if (!this.amoebas.some(m => dist(m, a) < radius(m.m) + c.spore_safe) && !this.bdellos.some(b => dist(b, a) < c.spore_safe)) a.spore -= dt; if (a.spore <= 0) { a.free = 1; this.events.push(['sprout', a.x, a.y]); } } // спора проросла — только когда охотник ушёл (L032)
+      if (a.spore > 0) { a.slept = (a.slept || 0) + dt; a.free = Math.max(a.free || 0, 1); for (const b of this.bdellos) if (b.on === a) b.on = null; // спящую никто не держит: ни запятая, ни колокольчик (L032, О22 повтор)
+        if (a.slept > c.spore_max || (!this.amoebas.some(m => dist(m, a) < radius(m.m) + c.spore_safe) && !this.bdellos.some(b => dist(b, a) < c.spore_safe))) a.spore -= dt;
+        if (a.spore <= 0) { a.free = 1.5; a.slept = 0; this.events.push(['sprout', a.x, a.y]); } } // проснулась: охотник ушёл или сон дольше spore_max — просыпается сама, как обещано
     }
     const c1 = this.center();
     this.stats.path += dist(c0, c1);

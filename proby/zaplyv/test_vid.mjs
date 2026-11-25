@@ -58,6 +58,14 @@ check('test_vid_sleep_still: спящая клетка замирает, бод�
   if (run(0.5, 1) === run(0.5, 2.3)) return 'перед пробуждением всё ещё неподвижна';
   return '';
 });
+check('test_vid_sleep_shape: спящая — короткий овал той же палочки (О28): короче бодрой, но не круглая и не толще', () => {
+  const rod = spore => { let r = null; vid.sleeper({ a: { id: 1, m: 1, a: 0, spore }, x: 0, y: 0, z: 1, time: 0, cfg: cfgD, bodies: { rod: (x, y, a, h, w) => { r = [h, w]; } }, glow: { put() {} }, ink: { put() {} } }); return r; };
+  const [h0, w0] = rod(cfgD.spore), [h, w] = rod(cfgD.spore - vid.V.sleep.fall - 0.3);
+  if (h > h0 / 1.5) return 'спящая не короче бодрой: ' + (h0 / h).toFixed(2) + ' раза';
+  if (h / w < 1.2) return 'спящая круглая, как спора';
+  if (w > w0) return 'спящая толще бодрой';
+  return '';
+});
 check('test_vid_capsule_dent: капсула прогибается от удара хищника и пружинит обратно', () => {
   vid.stepVid(5); const was = paint({ capsule: true }).join('|'); vid.poke(-15, 13); const hit = paint({ capsule: true }).join('|');
   vid.stepVid(5); const after = paint({ capsule: true }).join('|');
@@ -136,6 +144,38 @@ check('test_vid_defend: отбилась — у каждой защиты сво
   else if (es.fx.drops.some(p => p.vx > 0)) miss.push('клочья летят вперёд, а не остаются позади');
   const sl = run('slip', 0, 0); if (sl.fx.drops.length < 6 || sl.fx.drops.some(p => p.vx < 0)) miss.push('выскользнула: нет мазка слизи к амёбе');
   for (const [n, r] of [['shrug', sh], ['shake', ph], ['slip', sl]]) if (r.fx.rings.length) miss.push(n + ': всё ещё простое кольцо');
+  return miss.join('; ');
+});
+check('test_vid_tube: ген по трубочке бежит колечком в клетку; фаг тянет нить ДНК тем дальше, чем дольше сидит; сон и пробуждение — тихая волна, не вспышка', () => {
+  const C = { r: 1, g: 1, b: 1 }, miss = [], me = { x: 100, y: 0, m: 4 };
+  const pts = fx => { const p = []; const b = { put: (x, y) => p.push([x, y]) }; fx.drawOver({ scr: (u, v) => [u, v], z: 1, time: 0, glow: b, ink: b }); return p; };
+  let fx = new Fx({ inject: 2 }, [C, C, C]); fx.reset(); fx.world = { me: [me], phages: [] }; fx.on('gene', 0, 0, 1, 'caps'); fx.step(0.35);
+  const p = pts(fx), cx = p.reduce((s, q) => s + q[0], 0) / (p.length || 1); if (!fx.genes.length) miss.push('ген: нет колечка'); else if (cx < 20 || cx > 80) miss.push('колечко не бежит от сородича к клетке');
+  if (fx.rings.length) miss.push('ген: всё ещё простое кольцо');
+  { const keep = fx.save(); fx.reset(); fx.load(keep); if (!fx.genes.length) miss.push('снимок значка (reset) гасит идущую анимацию'); }
+  const len = t => { const f = new Fx({ inject: 2 }, [C, C, C]); f.reset(); f.world = { me: [me], phages: [{ x: 120, y: 0, d: 0, on: me, t }] }; return pts(f).length; };
+  if (!(len(0.2) > len(1.8) + 4)) miss.push('нить ДНК не растёт, пока фаг сидит');
+  for (const k of ['spore', 'sprout']) { const f = new Fx({}, [C, C, C]); f.reset(); f.world = { me: [me] }; f.on(k, 0, 0); if (f.rings.length || !f.naps.length) miss.push(k + ': вспышка вместо тихой волны'); }
+  return miss.join('; ');
+});
+check('test_vid_sosedi: соседей едят, они делятся и лопаются видно, каждый своей величины', () => {
+  const C = { r: 1, g: 1, b: 1 }, miss = [], am = { x: 0, y: 0 };
+  const mk = () => { const fx = new Fx({}, [C, C, C]); fx.reset(); fx.world = { me: [], amoebas: [am], slippers: [am], bells: [am], rotis: [am] }; return fx; };
+  for (const who of ['amoeba', 'slipper', 'bell', 'roti']) for (const prey of ['coccus', 'strain', 'pseudo', 'donor', 'bdello']) {
+    const fx = mk(); fx.on('eaten_other', 5, 5, who, prey); const e = fx.eats[0];
+    if (!e) { miss.push(who + ' ест ' + prey + ': нет анимации'); continue; } if (e.w !== vid.V.sosed[prey].w) miss.push(prey + ': не своей величины'); }
+  { const fx = mk(); fx.on('divide_other', 0, 0, 'coccus'); if (fx.drops.length !== 2) miss.push('деление соседа не видно'); }
+  for (const k of ['strain', 'pseudo', 'donor']) { const fx = mk(); fx.on('pop', 0, 0, k); if (!fx.ghosts.length || fx.ghosts[0].w !== vid.V.sosed[k].w) miss.push(k + ': лопнул без оболочки своей величины'); if (fx.rings.some(r => r.r >= 90)) miss.push(k + ': всё ещё большое кольцо'); }
+  return miss.join('; ');
+});
+check('test_vid_uchit: соседка учит соперницу — нить растёт, колечко в цвете гена бежит к сопернице, на сопернице знак гена', () => {
+  const C = { r: 1, g: 1, b: 1 }, miss = [], riv = { x: 100, y: 0, a: 0 }, don = { x: 0, y: 0, toOther: riv, pull: 0 };
+  const pts = fx => { const p = []; const b = { put: (x, y, r, cr, cg, cb) => p.push([x, y, cr, cg, cb]) }; fx.drawOver({ scr: (u, v) => [u, v], z: 1, time: 0, glow: b, ink: b }); return p; };
+  const mk = () => { const fx = new Fx({ conj: 3 }, [C, C, C]); fx.reset(); fx.world = { me: [], donors: [don] }; return fx; };
+  don.pull = 0.5; const a = pts(mk()).length; don.pull = 2.5; const b = pts(mk()); if (!(b.length > 0) || !(Math.max(...b.map(q => q[0])) > 60)) miss.push('нить к сопернице не растёт');
+  don.pull = 0; const fx = mk(); fx.on('gene_other', 100, 0, 'toxin', 'strain'); fx.step(0.35); const p = pts(fx);
+  if (!fx.genes.length) miss.push('нет колечка'); else { const cx = p.reduce((s, q) => s + q[0], 0) / p.length; if (cx < 20 || cx > 80) miss.push('колечко не бежит от соседки'); if (p[0][3] > 0.6) miss.push('колечко не в цвете гена'); }
+  for (const g of ['capsule', 'toxin', 'crispr']) { const n = []; vid.marks({ x: 0, y: 0, a: 0, genes: { [g]: true } }, { scr: (u, v) => [u, v], z: 1, glow: { put: () => n.push(1) }, ink: { put: () => n.push(1) } }); if (n.length < 3) miss.push(g + ': знака на сопернице нет'); }
   return miss.join('; ');
 });
 console.log(bad ? 'ВИД: провалов ' + bad : 'ВИД: все проверки прошли');
