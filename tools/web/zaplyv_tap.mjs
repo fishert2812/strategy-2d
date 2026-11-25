@@ -89,6 +89,20 @@ await p.waitForTimeout(700); { const t = await p.evaluate(() => [...document.que
   await p.waitForTimeout(400); const inside = await strip();
   await p.evaluate(() => { const w = zaplyvWorld(); w.slime.length = 0; w.tidy = 0; });
   say(inside - before < 25, `test_L046: тяж слизи прозрачный, не пелена (яркость полосы без тяжа ${before.toFixed(0)}, с тяжем ${inside.toFixed(0)})`); }
+// test_L057 (Роман 25.11 на 0.84: «Еду не видно на карте мелкую но она собирается магнитом»): у колонии из десяти клеток со всеми
+// генами слой свечения кончался на коже клеток, и крошки, рисуемые после, молча пропадали. Ни одна точка не теряется, крошка видна глазом.
+{ const g0 = await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0], g = { ...w.genes }; w.choice = []; w.cfg.auto_split_was = w.cfg.auto_split; w.cfg.auto_split = 1e9;
+    for (const k of Object.keys(w.cfg.genes)) w.genes[k] = 1; for (let i = 1; i < 10; i++) w.me.push({ ...a, id: 600 + i, x: a.x + (i % 4) * 45 - 70, y: a.y + Math.floor(i / 4) * 45 - 45, vx: 0, vy: 0 });
+    for (let i = 0; i < 40; i++) w.food.push({ x: a.x + Math.cos(i) * (100 + i * 4), y: a.y + Math.sin(i) * (100 + i * 4), vx: 0, vy: 0, s: 0.6 + (i % 5) * 0.3, kind: ['bits', 'glucose', 'lysate'][i % 3] });
+    zaplyvProbe.lost0 = zaplyvProbe.lost || 0; return g; });
+  await p.waitForTimeout(1500);
+  const at = await p.evaluate(() => { const a = zaplyvWorld().me[0]; return [a.x, a.y - 110, ...zaplyvScr(a.x, a.y - 110)]; }), clip = { x: Math.round(at[2]) - 10, y: Math.round(at[3]) - 10, width: 20, height: 20 };
+  const px = async () => p.evaluate(async b64 => { const im = new Image(); im.src = 'data:image/png;base64,' + b64; await im.decode(); const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
+    const x = c.getContext('2d'); x.drawImage(im, 0, 0); const d = x.getImageData(0, 0, c.width, c.height).data, L = []; for (let i = 0; i < d.length; i += 4) L.push(d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11); return L; }, (await p.screenshot({ clip })).toString('base64'));
+  const before = await px(); await p.evaluate(([x, y]) => zaplyvWorld().food.push({ x, y, vx: 0, vy: 0, s: 0.6, kind: 'lysate', id: 'L057' }), at); await p.waitForTimeout(150); const after = await px();
+  const lift = Math.round(Math.max(...after.map((v, i) => v - before[i]))), r = await p.evaluate(() => ({ lost: (zaplyvProbe.lost || 0) - zaplyvProbe.lost0, glow: zaplyvProbe.glowMax }));
+  await p.evaluate(g => { const w = zaplyvWorld(); w.me.length = 1; w.genes = g; w.food.length = 0; w.cfg.auto_split = w.cfg.auto_split_was; }, g0);
+  say(r.lost === 0 && lift > 60, `test_L057: колония из 10 клеток со всеми генами — крошек не теряется (не влезло точек ${r.lost}, свечения в кадре до ${r.glow}), мелкая крошка светлее воды на ${lift} из 255`); }
 // test_L039 (Роман 25.11: «в процессе игры они просто уплывают куда-то, исчезают. И я не понимаю, почему»): сестра за кадром видна стрелкой у края,
 // а гибель за краем называет убийцу.
 { await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.me.push({ ...a, id: 990, x: a.x + 2500, y: a.y, held: 1, vx: 0, vy: 0 }); });

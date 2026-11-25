@@ -142,11 +142,11 @@ class Dots {
     this.mesh = new THREE.Mesh(g, mat);
     this.mesh.frustumCulled = false;
     this.mesh.renderOrder = order;
-    this.g = g; this.n = 0; this.max = max;
+    this.g = g; this.n = 0; this.max = max; this.lost = 0;
     target.add(this.mesh);
   }
   put(x, y, r, cr, cg, cb, ca = 1) {
-    if (this.n >= this.max) return;
+    if (this.n >= this.max) { this.lost++; return; } // слой полон: точку не рисуем, но считаем (проверка L057 ловит)
     const i = this.n++;
     this.a[i * 3] = x; this.a[i * 3 + 1] = y; this.a[i * 3 + 2] = r;
     this.c[i * 4] = cr; this.c[i * 4 + 1] = cg; this.c[i * 4 + 2] = cb; this.c[i * 4 + 3] = ca;
@@ -158,8 +158,10 @@ class Dots {
   }
 }
 const far = new Dots(80, back, 1, 'ring', 0);
-const glow = new Dots(3000, scene, 3, true, 0.6);
-const ink = new Dots(3000, scene, 4, false, 0.8);
+// Ёмкость слоёв с запасом на колонию из десяти клеток со всеми генами: при 3000 у десяти клеток свечение кончалось на их коже,
+// и крошки еды, рисуемые после, пропадали (Роман 25.11 на 0.84: «Еду не видно на карте мелкую но она собирается магнитом», L057).
+const glow = new Dots(cfg.dots.glow, scene, 3, true, 0.6);
+const ink = new Dots(cfg.dots.ink, scene, 4, false, 0.8);
 const near = new Dots(12, scene, 5, false, 0); // передний план: размытые клетки у края кадра
 const dust = new Dots(120, scene, 3, true, 0.9);
 const bubbles = new Dots(60, scene, 4, 'ring', 0);
@@ -1033,6 +1035,7 @@ function paint(time) {
     const n = $('sicknotch'); n.style.width = (ill.length ? 4 + 18 * k : 0) + '%'; n.style.left = Math.max(0, g * 100 - (ill.length ? 4 + 18 * k : 0)).toFixed(1) + '%'; probe.sickNotch = ill.length ? k : -1; }
   U.tint.value.set(...view.tint);
   U.drift.value.set(view.x * view.z / W, -view.y * view.z / W); // в ширинах экрана: слои сзади сдвигаются медленнее
+  probe.lost = glow.lost + ink.lost; probe.glowMax = Math.max(probe.glowMax || 0, glow.n); probe.inkMax = Math.max(probe.inkMax || 0, ink.n); // сколько точек не влезло (L057)
   for (const d of [far, glow, ink, near, dust, bubbles, wake]) d.done();
 }
 
