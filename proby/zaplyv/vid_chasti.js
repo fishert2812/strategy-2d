@@ -54,6 +54,12 @@ const RIS = {
       B.sphere(cx, cy, w * st.r * (0.5 + 0.5 * fill), st.cvet, [1, 1, 1], P.id + i, 0.7);
       const cl = w * st.kanal * (1.25 - fill);
       for (let k = 0; k < st.kanaly; k++) { const t = k / st.kanaly * 6.283 + P.id, d = w * st.r * 0.3; B.spine(cx + Math.cos(t) * d, cy + Math.sin(t) * d, t, cl, w * st.kanal_tolsh, st.cvet, [1, 1, 1], P.id * 7 + k); } }); },
+  // венец: веер толстых светлых ресничек из рта (нос тела), отгибаются наружу от оси и бьют бегущей волной по кругу. Колокольчик, колёса коловратки
+  venec(st, F, P, B, at) { const w = P.tolshchina, t0 = F.O ? F.O.nos_t : 0;
+    for (let k = 0; k < st.n; k++) { const f = (k + 0.5) / st.n, t = t0 + st.sektor[0] + (st.sektor[1] - st.sektor[0]) * f, e = F.kray(t), [x0, y0] = at(e.u, e.o), faza = P.time * st.temp - k * st.shag, l = w * st.dlina * (0.8 + 0.2 * Math.sin(faza)) * (1 - st.razbros * hash(P.id, k + 650)), Z = st.zvenya;
+      const n0 = F.kray(t0).n; let dn = e.n - n0; dn -= Math.round(dn / 6.2832) * 6.2832; let an = P.a + n0 + dn * st.veer, lx = x0, ly = y0; const pts = [lx, ly], gn = st.volna * (0.6 * Math.cos(faza) + 2.2 * dn);
+      for (let i = 0; i < Z; i++) { lx += Math.cos(an) * l / Z; ly += Math.sin(an) * l / Z; pts.push(lx, ly); an += gn * (i + 1) / Z; }
+      nit(B, pts, w * st.tolsh, st.cvet, st.a, w * st.tolsh * 0.5, st.a * st.a_konec, undefined, st.konchik || st.cvet); } },
   vorsinki(st, F, P, B, at) { const w = P.tolshchina; // пили: тонкие сплошные трубочки по всему краю, разной длины и наклона, слегка гнутые
     // Ступень дальности (тред движка 25.11: 40 существ на экране): крупное — только волоски трубками (слои меха вблизи расходятся и читаются рядами точек, L047),
     // среднее — мех слоем (слои ближе пикселя, сливаются в пушок) и немного трубок, мелкое — немного трубок не тоньше точки.
@@ -150,7 +156,7 @@ export function sobrat(zapis, poza, B) {
   const forma = zapis.forma || { tip: 'palochka' }, tip = forma.tip, P = { ...poza, tip }, ux = Math.cos(P.a), uy = Math.sin(P.a), w = P.tolshchina; let F, at;
   if (tip === 'tuflya') { const hl = P.dlina / 2; F = FORMY.tuflya({ ...VC.formy.tuflya, ...forma, dl: P.dlina, tol: w }); at = (u, o) => [P.x + ux * u * hl - uy * o * w, P.y + uy * u * hl + ux * o * w]; }
   else { // тело свободной формы: осевая линия через опорные точки (telo_os.js); палочка и шар — её частные случаи. Части берут край, нормаль и нутро отсюда
-    const tochki = forma.tochki || iz_formy(tip, P.dlina ? P.dlina / 2 / w : forma.dlina || 2.14, 1, (P.izgib || 0) / w), O = os(tochki); P.dlina = O.dlina * w; P.nad = O.poperechnik / 2 * w * 1.05; // нутро рисуется перед сердцевиной: выше самой толстой её точки
+    const tochki = forma.tochki || iz_formy(tip, P.dlina ? P.dlina / 2 / w : forma.dlina || 2.14, 1, (P.izgib || 0) / w), O = (forma.srez && (tochki.srez = forma.srez), os(tochki)); P.dlina = O.dlina * w; P.nad = O.poperechnik / 2 * w * 1.05; // нутро рисуется перед сердцевиной: выше самой толстой её точки
     // ветка задаётся коротко: { t — где на обводе, dlina, r: [у основания, у кончика], izgib, ugol, rost 0…1 }; её точки считаются один раз на запись ветки и ступень роста
     // volna — ветка сама медленно вытягивается и втягивается (ложноножка)
     const vetki = [...(forma.vetki || []), ...(P.vetki || [])].map(v => { const k = Math.round(Math.max(0, Math.min(1, v.rost ?? (v.volna ? 0.6 + 0.4 * Math.sin((P.time || 0) * v.volna + v.t * 3 + (P.id || 0)) : 1))) * VC.vetka.stupeney) / VC.vetka.stupeney;

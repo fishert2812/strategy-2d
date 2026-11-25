@@ -373,8 +373,13 @@ if (await tap('#mscene [data-m=mut]', 'объект «Мутации»') && awai
   await bell(ax - 130, ay, 2); await W8(4); const tiho = await p.evaluate(() => zaplyvProbe.tiho);
   await bell(ax - 130, ay); await W8(30); const venec = await p.evaluate(() => zaplyvProbe.venec), nit = await p.evaluate(() => [zaplyvProbe.nit || 0, zaplyvWorld().zones().length]);
   // нить сплошная: тот же стоящий кадр с кругом и без, вдоль нити от клетки к рту цвет меняется почти везде (бусы и риски дают провалы)
-  const geo = await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0], [mx, my] = w.bell(w.bells[0]); return [zaplyvScr(a.x, a.y), zaplyvScr(mx, my)]; });
-  const s1 = (await p.screenshot()).toString('base64'); await p.evaluate(() => { const w = zaplyvWorld(); w.zony = w.zones; w.zones = () => []; }); await W8(3); const s0 = (await p.screenshot()).toString('base64');
+  // камера после очистки кадра ещё доезжает (зум к одной клетке); нить тонкая, и сдвиг в пару точек между замером места и снимком давал в WebKit «видна на 5%».
+  // Ждём, пока клетка и рот на экране встанут, и снимаем, только если за время снимка они не сдвинулись.
+  const geoF = () => p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0], [mx, my] = w.bell(w.bells[0]); return [zaplyvScr(a.x, a.y), zaplyvScr(mx, my)]; });
+  const sdvig = (g, h) => Math.max(...[0, 1].flatMap(i => [Math.abs(g[i][0] - h[i][0]), Math.abs(g[i][1] - h[i][1])]));
+  let geo = await geoF(), s1 = '', dr = 0;
+  for (let i = 0; i < 60; i++) { await W8(3); const g = await geoF(), d = sdvig(geo, g); geo = g; if (d < 0.2) break; }
+  for (let i = 0; i < 4; i++) { s1 = (await p.screenshot()).toString('base64'); const g = await geoF(); dr = sdvig(geo, g); geo = g; if (dr < 0.5) break; } await p.evaluate(() => { const w = zaplyvWorld(); w.zony = w.zones; w.zones = () => []; }); await W8(3); const s0 = (await p.screenshot()).toString('base64');
   const sploshn = await p.evaluate(async ([b1, b0, [[x0, y0], [x1, y1]]]) => { const read = async b64 => { const im = new Image(); im.src = 'data:image/png;base64,' + b64; await im.decode(); const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
       const x = c.getContext('2d'); x.drawImage(im, 0, 0); return { d: x.getImageData(0, 0, c.width, c.height).data, w: c.width, k: im.width / innerWidth }; };
     const A = await read(b1), B = await read(b0), px = (I, u, v) => { const i = (Math.round(v * I.k) * I.w + Math.round(u * I.k)) * 4; return [I.d[i], I.d[i + 1], I.d[i + 2]]; };
@@ -385,7 +390,7 @@ if (await tap('#mscene [data-m=mut]', 'объект «Мутации»') && awai
   await p.evaluate(() => { const w = zaplyvWorld(); w.zones = w.zony; w.step = w.stoit; w.bells.length = 0; w.tidy = 0; });
   say(blizko >= 1 && daleko === 0, `test_L063: круг за краем кадра, но в ${60} от края, — стрелка у края (знаков ${blizko}); далеко — без стрелки (${daleko})`);
   say(tiho >= 1, `test_L063: колокольчик сжался — круг не пропал, а затих (тихих кругов ${tiho})`);
-  say(venec === 'trubka' && nit[0] > 0 && sploshn >= 0.9, `test_L063: от клетки к рту сплошная нить (видна на ${Math.round(sploshn * 100)}% пути, нужно 90), венец ресничек — ${venec === 'trubka' ? 'колечко' : 'бусы'}`); }
+  say(venec === 'trubka' && nit[0] > 0 && sploshn >= 0.9, `test_L063: от клетки к рту сплошная нить (видна на ${Math.round(sploshn * 100)}% пути, нужно 90; камера за снимок сдвинулась на ${dr.toFixed(1)}), венец ресничек — ${venec === 'trubka' ? 'колечко' : 'бусы'}`); }
 say(!errs.length, 'ошибок страницы нет' + (errs.length ? ': ' + errs.join('; ') : ''));
 await b.close();
 console.log(bad ? `КАСАНИЯ: провалов ${bad}` : 'КАСАНИЯ: все кнопки отвечают пальцу');

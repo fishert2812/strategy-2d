@@ -56,7 +56,7 @@ export function shag(f, dt, tiho = false) {
   for (const [A, , q] of T) { const z = Math.exp(-q.raspad * dt); for (let k = 0; k < N; k++) A[k] *= z; } // след распадается сам
   for (let k = 0; k < N; k++) {
     const L = svet(f, k), d = glub(f, k);
-    dS[k] += (H.foto * A[k] * L + (il[k] ? p.vodorosli.il_sahar : 0) - H.rashod * S[k]) * dt;
+    dS[k] += ((H.foto * A[k] * L + (il[k] ? p.vodorosli.il_sahar : 0)) * (1 - (H.nasyshchenie || 0) * S[k] / H.max_) - H.rashod * S[k]) * dt; // nasyshchenie: в насыщенной воде водоросли и ил отдают меньше (0 — не меньше)
     dO[k] += (Q.edinica * (Q.foto * H.foto * A[k] * L - Q.dyh * H.rashod * S[k]) + (d < f.pond.film ? Q.vozduh * (1 - O[k]) : 0)) * dt; // фотосинтез даёт кислород вместе с сахаром, кто съел сахар — дышит
     if (!tiho) { const v = U.vypadenie * S[k] * dt, r = U.rastvorenie * K[k] * dt; dS[k] += r - v; K[k] += v - r; }
   }

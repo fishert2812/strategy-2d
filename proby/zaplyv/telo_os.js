@@ -5,7 +5,7 @@
 const cr = (a, b, c, d, t) => 0.5 * (2 * b + (c - a) * t + (2 * a - 5 * b + 4 * c - d) * t * t + (3 * b - a - 3 * c + d) * t * t * t);
 // Тело из одних и тех же точек считается один раз: os() помнит ответ по самому массиву точек (новая форма — новый массив, см. mutaciya и конструктор).
 const PAMYAT = new WeakMap();
-export function os(tochki, N = 28, r_min = 0.2, glubzhe = 0) { let m = PAMYAT.get(tochki); if (!m) PAMYAT.set(tochki, m = new Map()); const k = N + ' ' + r_min + ' ' + glubzhe; let o = m.get(k); if (!o) m.set(k, o = os_schitat(tochki, N, r_min, glubzhe)); return o; }
+export function os(tochki, N = 28, r_min = 0.2, glubzhe = 0) { let m = PAMYAT.get(tochki); if (!m) PAMYAT.set(tochki, m = new Map()); const k = N + ' ' + r_min + ' ' + glubzhe + ' ' + (tochki.srez ?? 1); let o = m.get(k); if (!o) m.set(k, o = os_schitat(tochki, N, r_min, glubzhe)); return o; }
 function os_schitat(tochki, N = 28, r_min = 0.2, glubzhe = 0) { // glubzhe: то же тело, но тоньше на эту глубину по всему обводу (внутренний слой оболочки): ось та же самая
   const T = tochki.length > 1 ? tochki : [[tochki[0][0] - 0.01, tochki[0][1], tochki[0][2]], [tochki[0][0] + 0.01, tochki[0][1], tochki[0][2]]], K = T.length - 1, S = [];
   for (let i = 0; i <= N; i++) { const f = i / N * K, k = Math.min(K - 1, Math.floor(f)), t = f - k, p = j => T[Math.max(0, Math.min(K, k + j))];
@@ -17,17 +17,19 @@ function os_schitat(tochki, N = 28, r_min = 0.2, glubzhe = 0) { // glubzhe: то
   if (glubzhe) for (const q of S) q.r = Math.max(0.06, q.r - glubzhe);
   for (let i = 0; i <= N; i++) { const a = S[Math.max(0, i - 1)], b = S[Math.min(N, i + 1)], l = Math.hypot(b.x - a.x, b.y - a.y) || 1; S[i].tx = (b.x - a.x) / l; S[i].ty = (b.y - a.y) / l; if (i) S[i].s = S[i - 1].s + Math.hypot(S[i].x - S[i - 1].x, S[i].y - S[i - 1].y); }
   const dl = S[N].s, r0 = S[0].r, r1 = S[N].r, vsya = dl + r0 + r1, H = vsya / 2;
+  // srez (tochki.srez, из forma.srez записи): шапка носа сплющена вдоль оси до этой доли (1 — круглая, 0,2 — почти ровный срез: рот колокольчика). Сплющены вид и обвод; глубина для касаний считается по круглой шапке.
+  const kn = tochki.srez ?? 1;
   // Сечение тела на расстоянии a от кончика кормы (0 … vsya): центр, касательная, полуширина. На торцах — круглые шапки.
   const sech = a => { a = Math.max(0, Math.min(vsya, a));
     if (a < r0) { const e = r0 - a, q = S[0]; return { x: q.x - q.tx * e, y: q.y - q.ty * e, tx: q.tx, ty: q.ty, r: Math.sqrt(Math.max(0, r0 * r0 - e * e)) }; }
-    if (a > r0 + dl) { const e = a - r0 - dl, q = S[N]; return { x: q.x + q.tx * e, y: q.y + q.ty * e, tx: q.tx, ty: q.ty, r: Math.sqrt(Math.max(0, r1 * r1 - e * e)) }; }
+    if (a > r0 + dl) { const e = a - r0 - dl, q = S[N]; return { x: q.x + q.tx * e * kn, y: q.y + q.ty * e * kn, tx: q.tx, ty: q.ty, r: Math.sqrt(Math.max(0, r1 * r1 - e * e)) }; }
     const s = a - r0; let i = 1; while (i < N && S[i].s < s) i++; const p = S[i - 1], q = S[i], t = (s - p.s) / ((q.s - p.s) || 1), m = (u, v) => u + (v - u) * t, l = Math.hypot(m(p.tx, q.tx), m(p.ty, q.ty)) || 1;
     return { x: m(p.x, q.x), y: m(p.y, q.y), tx: m(p.tx, q.tx) / l, ty: m(p.ty, q.ty) / l, r: m(p.r, q.r) }; };
   const c0 = sech(H), at = (u, o) => { const q = sech((u + 1) * H); return [q.x - c0.x - q.ty * o * q.r, q.y - c0.y + q.tx * o * q.r]; }; // u: −1 корма … 1 нос; o: −1 … 1 поперёк; середина тела в нуле
   // Обвод: точки края с нормалью ровным шагом по длине обвода (бок, шапка носа, другой бок, шапка кормы).
   const M = 4 * N, ob = [];
   for (let i = 0; i < M; i++) { const a = r0 + dl * i / M, q = sech(a); ob.push({ x: q.x - q.ty * q.r, y: q.y + q.tx * q.r, nx: -q.ty, ny: q.tx, u: a / H - 1, o: 1 }); }
-  for (let i = 0; i < N; i++) { const f = -Math.PI / 2 + Math.PI * i / N, q = S[N], nx = -q.ty * -Math.sin(f) + q.tx * Math.cos(f), ny = q.tx * -Math.sin(f) + q.ty * Math.cos(f); ob.push({ x: q.x + nx * r1, y: q.y + ny * r1, nx, ny, u: (r0 + dl + r1 * Math.cos(f)) / H - 1, o: -Math.sin(f) >= 0 ? 1 : -1 }); }
+  for (let i = 0; i < N; i++) { const f = -Math.PI / 2 + Math.PI * i / N, q = S[N], nx = -q.ty * -Math.sin(f) + q.tx * Math.cos(f), ny = q.tx * -Math.sin(f) + q.ty * Math.cos(f), sd = (kn - 1) * Math.cos(f) * r1; ob.push({ x: q.x + nx * r1 + q.tx * sd, y: q.y + ny * r1 + q.ty * sd, nx, ny, u: (r0 + dl + r1 * Math.cos(f)) / H - 1, o: -Math.sin(f) >= 0 ? 1 : -1 }); }
   for (let i = 0; i < M; i++) { const a = r0 + dl * (1 - i / M), q = sech(a); ob.push({ x: q.x + q.ty * q.r, y: q.y - q.tx * q.r, nx: q.ty, ny: -q.tx, u: a / H - 1, o: -1 }); }
   for (let i = 0; i < N; i++) { const f = -Math.PI / 2 + Math.PI * i / N, q = S[0], nx = q.ty * -Math.sin(f) - q.tx * Math.cos(f), ny = -q.tx * -Math.sin(f) - q.ty * Math.cos(f); ob.push({ x: q.x + nx * r0, y: q.y + ny * r0, nx, ny, u: (r0 - r0 * Math.cos(f)) / H - 1, o: -Math.sin(f) >= 0 ? -1 : 1 }); }
   const per = [0]; for (let i = 1; i <= ob.length; i++) { const a = ob[i - 1], b = ob[i % ob.length]; per.push(per[i - 1] + Math.hypot(b.x - a.x, b.y - a.y)); }
@@ -36,7 +38,7 @@ function os_schitat(tochki, N = 28, r_min = 0.2, glubzhe = 0) { // glubzhe: то
   // Кольца для объёмного тела: гуще на шапках, с наклоном стенки (dr) для света.
   const kolca_pam = {}; const kolca = (cap = 6) => kolca_pam[cap] || (kolca_pam[cap] = kolca_schitat(cap)); // кольца у тела одни и те же каждый кадр: считаются один раз (их не меняют, только читают)
   const kolca_schitat = (cap = 6) => { const A = []; for (let i = 0; i <= cap; i++) A.push(r0 * (1 - Math.cos(i / cap * Math.PI / 2))); for (let i = 1; i < N; i++) A.push(r0 + dl * i / N); for (let i = cap; i >= 0; i--) A.push(vsya - r1 * (1 - Math.cos(i / cap * Math.PI / 2)));
-    return A.map((a, i) => { const q = sech(a), e = 0.02, dr = a < e ? 1e3 : a > vsya - e ? -1e3 : (sech(a + e).r - sech(a - e).r) / (2 * e); return { x: q.x - c0.x, y: q.y - c0.y, tx: q.tx, ty: q.ty, r: q.r, dr, a }; }); };
+    return A.map((a, i) => { const q = sech(a), e = 0.02, dr = a < e ? 1e3 : a > vsya - e ? -1e3 : (sech(a + e).r - sech(a - e).r) / (2 * e) / (a > r0 + dl ? kn : 1); return { x: q.x - c0.x, y: q.y - c0.y, tx: q.tx, ty: q.ty, r: q.r, dr, a }; }); };
   let V = 2 / 3 * Math.PI * (r0 ** 3 + r1 ** 3), rmax = 0, pl = 2 * Math.PI * (r0 * r0 + r1 * r1); for (let i = 1; i <= N; i++) { const r = (S[i].r + S[i - 1].r) / 2, ds = S[i].s - S[i - 1].s; V += Math.PI * r * r * ds; pl += 2 * Math.PI * r * ds; } for (const q of S) rmax = Math.max(rmax, q.r);
   // Насколько точка (в координатах тела, середина в нуле) внутри тела: больше нуля внутри, меньше снаружи. Для касаний и зон.
   let gx = 0, gy = 0, gR = 0; for (const q of S) { gx += q.x / S.length; gy += q.y / S.length; } for (const q of S) gR = Math.max(gR, Math.hypot(q.x - gx, q.y - gy) + q.r);
@@ -47,7 +49,7 @@ function os_schitat(tochki, N = 28, r_min = 0.2, glubzhe = 0) { // glubzhe: то
   const kA = S[0], kB = S[N], kdx = kB.x - kA.x, kdy = kB.y - kA.y, kd2 = kdx * kdx + kdy * kdy || 1, kot = (x, y) => { const t = Math.max(0, Math.min(1, ((x - kA.x) * kdx + (y - kA.y) * kdy) / kd2)), ox = x - kA.x - kdx * t, oy = y - kA.y - kdy * t; return Math.sqrt(ox * ox + oy * oy); };
   let kR = 0; for (const q of S) kR = Math.max(kR, kot(q.x, q.y) + q.r);
   const glubina = (x, y) => { x += c0.x; y += c0.y; const dk = gR - Math.sqrt((x - gx) * (x - gx) + (y - gy) * (y - gy)); if (dk < -0.5) return dk; const dc = kR - kot(x, y); if (dc < -0.5) return dc; let g = -1e9; for (let i = 1; i <= N; i++) { const p = S[i - 1], q = S[i], dx = q.x - p.x, dy = q.y - p.y, t = Math.max(0, Math.min(1, ((x - p.x) * dx + (y - p.y) * dy) / (dx * dx + dy * dy || 1))), ox = x - p.x - dx * t, oy = y - p.y - dy * t, v = p.r + (q.r - p.r) * t - Math.sqrt(ox * ox + oy * oy); if (v > g) g = v; } return g; };
-  return { nos_t: (per[M] + Math.PI * r1 / 2) / per[ob.length] * 6.283185, boka_t: [per[M] / 2, (per[M + N] + per[2 * M + N]) / 2].map(d => d / per[ob.length] * 6.283185), glubina, poverh, korma_t: (1 - Math.PI * r0 / 2 / per[ob.length]) * 6.283185, H, dlina: vsya, obem: V, ploshchad: pl, poperechnik: 2 * rmax, obvod: per[ob.length], at, kray, kolca, sech, korma: [-S[0].tx, -S[0].ty] };
+  return { nos_t: (per[M] + per[M + N]) / 2 / per[ob.length] * 6.283185, boka_t: [per[M] / 2, (per[M + N] + per[2 * M + N]) / 2].map(d => d / per[ob.length] * 6.283185), glubina, poverh, korma_t: (1 - Math.PI * r0 / 2 / per[ob.length]) * 6.283185, H, dlina: vsya, obem: V, ploshchad: pl, poperechnik: 2 * rmax, obvod: per[ob.length], at, kray, kolca, sech, korma: [-S[0].tx, -S[0].ty] };
 }
 // Готовые положения точек из старых чисел формы: палочка (длина и толщина), шар, запятая (изгиб дугой).
 export const iz_formy = (forma, dlina, tolshchina, izgib = 0) => { const r = tolshchina, L = Math.max(0, dlina - tolshchina);
