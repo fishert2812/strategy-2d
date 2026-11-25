@@ -182,7 +182,7 @@ export class Bodies {
   }
   // Тело свободной формы (telo_os.js): кольца вдоль осевой линии, уже в экранных точках — { x, y, tx, ty, r, dr, a }.
   // plotno — плотная сердцевина, иначе стеклянная оболочка (тот же свет и узор, что у палочки). Сетка своя на каждое тело, пишется каждый кадр.
-  loft(kolca, plotno, col, rim, seed, alfa = 1, order = null) {
+  loft(kolca, plotno, col, rim, seed, alfa = 1, order = null, slit = null) { // slit(x, y) — поверхность тела под точкой { h, nx, ny, nz }: ветка плавно сливается с ней, шва нет
     const P = plotno ? this.loftC : this.loftS, R = kolca.length, G = 18; let m = P.m[P.n++];
     if (!m || m.kolec !== R) { const geo = new THREE.BufferGeometry(), idx = [];
       for (const [k, n] of [['position', 3], ['normal', 3], ['uv', 2]]) geo.setAttribute(k, new THREE.BufferAttribute(new Float32Array(R * (G + 1) * n), n).setUsage(THREE.DynamicDrawUsage));
@@ -192,7 +192,13 @@ export class Bodies {
     const A = m.geometry.attributes, p = A.position.array, nr = A.normal.array, uv = A.uv.array, z0 = this.vyshe || 0; let i = 0;
     for (const q of kolca) for (let k = 0; k <= G; k++) { const t = k / G * 6.2832, c = Math.cos(t), sn = Math.sin(t), nx = -q.ty * c, ny = q.tx * c; // радиус кольца: в плоскости экрана по нормали оси, из экрана по z
       p[i * 3] = q.x + nx * q.r; p[i * 3 + 1] = -(q.y + ny * q.r); p[i * 3 + 2] = sn * q.r + z0;
-      const l = Math.hypot(1, q.dr); nr[i * 3] = (nx - q.tx * q.dr) / l; nr[i * 3 + 1] = -(ny - q.ty * q.dr) / l; nr[i * 3 + 2] = sn / l; uv[i * 2] = c; uv[i * 2 + 1] = q.a; i++; }
+      const l = Math.hypot(1, q.dr); nr[i * 3] = (nx - q.tx * q.dr) / l; nr[i * 3 + 1] = -(ny - q.ty * q.dr) / l; nr[i * 3 + 2] = sn / l; uv[i * 2] = c; uv[i * 2 + 1] = q.a;
+      const T = slit && slit(q.x + nx * q.r, q.y + ny * q.r);
+      // плавный максимум двух поверхностей: внутри тела ветка идёт по самому телу, у выхода поднимается галтелью
+      if (T && sn * q.r <= T.h - slit.k) p[i * 3 + 2] = T.h - 0.25 * slit.k - 2 * (T.h - slit.k - sn * q.r) + z0; // глубоко в теле ветка просто уходит под его поверхность
+      else if (T) { const z = sn * q.r, k = slit.k, t = Math.max(0, Math.min(1, 0.5 + (z - T.h) / (2 * k))), u = 1 - t; p[i * 3 + 2] = T.h * u + z * t + k * t * u - 0.25 * k * u * u + z0; // к глубине уходит под тело под углом: край заплатки ровный, без дрожи двух совпавших поверхностей
+        nr[i * 3] = nr[i * 3] * t + T.nx * u; nr[i * 3 + 1] = nr[i * 3 + 1] * t - T.ny * u; nr[i * 3 + 2] = Math.max(0, nr[i * 3 + 2]) * t + T.nz * u; }
+      i++; }
     A.position.needsUpdate = A.normal.needsUpdate = A.uv.needsUpdate = true; m.count = 1; m.renderOrder = order ?? (plotno ? 1 : 3); m.material.transparent = m.renderOrder > 3 || !plotno;
     m.geometry.attributes.cA.array.set([col[0], col[1], col[2], alfa]); m.geometry.attributes.cB.array.set(rim); m.geometry.attributes.prm.array.set([0, seed, 0, 0]);
   }
