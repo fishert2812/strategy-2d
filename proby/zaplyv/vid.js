@@ -265,10 +265,10 @@ function amoeba3d(c, B, R, body, edge, eat) {
   const nx = x - hx * r * 0.15 + hy * r * 0.1, ny = y - hy * r * 0.15 - hx * r * 0.1; // ядро и пузырьки — внутри, видны сквозь стекло тела
   B.sphere(nx, ny, r * A.nucleus * D.nuc, D.nuc_col, A.nuc_rim, id + 0.5, 0.7); // ядро голубовато-серое, как на образце
   for (let k = 0; k < A.vac; k++) { const t = hash(id, k + 90) * 6.283, d = r * (0.25 + 0.35 * hash(id, k + 91)); B.sphere(x + Math.cos(t) * d, y + Math.sin(t) * d, r * (0.05 + 0.04 * hash(id, k + 92)), A.vac_col, [1, 1, 1], id + k, 0.8); }
-  for (let k = 0; k < A.spikes; k++) {
-    const t = (k + 0.9 * hash(id, k)) / A.spikes * 6.283, ahead = Math.max(0, Math.cos(t - head)); let L = r * (A.spike_min + (A.spike_max - A.spike_min) * hash(id, k + 40)) * (1 + 0.5 * mov * ahead) * (0.85 + 0.15 * Math.sin(time * 1.3 + k * 2.1));
+  const NS = Math.round(A.spikes * D.count); for (let k = 0; k < NS; k++) { // пальцев гуще, чем шипов в точечном рисунке: на образце их десятки
+    const t = (k + 0.9 * hash(id, k)) / NS * 6.283, ahead = Math.max(0, Math.cos(t - head)); let L = r * (A.spike_min + (A.spike_max - A.spike_min) * hash(id, k + 40)) * (1 + 0.5 * mov * ahead) * (0.85 + 0.15 * Math.sin(time * 1.3 + k * 2.1));
     if (eat) { const cc = Math.max(0, Math.cos(t - eat.ang)); L *= 1 - eat.k * cc ** 2; if (L < r * 0.05) continue; } // этим краем обтекает добычу — шипы втянуты
-    const base = R(t) * D.root, bx = x + Math.cos(t) * base, by = y + Math.sin(t) * base, w = r * A.spike_w * D.spike_w, bend = ((hash(id, k + 70) - 0.5) * A.bend + 0.12 * Math.sin(time * 0.9 + k)) * L * 0.5;
+    const base = R(t) * D.root, bx = x + Math.cos(t) * base, by = y + Math.sin(t) * base, w = r * A.spike_w * D.spike_w, bend = ((hash(id, k + 70) - 0.5) * A.bend * D.bend + 0.12 * Math.sin(time * 0.9 + k)) * L * 0.5; L *= D.len * (0.6 + 0.8 * hash(id, k + 300)); // длина вразнобой, как на образце
     B.spine(bx, by, t, L + (R(t) - base), w, spineC, D.rim, id + k, bend, D.wave * (hash(id, k + 80) - 0.3));
     if (hash(id, k + 55) < A.fork) { const f0 = 0.55, side = hash(id, k + 56) < 0.5 ? -1 : 1, d0 = base + L * f0, a2 = t + side * 0.55; // часть шипов ветвится
       B.spine(x + Math.cos(t) * d0 - Math.sin(t) * bend * f0 * f0, y + Math.sin(t) * d0 + Math.cos(t) * bend * f0 * f0, a2, L * 0.4, w * 0.6, spineC, D.rim, id + k + 50, 0, D.wave * 0.5); } } // ветка растёт из точки на самом изогнутом шипе

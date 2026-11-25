@@ -26,7 +26,7 @@ void main(){
   float fres = pow(1.0 - abs(n.z), 2.2);
   float spec = pow(max(dot(reflect(-L, n), vec3(0.0, 0.0, 1.0)), 0.0), 28.0);
   float cav = 0.75 + 0.25 * vn(q * 2.0);
-  float rg = ridge * (1.0 - smoothstep(0.0, 0.05, abs(vn(vP * 4.5) - 0.5))) * (1.0 - fres); // светлые складки мембраны сеткой поперёк тела (амёба на образцах)
+  float rg = ridge * (1.0 - smoothstep(0.0, 0.09, abs(vn(vP * 3.5) - 0.5))) * (1.0 - fres); // светлые складки мембраны сеткой поперёк тела (амёба на образцах)
   vec3 col = vA.rgb * (0.18 + 0.72 * d) * cav + vB * fres * rimK + spec * 0.55 + vB * rg;
   gl_FragColor = vec4(col, vA.a * min(1.0, mix(alpha0, 1.0, fres) + rg * 0.6));
 }`;
@@ -89,14 +89,14 @@ export class Bodies {
        float r = 1.0 + 0.22 * (vn(dir * 2.2 + vec3(time * 0.35 + prm.y)) - 0.5) * 2.0;
        float lobe = max(0.0, dot(dir.xy, vec2(cos(prm.z), sin(prm.z))));
        r += 0.45 * pow(lobe, 4.0) * prm.x + 0.3 * pow(max(0.0, vn(dir * 1.3 + vec3(prm.y, time * 0.2, 0.0)) - 0.45) * 2.0, 2.0);
-       p = dir * r; nn = dir;`, { bump: 0.3, alpha0: 0.45, order: 2, rimK: 1.2, ridge: 0.8 }); // амёба: зовёт vid.js (amoeba3d)
+       p = dir * r; nn = dir;`, { bump: 0.55, alpha0: 0.38, order: 2, rimK: 1.1, ridge: 1.3 }); // амёба: зовёт vid.js (amoeba3d)
     // Шип акантамёбы (акантоподия): стеклянный конус, остриём наружу; гнётся дугой к острию (prm.z), чуть дышит.
     // Ложноножка-палец акантамёбы (образец Романа): сужается к круглому кончику, гнётся дугой (prm.z) и волной (prm.w), медленно шевелится.
-    const fp = []; for (let i = 0; i <= 14; i++) { const u = i / 14; fp.push(new THREE.Vector2(1 - 0.62 * u, -1 + 2 * u)); }
-    for (let i = 1; i <= 5; i++) { const a = i / 5 * Math.PI / 2; fp.push(new THREE.Vector2(Math.max(0.38 * Math.cos(a), 1e-4), 1 + 0.38 * Math.sin(a) * 0.5)); }
-    this.spines = kind(new THREE.LatheGeometry(fp, 12), 500,
+    const fp = []; for (let i = 0; i <= 16; i++) { const u = i / 16; fp.push(new THREE.Vector2(0.55 + 0.75 * (1 - u) ** 3 + 0.45 * (1 - u), -1 + 2 * u)); } // у корня расширяется — палец вырастает из массы тела
+    for (let i = 1; i <= 8; i++) { const a = i / 8 * Math.PI / 2; fp.push(new THREE.Vector2(Math.max(0.55 * Math.cos(a), 1e-4), 1 + 0.55 * Math.sin(a) * 0.6)); } // круглый толстый кончик
+    this.spines = kind(new THREE.LatheGeometry(fp, 24), 500,
       'float u = (p.y + 1.0) * 0.5; float wv = prm.w * sin(u * 4.5 + time * 0.8 + prm.y) * u; p.x += prm.z * u * u + wv; nn.x -= prm.z * u; nn = normalize(nn); p += nn * 0.04 * sin(time * 2.0 + prm.y + p.y * 3.0);',
-      { bump: 0.2, alpha0: 0.5, order: 1, rimK: 1.6, after: 'vA.a *= smoothstep(-1.0, -0.55, position.y);' }); // раньше тела; основание тает в теле — сквозь стекло не видно срезов
+      { bump: 0.05, alpha0: 0.75, order: 1, rimK: 0.9, after: 'vA.a *= smoothstep(-1.0, -0.55, position.y);' }); // раньше тела; основание тает в теле — сквозь стекло не видно срезов
     const head = new THREE.IcosahedronGeometry(1, 0).toNonIndexed(); head.computeVertexNormals();
     this.head = kind(head, 120, '', { bump: 0.0, order: 3, flat: true, rimK: 0.8, alpha0: 0.35 }); // голова фага — стекло: сквозь неё видна нить ДНК (fx.js), грани блестят ободком
     this.tail = kind(new THREE.CylinderGeometry(0.28, 0.28, 2, 8), 120, '', { bump: 0.1, order: 1 });
@@ -134,7 +134,7 @@ export class Bodies {
   blobby(x, y, r, heading, moving, col, rim, seed, sx = 1, sy = 1, ang = -Math.PI / 2) { this.put(this.amoeba, x, y, ang, r * sx, r * sy, r * 0.5, [col[0], col[1], col[2], 1], rim, [moving, seed, -heading, 0]); }
   // Шип: от точки основания (x, y) наружу под углом ang, длина len, полуширина у основания w; bend — отход острия вбок (экранные единицы).
   spine(x, y, ang, len, w, col, rim, seed, bend = 0, wave = 0) { const c = Math.cos(ang), sn = Math.sin(ang);
-    this.put(this.spines, x + c * len / 2, y + sn * len / 2, ang, w, len / 2, w * 0.8, [col[0], col[1], col[2], 1], rim, [0, seed, bend / w, wave]); }
+    this.put(this.spines, x + c * len / 2, y + sn * len / 2, ang, w, len / 2, w, [col[0], col[1], col[2], 1], rim, [0, seed, bend / w, wave]); }
   phage(x, y, ang, s) {
     this.put(this.head, x - Math.cos(ang) * s * 2.1, y - Math.sin(ang) * s * 2.1, ang, s * 0.85, s * 1.15, s * 0.85, [0.8, 0.92, 1, 1], [1, 0.5, 0.6], [0, 0, 0, 0]);
     this.put(this.tail, x - Math.cos(ang) * s * 0.4, y - Math.sin(ang) * s * 0.4, ang, s, s * 0.8, s, [0.6, 0.62, 0.72, 1], [0.9, 0.9, 1], [0, 0, 0, 0]);
