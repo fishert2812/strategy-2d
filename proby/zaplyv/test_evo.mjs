@@ -96,5 +96,18 @@ check('test_evo_igla: «Нить-игла» — укол носом в упор 
   if (yes.kokk !== 1 || still.kokk !== 1) return 'игла убила кокка';
 });
 
+// Доказательство «худеет без еды» (ЛЭ13): без еды большая клетка за минуту заметно худеет, но не гибнет и не меньше min.
+check('test_evo_hudeet: без еды большое тело худеет, от голода не гибнет', () => {
+  const w = new World(cfg, 41); w.mode = MODE;
+  for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'crumbs', 'bdellos', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = [];
+  w.tidy = 1e9; w.me[0].m = 20; w.rost = 9;
+  for (let i = 0; i < 30 * 60 && w.me.length; i++) { for (const k of ['food', 'prey', 'pseudos']) w[k] = []; w.step(1 / 30, null); w.events.length = 0; w.choice = []; }
+  const m = w.me[0]?.m;
+  console.log('    без еды минуту: масса 20 →', m?.toFixed(2));
+  if (!w.me.length) return 'погибла от голода';
+  if (!(m < 20 * 0.97)) return 'не худеет';
+  if (m < evo.E.hudeet.min) return 'похудела меньше min';
+});
+
 console.log(bad ? `ЭВОЛЮЦИЯ: провалов ${bad}` : 'ЭВОЛЮЦИЯ: все проверки прошли');
 process.exit(bad ? 1 : 0);
