@@ -18,7 +18,7 @@ if (!fs.existsSync(ref)) { console.error('нет образца ' + ref); proces
     const ctx = await b.newContext({ ...pw.devices['iPhone 13'], deviceScaleFactor: 2 }), p = await ctx.newPage(), errs = [];
     p.on('pageerror', e => errs.push(e.message));
     await p.goto(`http://127.0.0.1:${port}/zaplyv/stend/?navyk=${name}&zapis=1`); await p.waitForFunction(() => window.stendReady, null, { timeout: 30000 });
-    const nf = +nfArg || Math.round((N.dlit + 1.4) * 30), mid = Math.round((0.6 + N.dlit * 0.55) * 30);
+    const nf = +nfArg || Math.round((N.dlit + 0.7) * 30), mid = Math.round((0.5 + N.dlit * 0.55) * 30);
     for (let i = 0; i < nf; i++) { await p.evaluate(() => window.stend(1 / 30)); await p.screenshot({ path: `${tmp}/f${String(i).padStart(4, '0')}.png` }); }
     if (errs.length) throw new Error('ошибки на стенде: ' + errs.join('; '));
     const mp4 = path.join(out, name + '.mp4'), ff = a => execFileSync('ffmpeg', ['-y', '-loglevel', 'error', ...a]);

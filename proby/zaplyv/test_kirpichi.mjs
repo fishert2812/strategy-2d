@@ -13,7 +13,9 @@ function frames(name, dt = 0.05) {
     const g = new Uint8Array(GW * GH); let n = 0;
     const brush = { put(x, y, r, cr, cg, cb, a) { if ([x, y, r, a].some(Number.isNaN)) throw new Error('NaN в мазке'); n++; if (a < 0.15) return; const R = r * 0.75;
       for (let j = Math.max(0, Math.floor(y - R)); j <= Math.min(GH - 1, y + R); j++) for (let i = Math.max(0, Math.floor(x - R)); i <= Math.min(GW - 1, x + R); i++) if ((i - x) ** 2 + (j - y) ** 2 <= R * R) g[j * GW + i] = 1; } };
-    kp.draw({ scr, z: Z, glow: brush, ink: brush }); kp.step(dt); out.push({ t, g, n });
+    const tube = { put(pts, ws, col, core, a) { for (let i = 1; i < pts.length; i++) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], m = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / Math.max(0.5, Math.min(ws[i - 1], ws[i]) * 0.5)) || 1;
+      for (let k = 0; k <= m; k++) { const u = k / m; brush.put(x0 + (x1 - x0) * u, y0 + (y1 - y0) * u, Math.max(1, (ws[i - 1] + (ws[i] - ws[i - 1]) * u) / 0.75), 0, 0, 0, a); } } } }; // лента сплошная по построению
+    kp.draw({ scr, z: Z, glow: brush, ink: brush, tube }); kp.step(dt); out.push({ t, g, n });
   }
   return out;
 }
@@ -35,14 +37,16 @@ check('test_kirpichi_navyki: каждый навык собран из суще�
 });
 check('test_kirpichi_glotat: нити дотягиваются и обволакивают цель, кусочки цели уходят внутрь клетки', () => {
   const tips = [], early = [], late = [], N = K.navyki.glotat, sn = N.shagi.find(s => s.k === 'niti'), sr = N.shagi.find(s => s.k === 'rastvorenie');
-  const at = (t, sink) => { const k = new Kirpichi(); k.play('glotat', { from: cell, to: food, seed: 7 }); k.list[0].t = t; k.draw({ scr: (x, y) => [x, y], z: 1, glow: { put() {} }, ink: { put: (x, y, r, cr, cg, cb, a) => a > 0.1 && sink.push([x, y, cr > cb]) } }); };
-  const P = p => sr.ot + (sr.do - sr.ot) * p, dist = s => { const f = s.filter(e => e[2]); return f.length ? f.reduce((m, [x, y]) => m + Math.hypot(x - cell.x, y - cell.y), 0) / f.length : NaN; };
-  at(sn.ot + (sn.do - sn.ot) * 0.8, tips); at(P(0.4), early); at(P(0.7), late);
+  const at = (t, sink) => { const k = new Kirpichi(); k.play('glotat', { from: cell, to: food, seed: 7 }); k.list[0].t = t;
+    const ink = { put: (x, y, r, cr, cg, cb, a) => a > 0.1 && sink.push([x, y, cr > cb, r]) }; k.draw({ scr: (x, y) => [x, y], z: 1, glow: { put() {} }, ink, tube: { put: (pts, ws, col, core, a) => pts.forEach(([x, y], i) => ink.put(x, y, ws[i], ...col, a)) } }); };
+  const P = p => sr.ot + (sr.do - sr.ot) * p, warm = s => s.filter(e => e[2]);
+  at(sn.ot + (sn.do - sn.ot) * 0.8, tips); at(P(0.2), early); at(P(0.75), late);
   const near = tips.filter(([x, y]) => Math.hypot(x - food.x, y - food.y) < 10), ang = near.map(([x, y]) => Math.atan2(y - food.y, x - food.x));
-  const spread = ang.length ? Math.max(...ang) - Math.min(...ang) : 0, d0 = dist(early), d1 = dist(late);
-  console.log(`    паспорт: у цели мазков нитей ${near.length}, охват ${(spread * 57.3).toFixed(0)}°; вещество цели от центра клетки: ${d0.toFixed(0)} → ${d1.toFixed(0)}`);
+  const spread = ang.length ? Math.max(...ang) - Math.min(...ang) : 0, drop = s => Math.max(0, ...warm(s).filter(([x, y]) => Math.hypot(x - food.x, y - food.y) < 8).map(e => e[3]));
+  const inCell = warm(late).filter(([x, y]) => Math.hypot(x - cell.x, (y - cell.y) / 2) < cell.w * 1.3).length, d0 = drop(early), d1 = drop(late);
+  console.log(`    паспорт: у цели мазков нитей ${near.length}, охват ${(spread * 57.3).toFixed(0)}°; капля ${d0.toFixed(1)} → ${d1.toFixed(1)}, вещества цели у клетки: ${inCell} мазков`);
   if (spread < Math.PI) return 'нити не обхватили цель: охват ' + (spread * 57.3).toFixed(0) + '° (нужно больше 180°)';
-  return !(d1 < d0 * 0.7) ? 'вещество цели не течёт внутрь клетки' : '';
+  return !(d1 < d0 * 0.6) ? 'капля цели не тает' : !inCell ? 'вещество цели не доходит до клетки' : '';
 });
 check('test_L047: анимации навыков без пунктира и точечных цепочек, образец — картинка Романа, в игру только с приёмкой', () => {
   const why = [];
