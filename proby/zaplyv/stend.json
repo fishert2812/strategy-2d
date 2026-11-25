@@ -6,12 +6,12 @@
 		{ "kto": "nasha", "imya": "Наша палочка", "ruka": "me", "mashtab": 4.6, "dvizhok": "nasha",
 			"chernovik": { "ot": "pseudo",
 				"telo": { "dlina": 2.4, "tolshchina": 1.13, "cepochka": 1, "zazor": 1, "cvet": [0.35, 0.85, 1], "kromka": [0.85, 0.22, 0.62], "kach": [0, 0],
-					"zhgutiki": { "gde": "krugom", "n": 6, "dlina": 4.5, "volna": 0.5, "vitkov": 8, "beg": 20, "tolshch": 0.6, "alpha": 0.45, "cvet": [0.74, 0.87, 1] } },
+					"zhgutiki": { "gde": "krugom", "n": 6, "dlina": 4.5, "volna": 0.3, "vitkov": 3, "beg": 8, "tolshch": 0.6, "alpha": 0.45, "cvet": [0.74, 0.87, 1] } },
 				"garpun": null } },
 		{ "kto": "zapyataya", "imya": "Красная запятая", "ruka": "bdellos", "mashtab": 6.5, "dvizhok": "bdello",
 			"chernovik": { "ot": "pseudo",
 				"telo": { "dlina": 0.84, "tolshchina": 0.56, "cepochka": 1, "zazor": 1, "cvet": [1, 0.38, 0.15], "kromka": [0.75, 0.12, 0.08], "kach": [0, 0.35],
-					"zhgutiki": { "gde": "korma", "dlina": 3, "volna": 0.4, "vitkov": 6, "beg": 18, "tolshch": 0.7, "alpha": 0.5, "cvet": [1, 0.6, 0.4] } },
+					"zhgutiki": { "gde": "korma", "dlina": 3, "volna": 0.3, "vitkov": 3, "beg": 8, "tolshch": 0.7, "alpha": 0.5, "cvet": [1, 0.6, 0.4] } },
 				"garpun": null } }
 	]
 }
