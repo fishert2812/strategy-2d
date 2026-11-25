@@ -18,7 +18,7 @@
  "zap": { "sheath": 0.08, "flash": 0.12, "len": 9 },
  "abort": { "dark": 1, "fade": 2.5, "fill": 16, "alpha": 0.6, "color": [0.16, 0.12, 0.22] },
  "eaten": {
-  "amoeba": { "bubble": true, "fight": 3, "life": 5.5, "pull": 6, "shrink": 0.5 },
+  "amoeba": { "cup": 1.6, "seam": 0.3, "tongue": 22, "tw": 0.45, "vac": 1.0, "reach": 3, "wall": 36, "deep": 0.35, "fight": 3, "life": 6, "pull": 2.5, "shrink": 0.7, "acid": [0.85, 0.62, 0.2], "acid_a": 0.25, "prey": [0.85, 0.22, 0.62], "gran": 14, "gran_col": [1, 0.82, 0.4], "spread": 1.6 },
   "slipper": { "bubble": true, "fight": 1.5, "life": 4, "pull": 3, "shrink": 0.6 },
   "bell": { "bubble": true, "fight": 0.6, "life": 2.5, "pull": 0.5, "spin": 6, "shrink": 0.7 },
   "roti": { "chew": 2, "fight": 0.6, "life": 3, "pull": 0.6, "shrink": 0.8 },
