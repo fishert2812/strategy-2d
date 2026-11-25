@@ -651,21 +651,27 @@ const up = e => {
 canvas.addEventListener('pointerup', up);
 canvas.addEventListener('pointercancel', up);
 
-function ask() {
-  if ($('genes').classList.contains('on')) return;
-  const h = $('genes').querySelector('h1'), hp = $('genes').querySelector('p'); h.dataset.d ??= h.textContent; hp.dataset.d ??= hp.textContent; // в «Эволюции» выбор на росте, а не из двух дочек
-  h.textContent = evo.on(world) ? evo.E.zagolovok : h.dataset.d; hp.textContent = evo.on(world) ? evo.E.podskazka : hp.dataset.d;
-  const box = $('cards'); box.innerHTML = ''; $('genes').querySelectorAll('.kid').forEach(e => e.remove());
-  kids = world.choice.map((g, i) => ({ g, x: 0, y: 0, vx: 0, vy: 0, m: 1.7, a: -Math.PI / 2, id: 900 + i, sick: -1 })); // две дочки крупно: мутация видна на теле
-  world.choice.forEach((g, i) => {
-    const go = () => { world.pick(g); kids = null; $('genes').classList.remove('on'); fx.ring(world.center().x, world.center().y, 0, 300); beep(660, 0.4, 0.06, 'sine', 1.5); };
-    const b = document.createElement('button');
-    b.innerHTML = '<img class="gicon" alt=""><span></span><small></small>'; b.children[1].textContent = geneName(g); b.children[2].textContent = geneBook(g).daet || ''; b.firstChild.src = icon(g); b.firstChild.style.borderColor = geneColor(g); b.onclick = go; box.appendChild(b); // имя и «что даёт» — только из книги (урок L018)
-    const k = document.createElement('button'); k.className = 'kid'; k.style.left = i ? '52%' : '2%'; k.onclick = go; k.setAttribute('aria-label', geneName(g)); $('genes').appendChild(k);
-  });
-  $('genes').classList.add('on'); $('toast').classList.remove('on'); // всплывашка не ложится на заголовок выбора
-  beep(440, 0.5, 0.05, 'sine', 2);
+// Выбор навыка на ходу (Роман 25.11: «Прерывает игру зачем то — пускай просто всплывает навыки. Игра продолжается аккуратно»):
+// мир не стоит, экран не перекрыт. Варианты всплывают полосой у нижнего края под большим пальцем; не выбрал за offer_fold с —
+// полоса сворачивается в значок у края, коснёшься — снова раскроется; ждёт offer_auto с — берётся первый вариант.
+let offerKey = '', offerT = 0;
+function offer(dt) {
+  const key = world.choice.join(), O = $('offer'), D = $('odot');
+  if (!world.choice.length) { if (offerKey) { O.classList.remove('on'); D.classList.remove('on'); offerKey = ''; } return; }
+  if (key !== offerKey) { // новый выбор: собрать полосу
+    offerKey = key; offerT = 0; $('otitle').textContent = evo.on(world) ? evo.E.zagolovok : $('otitle').dataset.d; const box = $('obtns'); box.innerHTML = '';
+    world.choice.forEach(g => { const b = document.createElement('button'); b.innerHTML = '<img class="gicon" alt=""><span></span><small></small>';
+      b.children[1].textContent = geneName(g); b.children[2].textContent = geneBook(g).daet || ''; b.firstChild.src = icon(g); b.firstChild.style.borderColor = geneColor(g);
+      b.onclick = e => { e.stopPropagation(); take(g); }; box.appendChild(b); });
+    D.querySelector('img').src = icon(world.choice[0]); O.classList.add('on'); D.classList.remove('on'); beep(440, 0.3, 0.04, 'sine', 2);
+  }
+  offerT += dt;
+  if (O.classList.contains('on') && offerT > cfg.offer_fold) { O.classList.remove('on'); D.classList.add('on'); } // свернулась в значок
+  if (offerT > cfg.offer_auto) take(world.choice[0]); // так и не выбрал — первый вариант
 }
+function take(g) { world.pick(g); offer(0); fx.ring(world.center().x, world.center().y, 0, 300); beep(660, 0.4, 0.06, 'sine', 1.5); }
+$('odot').onclick = e => { e.stopPropagation(); offerT = 0; $('offer').classList.add('on'); $('odot').classList.remove('on'); };
+$('otitle').dataset.d = $('otitle').textContent;
 
 // Твой путь за заход: время, поколения и сколько это заняло бы в природе, мутации, кто сколько отнял.
 function pathText(w) {
@@ -711,7 +717,7 @@ function events() {
 }
 
 function tick(dt) {
-  if (world.choice.length) { ask(); return; }
+  offer(dt);
   world.step(dt, pad.value()); // джойстик: направление и сила из сдвига пальца
   { const [fx, fy] = world.flow(view.x, view.y); cur[0] += fx * dt; cur[1] += fy * dt; } // течение несёт взвесь
   events();

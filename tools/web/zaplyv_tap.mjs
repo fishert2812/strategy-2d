@@ -170,18 +170,24 @@ if (await p.evaluate(() => { const w = zaplyvWorld(); w.choice = []; }) === unde
         const k = window.sharedRaw.find(x => /_1_kadr/.test(x.name)), kb = k && await createImageBitmap(k); return { w: b.width, h: b.height, lit, kadr: kb ? kb.width : 0 }; });
       say(cap && cap.h > cap.w + 100 && cap.lit > 400 && cap.kadr >= 720, 'test_L035: под картинкой отметки впечатана подпись со словами, весь кадр не уже 720 точек (' + JSON.stringify(cap) + ')'); }
     if (await on('genome')) await tap('#gon', '«Плыть дальше» после отправки'); } }
-// Выбор дочки при делении: касание самой дочки берёт её ген.
+// test_L053 (Роман 25.11: «Прерывает игру зачем то — пускай просто всплывает навыки. Игра продолжается аккуратно»): выбор навыка
+// не останавливает мир и не закрывает экран — полоса у нижнего края, касание на ходу берёт ген; не выбрал — сворачивается в значок.
 await p.evaluate(() => { const w = zaplyvWorld(), all = Object.keys(w.cfg.genes).filter(g => !w.genes[g]); w.choice = all.slice(0, 2); });
 await p.waitForTimeout(600);
-// test_L021 (Роман: «в меню генома нет ни одного значка»): у дочек на выборе — значок гена, снимок клетки, не пустой.
-say(await p.evaluate(() => [...document.querySelectorAll('#cards .gicon')].length === 2 && [...document.querySelectorAll('#cards .gicon')].every(i => i.naturalWidth >= 64 && i.src.length > 3000)), 'test_L021: у дочек — значки генов');
-await notBook(await p.evaluate(() => [...document.querySelectorAll('#cards button span, #cards button small')].map(e => e.textContent)), 'выбор дочки');
+{ const r = await p.evaluate(async () => { const w = zaplyvWorld(), t0 = w.stats.time; await new Promise(q => setTimeout(q, 500)); const b = document.getElementById('offer').getBoundingClientRect();
+    return { go: w.stats.time - t0, top: b.top, h: innerHeight, pause: getComputedStyle(document.getElementById('pause')).display !== 'none' }; });
+  say(r.go > 0.3 && r.top > r.h * 0.6 && r.pause, `test_L053: при выборе навыка мир плывёт (${r.go.toFixed(2)} с за 0,5 с), полоса у нижнего края (верх ${Math.round(r.top)} из ${r.h}), пауза на месте`); }
+// test_L021 (Роман: «в меню генома нет ни одного значка»): у вариантов выбора — значок гена, снимок клетки, не пустой.
+say(await p.evaluate(() => [...document.querySelectorAll('#obtns .gicon')].length === 2 && [...document.querySelectorAll('#obtns .gicon')].every(i => i.naturalWidth >= 64 && i.src.length > 3000)), 'test_L021: у вариантов выбора — значки генов');
+await notBook(await p.evaluate(() => [...document.querySelectorAll('#obtns button span, #obtns button small')].map(e => e.textContent)), 'выбор навыка');
 const g1 = await p.evaluate(() => zaplyvWorld().choice[1]);
-if (await tap('#genes .kid ~ .kid', 'дочка справа')) say(await p.evaluate(g => zaplyvWorld().genes[g] && !document.getElementById('genes').classList.contains('on'), g1), 'касание дочки даёт её ген и закрывает выбор');
-await p.evaluate(() => { const w = zaplyvWorld(), all = Object.keys(w.cfg.genes).filter(g => !w.genes[g]); w.choice = all.slice(0, 2); });
-await p.waitForTimeout(600);
+if (await tap('#obtns button:nth-child(2)', 'вариант справа')) say(await p.evaluate(g => zaplyvWorld().genes[g] && !document.getElementById('offer').classList.contains('on'), g1), 'касание варианта даёт его ген и убирает полосу');
+await p.evaluate(() => { const w = zaplyvWorld(), all = Object.keys(w.cfg.genes).filter(g => !w.genes[g]); w.choice = all.slice(0, 2); w.cfg.offer_fold = 0.5; });
+await p.waitForTimeout(1200);
+say(await seen('#odot') && !(await seen('#offer')), 'test_L053: не выбрал — полоса свернулась в значок у края');
 const g0 = await p.evaluate(() => zaplyvWorld().choice[0]);
-if (await tap('#cards button', 'карточка гена дочки')) say(await p.evaluate(g => zaplyvWorld().genes[g], g0), 'карточка дочки даёт её ген');
+await p.evaluate(() => { zaplyvWorld().cfg.offer_fold = 6; });
+if (await tap('#odot', 'значок выбора') && await tap('#obtns button', 'вариант после раскрытия')) say(await p.evaluate(g => zaplyvWorld().genes[g], g0), 'значок раскрывает полосу, вариант даёт ген');
 // test_L030 (дизайнер 24.11: колокольчик и коловратка убивают новичка без признака): у воронки на экране оранжевый край, у ближайшей он разгорается.
 { const lit = async d => { await p.evaluate(d => { const w = zaplyvWorld(), a = w.me[0]; for (const l of ['amoebas', 'bdellos', 'slippers', 'bells', 'rotis']) w[l].length = 0; w.choice = []; w.me.length = 1; Object.assign(a, { vx: 0, vy: 0, grab: null, held: 0 }); // одна клетка у края: встреча с воронкой гарантирована
     w.bells.push({ x: a.x + 300, y: a.y, dir: 0, shut: 0, id: 7001 }); const [bx, by] = w.bell(w.bells[0]); w.bells[0].x -= bx - (a.x + w.cfg.vortex_r + d); w.bells[0].y -= by - a.y; zaplyvProbe.warn = {}; }, d);
