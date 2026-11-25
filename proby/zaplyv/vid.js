@@ -144,7 +144,8 @@ export function skin(c) {
   if (lk.receptors && m.smell > 0.02) { const [px, py] = at(L + w * 0.7, 0); glow.put(px, py, w * 0.55, 1, 0.7, 0.35, 0.22 * m.smell * (0.9 + 0.1 * Math.sin(time * 3))); } // у еды — тёплый тусклый огонёк
   const R = V.grain, fast = lk.ribosomes > cfg.look.ribosomes[0], jit = (fast ? R.jit_fast : R.jit) * w * (1 - ill), tl = m.tl; // крупинки внутри всегда мелко дрожат; у сытой — живее
   const J = (k, s) => Math.sin(time * 31 + k * 7.1 + s) * jit + Math.sin(time * 17 + k * 3.3) * jit * 0.6;
-  for (let k = 0; k < (fast ? R.fast_n : lk.ribosomes); k++) { // рибосомы: розовые зёрна; быстрый рост — содержимое гуще и зернистее, темнее
+  const more = Math.max(1, half / (w * (cfg.delenie?.half0 || 2.12))); // зёрен столько, сколько массы: у длинной созревшей вдвое больше, при делении густота не скачет
+  for (let k = 0; k < Math.round((fast ? R.fast_n : lk.ribosomes) * more); k++) { // рибосомы: розовые зёрна; быстрый рост — содержимое гуще и зернистее, темнее
     const t = k * 2.4 + a.id, u = Math.sin(t + tl * 0.2) * (half - w * 0.8), [px, py] = at(u + J(k, 0), Math.cos(t * 1.7 + tl * 0.25) * w * 0.45 + J(k, 2));
     if (fast) ink.put(px, py, 1.3 * z + 0.4, 0.42, 0.06, 0.3, 0.6); else glow.put(px, py, 1.6 * z + 0.6, 1, 0.35, 0.75, 0.35);
   }
@@ -167,8 +168,9 @@ export function skin(c) {
     const [sx0, sy0] = along(-half + w * 0.3, (f - mid) * w * 0.22 * sp5 + arc(half / z)), spread = (f - mid) * 0.6 * sp5;
     const fdx = -Math.cos(ang + spread), fdy = -Math.sin(ang + spread), curl = P * (f % 3 === 1 ? 1 : 0.25); // в кувырке нить меняет форму спирали
     const ph = F.ph + f * 0.5, slow = F.t * 0.6 + f * 1.7;
-    for (let k = 1; k <= V.whip.n; k++) { // нить сплошная: точки гуще своего размера, не бусы (L047)
-      const s = k / V.whip.n, grow = Math.min(1, s * 3);
+    const nW = Math.min(V.whip.max, Math.max(V.whip.n, Math.ceil(w * V.whip.len / (V.whip.step * (0.8 * Math.max(z, 0.7) + 0.3) * 0.55)))); // точек столько, чтобы шаг был меньше самой тонкой точки и вблизи: не бусы (L047)
+    for (let k = 1; k <= nW; k++) { // нить сплошная: точки гуще своего размера, не бусы (L047)
+      const s = k / nW, grow = Math.min(1, s * 3);
       // покой: от бока наружу, медленная волна + броуновская дрожь
       let xr = 0, yr = 0, xt = 0, yt = 0;
       if (B < 0.995) { const Lr = s * w * 5.2, wr = (Math.sin(s * 7 - ph * 0.3) * 0.3 + Math.sin(s * 3 + slow) * 0.35 + Math.sin(s * 11 - slow * 2.3) * 0.08) * w * grow;
@@ -183,7 +185,7 @@ export function skin(c) {
       const bs = s * w * 5.8, wf = Math.sin(s * (10 + 10 * curl) - ph) * w * (0.42 - 0.21 * curl) * grow;
       const xf = sx0 + fdx * bs - fdy * wf, yf = sy0 + fdy * bs + fdx * wf;
       xt = xb + (xf - xb) * P; yt = yb + (yf - yb) * P; }
-      glow.put(xr + (xt - xr) * B, yr + (yt - yr) * B, (0.8 * Math.max(z, 0.7) + 0.3) * (1 - s * 0.45), fc[0], fc[1], fc[2], cfg.flag.alpha * V.whip.a * (1 - s * 0.6)); // нить в цвете оболочки: светло-голубая, тоньше и прозрачнее к концу
+      glow.put(xr + (xt - xr) * B, yr + (yt - yr) * B, (0.8 * Math.max(z, 0.7) + 0.3) * (1 - s * 0.45), fc[0], fc[1], fc[2], cfg.flag.alpha * V.whip.a * Math.sqrt(V.whip.n / nW) * (1 - s * 0.6)); // нить в цвете оболочки: светло-голубая, тоньше и прозрачнее к концу
     }
   }
 }
@@ -206,6 +208,9 @@ export function marks(q, d) {
 const pairs = new Map();
 export function splitAt(mom, kid) { if (mom && kid && born.get(mom)?.kid !== kid) pairs.set(mom, { kid, t: null }); } // повторный вызов той же пары не перезапускает деление
 // ang, hd, wr, cx, cy — как дочка нарисовалась бы сама: угол, полудлина и полуширина в мире, центр; hm, wm — полудлина и полуширина матери.
+// Рост палочки к делению по физике (design/zaplyv_fizika_kak_v_zhizni.md, п. 14). fm — доля массы от массы деления (0,5 у новорождённой, 1 у созревшей).
+// half — полудлина в толщинах (L = L0·m/m0, толщина постоянная), u — путь кольца 0..u_max (шейка r = R·√(1−u²), только сужается), dna — нуклеоид делится надвое.
+export function grow(fm, D) { const q = v => Math.max(0, Math.min(1, v)); return { half: D.half0 * 2 * fm, u: Math.min(D.u_max, q((fm - D.ring) / (1 - D.ring))), dna: q((fm - D.dna) / (D.ring - D.dna)) }; }
 export function birth(a, time, all, ang, hd, wr, cx, cy, hm, wm) {
   const P = V.split;
   for (const [mom, q] of pairs) if (q.t === null) { const A = all.find(c => c.id === mom), B = all.find(c => c.id === q.kid); pairs.delete(mom);
