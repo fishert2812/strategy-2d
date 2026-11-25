@@ -29,20 +29,25 @@ export function names(cfg, GENY) {
   for (const c of Object.values((GENY && GENY.geny) || {})) if (c.klyuch in M.genes) cfg.genes[c.klyuch] = [c.imya, c.daet];
 }
 // Мутации живут только в режиме «Мутации» (Роман 24.11: «Мы тестируем разные режимы!»); обычный заплыв как был.
-const on = w => w.mode === 'mut' || w.mode === 'evo'; // в «Эволюции» (evo.js) все умения тоже живут
-const has = (w, g) => (on(w) || everywhere(g)) && !!w.genes[g];
+// Режим «Голод» (Роман 25.11 08:47: «Да отдельным режимом давай попробуем»): клетка без еды худеет; его умения — M.golod.genes.
+const hungry = w => w.mode === 'golod';
+const mutMode = w => w.mode === 'mut' || w.mode === 'evo'; // в «Эволюции» (evo.js) все умения тоже живут
+const own = (w, g) => M.golod.genes.includes(g) ? hungry(w) : mutMode(w);
+const on = w => mutMode(w) || hungry(w);
+const has = (w, g) => (own(w, g) || everywhere(g)) && !!w.genes[g];
 const fresh = (w, list) => list.filter(g => !w.genes[g]);
-// Из чего выбирают дочки при делении. В режиме — сначала новые мутации (кроме чужих), потом прежние гены.
+// Из чего выбирают дочки при делении. В режиме — одна новая мутация (кроме чужих) и одно прежнее умение.
 export function pool(w) {
   const old = Object.keys(w.cfg.genes).filter(g => !(g in M.genes) || everywhere(g));
   if (!on(w)) return old;
-  const mine = fresh(w, Object.keys(M.genes).filter(g => !M.pipe.includes(g)));
-  return mine.length ? mine : old;
+  const ok = g => !w.offer || w.offer(g), one = l => l.length ? [l[Math.floor(w.r() * l.length)]] : [];
+  const mine = fresh(w, Object.keys(M.genes).filter(g => !M.pipe.includes(g) && own(w, g))).filter(ok), was = old.filter(g => !w.genes[g] && ok(g));
+  return [...one(mine), ...one(was)]; // одна дочка — с новой мутацией, другая — с прежним умением (прогон 0.61, О43: «Ядовитое касание» и «Запасная жизнь» не выпадали)
 }
 // Что передаёт по трубочке золотистая соседка. В режиме — сначала чужие мутации.
 export function pipe(w) {
   const base = w.cfg.plasmid_genes;
-  if (!on(w)) return base;
+  if (w.mode !== 'mut') return base;
   const mine = fresh(w, M.pipe);
   return mine.length ? mine : base;
 }
@@ -77,18 +82,34 @@ export function cell(w, a, dt, th) {
     a.vx += (vx / w.me.length - a.vx) * al; a.vy += (vy / w.me.length - a.vy) * al;
   }
   if (a.snap > 0) a.snap = Math.max(0, a.snap - dt);
+  if (hungry(w)) starve(w, a, dt);
   if (has(w, 'decoy') && !(a.spore > 0) && (a.ves = (a.ves || 0) + dt) > M.decoy.every) { // обманки: пузырёк отщипывается у кормы
     a.ves = 0; const r = 13 * Math.sqrt(a.m); a.m = Math.max(0.6, a.m - M.decoy.cost);
     (w.vesicles ||= []).push({ x: a.x - Math.cos(a.a) * r, y: a.y - Math.sin(a.a) * r, t: 0 });
     if (w.vesicles.length > M.decoy.max) w.vesicles.shift();
   }
-  if (a === w.me[0] && on(w)) citrate(w);
+  if (a === w.me[0] && w.mode === 'mut') citrate(w);
   if (has(w, 'citrate') && w.cit) for (const q of w.cit) if (!q.gone && Math.hypot(q.x - a.x, q.y - a.y) < 13 * Math.sqrt(a.m) + M.citrate.r) { // голубую точку съедает только клетка с геном
     q.gone = true; w.grow(a, M.citrate.food); w.stats.citrate = (w.stats.citrate || 0) + 1; w.fed(q.x, q.y, 1); } // как обычная еда: счёт «съедено», звук
+  if (a === w.me[0] && w.refuse) { for (const g of w.refuse) g.t += dt; w.refuse = w.refuse.filter(g => g.t < M.door.flash); }
+  if (a === w.me[0] && w.aborts) { for (const g of w.aborts) g.t += dt; w.aborts = w.aborts.filter(g => g.t < M.abort.show); }
   if (a === w.me[0] && w.vesicles) { for (const v of w.vesicles) v.t += dt; w.vesicles = w.vesicles.filter(v => v.t < M.decoy.life); }
   if (!has(w, 'gas')) return;
   const up = !th && !a.stuck && !(a.spore > 0) && !(w.genes.sense && w.food.some(f => Math.hypot(f.x - a.x, f.y - a.y) < w.cfg.sense_r)); // чует еду рядом — ждёт у неё, а не всплывает
   a.lift = (a.lift || 0) + ((up ? M.gas.up : 0) - (a.lift || 0)) * Math.min(1, M.gas.ease * dt); a.y -= a.lift * dt; // вода гасит любой ход, а пузырьки тянут вверх всё время
+}
+
+// Голод: каждая клетка тратит силы на жизнь. Сначала тают крупинки запаса, потом масса; ниже порога клетка гибнет.
+// «Копит запас» (Г42): масса сверх over × порога деления уходит в крупинки (до n), поэтому делится чуть позже.
+// «Дольше без еды» (Г40): выше small клетка худеет быстрее (fast), ниже — тратит в k раз меньше.
+function starve(w, a, dt) {
+  const G = M.golod, S = M.store, L = M.lean;
+  if (has(w, 'store') && (a.store || 0) < S.n && a.m > w.split() * S.over) { a.m -= S.grain; a.store = (a.store || 0) + 1; w.stats.stored = (w.stats.stored || 0) + 1; }
+  let burn = G.burn * dt;
+  if (has(w, 'lean')) burn *= a.m > L.small ? L.fast : L.k;
+  if (has(w, 'store') && a.store > 0) { a.storeLeft = (a.storeLeft ?? S.grain) - burn; if (a.storeLeft <= 0) { a.store--; a.storeLeft = S.grain; w.stats.melted = (w.stats.melted || 0) + 1; } return; }
+  a.m -= burn;
+  if (a.m < G.die) { w.stats.starved = (w.stats.starved || 0) + 1; w.lose(a, a.x, a.y, 'me'); }
 }
 
 // Голубые точки режима «Мутации»: держим их число вокруг семьи, дальние уходят. Никто, кроме клетки с геном, их не ест.
@@ -113,6 +134,7 @@ export function burst(w, a) {
   const x = a.x, y = a.y, ang = a.a, m = a.m;
   w.lose(a, x, y, 'phage');
   if (w.me.indexOf(a) < 0) w.events.push(['abort', x, y, ang, m]); // спора могла спасти последнюю — тогда не гибель
+  if (w.me.indexOf(a) < 0) { (w.aborts ||= []).push({ x, y, ang, m, t: 0, n: w.cfg.burst }); w.stats.trapped = (w.stats.trapped || 0) + w.cfg.burst; } // вирусы заперты внутри — их видно, пока тело гаснет
   return true;
 }
 
@@ -149,6 +171,14 @@ export function drawWorld({ w, scr, z, glow, ink }) {
   for (const [key, cl] of clasps) if (!alive.has(key) && now - cl.seen > C.forget) clasps.delete(key); // расцепились надолго — следующая сцепка снова щёлкнет (на краю застёжка не мигает щелчками)
   for (const q of w.cit || []) { const [x, y] = scr(q.x, q.y), r = 3.4 * z + 1.5; // голубая точка: плотная, с тёмной кромкой — не похожа на пустые кольца пузырей фона
     ink.put(x, y, r * 1.3, 0.03, 0.08, 0.16, 0.7); glow.put(x, y, r, 0.3, 0.75, 1, 0.95); glow.put(x - r * 0.3, y - r * 0.3, r * 0.4, 0.75, 0.92, 1, 0.7); }
+  for (const g of w.refuse || []) { const f = 1 - g.t / M.door.flash, a = g.a; // отказ двери: дуга света на оболочке со стороны шарика
+    for (let k = -3; k <= 3; k++) { const t = Math.atan2(g.uy, g.ux) + k * 0.18, [x, y] = scr(a.x + Math.cos(t) * (g.r + 3), a.y + Math.sin(t) * (g.r + 3));
+      glow.put(x, y, (1.6 * z + 0.8) * (1 + 0.6 * (1 - f)), 0.75, 0.95, 0.85, 0.7 * f * (1 - Math.abs(k) / 4)); } }
+  for (const g of w.aborts || []) { // тихая гибель: внутри погасшего тела видны запертые вирусы — тёмные головки с хвостиком, они тускнеют вместе с телом и не выходят
+    const f = Math.max(0, 1 - g.t / M.abort.show), L = 13 * Math.sqrt(g.m), ux = Math.cos(g.ang), uy = Math.sin(g.ang);
+    for (let k = 0; k < g.n; k++) { const u = (k / (g.n - 1 || 1) - 0.5) * L * 1.2, o = (k % 2 ? 1 : -1) * L * 0.18;
+      const [x, y] = scr(g.x + ux * u - uy * o, g.y + uy * u + ux * o), r = 1.6 * z + 0.8;
+      ink.put(x, y, r * 1.4, 0.2, 0.05, 0.12, 0.8 * f); glow.put(x, y, r * 0.7, 0.85, 0.35, 0.55, 0.45 * f); ink.put(x + ux * r * 1.8, y + uy * r * 1.8, r * 0.5, 0.2, 0.05, 0.12, 0.6 * f); } }
   for (const v of w.vesicles || []) { const [x, y] = scr(v.x, v.y), f = 1 - v.t / M.decoy.life, r = 2.2 * z + 1;
     for (let k = 0; k < 8; k++) { const t = k / 8 * 6.283; glow.put(x + Math.cos(t) * r, y + Math.sin(t) * r, 0.8 * z + 0.4, 0.55, 0.8, 0.95, 0.35 * f); }
     ink.put(x, y, r * 0.8, 0.2, 0.3, 0.45, 0.25 * f); }
@@ -168,13 +198,18 @@ export function bite(w, m) {
   m.syt = M.flu.nibble; w.stats.nibble = (w.stats.nibble || 0) + 1; w.events.push(['bump', m.x, m.y]);
 }
 // Кокк щиплет ядом (sim.js). true — дверь закрыта: яд не вошёл.
-export const shut = w => has(w, 'door');
+export function shut(w, a, q) {
+  if (!has(w, 'door')) return false;
+  if (a && q) { const d = Math.hypot(q.x - a.x, q.y - a.y) || 1, r = 13 * Math.sqrt(a.m); // яд дошёл до оболочки и не вошёл: короткая светлая вспышка на боку, обращённом к шарику
+    (w.refuse ||= []).push({ a, ux: (q.x - a.x) / d, uy: (q.y - a.y) / d, r, t: 0 }); w.stats.refuse = (w.stats.refuse || 0) + 1; }
+  return true;
+}
 // Множитель еды: закрытая дверь пропускает меньше.
 export const food = w => has(w, 'door') ? M.door.food : 1;
 
 // Что рисовать на теле (дополнение к look.js).
 export function mutLook(genes) {
-  return { ...(genes.snap ? { flagella: M.snap.look } : {}), snap: !!genes.snap, gas: genes.gas ? M.gas.n : 0, abort: !!genes.abort, door: !!genes.door, decoy: !!genes.decoy, flu: genes.flu ? M.flu.pins : 0, steady: genes.steady ? M.steady.look : 0, citrate: !!genes.citrate };
+  return { ...(genes.snap ? { flagella: M.snap.look } : {}), snap: !!genes.snap, gas: genes.gas ? M.gas.n : 0, abort: !!genes.abort, door: !!genes.door, decoy: !!genes.decoy, flu: genes.flu ? M.flu.pins : 0, steady: genes.steady ? M.steady.look : 0, citrate: !!genes.citrate, store: !!genes.store, lean: !!genes.lean };
 }
 
 // Вид мутаций на теле плывущей клетки (зовёт vid.js skin()). Цвет — из палитры клетки, без чистого белого (урок L020).
@@ -195,10 +230,14 @@ export function mutSkin({ a, lk, ink, glow, at, w, L, time }) {
     const t = k / 8, [px, py] = at(-L - w * 0.55 + Math.sin(time * 2 + k) * w * 0.05, (t - 0.5) * w * 1.3); glow.put(px, py, w * 0.12, 0.55, 0.8, 0.95, 0.3); }
   for (let k = 0; k < (lk.flu || 0); k++) { // сцепка: по бокам короткие светлые застёжки-зубчики, торчат наружу
     const s = k % 2 ? 1 : -1, u = ((k >> 1) / ((lk.flu >> 1) - 1 || 1) - 0.5) * L * 1.4;
-    for (let j = 0; j < 3; j++) { const [px, py] = at(u, s * (w * 0.95 + j * w * 0.12)); ink.put(px, py, w * 0.1, 0.08, 0.14, 0.22, 0.5); glow.put(px, py, w * 0.07, 0.55, 0.85, 1, 0.35); } }
+    for (let j = 0; j < 7; j++) { const t = j / 6, [px, py] = at(u, s * (w * 0.82 + t * w * 0.2)); ink.put(px, py, w * (0.1 - 0.05 * t), 0.08, 0.14, 0.22, 0.45); glow.put(px, py, w * (0.07 - 0.035 * t), 0.55, 0.85, 1, 0.3); } } // сплошной сужающийся бугорок, сидит на оболочке, в воду не торчит
   for (let k = 0; k < (lk.steady || 0); k++) { // крепче жгут: у кормы, где выходит хвост, тугая тёмная скрутка из витков
     const u = -L - w * (0.15 + k * 0.16), o = (k % 2 ? 1 : -1) * w * 0.12; const [px, py] = at(u, o); ink.put(px, py, w * 0.13, 0.1, 0.16, 0.26, 0.75); glow.put(px, py, w * 0.06, 0.55, 0.8, 1, 0.3); }
   if (lk.citrate) for (let k = 0; k < 5; k++) { // ест голубую еду: внутри голубые крупинки съеденного
     const [px, py] = at((k / 4 - 0.5) * L * 1.2, (k % 2 ? 1 : -1) * w * 0.18); glow.put(px, py, w * 0.14, 0.25, 0.65, 0.95, 0.55); ink.put(px, py, w * 0.17, 0.05, 0.12, 0.22, 0.25); }
+  if (lk.store) for (let k = 0; k < (a.store || 0); k++) { // копит запас: тёмные плотные крупинки внутри, по одной на крупинку запаса
+    const [px, py] = at((k / 5 - 0.5) * L * 1.3, (k % 2 ? 1 : -1) * w * 0.22); ink.put(px, py, w * 0.2, 0.1, 0.06, 0.04, 0.8); glow.put(px - w * 0.05, py - w * 0.05, w * 0.06, 0.9, 0.75, 0.45, 0.35); }
+  if (lk.lean) for (let k = 0; k < 6; k++) { // дольше без еды: по бокам частые складки оболочки — ей есть куда сжаться
+    const s = k % 2 ? 1 : -1, [px, py] = at(((k >> 1) / 2 - 0.5) * L * 1.1, s * w * 0.86); ink.put(px, py, w * 0.08, 0.1, 0.16, 0.26, 0.6); glow.put(px, py + s * w * 0.05, w * 0.05, 0.6, 0.85, 1, 0.3); }
   if (lk.snap && a.snap > 0) { const [px, py] = at(-L - w, 0); glow.put(px, py, w * 0.6, 0.6, 0.8, 1, 0.15 * a.snap / M.snap.time); } // щелчок: вспышка у кормы, где подломился хвост
 }

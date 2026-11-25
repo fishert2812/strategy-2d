@@ -62,6 +62,24 @@ check('амёба глотает клетку без капсулы и не мо
   if (res[1] !== 1) return 'с капсулой клетку всё равно съели';
 });
 
+// Урок L045 (прогон 0.68: «вирус стал безвредным»; бот: прилипший вирус в 13 из 20 случаев слетал от случайных поворотов за едой;
+// решение 25.11 по совету координатора): стряхнуть можно только нарочным резким разворотом в первые cfg.phage_shake с после посадки.
+check('test_L045: вирус стряхивает только резкий разворот сразу после посадки; позже поздно — клетка заболевает', () => {
+  const go = late => { const w = new World(cfg, 5); w.mode = 'swim'; for (const l of ['amoebas', 'bdellos', 'slippers', 'bells', 'rotis', 'pseudos', 'phages']) w[l].length = 0; w.tidy = 1e9;
+    const a = w.me[0]; a.a = 0; w.phages.push({ x: a.x + 60, y: a.y, vx: 0, vy: 0, d: 0, t: 0, id: 1, host: 'me', cool: 0 });
+    let t0 = -1, shook = false;
+    for (let t = 0; t < 4; t += 1 / 30) { const c = w.me[0]; if (!c) break; const g = w.phages.find(g => g.on === c);
+      if (g && t0 < 0) t0 = t;
+      const back = t0 >= 0 && t - t0 > late; // разворот назад
+      w.step(1 / 30, back ? { x: c.x - Math.cos(c.a) * 200, y: c.y - Math.sin(c.a) * 200 } : { x: c.x + Math.cos(c.a) * 200, y: c.y + Math.sin(c.a) * 200 });
+      if (w.events.some(e => e[0] === 'shake')) shook = true; w.events.length = 0; }
+    return { t0, shook, sick: w.me.some(c => c.sick >= 0) || !w.me.length }; };
+  const early = go(0.1), late = go(cfg.phage_shake + 0.4);
+  console.log(`    паспорт: разворот через 0,1 с после посадки — стряхнул: ${early.shook}, болеет: ${early.sick} | через ${(cfg.phage_shake + 0.4).toFixed(1)} с — стряхнул: ${late.shook}, болеет: ${late.sick}`);
+  if (early.t0 < 0) return 'вирус не сел';
+  if (!early.shook || early.sick) return 'резкий разворот сразу после посадки не стряхнул вирус';
+  if (late.shook || !late.sick) return 'поздний разворот всё ещё стряхивает вирус: случайные повороты спасают от него';
+});
 check('[crispr] фаг прилипает и впрыскивает, клетка лопается облаком новых фагов; CRISPR помнит только пережитых: первый фаг стоит сил и даёт полоску, второй режется даром', () => {
   const res = [];
   for (const crispr of [false, true]) {
@@ -823,6 +841,16 @@ check('test_L049 (прогон игроками, круг 6: «после пол
   let t = 0; while (t < 40 && w.me.length < cfg.me_max) { if (w.choice.length) w.pick(w.choice[0]); for (const a of w.me) a.m = Math.max(a.m, w.split()); w.step(1 / 30, null); t += 1 / 30; }
   console.log('    паспорт: сытая колония за', t.toFixed(0), 'с — клеток', w.me.length, 'из', cfg.me_max, '| уплыли', w.away.length);
   if (w.me.length < cfg.me_max) return `колония застряла на ${w.me.length} клетках: само-деление отправляет дочек прочь раньше me_max`;
+});
+check('test_L051 (проверка кадров деления 25.11: «дочки складываются бок о бок, как две таблетки, а не цепочкой»): после деления дочки лежат торец к торцу вдоль оси матери', () => {
+  const w = new World(cfg, 602); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = [];
+  const a = w.me[0]; for (let t = 0; t < 1; t += 1 / 30) w.step(1 / 30, null); // мать постояла без пальца: дрейф и поворот уже идут
+  a.m = w.split() + 0.01; const ux = Math.cos(a.a), uy = Math.sin(a.a); w.divide(); w.choice = [];
+  for (let t = 0; t < 2.5; t += 1 / 30) w.step(1 / 30, null);
+  const [p, q] = w.me, dx = p.x - q.x, dy = p.y - q.y, along = Math.abs(dx * ux + dy * uy), across = Math.abs(-dx * uy + dy * ux), L = 2 * 8.5 * 2.1; // длина палочки дочки в мире (main.js: half = w·2,1)
+  console.log('    паспорт: через 2,5 с дочки вдоль оси', along.toFixed(0), 'поперёк', across.toFixed(0), '| длина палочки', L.toFixed(0));
+  if (along < L * 0.95) return `дочки вдоль оси ближе длины палочки (${along.toFixed(0)} < ${L.toFixed(0)}): палочки наложены, колония сложит их бок о бок`;
+  if (across > L * 0.3) return 'дочку утянуло вбок: ' + across.toFixed(0);
 });
 check('test_L033 (прогон 0.54, О33: «Убери палец, и клетка сама поплывёт к ближайшей еде» — стояли 11 с): с «Чует еду» без пальца клетка сама доплывает до куска', () => {
   const go = sense => { const w = new World(cfg, 600); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9;

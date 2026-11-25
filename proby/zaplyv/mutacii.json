@@ -8,7 +8,9 @@
   "decoy": "decoy",
   "flu": "flu",
   "steady": "steady",
-  "citrate": "citT"
+  "citrate": "citT",
+  "lean": "lean",
+  "store": "glgC"
  },
  "pipe": [
   "snap",
@@ -24,7 +26,8 @@
  },
  "abort": {
   "t": 0.8,
-  "stop": 4
+  "stop": 4,
+  "show": 2.5
  },
  "gas": {
   "up": 40,
@@ -33,7 +36,8 @@
   "n": 5
  },
  "door": {
-  "food": 0.85
+  "food": 0.85,
+  "flash": 0.45
  },
  "decoy": {
   "every": 0.4,
@@ -79,5 +83,23 @@
   "far": 900,
   "food": 0.06,
   "r": 14
+ },
+ "golod": {
+  "genes": [
+   "lean",
+   "store"
+  ],
+  "burn": 0.02,
+  "die": 0.5
+ },
+ "lean": {
+  "small": 0.75,
+  "fast": 1.5,
+  "k": 0.25
+ },
+ "store": {
+  "n": 6,
+  "over": 0.9,
+  "grain": 0.12
  }
 }

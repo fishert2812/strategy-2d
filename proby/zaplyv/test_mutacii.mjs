@@ -2,6 +2,7 @@
 import { World } from './sim.js';
 import { look } from './look.js';
 import { M, drawWorld } from './mutacii.js';
+import * as mut from './mutacii.js';
 import * as vid from './vid.js';
 import { readFileSync } from 'node:fs';
 const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
@@ -44,6 +45,24 @@ check('[abort] вирус остаётся внутри: заражённая с
   if (b.phages.length < cfg.burst) return 'без умения клетка не лопнула вирусами — сравнение не работает';
 });
 
+check('[abort] видно разницу: без умения из сестры выходит облако вирусов, с умением они заперты внутри погасшего тела', () => {
+  const go = genes => { const w = mw(5, genes); w.me.push({ ...w.me[0], x: 200, id: 2, vx: 0, vy: 0 }); w.me[0].sick = 0.05; run(w, 0.5, null);
+    w.cit = []; const pts = []; const brush = { put: (...v) => pts.push(v) }; mut.drawWorld({ w, scr: (x, y) => [x, y], z: 1, glow: brush, ink: brush });
+    return { pts: pts.length, free: w.phages.length, trapped: w.stats.trapped || 0 }; };
+  const a = go(['abort']), b = go([]);
+  console.log(`    паспорт: с умением вирусов на воле ${a.free}, заперто ${a.trapped}, точек запертых на экране ${a.pts} | без умения на воле ${b.free}`);
+  if (a.free || !a.trapped) return 'с умением вирусы вышли';
+  if (a.pts < a.trapped * 2) return 'запертых вирусов не видно';
+  if (!b.free) return 'без умения облака нет — сравнения нет';
+});
+check('[door] видно отказ: яд кокка доходит до оболочки и не входит — на боку к шарику вспыхивает свет', () => {
+  const w = mw(9, ['door']), a = w.me[0]; w.prey = [{ x: 18, y: 0, vx: 0, vy: 0, m: 1, a: 0, sick: -1, id: 77 }]; let seen = 0;
+  for (let t = 0; t < 4; t += 1 / 30) { w.prey[0].x = a.x + 18; w.prey[0].y = a.y; w.prey[0].vx = w.prey[0].vy = 0; w.step(1 / 30, null);
+    w.cit = []; const pts = []; const brush = { put: (...v) => pts.push(v) }; mut.drawWorld({ w, scr: (x, y) => [x, y], z: 1, glow: brush, ink: brush }); if (pts.length) seen++; }
+  console.log(`    паспорт: за 4 с у кокка отказов двери ${w.stats.refuse || 0}, кадров со вспышкой ${seen}, щипков ${a.pinch > 0 ? 1 : 0}`);
+  if (!w.stats.refuse) return 'отказа не было';
+  if (!seen) return 'вспышки не видно';
+});
 check('[gas] всплывает сама: убрал палец — клетка поднимается вверх, без умения стоит', () => {
   const lift = genes => { const w = mw(7, genes); const y0 = w.me[0].y; run(w, 4, null); return y0 - w.me[0].y; };
   const a = lift(['gas']), b = lift([]);
@@ -94,6 +113,35 @@ check('[citrate] ест голубую еду: без умения клетка 
   if (!b.n) return 'голубых точек в капле нет';
   if (b.ate || b.grow > 0) return 'без умения голубая точка съедается';
   if (!a.ate || !(a.grow > 0)) return 'с умением голубая точка не стала едой';
+});
+
+// Режим «Голод» (Роман 25.11 08:47: «Да отдельным режимом давай попробуем»): без еды клетка худеет и гибнет.
+const starveT = (genes, m0 = 1, mode = 'golod') => { const w = mw(4, genes, mode), a = w.me[0]; a.m = m0; let t = 0; for (; t < 200 && w.me.length; t += 1 / 30) w.step(1 / 30, null); return { t, w, a }; };
+check('режим «Голод»: в пустой воде клетка худеет и гибнет от голода, в обычном заплыве — нет', () => {
+  const a = starveT([]), b = starveT([], 1, 'swim');
+  console.log(`    паспорт: в голоде клетка с силой 1 прожила ${a.t.toFixed(0)} с, гибель от голода ${a.w.stats.starved || 0} | в обычном заплыве за 200 с жива ${b.w.me.length > 0}, сила ${b.a.m.toFixed(2)}`);
+  if (!a.w.stats.starved || a.t > 60) return 'в голоде клетка не гибнет без еды';
+  if (!b.w.me.length || b.a.m < 1) return 'обычный заплыв тоже голодает';
+  const w = mw(4, [], 'golod'); w.me[0].m = 9; w.divide(); const offer = [...w.choice];
+  console.log(`    паспорт: в голоде дочки предложили ${offer.join(',')}`);
+  if (!offer.some(g => M.golod.genes.includes(g))) return 'в голоде дочки не приносят умений голода';
+  if (offer.some(g => g in M.genes && !M.golod.genes.includes(g))) return 'в голоде пришла мутация другого режима';
+});
+check('[lean] дольше без еды: без еды клетка быстро мельчает и живёт заметно дольше', () => {
+  const a = starveT(['lean']), b = starveT([]);
+  let small = 0; { const w = mw(4, ['lean'], 'golod'), c = w.me[0]; for (let t = 0; t < 12; t += 1 / 30) w.step(1 / 30, null); small = c.m; }
+  console.log(`    паспорт: с умением прожила ${a.t.toFixed(0)} с, через 12 с сила ${small.toFixed(2)} | без умения ${b.t.toFixed(0)} с`);
+  if (!(a.t > b.t * 1.5)) return 'с умением голодает не дольше';
+  if (!(small < M.lean.small)) return 'клетка не мельчает';
+});
+check('[store] копит запас: наелась — внутри крупинки; в пустой воде они тают, и клетка живёт дольше', () => {
+  const go = genes => { const w = mw(4, genes, 'golod'), a = w.me[0]; a.m = 1.9; for (let i = 0; i < 40; i++) { w.grow(a, w.cfg.food); w.step(1 / 30, null); if (a.m > 1.95) a.m = 1.95; } // ест вволю, но до деления не дорастает
+    const st = a.store || 0; let t = 0; for (; t < 300 && w.me.length; t += 1 / 30) w.step(1 / 30, null); return { st, t, left: a.store || 0 }; };
+  const a = go(['store']), b = go([]);
+  console.log(`    паспорт: с умением крупинок после еды ${a.st}, прожила в пустой воде ${a.t.toFixed(0)} с, крупинок в конце ${a.left} | без умения ${b.t.toFixed(0)} с`);
+  if (!a.st) return 'запас не копится';
+  if (a.left >= a.st) return 'крупинки не тают';
+  if (!(a.t > b.t)) return 'с запасом клетка живёт не дольше';
 });
 
 // «Сцепка» (Г24) — в обычном заплыве. Семья из шести сестёр плывёт за пальцем 10 с.
@@ -158,13 +206,14 @@ check('мутации только в режиме «Мутации»: в обы
   if (u.snaps || yy - y0.me[0].y > 30) return 'мутации действуют вне режима';
 });
 
-check('режим «Мутации»: дочки приносят свои новые мутации, а чужие — только соседка по трубочке', () => {
+check('режим «Мутации»: одна дочка приносит новую мутацию, другая — прежнее умение; чужие — только соседка по трубочке', () => {
   const w = mw(13); const got = [];
-  for (let i = 0; i < 6; i++) { w.choice = []; w.splits = i * cfg.gene_every; w.me.length = 1; w.me[0].m = 9; w.divide(); if (w.choice[0]) { got.push(...w.choice); w.pick(w.choice[0]); } }
-  const own = Object.keys(M.genes).filter(g => !M.pipe.includes(g));
+  for (let i = 0; i < 8; i++) { w.choice = []; w.splits = i * cfg.gene_every; w.me.length = 1; w.me[0].m = 9; w.divide(); if (w.choice[0]) { got.push(...w.choice); w.pick(w.choice.find(g => g in M.genes) || w.choice[0]); } }
+  const own = Object.keys(M.genes).filter(g => !M.pipe.includes(g) && !M.golod.genes.includes(g)); // умения голода живут в режиме «Голод»
   console.log(`    паспорт: дочки предложили ${got.join(',')}`);
   if (!own.every(g => got.includes(g))) return 'не все свои мутации пришли дочкам';
   if (got.some(g => M.pipe.includes(g))) return 'чужая мутация пришла дочке, а не по трубочке';
+  if (!got.some(g => !(g in M.genes))) return 'прежние умения дочкам не приходят (О43)';
 });
 
 // Облако вирусов вокруг клетки (как после лопнувшей соседки): встреча с вирусом в обычной игре редкая (замер 25.11: 7 посадок за 18 минут),
@@ -182,10 +231,10 @@ const bot = w => {
 };
 // Для каждой мутации — 6 заплывов бота, у которого с начала только она: встречает ли он то, где она важна.
 check('бот в режиме «Мутации» встречает каждую мутацию в деле: щелчок, тихая гибель, всплытие, кокк у закрытой двери, вирус на пузырьке', () => {
-  const meet = { snap: 0, abort: 0, gas: 0, door: 0, decoy: 0, flu: 0, steady: 0, citrate: 0 };
+  const meet = { snap: 0, abort: 0, gas: 0, door: 0, decoy: 0, flu: 0, steady: 0, citrate: 0, lean: 0, store: 0 };
   for (const g of Object.keys(meet)) for (const seed of [1, 2, 3, 4, 5, 6]) {
-    const w = new World(cfg, seed); w.mode = 'mut'; w.genes[g] = true;
-    if (g === 'abort' || g === 'decoy') { const P = cfg.pond; w.me[0].y = (P.film * 0.6 - P.y0) * P.h; w.tidy = 0; virusy(w); } // вирусы живут в сладкой воде под плёнкой — туда и плывёт голодный
+    const w = new World(cfg, seed); w.mode = M.golod.genes.includes(g) ? 'golod' : 'mut'; w.genes[g] = true;
+    if (g === 'abort' || g === 'decoy') { const P = cfg.pond; w.me[0].y = (P.film * 0.6 - P.y0) * P.h; w.tidy = 0; virusy(w); } // вирусы живут в сладкой воде под плёнкой; бот заплывает в их облако
     for (let t = 0; t < 120 && w.me.length; t += 1 / 30) {
       const near = g === 'abort' || g === 'decoy'; // против вирусов бот палец не отпускает: в живой капле стоящего съедают раньше вируса
       const aim = !near && (t % 6) < 1 ? null : bot(w), a0 = w.me[0];
@@ -196,12 +245,14 @@ check('бот в режиме «Мутации» встречает каждую
       w.events.length = 0;
       if (g === 'door') for (const a of w.me) for (const q of w.prey) if (Math.hypot(a.x - q.x, a.y - q.y) < 30) meet.door++;
       if (g === 'gas' && w.me[0] && w.me[0].lift > M.gas.up / 2) meet.gas++;
+      if (g === 'lean') for (const a of w.me) if (a.m < M.lean.small) meet.lean++; // голодала мелкой — там умение экономит
     }
     if (g === 'decoy') meet.decoy += w.stats.decoy || 0;
     if (g === 'flu') meet.flu += w.stats.raft || 0;
     if (g === 'citrate') meet.citrate += w.stats.citrate || 0;
+    if (g === 'store') meet.store += w.stats.melted || 0; // крупинка растаяла, когда еды не было рядом
   }
-  console.log('    паспорт: за 6 заплывов по 120 с — щелчков', meet.snap, '| тихих гибелей', meet.abort, '| кадров всплытия', meet.gas, '| кадров у кокка с закрытой дверью', meet.door, '| вирусов на пузырьках', meet.decoy, '| ровно на крутом повороте', meet.steady, '| голубых точек съедено', meet.citrate, '| пасть сорвалась с плота', meet.flu);
+  console.log('    паспорт: за 6 заплывов по 120 с — щелчков', meet.snap, '| тихих гибелей', meet.abort, '| кадров всплытия', meet.gas, '| кадров у кокка с закрытой дверью', meet.door, '| вирусов на пузырьках', meet.decoy, '| ровно на крутом повороте', meet.steady, '| голубых точек съедено', meet.citrate, '| кадров голода мелкой', meet.lean, '| растаяло крупинок', meet.store, '| пасть сорвалась с плота', meet.flu);
   const miss = Object.keys(meet).filter(g => !meet[g]);
   if (miss.length) return 'бот не встретил, где важно: ' + miss.join(', ');
 });
@@ -224,7 +275,7 @@ const paint = (genes, a = {}) => { const pts = [], brush = { put: (...v) => pts.
   const fl = ',' + cfg.flag.color.join() + ','; return { pts: pts.filter(p => !p.includes(fl)), lk }; };
 check('каждая новая мутация видна на теле своими точками', () => {
   const base = new Set(paint({}).pts), miss = [], n = {};
-  for (const g of Object.keys(M.genes)) { const own = paint({ [g]: true }, g === 'snap' ? { snap: M.snap.time } : {}).pts.filter(p => !base.has(p)).length; n[g] = own; if (own < 6 && g !== 'snap') miss.push(g + ' (' + own + ')'); }
+  for (const g of Object.keys(M.genes)) { const own = paint({ [g]: true }, g === 'snap' ? { snap: M.snap.time } : g === 'store' ? { store: M.store.n } : {}).pts.filter(p => !base.has(p)).length; n[g] = own; if (own < 6 && g !== 'snap') miss.push(g + ' (' + own + ')'); }
   const sl = paint({ snap: true }).lk.flagella, sn = n.snap;
   console.log('    паспорт: своих точек', JSON.stringify(n), '| хвостов у разворота', sl);
   if (sl !== 1) miss.push('у разворота не один хвост');
