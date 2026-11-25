@@ -79,11 +79,11 @@ body.kon #c{transform:scale(${KN.K.scena.masshtab});transform-origin:50% 0}body.
   const scena = w => { const z = (window.zaplyvProbe.z || 1) * innerWidth / SC.shirina, me = w.me[0], verh = pt.getBoundingClientRect().bottom, niz = pk.getBoundingClientRect().top; if (!me) return; w.cfg.close_up = (1 + SC.krupno) * Math.min(1, SC.dlina_v_kadr / ((forma.forma === 'shar' || forma.forma === 'grozd' ? forma.tolshchina * (forma.forma === 'grozd' ? 2 : forma.cepochka) : forma.dlina * forma.cepochka) + forma.zh_dlina * SC.dolya_zhgutika)) * (w.pseudos.some(q => q.vid === 'svoya' && !q.obrazec) ? SC.otezd : 1) - 1;
     pole = { x: me.x, y: me.y - (innerHeight / 2 - (verh + niz) / 2 / SC.masshtab) / z, a: innerWidth / 2 / SC.masshtab / z * SC.pole[0], b: (niz - verh) / 2 / SC.masshtab / z * SC.pole[1] };
     let obr = w.pseudos.find(q => q.obrazec); if (!obr) w.pseudos.push(obr = novaya({ obrazec: true }));
-    Object.assign(obr, { x: pole.x, y: pole.y, vx: 0, vy: 0, a: SC.ugol, kurs: SC.ugol, t: 1, rest: 2 });
+    Object.assign(obr, { x: pole.x, y: pole.y, vx: 0, vy: 0, a: SC.ugol, t: 1, rest: 2 });
     const sv = w.pseudos.filter(q => q.vid === 'svoya'), T = Math.min(SC.tesno * forma.dlina * forma.cepochka, pole.a * 0.6); // копии не лезут друг на друга и на образец
     for (const q of sv) if (!q.obrazec) for (const o of sv) { const dx = q.x - o.x, dy = q.y - o.y, d = Math.hypot(dx, dy); if (o !== q && d < T && d > 0) { q.x += dx / d * (T - d); q.y += dy / d * (T - d); } }
     for (const q of w.pseudos) if (q.vid === 'svoya' && !q.obrazec) { const u = (q.x - pole.x) / pole.a, v = (q.y - pole.y) / pole.b; // стенка загона: развернуться к середине
-      if (u * u + v * v > 1) { q.kurs = Math.atan2(pole.y - q.y, pole.x - q.x); const k = 1 / Math.hypot(u, v); if (k < 0.85) { q.x = pole.x + (q.x - pole.x) * k / 0.85; q.y = pole.y + (q.y - pole.y) * k / 0.85; } } } };
+      if (u * u + v * v > 1) { q.a = Math.atan2(pole.y - q.y, pole.x - q.x); const k = 1 / Math.hypot(u, v); if (k < 0.85) { q.x = pole.x + (q.x - pole.x) * k / 0.85; q.y = pole.y + (q.y - pole.y) * k / 0.85; } } } };
   const mera = el('div', 'mera', KN.K.slova.mera, kon);
   const vyp = el('button', 'gl', KN.K.slova.vypustit, kon); vyp.onclick = () => { vyp.textContent = KN.K.slova.eshche; const w = W(), V = KN.K.vypusk; pereschet();
     for (let i = 0; i < V.skolko; i++) { const t = Math.random() * 6.283; w.pseudos.push(novaya({ x: pole.x + Math.cos(t) * pole.a * 0.7, y: pole.y + Math.sin(t) * pole.b * 0.7 })); }

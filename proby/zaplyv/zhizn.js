@@ -124,7 +124,7 @@ export function zhizn(w, dt, radius) {
       q.clock = 0;
       if (all.filter(o => Math.abs(o.x - q.x) < Z.crowd_r && Math.abs(o.y - q.y) < Z.crowd_r).length >= Z.crowd_max) continue; // тесно: ждёт
       if (dv.ot === 'food') q.m /= 2;
-      const r0 = size(q) * 2.2, kid = { ...q, x: q.x - Math.cos(q.a) * r0, y: q.y - Math.sin(q.a) * r0, a: q.a + Math.PI, kurs: q.a + Math.PI, t: 0, clock: 0, id: ++w.ids, zamok: undefined, sieved: undefined };
+      const r0 = size(q) * 2.2, kid = { ...q, x: q.x - Math.cos(q.a) * r0, y: q.y - Math.sin(q.a) * r0, a: q.a + Math.PI, t: 0, clock: 0, id: ++w.ids, zamok: undefined, sieved: undefined };
       w[HOME[kind]].push(kid); all.push(kid); w.events.push(['divide_other', q.x, q.y, kind]);
     }
   }

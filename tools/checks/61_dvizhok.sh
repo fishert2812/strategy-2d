@@ -12,9 +12,3 @@ if grep -q 'ПРОВАЛ test_dvizhok_ankety' <<<"$off"; then
 else
   echo "  САМОПРОВЕРКА: анкета испорчена, а test_dvizhok_ankety зелёный — проверка ничего не доказывает"; exit 1
 fi
-sk=$(DVIZHOK_SKACHOK=1 timeout 120 node proby/zaplyv/test_dvizhok.mjs 2>&1)
-if grep -q 'ПРОВАЛ test_dvizhok_povorot' <<<"$sk"; then
-  echo "  самопроверка: с мгновенным поворотом test_dvizhok_povorot красный (так и должно быть)"
-else
-  echo "  САМОПРОВЕРКА: поворот мгновенный, а test_dvizhok_povorot зелёный — проверка ничего не доказывает"; exit 1
-fi
