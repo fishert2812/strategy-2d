@@ -97,7 +97,8 @@ export function almanahScreen({ K, cards, T, G, met, snap, onSwim }) {
   $('kswim').onclick = () => { close(); onSwim(); };
   let sx = null; // смахивание от левого края вправо — назад, как в приложениях iPhone
   $('cabinet').addEventListener('touchstart', e => { const t = e.touches[0]; sx = t.clientX < 28 ? [t.clientX, t.clientY] : null; }, { passive: true });
-  $('cabinet').addEventListener('touchend', e => { const t = e.changedTouches[0]; if (sx && t.clientX - sx[0] > 70 && Math.abs(t.clientY - sx[1]) < 60) ($('kcard').hidden ? close : toShelf)(); sx = null; }, { passive: true });
-  return { open, close, openCard, entries: E, shot,
+  $('cabinet').addEventListener('touchend', e => { const t = e.changedTouches[0]; if (sx && t.clientX - sx[0] > 70 && Math.abs(t.clientY - sx[1]) < 60) ($('kcard').hidden ? api.back || close : toShelf)(); sx = null; }, { passive: true });
+  const api = { back: null, open, close, openCard, entries: E, shot,
     label: () => { const n = keys.filter(k => E[k].sec !== 'gene' && E[k].group !== 'me'); return `Альманах · знаешь ${n.filter(k => met.has(k)).length} из ${n.length}`; } };
+  return api;
 }
