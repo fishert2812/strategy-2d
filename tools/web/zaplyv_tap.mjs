@@ -58,8 +58,9 @@ say(await p.evaluate(() => [...document.querySelectorAll('#shelf .kc img')].ever
 if (await tap('#kpills button:nth-child(2)', 'раздел «Еда»')) say(await p.evaluate(() => document.querySelectorAll('#shelf .kc').length > 0 && document.querySelector('#kpills .on').dataset.g === 'food'), 'раздел «Еда» открылся');
 if (await tap('#kpills button:nth-child(1)', 'раздел «Обитатели»')) say(await p.evaluate(() => !!document.querySelector('#shelf .kc[data-k=me]')), 'раздел «Обитатели» открылся');
 if (await tap('#shelf .kc[data-k=me]', 'карточка «Ты»')) say(await seen('#kcard') && await p.evaluate(() => document.querySelectorAll('#kblocks .kb').length >= 2 && document.getElementById('kimg').naturalWidth > 100), 'карточка открылась: модель и блоки текста');
-if (await tap('#knext', 'следующая карточка')) say(await p.evaluate(() => document.getElementById('kname').textContent !== 'Ты, кишечная палочка'), 'листается к следующей');
-if (await tap('#kback', 'назад к полке')) say(await seen('#kshelf'), 'полка снова видна');
+if (await tap('#klinks .kl:not(.no)', 'связь «кто ест» на карточке')) say(await seen('#kcard') && await p.evaluate(() => document.getElementById('kname').textContent !== 'Ты, кишечная палочка'), 'связь открывает карточку того, о ком речь');
+if (await tap('#gback', '«‹ Ты» назад по связи')) say(await p.evaluate(() => document.getElementById('kname').textContent === 'Ты, кишечная палочка'), '«назад» возвращает на карточку, с которой пришёл');
+if (await tap('#gback', '«‹ Альманах» к полке')) say(await seen('#kshelf'), 'полка снова видна');
 if (await tap('#gback', '«‹ Пауза» из Альманаха') && await tap('#phub [data-t=genome]', 'снова «Геном»')) say(!(await on('cabinet')) && await on('genome') && await seen('#ring'), '«Геном»: Альманах закрылся, кольцо на месте');
 // Карта на паузе (Э17–Э18): вкладка открывает разрез пруда, на нём нарисовано (не пустой холст), «ты» в шапке словами.
 if (await tap('#gback', '«‹ Пауза» из генома') && await tap('#phub [data-t=map]', 'строка «Карта»')) { await p.waitForTimeout(400);

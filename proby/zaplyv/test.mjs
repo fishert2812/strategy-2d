@@ -6,7 +6,7 @@ import { look } from './look.js';
 import { whip } from './whip.js';
 import { layout, card } from './genome.js';
 import { mark, message } from './feedback.js';
-import { entries, shelf, page } from './almanah.js';
+import { entries, shelf, page, links } from './almanah.js';
 import * as karta from './karta.js';
 import { readFileSync } from 'node:fs';
 import { night } from './night.js';
@@ -615,6 +615,16 @@ check('test_L019: Альманах — разделы, счёт словами, 
   if (Gp.name !== 'Скользкая оболочка' || Gp.blocks[1][0] !== 'В ПРИРОДЕ' || !Gp.blocks[1][3].includes('Г11')) return 'страница гена: ' + JSON.stringify(Gp);
   if (N.met || N.name === T.bdello.imya || !N.line) return 'невстреченный выдаёт имя или не говорит, где искать';
   console.log('    паспорт: ' + S2.count + '; ' + S2.pills.map(p => p.label).join(' / ') + '; амёба: ' + P.blocks.map(b => b[0]).join(' · ') + '; ген: ' + Gp.name);
+});
+
+// Урок L037 (Роман 25.11: «Навигация в альманахе… даже на Википедии удобнее»): на карточке связи из книги — кто ест, кого ест,
+// только то, что есть в игре; строки ведут на карточки, текст строки — слово в слово из kniga/kto_s_kem.json.
+check('test_L037: связи карточки Альманаха — из книги, только из игры', () => {
+  const S = JSON.parse(readFileSync(new URL('./kniga/kto_s_kem.json', import.meta.url))), me = links('me', S), am = links('amoeba', S);
+  const eats = me.find(g => g.head === 'КТО ЕСТ'); if (!eats || !eats.rows.some(r => r.k === 'bdello')) return 'у «Ты» нет «кто ест» с красной запятой: ' + JSON.stringify(me.map(g => g.head));
+  for (const g of [...me, ...am]) for (const r of g.rows) { const x = S.svyazi.find(q => q.t === r.t); if (!x || x.st !== 'igra' || x.z === 'nichego') return `строка «${r.t}» не из игры`; }
+  if (links('nikto', S).length) return 'у неизвестного есть связи';
+  console.log('    паспорт: у «Ты» ' + me.map(g => g.head.toLowerCase() + ' ' + g.rows.length).join(', ') + '; у амёбы ' + am.map(g => g.head.toLowerCase() + ' ' + g.rows.length).join(', '));
 });
 
 // Урок L020 (Роман, 0.32: «почему жгутики зеленые такие выбивается из стиля»): у образца берём форму и движение, цвет — из стиля игры.
