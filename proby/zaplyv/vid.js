@@ -304,6 +304,32 @@ export function bell(c) {
   return [x + dx * len, y + dy * len, 1 - k];
 }
 
+// Туфелька (биолог, «Вид существ», 5): по всему краю густая бахрома ресничек, по ней бежит волна; на боку ротовая
+// бороздка к воронке; внутри крупное ядро, пищеварительные пузырьки и два звёздчатых сократительных пузырька у концов,
+// которые медленно надуваются и разом опорожняются. Всё сплошное: реснички — короткие черты, точки чаще своего размера (L047).
+export function slipper(c) {
+  const { x, y, a, L, z, time, id, mx, my, glow, ink } = c, S = V.slipper, w = c.w * S.slim, B = c.bodies || globalThis.zaplyvBodies, ux = Math.cos(a), uy = Math.sin(a);
+  const at = (u, o) => [x + ux * u - uy * o, y + uy * u + ux * o], hl = L / 2;
+  const Bc = c.bodies || globalThis.zaplyvBodies;
+  if (Bc && Bc.spine) for (let k = 0; k < S.cilia; k++) { // реснички: тонкие стеклянные волоски по всему краю той же туфли, что в шейдере тела; волна изгиба бежит от носа к корме
+    const t = k / S.cilia * 6.283, cs = Math.cos(t), sn = Math.sin(t), sm = (a0, a1, v) => { const q = Math.max(0, Math.min(1, (v - a0) / (a1 - a0))); return q * q * (3 - 2 * q); };
+    const tp = (1 - S.taper * sm(0.5, -1, cs)) * (1 + 0.18 * sm(0, 0.6, cs)), g = Math.exp(-(((cs - 0.25) * 1.4) ** 2)) * sm(-0.4, 1, sn), o = (sn * tp - S.dent * g) * w * S.base, u = cs * hl * S.base;
+    const nrm = Math.atan2(sn * hl * (1 - g), cs * w) , ang = a + nrm, [px, py] = at(u, o), len = w * S.len * (g > 0.3 ? 1.6 : 1) * (0.75 + 0.5 * hash(id, k + 700)); // в борозде реснички длиннее
+    Bc.spine(px, py, Math.atan2(Math.sin(ang) * 1, Math.cos(ang)) , len, w * S.cw, S.cil, S.cil, id * 13 + k, Math.sin(t * S.waves - time * S.beat) * w * S.cw * 6, 0); }
+  if (!B || !B.sphere) return;
+  const tap = u => 1 - S.taper * Math.max(0, Math.min(1, (0.5 - u / hl) / 1.5)), inn = (u, o) => at(u, w * tap(u) * (o < 0 ? o : o * 0.4)); // точка внутри туфли: корма уже, бок с бороздкой занят
+  B.slipper(x, y, a, hl, w, S.cyto, S.cyto_rim, id, S.fringe, S.cil); // тело-туфля: прозрачная толща с бороздкой и бликом, сквозь неё видны пузырьки и ядро (body3d.js)
+  { const [px, py] = at(-hl * 0.08, -w * 0.12); B.put(B.ball, px, py, a + 0.3, w * S.nuc * 0.62, w * S.nuc, w * S.nuc * 0.45, [...S.nuc_col, 1], S.nuc_rim, [0, id + 0.3, 0, 0]); } // крупное ядро-боб, зернистое
+  for (let k = 0; k < S.grains; k++) { const [px, py] = inn((hash(id, k + 500) - 0.5) * hl * 1.5, (hash(id, k + 501) - 0.5) * 1.1); B.sphere(px, py, w * S.grain_r * (0.6 + 0.8 * hash(id, k + 502)), S.grain, S.nuc_rim, id + k + 50, 0.8); } // зернистая цитоплазма
+  for (let k = 0; k < S.food; k++) { const u = (hash(id, k + 400) - 0.5) * hl * 1.1, o = (hash(id, k + 401) - 0.5) * 0.9, dr = Math.sin(time * 0.3 + k) * w * 0.08, [px, py] = inn(u + dr, o); // съеденное в пузырьках, медленно ходит по кругу
+    B.sphere(px, py, w * S.food_r * (0.7 + 0.6 * hash(id, k + 402)), S.food_col, S.food_rim, id + k + 3, 0.8); }
+  for (const e of [-1, 1]) { const ph = ((time / S.cv_t + (e > 0 ? 0.5 : 0) + hash(id, 7)) % 1), fill = ph < 0.85 ? ph / 0.85 : 1 - (ph - 0.85) / 0.15, [cx, cy] = at(e * hl * 0.55, 0); // сократительный пузырёк: надувается, разом сдувается
+    B.sphere(cx, cy, w * S.cv * (0.5 + 0.5 * fill), S.cv_col, [1, 1, 1], id + e, 0.7);
+    const cl = w * S.canal * (1.25 - fill); // каналы розеткой: каплевидные, полнее, когда пузырёк пуст
+    for (let k = 0; k < S.canals; k++) { const t = k / S.canals * 6.283 + id, d = w * S.cv * 0.3; B.spine(cx + Math.cos(t) * d, cy + Math.sin(t) * d, t, cl, w * S.canal_w, S.cv_col, [1, 1, 1], id * 7 + k); }
+  }
+}
+
 // Лапы вируса (биолог, «Вид существ», вирус: «садится строго на лапы, перпендикулярно боку клетки, стоя как вышка»).
 // Плывёт — шесть лап поджаты к хвосту и шевелятся. Сел (on) — лапы за V.legs.land с расставлены веером по борту:
 // колено наружу, ступня на плёнке, все шесть ступней на одной линии поперёк хвоста. P(a, b): a — вдоль хвоста, b — поперёк.
