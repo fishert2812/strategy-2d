@@ -839,9 +839,25 @@ check('test_L032 (прогон 0.54, О22 повтор): уснула среди
 });
 check('test_L049 (прогон игроками, круг 6: «после полутора минут роста нет, всегда четыре клетки»): сытая колония сама делится дальше четырёх, до me_max', () => {
   const w = new World(cfg, 601); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = [];
-  let t = 0; while (t < 40 && w.me.length < cfg.me_max) { if (w.choice.length) w.pick(w.choice[0]); for (const a of w.me) a.m = Math.max(a.m, w.split()); w.step(1 / 30, null); t += 1 / 30; }
+  let t = 0; while (t < 40 && w.me.length < cfg.me_max) { if (w.choice.length) w.pick(w.choice[0]); for (const a of w.me) a.m = Math.max(a.m, w.split() + 0.01); /* сытая: чуть выше порога, иначе «быстрый рост» за шаг сжигает её ниже */ w.step(1 / 30, null); t += 1 / 30; }
   console.log('    паспорт: сытая колония за', t.toFixed(0), 'с — клеток', w.me.length, 'из', cfg.me_max, '| уплыли', w.away.length);
   if (w.me.length < cfg.me_max) return `колония застряла на ${w.me.length} клетках: само-деление отправляет дочек прочь раньше me_max`;
+});
+check('test_L057 (Роман 25.11 на 0.84: «Деление клеток происходит рывками — паравозики получаются!… по всей карте расплываются»): колония делится по одной клетке, сёстры не проходят друг сквозь друга и не тянутся паровозиком, отставших тянет к своим', () => {
+  const empty = seed => { const w = new World(cfg, seed); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
+  // 1) сытая колония: само-деление по одной клетке за раз
+  const w = empty(603), a = w.me[0]; for (let i = 1; i < 6; i++) w.me.push({ ...a, id: 70 + i, x: a.x + (i % 3) * 40, y: a.y + Math.floor(i / 3) * 40, vx: 0, vy: 0, a: i });
+  let most = 0, splits = 0; for (let t = 0; t < 20; t += 1 / 30) { for (const c of w.me) c.m = Math.min(c.m + 0.02, w.split() + 0.1); w.choice = []; w.step(1 / 30, null); const n = w.events.filter(e => e[0] === 'split').length; most = Math.max(most, n); splits += n; w.events.length = 0; }
+  // 2) после 30 с без пальца: палочки не налезают, колония не разошлась
+  let over = 0, pairs = 0; const look = () => { for (let i = 0; i < w.me.length; i++) for (let j = i + 1; j < w.me.length; j++) { const [, , d, rr] = w.rodGap(w.me[i], w.me[j]); pairs++; if (d < rr * 0.5) over++; } };
+  for (let t = 0; t < 10; t += 1 / 30) { const q = w.center(); w.choice = []; w.step(1 / 30, { x: q.x + 300 * Math.cos(t * 0.7), y: q.y + 300 * Math.sin(t * 0.7) }); w.events.length = 0; if (t > 2) look(); } // плывёт под пальцем по кругу
+  for (let t = 0; t < 30; t += 1 / 30) { w.choice = []; w.step(1 / 30, null); w.events.length = 0; }
+  const c = w.center(), far = Math.max(...w.me.map(q => Math.hypot(q.x - c.x, q.y - c.y)));
+  console.log('    паспорт: делений', splits, '· больше всего за шаг', most, '· клеток', w.me.length, '· налезают пар-кадров', over, 'из', pairs, '· дальняя от центра', far.toFixed(0));
+  if (most > 1) return 'само-деление рывком: за один шаг поделились ' + most + ' клеток';
+  if (splits < 3) return 'колония почти не делилась: ' + splits;
+  if (over > pairs * 0.01) return 'палочки проходят друг сквозь друга: налезают ' + over + ' пар-кадров из ' + pairs;
+  if (far > cfg.kolonia.r * 2.5) return 'колония расплылась: дальняя клетка в ' + far.toFixed(0) + ' от центра';
 });
 check('test_L051 (проверка кадров деления 25.11: «дочки складываются бок о бок, как две таблетки, а не цепочкой»): после деления дочки лежат торец к торцу вдоль оси матери', () => {
   const w = new World(cfg, 602); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = [];

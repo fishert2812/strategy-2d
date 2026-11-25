@@ -141,16 +141,15 @@ export class World {
 
   // Касание: все клетки, вытянувшиеся до cfg.split, делятся пополам вдоль своей оси.
   // leave — колония полна: дочка уплывает жить сама (в природе дочки расходятся), а мутация копится дальше.
-  divide(leave = false) {
+  divide(leave = false, odna = false) { // odna — делится одна, самая зрелая: само-деление идёт по одной клетке, без рывка всей колонии разом
     if (rost.on(this)) return 0; // в «Росте» не делишься
-    const born = [];
-    for (const c of this.me) {
-      if (c.m < this.split() || c.sick >= 0 || c.held > 0 || c.grab || c.spore > 0) continue;
+    const born = [], ripe = this.me.filter(c => !(c.m < this.split() || c.sick >= 0 || c.held > 0 || c.grab || c.spore > 0)).sort((p, q) => q.m - p.m);
+    for (const c of odna ? ripe.slice(0, 1) : ripe) {
       c.m /= 2; c.gen = (c.gen || 0) + 1; this.stats.gen = Math.max(this.stats.gen, c.gen);
       const ax = Math.cos(c.a), ay = Math.sin(c.a), r = radius(c.m);
       const D = this.cfg.split_apart * r / 2; // дочки торец к торцу: центры на полдлины палочки от точки деления, иначе палочки наложены и колония складывает их бок о бок
       const kid = { x: c.x - ax * D, y: c.y - ay * D, vx: c.vx, vy: c.vy, m: c.m, a: c.a, sick: -1, gen: c.gen, id: ++this.ids }; born.push(mut.kid(this, c, kid));
-      const spin = c.spin ?? (c.id % 2 ? 1 : -1); c.spin = kid.spin = spin; kid.drift = c.drift; // сёстры дрейфуют вместе и поворачивают в одну сторону: цепочка, а не «две таблетки» бок о бок
+      kid.spin = -(c.spin ?? (c.id % 2 ? 1 : -1)); kid.drift = (c.drift ?? c.a) + Math.PI * (0.5 + this.r()); // у дочки свой дрейф и свой поворот: сёстры расходятся в стороны, а не тянутся паровозиком (Роман 25.11: «паравозики получаются»)
       c.x += ax * D; c.y += ay * D;
       this.events.push(['split', c.x, c.y, c.id, kid.id]); // вид деления знает пару: мать и дочка (vid.birth)
     }
@@ -175,8 +174,9 @@ export class World {
   // Шаг мира. target — джойстик {dx, dy, p}, точка мира {x, y} или null, если палец отпущен.
   step(dt, target) {
     if (!this.me.length) return; // выбор навыка мир не останавливает (Роман 25.11: «Игра продолжается аккуратно»)
-    const c = this.cfg, r = this.r;
+    const c = this.cfg, r = this.r, K = c.kolonia;
     this.stats.time += dt;
+    this.kol = this.me.length > 1 ? this.center() : null; // центр своих — к нему тянет отставших
     const c0 = this.center();
     const speed = c.speed;
     const sw = c.swim, wrap = d => Math.atan2(Math.sin(d), Math.cos(d));
@@ -227,11 +227,13 @@ export class World {
       a.vx = ux * fwd - uy * side; a.vy = uy * fwd + ux * side;
       if (!thrust && a.drift !== undefined) { a.vx += Math.cos(a.drift) * 7 * Math.min(1, 10 * dt); a.vy += Math.sin(a.drift) * 7 * Math.min(1, 10 * dt); }
       mut.cell(this, a, dt, thrust); // щелчок гаснет; газовые пузырьки поднимают без тяги
-      for (const o of this.me) { // дочерние не налезают друг на друга
-        if (o === a) continue;
-        const dx = a.x - o.x, dy = a.y - o.y, d = len(dx, dy) || 0.01, rr = radius(a.m) + radius(o.m);
-        if (d < rr) { a.vx += dx / d * (rr - d) * 6 * Math.min(1, 4 * dt); a.vy += dy / d * (rr - d) * 6 * Math.min(1, 4 * dt); }
+      for (const o of this.me) { // сёстры не проходят друг сквозь друга: толкаются палочками целиком, а не кружками в центре (прогон 0.84, П8)
+        if (o === a || Math.abs(a.x - o.x) > 90 || Math.abs(a.y - o.y) > 90) continue;
+        const [dx, dy, d, rr] = this.rodGap(a, o);
+        if (d < rr) { const k = (rr - d) / (d || 0.01); a.x += dx * k * K.tolchok; a.y += dy * k * K.tolchok; a.vx += dx * k * 4 * Math.min(1, 4 * dt); a.vy += dy * k * 4 * Math.min(1, 4 * dt); } // упор: сдвиг на свою долю перекрытия сразу, без пролёта насквозь
       }
+      { const g = this.kol; if (g && !thrust) { const dx = g.x - a.x, dy = g.y - a.y, d = len(dx, dy); // колония держится вместе: отставшую тянет к своим (Роман 25.11: «по всей карте расплываются»)
+        if (d > K.r) { const k = Math.min(K.tyaga_max, K.tyaga * (d - K.r)) / d * Math.min(1, 10 * dt); a.vx += dx * k; a.vy += dy * k; } } }
       // Фимбрии (fimH): отпустил палец у водоросли — прилип. Липучка FimH держит тем крепче, чем сильнее рвёт поток: вихри и снос не тянут.
       a.stuck = !!(this.genes.fim && !thrust && !(a.spore > 0) && this.plants.some(p => dist(a, p) < radius(a.m) + radius(p.m) + c.fim_reach));
       if (a.stuck) { a.vx = 0; a.vy = 0; }
@@ -259,7 +261,7 @@ export class World {
     this.hold(dt);
     this.rush = Math.max(0, this.rush - (this.stats.time - this.lastEat > c.rush_gap ? c.rush_fall * dt : 0));
     // Выросшая клетка делится сама через cfg.auto_split с (так делятся бактерии); касание — поделиться раньше, когда нужно.
-    if (!rost.on(this) && this.me.some(a => a.m >= this.split() && !a.grab && !(a.held > 0))) { this.ripe = (this.ripe || 0) + dt; if (this.ripe > c.auto_split) { this.ripe = 0; this.divide(this.me.length >= c.auto_max); } } else this.ripe = 0;
+    if (!rost.on(this) && this.me.some(a => a.m >= this.split() && !a.grab && !(a.held > 0))) { this.ripe = (this.ripe || 0) + dt; if (this.ripe > c.auto_split) { this.ripe = c.auto_split - K.shag; this.divide(this.me.length >= c.auto_max, true); } } else this.ripe = 0; // созревшие делятся по одной через kolonia.shag с
     for (const b of this.away) { b.t += dt; b.x += Math.cos(b.a) * c.away_speed * dt; b.y += Math.sin(b.a) * c.away_speed * dt; }
     this.away = this.away.filter(b => b.t < c.away_time);
     for (const a of this.me.filter(a => a.sick >= 0 && a.sick < dt)) {
@@ -339,6 +341,17 @@ export class World {
   flow(x, y) { const t = hash(Math.floor(x / 500), Math.floor(y / 500), 77) * 6.283 + this.stats.time * 0.05; return [Math.cos(t) * this.cfg.flow, Math.sin(t) * this.cfg.flow]; }
 
   grow(a, v) { const dv = v * (this.genes.lock ? this.cfg.lock_food : 1) * mut.food(this) * (1 + this.rush); if (!rost.vsos(this, a, dv)) a.m = Math.min(rost.cap(this), a.m + dv); } /* в «Росте» съеденное всасывается плавно (rost.js) */ // сменил замок: та же пора впускает и еду — медленнее
+  // Палочка клетки как отрезок с толщиной (как её рисует main.js: длина растёт к делению, толщина постоянна, delenie).
+  // rodGap — вектор от ближайшей точки оси o к ближайшей точке оси a, расстояние и сумма толщин.
+  rodGap(a, o) { const D = this.cfg.delenie, ax = (p) => { const h = rost.on(this) ? 0 : Math.max(0, D.w * D.half0 * 2 * Math.min(1, Math.max(0.5, p.m / this.split())) - D.w), u = Math.cos(p.a), v = Math.sin(p.a); return [p.x - u * h, p.y - v * h, p.x + u * h, p.y + v * h]; };
+    const [p1x, p1y, p2x, p2y] = ax(a), [q1x, q1y, q2x, q2y] = ax(o), rr = rost.on(this) ? radius(a.m) + radius(o.m) : 2 * D.w;
+    const near = (px, py, x1, y1, x2, y2) => { const ex = x2 - x1, ey = y2 - y1, L = ex * ex + ey * ey, t = L ? Math.max(0, Math.min(1, ((px - x1) * ex + (py - y1) * ey) / L)) : 0; return [x1 + ex * t, y1 + ey * t]; };
+    let best = null; // ближайшие точки двух отрезков: перебор концов (палочки короткие, точности хватает)
+    for (const [px, py, x1, y1, x2, y2, flip] of [[p1x, p1y, q1x, q1y, q2x, q2y, 0], [p2x, p2y, q1x, q1y, q2x, q2y, 0], [q1x, q1y, p1x, p1y, p2x, p2y, 1], [q2x, q2y, p1x, p1y, p2x, p2y, 1], [(p1x + p2x) / 2, (p1y + p2y) / 2, q1x, q1y, q2x, q2y, 0]]) {
+      const [nx, ny] = near(px, py, x1, y1, x2, y2), dx = flip ? nx - px : px - nx, dy = flip ? ny - py : py - ny, d = len(dx, dy);
+      if (!best || d < best[2]) best = [dx, dy, d, rr]; }
+    if (best[2] < 0.5) { const ex = a.x - o.x, ey = a.y - o.y, e = len(ex, ey); best[0] = e > 0.01 ? ex / e * 0.5 : 0.5; best[1] = e > 0.01 ? ey / e * 0.5 : 0; best[2] = 0.5; } // оси пересеклись: толкаем от центра к центру
+    return best; }
   split() { return this.genes.fast ? this.cfg.split * this.cfg.fast_split : this.cfg.split; } // быстрый рост: больше рибосом — делишься раньше
   // Съел — серия: куски подряд (не дольше cfg.rush_gap между ними) разгоняют рост, как в экспоненциальной фазе.
   gain(f) { return this.cfg.food_kinds[f.kind || 'bits'].gain; } // три вида еды: крошки, глюкоза, белковый сок
