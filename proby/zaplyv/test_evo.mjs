@@ -109,5 +109,25 @@ check('test_evo_hudeet: без еды большое тело худеет, от
   if (m < evo.E.hudeet.min) return 'похудела меньше min';
 });
 
+// Доказательство «ты то, что ты ешь» (ЛЭ21): после трёх проглоченных шариков на росте приходит карточка «Не боится кислоты», до трёх — нет;
+// с этим умением шарик рядом не жжёт (нет события pinch), без него жжёт.
+check('test_evo_dobycha: съела трёх шариков — карточка «Не боится кислоты»; с ней шарик не жжёт', () => {
+  const fresh = (genes = []) => { const w = new World(cfg, 51); w.mode = MODE;
+    for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'crumbs', 'bdellos', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = [];
+    w.tidy = 1e9; Object.assign(w.me[0], { m: 6, x: 0, y: 0, vx: 0, vy: 0 }); w.rost = 3; for (const g of genes) w.genes[g] = true; return w; };
+  const cards = n => { const w = fresh(['gulp']);
+    for (let j = 0; j < n; j++) { w.prey.push({ x: 4, y: 0, vx: 0, vy: 0, a: 0, id: 70 + j, m: 1 }); for (let i = 0; i < 40; i++) { w.step(1 / 30, null); w.events.length = 0; w.choice = []; } }
+    w.me[0].m = 9.5; w.me[0].zhd = 0; w.step(1 / 30, null); return w.choice; };
+  const c2 = cards(2), c3 = cards(3);
+  const burn = genes => { const w = fresh(genes); w.prey.push({ x: 40, y: 0, vx: 0, vy: 0, a: 0, id: 90, m: 1 }); let n = 0;
+    for (let i = 0; i < 150; i++) { w.step(1 / 30, { x: 40, y: 0 }); n += w.events.filter(e => e[0] === 'pinch').length; w.events.length = 0; w.choice = []; } return n; };
+  const [yes, no] = [burn(['kislota']), burn([])];
+  console.log('    карточки после 2 шариков:', JSON.stringify(c2), '| после 3:', JSON.stringify(c3), '| ожогов у шарика с умением', yes, 'без', no);
+  if (c2.includes('kislota')) return 'карточка пришла раньше трёх шариков';
+  if (!c3.includes('kislota')) return 'после трёх шариков карточки нет';
+  if (!(no > 0)) return 'шарик не жжёт и без умения — проверка ничего не меряет';
+  if (yes) return 'с умением шарик всё равно жжёт';
+});
+
 console.log(bad ? `ЭВОЛЮЦИЯ: провалов ${bad}` : 'ЭВОЛЮЦИЯ: все проверки прошли');
 process.exit(bad ? 1 : 0);
