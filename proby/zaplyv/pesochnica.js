@@ -67,12 +67,9 @@ body.kon #c{transform:scale(${KN.K.scena.masshtab});transform-origin:50% 0}body.
   // Конструктор: ползунки формы → запись-анкета «svoya» → формулы книги считают ход, дрожь и еду; строки показывают закон и числа.
   const forma = { ...KN.K.etalon }, zak = [];
   const pereschet = () => { const w = W(); if (!w) return; DV.V.vidy.svoya = KN.anketa(forma, w.cfg); KN.stroki(forma, w.cfg).forEach((z, i) => { zak[i].firstChild.textContent = z.imya + ' ' + z.chislo + '%'; zak[i].children[1].textContent = z.tekst; zak[i].lastChild.textContent = z.formula; }); };
-  const fr = el('div', 'formy', '', kon), fk = {}, polya = {}; // форма тела: кнопки, лишние ползунки прячутся
-  const formu = t => { forma.forma = t; for (const n in fk) fk[n].classList.toggle('on', n === t); for (const k in polya) polya[k].style.display = !KN.K.polzunki[k].dlya || KN.K.polzunki[k].dlya.includes(t) ? '' : 'none'; pereschet(); };
-  for (const [t, im] of Object.entries(KN.K.formy)) { fk[t] = el('button', '', im, fr); fk[t].onclick = () => formu(t); }
   const setka = el('div', 'setka', '', kon);
-  for (const [k, Z] of Object.entries(KN.K.polzunki)) { const r = polya[k] = el('label', 'polz', '', setka), im = el('span', '', '', r), inp = el('input', '', '', r); inp.type = 'range';
-    const zn = Z.znacheniya, pishi = () => { im.textContent = Z.imya + ' ' + (Z.mkm ? (forma[k] * KN.K.priroda.mkm).toFixed(2).replace('.', ',') + ' ' + KN.K.slova.mkm : Number.isInteger(Z.shag ?? 1) ? forma[k] : forma[k].toFixed(Z.znakov ?? 1).replace('.', ',')); };
+  for (const [k, Z] of Object.entries(KN.K.polzunki)) { const r = el('label', 'polz', '', setka), im = el('span', '', '', r), inp = el('input', '', '', r); inp.type = 'range';
+    const zn = Z.znacheniya, pishi = () => { im.textContent = Z.imya + ' ' + (Z.slova ? Z.slova[forma[k]] : Z.mkm ? (forma[k] * KN.K.priroda.mkm).toFixed(2).replace('.', ',') + ' ' + KN.K.slova.mkm : Number.isInteger(Z.shag ?? 1) ? forma[k] : forma[k].toFixed(Z.znakov ?? 1).replace('.', ',')); };
     Object.assign(inp, zn ? { min: 0, max: zn.length - 1, step: 1, value: zn.indexOf(forma[k]) } : { min: Z.ot, max: Z.do, step: Z.shag, value: forma[k] });
     inp.oninput = () => { forma[k] = zn ? zn[+inp.value] : +inp.value; pishi(); pereschet(); }; pishi(); }
   for (let i = 0; i < Object.keys(KN.K.formuly).length; i++) { const z = el('div', 'zak', '', kon); el('b', '', '', z); el('span', '', '', z); el('i', '', '', z); zak.push(z); }
@@ -94,7 +91,7 @@ body.kon #c{transform:scale(${KN.K.scena.masshtab});transform-origin:50% 0}body.
     for (let i = 0; i < V.edy; i++) { const t = Math.random() * 6.283, r = 0.3 + Math.random() * 0.6; w.food.push({ x: pole.x + Math.cos(t) * pole.a * r, y: pole.y + Math.sin(t) * pole.b * r, vx: 0, vy: 0, s: 1 }); } };
   let moy = null; // новый заплыв — новый мир: снова пустая вода, клетка крупным планом
   const sledi = () => { const w = W();
-    if (w && w !== moy) { moy = w; w.chunk = () => {}; for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'crumbs', 'bdellos', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; sozdat(); formu(forma.forma); vid(); obnovi(); }
+    if (w && w !== moy) { moy = w; w.chunk = () => {}; for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'crumbs', 'bdellos', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; sozdat(); pereschet(); vid(); obnovi(); }
     if (w && tek === 'kon') scena(w);
     if (w && w.choice.length) w.choice = []; // деление в песочнице без окна выбора: умения ставит панель
     requestAnimationFrame(sledi); };

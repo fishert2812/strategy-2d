@@ -2,9 +2,9 @@
 	"_": "Конструктор бактерий в песочнице (Роман 25.11: «Мы движок игровой для создания новых бактерий делаем чтобы там физика была прописана»). Игрок двигает ползунки формы, движок по формулам книги (вкладка «Физика», kniga/fizika.json) считает, как такая бактерия поплывёт, как её будет трясти и с какого расстояния она ест. etalon — серая соперница: её форма и её числа из игры; всё считается отношением к ней, поэтому при ползунках эталона выходит ровно она. polzunki — что можно менять: [от, до, шаг]. yarkost меняет только вид оболочки, на числа не влияет. stepen_tyagi и stepen_dliny — как тяга растёт с числом и длиной жгутиков (в пучке они мешают друг другу; наше упрощение, ждёт сверки биолога). formuly — номер закона книги и слова для строки под ползунками; {…} заменяются числами.",
 	"sborka": { "_": "Образец целиком из частей (vid_chasti.json, запись nasha): zh_dlina переводит длину жгутика ползунка в толщины тела, ribosom — зёрен на единицу площади тела, sbor — как быстро нити собираются в пучок (1/с).", "zh_dlina": 1.75, "ribosom": 21, "sbor": 4, "nasyshch": 0.75 },
 	"formy": { "palochka": "Палочка", "shar": "Шар", "zapyataya": "Запятая", "grozd": "Гроздь" },
-	"etalon": { "forma": "palochka", "izgib": 0.9, "dlina": 2.4, "tolshchina": 1.05, "cepochka": 1, "zhgutiki": 4, "zh_dlina": 4.3, "vorsinki": 84, "vors_dlina": 0.24, "vors_razbros": 0.7, "vors_naklon": 0.9, "zh_tolsh": 0.04, "ton": 0.9, "sborka": "nasha", "yarkost": 1, "skorost": "strain_speed", "ryskanie": 3, "eda_r": 14 },
+	"etalon": { "forma": "palochka", "izgib": 0, "nos": 1, "korma": 1, "grozd": 0, "dlina": 2.4, "tolshchina": 1.05, "cepochka": 1, "zhgutiki": 4, "zh_dlina": 4.3, "vorsinki": 84, "vors_dlina": 0.24, "vors_razbros": 0.7, "vors_naklon": 0.9, "zh_tolsh": 0.04, "ton": 0.9, "sborka": "nasha", "yarkost": 1, "skorost": "strain_speed", "ryskanie": 3, "eda_r": 14 },
 	"polzunki": {
-		"dlina": { "imya": "Длина клетки", "dlya": ["palochka", "zapyataya"], "mkm": true, "ot": 1.7, "do": 4, "shag": 0.1 },
+		"dlina": { "imya": "Длина клетки", "mkm": true, "ot": 1.0, "do": 4, "shag": 0.1 },
 		"tolshchina": { "imya": "Толщина", "mkm": true, "ot": 0.65, "do": 1.3, "shag": 0.05 },
 		"zhgutiki": { "imya": "Жгутики", "znacheniya": [1, 2, 4, 6, 8] },
 		"zh_dlina": { "imya": "Длина жгутиков", "mkm": true, "ot": 2.3, "do": 7.3, "shag": 0.5 },
@@ -15,7 +15,10 @@
 		"zh_tolsh": { "imya": "Толщина жгутиков", "chast": ["zhgutiki", "tolsh"], "znakov": 2, "ot": 0.03, "do": 0.08, "shag": 0.01 },
 		"ton": { "imya": "Цвет", "znakov": 2, "ot": 0, "do": 1, "shag": 0.02 },
 		"cepochka": { "imya": "Клеток", "ot": 1, "do": 6, "shag": 1 },
-		"izgib": { "imya": "Изгиб", "dlya": ["zapyataya"], "ot": 0.3, "do": 1.6, "shag": 0.1 },
+		"izgib": { "imya": "Изгиб", "ot": 0, "do": 1.6, "shag": 0.1 },
+		"nos": { "imya": "Толщина носа", "znakov": 2, "ot": 0.7, "do": 1.3, "shag": 0.05 },
+		"korma": { "imya": "Толщина кормы", "znakov": 2, "ot": 0.7, "do": 1.3, "shag": 0.05 },
+		"grozd": { "imya": "Клетки", "slova": ["цепочкой", "гроздью"], "ot": 0, "do": 1, "shag": 1 },
 		"yarkost": { "imya": "Яркость (вид)", "ot": 0.3, "do": 1.8, "shag": 0.1 }
 	},
 	"zhgutik": { "tolshch": 1.1, "alpha": 0.5 }, "stepen_tyagi": 0.5, "stepen_dliny": 0.5,

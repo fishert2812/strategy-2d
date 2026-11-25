@@ -8,8 +8,13 @@ export const K = url.protocol === 'file:' ? JSON.parse((await import('node:fs'))
 
 // Размеры тела в микрометрах по настоящей форме (telo_os.js): длина всей цепочки, наибольший поперечник, радиус шара того же объёма
 // (по нему вода разворачивает и кормит). Гроздь: шары слиплись в ком, он обтекается как один шар того же объёма.
-export const tochki = f => f.tochki || iz_formy(f.forma, f.dlina / f.tolshchina, 1, (f.izgib || 0) / f.tolshchina);
-export function razmery(f, k = K) { const O = os(tochki(f)), m = f.tolshchina * k.priroda.mkm, r = Math.cbrt(3 * O.obem * f.cepochka / (4 * Math.PI)) * m, grozd = f.forma === 'grozd';
+// Форма тела задаётся ползунками, не кнопками (Роман 25.11: «Где свобода форму? Что у тебя какие то чипы опять»): длина, изгиб дугой, толщина носа и кормы.
+// Короткое тело само становится шаром, с изгибом — запятой, с толстым носом — грушей. Готовые формы (f.forma кроме палочки) остались для записей и проверок.
+export const tochki = f => { if (f.tochki) return f.tochki; if (f.forma && f.forma !== 'palochka') return iz_formy(f.forma, f.dlina / f.tolshchina, 1, (f.izgib || 0) / f.tolshchina);
+  const L = Math.max(0, f.dlina / f.tolshchina - 1), g = (f.izgib || 0) / f.tolshchina, n = f.nos ?? 1, k = f.korma ?? 1; if (L < 0.05 && n === 1 && k === 1) return [[0, 0, 1]];
+  return [[-L, g * 0.675, k], [-L * 0.5, g * 0.08, (k + 1) / 2], [0, -g * 0.325, 1], [L * 0.5, g * 0.08, (n + 1) / 2], [L, g * 0.675, n]]; };
+const vid_formy = f => f.grozd ? 'grozd' : f.forma || 'palochka';
+export function razmery(f, k = K) { const O = os(tochki(f)), m = f.tolshchina * k.priroda.mkm, r = Math.cbrt(3 * O.obem * f.cepochka / (4 * Math.PI)) * m, grozd = vid_formy(f) === 'grozd';
   return { L: grozd ? 2 * r : O.dlina * m * f.cepochka, d: grozd ? 2 * r : O.poperechnik * m, r }; }
 export const radius = (f, k = K) => razmery(f, k).r;
 // Поведение по форме, в настоящих единицах. Л2: v = F / R, R = 3πμd(0,8 + 0,2·L/d) — вытянутое тело вдоль оси.
@@ -31,7 +36,7 @@ export function chasti_obrazca(f, k = K) { const Z = VC.vidy[f.sborka].chasti, c
 // Запись для движка существ: вариация серой соперницы с этой формой и посчитанным поведением.
 export function anketa(f, cfg, k = K) {
   const F = fizika(f, cfg, k);
-  return { ot: 'strain', telo: { forma: f.forma, izgib: f.izgib, ...(f.tochki ? { tochki: f.tochki } : {}), dlina: f.dlina, tolshchina: f.tolshchina, cepochka: f.cepochka, zazor: 0.86, cvet: k.cvet, kromka: k.kromka.map(x => x * f.yarkost),
+  return { ot: 'strain', telo: { forma: vid_formy(f), izgib: f.izgib, tochki: tochki(f), dlina: f.dlina, tolshchina: f.tolshchina, cepochka: f.cepochka, zazor: 0.86, cvet: k.cvet, kromka: k.kromka.map(x => x * f.yarkost),
       zhgutiki: f.zhgutiki === 1 ? { gde: 'korma', dlina: f.zh_dlina * 1.6, vitkov: 10, ...k.zhgutik } : { gde: 'krugom', n: f.zhgutiki, dlina: f.zh_dlina, ...k.zhgutik } },
     ...(f.sborka ? { sborka: { vid: f.sborka, sbor: k.sborka.sbor, chasti: chasti_obrazca(f, k) } } : {}),
     hod: { skorost: F.skorost, ryskanie: F.ryskanie }, eda: { r: F.eda_r }, rodnya: false, mir: { shans: [0, 0, 0], s_rosta: 0, zhrebiy: 'svoy' } };
