@@ -78,6 +78,17 @@ check('test_vid_ameba: амёба как на образцах Романа — 
   if (pts.some(p => p.cr === 1 && p.cg === 0.4 && p.cb === 0.12)) return 'остался оранжевый шар';
   return '';
 });
+check('test_vid_roti: коловратка как в жизни — на голове венец из двух лопастей ресничек с бегущей волной, зубцы панциря, тёмная кишка и челюсти, которые смыкаются при укусе', () => {
+  const shot = (time, bite = 0) => { const pts = []; const b = { put: (x, y, r, cr, cg, cb, a) => pts.push({ x, y, r, cr, cg, cb, a }) }; vid.roti({ tx: 0, ty: 0, vx: 0, vy: -1, L: 200, w: 34, pw: 1, time, id: 2, z: 1, glow: b, ink: b, bite }); return pts; };
+  const p0 = shot(1), C = vid.V.roti, cil = p0.filter(p => p.cr === C.cil_col[0] && p.cg === C.cil_col[1] && p.r < 3);
+  const left = cil.filter(p => p.x < 0).length, right = cil.filter(p => p.x > 0).length; if (left < 60 || right < 60) return 'венец не из двух лопастей ресничек: ' + left + '/' + right;
+  if (cil.some(p => p.y > -200 * 0.12)) return 'реснички не на голове';
+  const bright = ps => ps.filter(p => p.cr === C.cil_col[0] && p.a > 0.8).map(p => Math.round(p.x) + ':' + Math.round(p.y)).join('|'); if (bright(p0) === bright(shot(1.1))) return 'по венцу не бежит волна';
+  if (!p0.some(p => p.cr === C.jaw[0] && p.cg === C.jaw[1])) return 'челюстей не видно'; if (!p0.some(p => p.cr === C.gut_col[0])) return 'кишки не видно';
+  const jaws = ps => { const j = ps.filter(p => p.cr === C.jaw[0] && p.cg === C.jaw[1]); return Math.max(...j.map(p => p.x)) - Math.min(...j.map(p => p.x)); };
+  if (!(jaws(shot(1, 0.15)) < jaws(shot(1, 0.001)) * 0.7)) return 'челюсти не смыкаются при укусе';
+  return '';
+});
 check('test_vid_capsule_dent: капсула прогибается от удара хищника и пружинит обратно', () => {
   vid.stepVid(5); const was = paint({ capsule: true }).join('|'); vid.poke(-15, 13); const hit = paint({ capsule: true }).join('|');
   vid.stepVid(5); const after = paint({ capsule: true }).join('|');
