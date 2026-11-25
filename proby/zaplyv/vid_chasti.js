@@ -63,13 +63,13 @@ const RIS = {
         B.meh(F.O.kolca().map(q => ({ x: P.x + (q.x * ux - q.y * uy) * w, y: P.y + (q.x * uy + q.y * ux) * w, tx: q.tx * ux - q.ty * uy, ty: q.tx * uy + q.ty * ux, r: q.r * w })),
           { dlina: w * st.meh_dlina, gustota: st.meh_gustota / w * 10, sloi: Math.ceil(st.meh_sloi / 2), krug: 8, cvet: st.cvet, konchik: st.konchik || st.cvet, a: st.meh_a ?? 0.9 }); } // среднее — вдвое реже слои и грани: издали не видно
       if (w < (st.porog_krupno ?? 0)) { n = st.n_sred ?? st.n_izdali ?? 0; rmin = 0.4; } } }
-    for (let j = 0; j < n; j++) { const k = n < st.n ? Math.floor(j * st.n / n) : j, t = (k + hash(P.id, k + 602) * 0.8) / st.n * 6.283 + P.id, e = F.kray(t), l = w * st.dlina * (1 + 0.25 * Math.sin(P.time * 3 + k * 1.7)) * (1 - (st.razbros || 0) * hash(P.id, k + 600)) * (hash(P.id, k + 604) < (st.na_tele || 0) ? 0.55 : 1); // на лицевой стороне волосок смотрит на зрителя: виден короче
+    for (let j = 0; j < n; j++) { const k = n < st.n ? Math.floor(j * st.n / n) : j, t = st.sektor ? (F.O ? F.O.nos_t : 0) + st.sektor[0] + (st.sektor[1] - st.sektor[0]) * (k + hash(P.id, k + 602) * 0.8) / st.n : (k + hash(P.id, k + 602) * 0.8) / st.n * 6.283 + P.id, e = F.kray(t), l = w * st.dlina * (1 + 0.25 * Math.sin(P.time * 3 + k * 1.7)) * (1 - (st.razbros || 0) * hash(P.id, k + 600)) * (hash(P.id, k + 604) < (st.na_tele || 0) ? 0.55 : 1); // на лицевой стороне волосок смотрит на зрителя: виден короче
       let an = P.a + e.n + (hash(P.id, k + 601) - 0.5) * (st.vraznoboy || 0), lic = hash(P.id, k + 604) < (st.na_tele || 0), q = lic ? 0.3 + 0.62 * hash(P.id, k + 605) : 1, [lx, ly] = at(e.u * q, e.o * q); const gn = (hash(P.id, k + 603) - 0.5) * (st.izgib || 0) + Math.sin(P.time * 1.3 + k) * 0.06, Z = st.zvenya || (st.izgib || st.a_konec ? 3 : 1);
       const pts = [lx, ly]; for (let i = 0; i < Z; i++) { lx += Math.cos(an) * l / Z; ly += Math.sin(an) * l / Z; pts.push(lx, ly); an += (gn + (st.volna || 0) * Math.sin(i * 8.4 / Z + k + P.time * 1.1)) * 4 / Z; } // изгиб на всю длину один и тот же при любом числе звеньев: больше звеньев — плавнее дуга
       nit(B, pts, w * st.tolsh, st.cvet, st.a, w * st.tolsh, st.a * (st.a_konec ?? 0.75), lic ? (P.nad ?? w * 0.8) * Math.sqrt(1 - q * q) : undefined, st.konchik || st.cvet, undefined, rmin); }
     // ворс переходит на ветки тела: те же волоски той же густоты по краю ветки там, где она вышла из тела
     const ux = Math.cos(P.a), uy = Math.sin(P.a);
-    for (const [vi, v] of (F.vetki || []).entries()) { const Ov = os(v.tochki, 28, 0.12), e0 = F.O.kray(v.t), an0 = e0.n + (v.ugol || 0), cx = Math.cos(an0), cy = Math.sin(an0), bx = e0.x + cx * v.sdvig, by = e0.y + cy * v.sdvig, nv = Math.round(n * Ov.obvod / F.O.obvod);
+    for (const [vi, v] of (st.sektor ? [] : F.vetki || []).entries()) { const Ov = os(v.tochki, 28, 0.12), e0 = F.O.kray(v.t), an0 = e0.n + (v.ugol || 0), cx = Math.cos(an0), cy = Math.sin(an0), bx = e0.x + cx * v.sdvig, by = e0.y + cy * v.sdvig, nv = Math.round(n * Ov.obvod / F.O.obvod);
       for (let j = 0; j < nv; j++) { const k = 7000 + vi * 500 + j, e = Ov.kray((j + hash(P.id, k + 602) * 0.8) / nv * 6.283), x = bx + e.x * cx - e.y * cy, y = by + e.x * cy + e.y * cx; if (F.O.glubina(x, y) > -0.05) continue;
         const l = w * st.dlina * (1 - (st.razbros || 0) * hash(P.id, k + 600)), Z = st.zvenya || (st.izgib || st.a_konec ? 3 : 1), gn = (hash(P.id, k + 603) - 0.5) * (st.izgib || 0) + Math.sin(P.time * 1.3 + k) * 0.06;
         let an = P.a + an0 + e.n + (hash(P.id, k + 601) - 0.5) * (st.vraznoboy || 0), lx = P.x + (x * ux - y * uy) * w, ly = P.y + (x * uy + y * ux) * w; const pts = [lx, ly];
@@ -105,7 +105,7 @@ const RIS = {
     // нить идёт вдоль клетки туда и обратно и всё время вьётся круглыми петлями; петли круглые в настоящих размерах (не растянуты длиной тела), обратный ход ложится поверх прямого со сдвигом: клубок
     const ru = st.shirina * 0.5 / Hh, hod = Math.max(0, st.dlina - ru); let lx, ly;
     for (let i = 0; i <= N; i++) { const t = i / N * 6.283, f = t * vit + 1.3 * Math.sin(t * 3 + h(3)) + h(1), k = 0.55 + 0.45 * Math.sin(t * 5 + h(2) + T), u = hod * Math.sin(t + h(6)) + ru * k * Math.cos(f) + ru * 0.35 * Math.sin(t * (vit * 0.37 + 2) + T + h(4)), o = 0.3 * st.shirina * Math.sin(t * 2 + h(5) + T * 0.7) + st.shirina * k * Math.sin(f);
-      const [px, py] = at(u, o); if (i) B.seg(lx, ly, px, py, w * st.tolsh, st.cvet, st.a); lx = px; ly = py; } },
+      const [px, py] = at(u + (st.sdvig || 0), o); if (i) B.seg(lx, ly, px, py, w * st.tolsh, st.cvet, st.a); lx = px; ly = py; } },
   // Рибосомы: мелкие зёрна по всей цитоплазме, дрожат (броуновское движение).
   ribosomy(st, F, P, B, at) { if (P.tolshchina < (st.porog ?? 0)) return; B.vyshe = P.nad; const w = P.tolshchina, hl = P.dlina / 2, kx = 1 - w / hl * 0.45; // porog — мельче этой толщины (точки экрана) нутро не рисуется: издали оно только шумит
     for (let k = 0; k < st.n; k++) { const t = hash(P.id, k + 800) * 6.283, r = Math.sqrt(hash(P.id, k + 801)), j = st.drozh, [px, py] = at(Math.cos(t) * r * kx + Math.sin(P.time * 31 + k * 7.1) * j, Math.sin(t) * r * 0.62 + Math.sin(P.time * 27 + k * 3.3) * j);
@@ -137,6 +137,8 @@ const RIS = {
 };
 
 const VETKI = new WeakMap();
+// Полутолщина тела в месте t обвода: самая большая глубина по нормали внутрь (у тонкого хвоста ветка получает тонкий корень, у толстого бока толстый).
+const mestnyy_r = (O, t) => { const e = O.kray(t), R = O.poperechnik / 2; let g = 0.05; for (let i = 1; i <= 10; i++) { const d = R * i / 10; g = Math.max(g, O.glubina(e.x - Math.cos(e.n) * d, e.y - Math.sin(e.n) * d)); } return Math.min(R, g); };
 export function sobrat(zapis, poza, B) {
   if (!B || !B.sphere) return 0;
   const forma = zapis.forma || { tip: 'palochka' }, tip = forma.tip, P = { ...poza, tip }, ux = Math.cos(P.a), uy = Math.sin(P.a), w = P.tolshchina; let F, at;
@@ -147,10 +149,11 @@ export function sobrat(zapis, poza, B) {
     // volna — ветка сама медленно вытягивается и втягивается (ложноножка)
     const vetki = [...(forma.vetki || []), ...(P.vetki || [])].map(v => { const k = Math.round(Math.max(0, Math.min(1, v.rost ?? (v.volna ? 0.6 + 0.4 * Math.sin((P.time || 0) * v.volna + v.t * 3 + (P.id || 0)) : 1))) * VC.vetka.stupeney) / VC.vetka.stupeney;
       if (k <= 0) return null; let m = VETKI.get(v); if (!m) VETKI.set(v, m = {}); if (m[k]) return m[k];
+      const vt = v.t === 'nos' ? O.nos_t : v.t === 'korma' ? O.korma_t : v.t; // место словом: нос или корма этого тела
       // в начале роста толщины ветки не больше её длины: ветка проклёвывается низким бугорком и растёт из него, а не появляется сразу куполом
       // корень ветки сидит в теле на глубине VC.vetka.glubina и по самому телу идёт его же поверхностью (см. slit в obolochka): выпячивание самой оболочки, без шва у основания
-      const L = Math.max(0.02, v.dlina * k), [r0, r1] = (v.r || [0.4, 0.3]).map(r => Math.min(r, L * 1.2)), Rb = O.poperechnik / 2, rk = Math.min(Rb * VC.vetka.koren, L * 2.5), rs = Math.min(r0 + (Rb * VC.vetka.sheyka - r0) * Math.min(1, k * 2), L * 2.5), gl = Rb * VC.vetka.glubina, kor = Math.max(0, 1 - L / (rs * 2.5)), r3 = r0 + (rs - r0) * Math.max(0.12, kor * 0.6), T = [[Rb - gl, 0, rk], [Rb, 0, rs], [Rb + L * 0.45, (v.izgib || 0) * L, r3], [Rb + L, 0, r1 + (r3 * 0.9 - r1) * kor]]; // короткая ветка (почка) это широкий купол, а не столбик
-      return m[k] = { t: v.t, ugol: v.ugol, tochki: T, r_min: Math.min(r0, r1), r0, sdvig: os(T, 16, 0.12).dlina / 2 - rk - gl }; }).filter(Boolean);
+      const L = Math.max(0.02, v.dlina * k), [r0, r1] = (v.r || [0.4, 0.3]).map(r => Math.min(r, L * 1.2)), Rb = mestnyy_r(O, vt), rk = Math.min(Rb * VC.vetka.koren, L * 2.5), rs = Math.min(r0 + (Rb * VC.vetka.sheyka - r0) * Math.min(1, k * 2), L * 2.5), gl = Rb * VC.vetka.glubina, kor = Math.max(0, 1 - L / (rs * 2.5)), r3 = r0 + (rs - r0) * Math.max(0.12, kor * 0.6), T = [[Rb - gl, 0, rk], [Rb, 0, rs], [Rb + L * 0.45, (v.izgib || 0) * L, r3], [Rb + L, 0, r1 + (r3 * 0.9 - r1) * kor]]; // короткая ветка (почка) это широкий купол, а не столбик
+      return m[k] = { t: vt, ugol: v.ugol, tochki: T, r_min: Math.min(r0, r1), r0, sdvig: os(T, 16, 0.12).dlina / 2 - rk - gl }; }).filter(Boolean);
     // под веткой тело не выпучивается отдельным бугром: переход делает сама ветка (иначе бугор закрывает её корень, и край тела режет основание)
     if (vetki.length && P.vypuklosti) P.vypuklosti = P.vypuklosti.filter(b => !vetki.some(v => Math.abs(Math.atan2(Math.sin(b.t - v.t), Math.cos(b.t - v.t))) < 0.35));
     // выпуклости позы (см. obolochka): край тела в этом месте тоже выходит наружу, поэтому ворс, жгутики и всё, что сидит на краю, едет на бугре
