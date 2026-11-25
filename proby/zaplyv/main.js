@@ -664,7 +664,7 @@ function ask() {
   world.choice.forEach((g, i) => {
     const go = () => { world.pick(g); kids = null; $('genes').classList.remove('on'); fx.ring(world.center().x, world.center().y, 0, 300); beep(660, 0.4, 0.06, 'sine', 1.5); };
     const b = document.createElement('button');
-    b.innerHTML = '<img class="gicon" alt=""><span></span><small></small>'; b.children[1].textContent = geneName(g); b.children[2].textContent = geneBook(g).daet || ''; b.firstChild.src = icon(g); b.firstChild.style.borderColor = geneColor(g); b.onclick = go; box.appendChild(b); // имя и «что даёт» — только из книги (урок L018)
+    b.innerHTML = '<img class="gicon" alt=""><span></span><small></small>'; b.children[1].textContent = geneName(g); b.children[2].textContent = mut.daet(world, g, geneBook(g)); b.firstChild.src = icon(g); b.firstChild.style.borderColor = geneColor(g); b.onclick = go; box.appendChild(b); // имя и «что даёт» — только из книги (урок L018)
     const k = document.createElement('button'); k.className = 'kid'; k.style.left = i ? '52%' : '2%'; k.onclick = go; k.setAttribute('aria-label', geneName(g)); $('genes').appendChild(k);
   });
   $('genes').classList.add('on'); $('toast').classList.remove('on'); // всплывашка не ложится на заголовок выбора
@@ -702,6 +702,7 @@ function events() {
     if (k === 'stick') { beep(520, 0.06, 0.04, 'square'); tell('stick', 'Сел вирус! Резко развернись — стряхнёшь, пока не впрыснул'); } // прилип фаг: сказать сразу, а не на экране гибели (L042)
     if (k === 'shake') { beep(700, 0.07, 0.03); }
     if (k === 'learn') { beep(620, 0.4, 0.05, 'sine', 1.4); say('Пережила фага! Его кусок — новая полоска CRISPR: теперь T4 не страшен', 3000); }
+    if (k === 'magnet') beep(392 * Math.pow(2, Math.min(size - 1, 12) / 12), 0.12, 0.05, 'sine', 1.3); // магнит: серия поглощений — восходящие ноты
     if (k === 'snap') { beep(1200, 0.06, 0.04, 'square', 0.3); } // сувойка сжалась пружиной
     if (k === 'slip') beep(900, 0.08, 0.03, 'sine', 1.5); // капсула сработала: амёба не удержала
     if (k === 'shrug') beep(1100, 0.05, 0.03); // новая дверь сработала: вирус отброшен
@@ -778,22 +779,22 @@ function paint(time) {
     for (let i = 0; i <= n; i++) {
       const u = (i / n - 0.5) * g.len, v = Math.sin(u / g.len * 6.283 + g.id) * g.w * 0.8 + Math.sin(time * 0.4 + i * 0.3) * 2;
       const px = x + (ca * u - sa * v) * z, py = y + (sa * u + ca * v) * z, edge = 1 - Math.abs(i / n - 0.5) * 2;
-      const S = cfg.slime_look, fade = Math.min(1, edge * 3); // гель прозрачный: внутри едва заметен, видна только граница — тонкая светлая кромка, а не пелена (Роман 25.11: «мутнота… фильтр»)
-      glow.put(px, py, g.w * z * S.core, 0.55, 0.8, 0.95, S.core_a * fade);
+      const S = g.nest ? cfg.bdello_nest.look : cfg.slime_look, fade = Math.min(1, edge * 3); // гель прозрачный: внутри едва заметен, видна только граница — тонкая светлая кромка, а не пелена (Роман 25.11: «мутнота… фильтр»)
+      glow.put(px, py, g.w * z * S.core, ...(S.color || [0.55, 0.8, 0.95]), S.core_a * fade); // гнездо запятых — ржавая биоплёнка, видна издали (L054)
 
       if (i % 3 === 0) ink.put(px + Math.sin(i * 7.1) * g.w * 0.5 * z, py + Math.cos(i * 5.3) * g.w * 0.5 * z, 0.8 * z + 0.3, 0.8, 0.9, 1, 0.35);
     }
-    const S = cfg.slime_look, m = Math.ceil(g.len * z / S.rim_step); // кромка геля сплошной тонкой линией с двух сторон
+    const S = g.nest ? cfg.bdello_nest.look : cfg.slime_look, m = Math.ceil(g.len * z / (g.nest ? Math.min(S.rim_step, S.rim * z * 0.8 + 0.2) : S.rim_step)); // у гнезда кромка внахлёст — сплошная // кромка геля сплошной тонкой линией с двух сторон
     for (let j = 0; j <= m; j++) { const u = (j / m - 0.5) * g.len, v = Math.sin(u / g.len * 6.283 + g.id) * g.w * 0.8 + Math.sin(time * 0.4 + j / m * n * 0.3) * 2, f = Math.min(1, (1 - Math.abs(j / m - 0.5) * 2) * 3);
-      for (const sd of [-1, 1]) { const vv = v + sd * g.w * 0.5 * S.core; ink.put(x + (ca * u - sa * vv) * z, y + (sa * u + ca * vv) * z, S.rim * z + 0.3, 0.75, 0.92, 1, S.rim_a * f); } }
+      for (const sd of [-1, 1]) { const vv = v + sd * g.w * 0.5 * S.core; ink.put(x + (ca * u - sa * vv) * z, y + (sa * u + ca * vv) * z, S.rim * z + 0.3, ...(S.rim_c || [0.75, 0.92, 1]), S.rim_a * f); } }
   }
   { const Zc = cfg.zone, wn = world.warning(); // край зоны затягивания: тонкая сплошная линия (точки — язык еды, их не занимаем), еле видна всегда, ярче в полутора радиусах, разгорается только у ближайшей (L030)
     for (const zn of world.zones()) { const [wx, wy, R] = zn, [x, y] = scr(wx, wy), Rz = R * z; if (!on(x, y, Rz)) continue;
       const d = world.me.reduce((m, a) => Math.min(m, Math.hypot(a.x - wx, a.y - wy)), 1e9), lv = wn && wn.zone[0] === wx && wn.zone[1] === wy ? wn.level : 0;
-      const al = (d < R * 1.5 ? Zc.near : Zc.far) + (Zc.warn - Zc.near) * lv, [cr, cg, cb] = Zc.color, n = Math.max(90, Math.round(6.283 * Rz / Zc.step)), sz = (0.6 + 0.4 * lv) * z + 0.5;
-      for (let k = 0; k < n; k++) { const t = k / n * 6.283; ink.put(x + Math.cos(t) * Rz, y + Math.sin(t) * Rz, sz, cr, cg, cb, al); }
+      const al = (d < R * 1.5 ? Zc.near : Zc.far) + (Zc.warn - Zc.near) * lv, [cr, cg, cb] = Zc.color, sz = (0.6 + 0.4 * lv) * z + 0.5, n = Math.max(90, Math.ceil(6.283 * Rz / (sz * 0.9))); // точки внахлёст: сплошная линия, не пунктир (L047, Роман 25.11 про амёбу)
+      const ala = al * Math.min(1, sz * 0.9 / Zc.step); for (let k = 0; k < n; k++) { const t = k / n * 6.283; ink.put(x + Math.cos(t) * Rz, y + Math.sin(t) * Rz, sz, cr, cg, cb, ala); } // точек втрое больше — каждая бледнее, линия той же силы
       for (let k = 0; k < Zc.ticks; k++) { const t = k / Zc.ticks * 6.283 + time * 0.2; // чёрточки внутрь: куда тянет, видно, даже когда рта не видно
-        for (let i = 0; i < 6; i++) { const r = Rz * (1 - Zc.tick * i / 5); ink.put(x + Math.cos(t) * r, y + Math.sin(t) * r, sz * (1 - i * 0.1), cr, cg, cb, al * (1 - i * 0.12)); } }
+        const nt = Math.max(6, Math.ceil(Rz * Zc.tick / (sz * 0.8))); for (let i = 0; i <= nt; i++) { const f = i / nt, r = Rz * (1 - Zc.tick * f); ink.put(x + Math.cos(t) * r, y + Math.sin(t) * r, sz * (1 - f * 0.5), cr, cg, cb, al * (1 - f * 0.6)); } } // чёрточка сплошная, сужается внутрь
       if (lv > 0) probe.warn[zn[3]] = (probe.warn[zn[3]] || 0) + 1;
       for (const a of world.me) { if (Math.hypot(a.x - wx, a.y - wy) > R) continue; const [ax, ay] = scr(a.x, a.y); // тебя тянет: штрихи бегут от клетки к рту
         for (let k = 0; k < Zc.streak; k++) { const f = (time * 1.2 + k / Zc.streak) % 1;
@@ -914,7 +915,7 @@ function paint(time) {
     glow.put(x, y, w * 4, 1, 0.3, 0.1, 0.12 + (b.on ? 0.1 * Math.sin(time * 16) : 0));
     if (b.aim) { const [cr, cg, cb] = cfg.zone.color, [tx, ty] = scr(b.aim.x, b.aim.y), L = Math.hypot(tx - x, ty - y); probe.warn.bdello = (probe.warn.bdello || 0) + 1; // выбрала тебя: светится и тянет тонкую линию прицела к клетке (L030)
       glow.put(x, y, w * 6, cr, cg, cb, 0.35 + 0.2 * Math.sin(time * 12));
-      const run = (time * 40) % 16; for (let k = 2; k < L / 4; k++) { const d = k * 4 + run; if (d % 16 > 8 || d > L) continue; const u = d / L; ink.put(x + (tx - x) * u, y + (ty - y) * u, 0.8 * z + 0.5, cr, cg, cb, 0.55 * (1 - u * 0.5)); } } // штрихи бегут от запятой к тебе
+      const rr = 0.8 * z + 0.5, st = rr * 0.8; for (let d = 8; d < L; d += st) { const u = d / L, pu = 0.55 + 0.45 * Math.sin(d / 7 - time * 14); ink.put(x + (tx - x) * u, y + (ty - y) * u, rr, cr, cg, cb, 0.32 * pu * (1 - u * 0.5)); glow.put(x + (tx - x) * u, y + (ty - y) * u, rr * 2.2, cr, cg, cb, 0.05 * pu); } } // сплошная светящаяся нить, по ней к тебе бегут волны яркости (Роман: пунктир — халтура)
     for (let k = 1; k <= 22; k++) { const s = k / 22, wv = Math.sin(s * 9 - time * 30) * w * 0.5 * s;
       glow.put(x - ux * (w * 1.5 + s * w * 6) - uy * wv, y - uy * (w * 1.5 + s * w * 6) + ux * wv, 1.1 * Math.max(z, 0.7), 1, 0.55, 0.3, 0.6 * (1 - s * 0.6)); }
     if (sp > 150) for (let k = 1; k <= 8; k++) ink.put(x - b.vx * 0.012 * k * z, y - b.vy * 0.012 * k * z, w * (1 - k / 10), 1, 0.4, 0.2, 0.18 * (1 - k / 9)); // рывок
@@ -986,12 +987,12 @@ function paint(time) {
   }
   fx.drawOver({ scr, z, time, glow, ink });
   if (down) { // джойстик под большим пальцем: кольцо в точке касания и шарик за пальцем
-    for (let i = 0; i < 32; i++) { const t = i * 0.19635; glow.put(down.x + Math.cos(t) * STICK, down.y + Math.sin(t) * STICK, 2.2, 1, 1, 1, 0.25); }
+    for (let i = 0, n = Math.ceil(6.283 * STICK / 1.4); i < n; i++) { const t = i * 6.283 / n; glow.put(down.x + Math.cos(t) * STICK, down.y + Math.sin(t) * STICK, 1.8, 1, 1, 1, 0.1); } // сплошное кольцо: шаг меньше радиуса
     const dx = finger.x - down.x, dy = finger.y - down.y, l = Math.hypot(dx, dy), k = l > STICK ? STICK / l : 1;
     glow.put(down.x + dx * k, down.y + dy * k, 26, 0.7, 0.95, 1, 0.22);
   } else if (!moved && world.me.length) { // подсказка без слов: палец внизу экрана тянет вверх
     const k = (time / 1.6) % 1, x = W / 2, y = H * 0.78;
-    for (let i = 0; i < 32; i++) { const t = i * 0.19635; glow.put(x + Math.cos(t) * STICK, y + Math.sin(t) * STICK, 2.2, 1, 1, 1, 0.2); }
+    for (let i = 0, n = Math.ceil(6.283 * STICK / 1.4); i < n; i++) { const t = i * 6.283 / n; glow.put(x + Math.cos(t) * STICK, y + Math.sin(t) * STICK, 1.8, 1, 1, 1, 0.08); }
     glow.put(x, y - STICK * k, 26, 1, 1, 1, 0.35 * (1 - k * 0.5));
   }
   const wrap = (v, n) => ((v % n) + n) % n;
