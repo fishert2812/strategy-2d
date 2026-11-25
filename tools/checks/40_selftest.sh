@@ -75,6 +75,9 @@ ONLY=L047 case_ "test_L047: образец — свой рендер" 60_kirpich
 ONLY=L047 case_ "test_L047: навык в игре без приёмки" 60_kirpichi.sh red "sed -i '0,/\"v_igre\": false/s//\"v_igre\": true/' $Z/kirpichi.json"
 # L033: «Чует еду» без пальца снова стоит
 ONLY=L033 case_ "test_L033: без пальца клетка с умением стоит" 50_zaplyv.sh red "sed -i 's/} else if (this.genes.sense) {/} else if (false) {/' $Z/sim.js"
+# L054: запятые снова плодят рой и нападают без передышки
+ONLY=L054 case_ "test_L054: выводок без предела" 50_zaplyv.sh red "sed -i 's/c.bdello_nest.cap - near)/99)/' $Z/sim.js"
+ONLY=L054 case_ "test_L054: гнездо без передышки" 50_zaplyv.sh red "sed -i 's/if (prey \\&\\& !calm \\&\\& r()/if (prey \\&\\& r()/' $Z/sim.js"
 # L051: дочки снова складываются бок о бок
 ONLY=L051 case_ "test_L051: сёстры дрейфуют врозь" 50_zaplyv.sh red "sed -i 's/ kid.drift = c.drift;//' $Z/sim.js"
 # L049: колония снова застревает на четырёх

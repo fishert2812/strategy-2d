@@ -923,5 +923,41 @@ check('test_food_smell: с хемотаксисом клетку ведёт к �
   if (a !== 'lysate') return 'с хемотаксисом первым съеден не сок: ' + a;
 });
 
+check('test_L054 (Роман 25.11 на 0.78: «запятые… уменьшить кол-во… Просто на постоянке! Можно им тоже какой то ареал обитания»): запятые живут гнёздами у слизистой плёнки, нападают волной с передышкой, выводок не плодит рой', () => {
+  const N = cfg.bdello_nest;
+  // 1) путешественник без уклонения, 4 заплыва по 5 минут: запятые есть, но роем не стоят
+  const go = (w, t) => { if (w.choice.length) w.pick(w.choice[0]); if (w.readyToSplit() && w.me.length < 6) w.divide(); const c = w.center();
+    let best = null, bd = 260; for (const f of w.food) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } }
+    if (best) return { x: best.x, y: best.y }; const a = 0.7 + Math.sin(t / 40) * 0.8; return { x: c.x + Math.cos(a) * 400, y: c.y + Math.sin(a) * 400 }; };
+  let seen = 0, peak = 0, homeless = 0, all = 0;
+  for (let s = 1; s <= 4; s++) { const w = new World(cfg, s * 77);
+    for (let i = 0; i < 30 * 300 && w.me.length; i++) { w.step(1 / 30, go(w, i / 30)); w.events.length = 0;
+      if (i % 30 === 0) { const c = w.center(), k = w.bdellos.filter(b => Math.hypot(b.x - c.x, b.y - c.y) < N.cap_r).length; seen += k; peak = Math.max(peak, k);
+        for (const b of w.bdellos) { all++; if (!b.home) homeless++; } } } }
+  console.log('    паспорт: запятых в округе всего', seen, ', пик', peak, ', бродяг', Math.round(100 * homeless / Math.max(1, all)) + '%');
+  if (!seen) return 'запятых нет вовсе — угрозы нет';
+  if (peak > N.cap + N.n[1]) return 'рой: в округе разом ' + peak + ' запятых (предел ' + (N.cap + N.n[1]) + ')';
+  if (homeless > all * 0.35) return 'бродяг ' + homeless + ' из ' + all + ' — у запятых нет ареала';
+  // 2) гнездо держит своих: без добычи запятая через минуту у своей плёнки
+  const bare = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
+  const h = bare(5); h.me[0].x = 9000; const home = { x: 0, y: 0, ph: 0 }; h.bdellos = [{ x: 0, y: 0, vx: 0, vy: 0, a: 0, t: 0, home, id: 9 }];
+  run(h, 60, null); const off = Math.hypot(h.bdellos[0].x, h.bdellos[0].y);
+  if (off > N.leash * 1.6) return 'запятая уплыла от гнезда на ' + Math.round(off);
+  // 3) в передышку гнездо на тебя не бросается, в охоту — бросается
+  const aims = ph => { let n = 0; for (let s = 0; s < 6; s++) { const w = bare(40 + s), a = w.me[0]; w.stats.time = 0;
+    w.bdellos = [{ x: a.x + 120, y: a.y, vx: 0, vy: 0, a: 0, t: 0, home: { x: a.x + 120, y: a.y, ph }, id: 9 }];
+    for (let i = 0; i < 30 * 8; i++) { w.step(1 / 30, null); if (w.bdellos.some(b => b.aim)) { n++; break; } } } return n; };
+  const hunt = aims(0), calm = aims(N.hunt + 0.1);
+  console.log('    паспорт: бросков в охоту', hunt, 'из 6, в передышку', calm, 'из 6');
+  if (calm) return 'в передышку запятая бросилась ' + calm + ' раз';
+  if (!hunt) return 'в охоту запятая не бросилась ни разу';
+  // 4) выводок: у гнезда уже предел — из съеденной синегнойки рой не выходит
+  const br = bare(7); br.me[0].x = -9000; br.pseudos = [{ x: 0, y: 0, vx: 0, vy: 0, a: 0, t: 9, rest: 9, cool: 0, id: 7 }];
+  br.bdellos = Array.from({ length: N.cap }, (_, i) => i ? { x: 200 + i * 30, y: i * 40, vx: 0, vy: 0, a: 0, t: 50, rest: 60, id: 20 + i } : { x: -60, y: 0, vx: 0, vy: 0, a: 0, t: 5, rest: 0, id: 20 }); // остальные стоят рядом (пауза дольше рывка)
+  run(br, cfg.bdello_kill + 1, null);
+  if (br.pseudos.length) return 'запятая не взяла синегнойку';
+  if (br.bdellos.length > N.cap) return 'из синегнойки вышел рой: запятых стало ' + br.bdellos.length;
+});
+
 console.log(bad ? 'ЗАПЛЫВ: провалов ' + bad : 'ЗАПЛЫВ: все проверки прошли');
 process.exit(bad ? 1 : 0);
