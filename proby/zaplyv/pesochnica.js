@@ -54,6 +54,7 @@ body:has(.layer.on) #pk,body:has(.layer.on) #pt{display:none}
   dob(D.ameba, w => w.amoebas.push({ ...ryadom(260), vx: 0, vy: 0, m: 6, id: ++w.ids }));
   dob(D.zapyataya, w => w.bdellos.push({ ...ryadom(240), vx: 0, vy: 0, a: 0, t: 0.5, id: ++w.ids }));
   dob(D.sopernica, w => w.pseudos.push({ ...ryadom(160), vx: 0, vy: 0, a: 0, t: 0, cool: 0, strain: true, vid: 'strain', id: ++w.ids }));
+  dob(D.seno, w => w.pseudos.push({ ...ryadom(70), vx: 0, vy: 0, a: Math.random() * 6.283, t: 0, cool: 0, vid: 'seno', id: ++w.ids }));
   dob(D.chisto, w => { for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'crumbs', 'bdellos', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; });
   let moy = null; // новый заплыв — новый мир: снова пустая вода, клетка крупным планом
   const sledi = () => { const w = W();
