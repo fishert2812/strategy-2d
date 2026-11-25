@@ -509,10 +509,23 @@ function flag(screen, btn) {
   if (btn) { btn.classList.remove('hit'); void btn.offsetWidth; btn.classList.add('hit'); }
   try { beep(880, 0.08, 0.04, 'sine', 0.8); } catch (_) {}
 }
+// Картинка отметки с подписью снизу: номер, время и все слова отметки. Без картинки — карточка из одних слов.
+async function signed(url, head, text) {
+  const W = 640, pad = 20, c = document.createElement('canvas'), g = c.getContext('2d'); let im = null;
+  if (url) { im = new Image(); im.src = url; await im.decode(); }
+  const ih = im ? Math.round(W * im.height / im.width) : 0, font = '22px -apple-system, system-ui, sans-serif'; g.font = font;
+  const lines = []; for (const para of text.split('\n')) { let l = ''; for (const w of para.split(' ')) { const t = l ? l + ' ' + w : w; if (g.measureText(t).width > W - 2 * pad && l) { lines.push(l); l = w; } else l = t; } lines.push(l); }
+  c.width = W; c.height = ih + pad * 2 + 34 + lines.length * 28; g.fillStyle = '#081a22'; g.fillRect(0, 0, W, c.height);
+  if (im) g.drawImage(im, 0, 0, W, ih);
+  g.fillStyle = '#ffc9a8'; g.font = 'bold 24px -apple-system, system-ui, sans-serif'; g.fillText('⚑ ' + head, pad, ih + pad + 22);
+  g.fillStyle = '#e8f2f2'; g.font = font; lines.forEach((l, k) => g.fillText(l, pad, ih + pad + 56 + k * 28));
+  return await new Promise((ok, no) => c.toBlob(b => b ? ok(b) : no(new Error('нет картинки')), 'image/jpeg', 0.85));
+}
 async function send() {
   const text = message(marks);
   try {
-    const files = []; for (const [i, m] of marks.entries()) for (const [u, nm] of [[m.img, 'mesto'], [m.full, 'kadr']]) if (u) try { files.push(new File([await (await fetch(u)).blob()], `ne_tak_${i + 1}_${nm}.jpg`, { type: 'image/jpeg' })); } catch (_) {} // кусок и весь кадр
+    const files = []; for (const [i, m] of marks.entries()) { const head = `Отметка ${i + 1} из ${marks.length} · ${m.at}`; // слова впечатаны в картинку: «Поделиться» часто отдаёт только фото (урок L035)
+      for (const [u, nm] of [[m.img, 'mesto'], [m.full, 'kadr']]) if (u || nm === 'mesto') try { files.push(new File([await signed(u, head, m.text)], `ne_tak_${i + 1}_${nm}.jpg`, { type: 'image/jpeg' })); } catch (_) {} }
     if (navigator.share && files.length && navigator.canShare?.({ files })) await navigator.share({ text, files }); // картинки мест — вместе со словами
     else if (navigator.share) await navigator.share({ text });
     else { await navigator.clipboard.writeText(text); say('Скопировано — вставь в чат', 2200); }
