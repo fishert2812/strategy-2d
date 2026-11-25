@@ -23,17 +23,18 @@ export const BRICKS = {
     const base = Math.min(1, sm(p / P.grow) * 3, (1 - p) * 8), cr = rim(c, b, 1); // оболочка выпячивается там, откуда пойдут нити
     if (base > 0.05) { const pts = [], ws = []; for (let a = -0.6; a <= 0.6; a += 0.1) { pts.push(scr(...rim(c, b + a * P.spread, 0.98))); ws.push(P.th * 1.4 * base * z * Math.cos(a * 2.4)); } tube.put(pts, ws, P.skin, P.core, 0.45); }
     for (let i = 0; i < P.n; i++) {
-      const s = P.n > 1 ? i / (P.n - 1) - 0.5 : 0, R0 = rim(c, b + s * P.spread, 0.95), lag = 1 - 0.25 * rnd(c.seed + i * 3); // нити тянутся не в ногу
+      const s = P.n > 1 ? i / (P.n - 1) - 0.5 : 0, R0 = rim(c, b + s * P.spread, 0.95), lag = 1 - 0.45 * rnd(c.seed + i * 3); // нити тянутся не в ногу
       const ta = b + Math.PI - s * (0.6 + 2 * Math.PI * P.wrap * w), tr = rt * (1.15 - P.squeeze * w); // конец идёт по кругу цели — обволакивает
       const gi = Math.min(1, g / lag), tip0 = [T.x + Math.cos(ta) * tr, T.y + Math.sin(ta) * tr], tip = [R0[0] + (tip0[0] - R0[0]) * gi, R0[1] + (tip0[1] - R0[1]) * gi];
-      const ca = b + Math.PI - s * Math.PI * P.wrap * w, sway = (P.sway * (1 - w) * Math.sin(c.t * 4 + i * 1.7 + c.seed) + P.bend * (rnd(c.seed + i * 7) - 0.5)) * D * gi; // колышется, пока ищет
+      const ca = b + Math.PI - s * Math.PI * P.wrap * w, sway = (P.sway * (1 - 0.6 * w) * Math.sin(c.t * (2.5 + 3 * rnd(c.seed + i * 11)) + i * 1.7 + c.seed) + P.bend * (rnd(c.seed + i * 7) - 0.5)) * D * gi; // колышется, пока ищет
       const m0 = [(R0[0] + tip[0]) / 2 - Math.sin(b) * sway, (R0[1] + tip[1]) / 2 + Math.cos(b) * sway], m1 = [T.x + Math.cos(ca) * rt * 1.6, T.y + Math.sin(ca) * rt * 1.6];
       const C = [m0[0] + (m1[0] - m0[0]) * w * gi, m0[1] + (m1[1] - m0[1]) * w * gi];
       if (gi < 0.03 || base <= 0.05) continue; // ещё не вышла из оболочки
-      const th0 = P.th * (0.6 + 0.8 * rnd(c.seed + i)) * Math.min(1, gi * 3) * z, run = (c.t * 1.3 + i * 0.17) % 1, pts = [], ws = [];
+      const melt = 1 - sm((p - P.melt) / (1 - P.melt)), th0 = P.th * (0.35 + 1.3 * rnd(c.seed + i) ** 2) * Math.min(1, gi * 3) * melt * z, // толстые тяжи вперемешку с волосками; в конце тают в оболочку
+        run = (c.t * 1.3 + i * 0.17) % 1, pts = [], ws = [];
       for (let k = 0; k <= 24; k++) { const u = k / 24; pts.push(scr(...bez(R0, C, tip, u))); ws.push(th0 * (1 - 0.85 * u)); } // одна гладкая лента, к концу сходит на нет
-      tube.put(pts, ws, P.skin, P.core, 0.85, P.halo_w); // лента со светлой сердцевиной и мягким свечением вокруг (lenta.js)
-      if (w > 0.05) { const k = Math.round((1 - run) * 20), e = w * Math.sin(Math.PI * run); tube.put(pts.slice(k, k + 5), ws.slice(k, k + 5).map(v => v * 0.8), P.energy, [1, 1, 0.85], 0.6 * e, 2.5); } // по нити к клетке бежит тёплый свет — штрихом внутри нити
+      tube.put(pts, ws, mix(P.skin, P.skin2, rnd(c.seed + i * 5)), P.core, 0.85 * melt * melt, P.halo_w); // перелив: бирюза → сирень // лента со светлой сердцевиной и мягким свечением вокруг (lenta.js)
+      if (w > 0.05) { const k = Math.round((1 - run) * 20), e = w * Math.sin(Math.PI * run); tube.put(pts.slice(k, k + 5), ws.slice(k, k + 5).map(v => v * 0.8), P.energy, [1, 1, 0.85], 0.6 * e * melt * melt, 2.5); } // по нити к клетке бежит тёплый свет — штрихом внутри нити
     }
   },
   // Растворение: цель — светящаяся стеклянная капля с бликом — плавно темнеет и вздрагивает, сжимается, вытягивается каплей в сторону клетки
@@ -42,7 +43,7 @@ export const BRICKS = {
     const { P, p, F, T, rt, scr, z, soft, ink, tube } = c, dk = sm(p / P.dark), col = mix(P.from, P.to, dk), sink = 1 - sm((p - 0.82) / 0.18);
     const ex = F.x - T.x, ey = F.y - T.y, el = Math.hypot(ex, ey) || 1, ux = ex / el, uy = ey / el, R = rt * (1 - P.shrink * sm(p)) * (1 + 0.05 * Math.sin(c.t * 25) * dk * (1 - dk));
     const st = 1 + P.stretch * sm((p - P.dark) / (1 - P.dark)), a = R * st, bw = R / Math.sqrt(st), [tx, ty] = scr(T.x, T.y); // слеза: длиннее к клетке, тоньше
-    soft.put(tx, ty, R * 3.4 * z, ...mix(P.from, P.light, 0.5), 0.3 * (1 - dk * 0.6) * sink); soft.put(tx, ty, R * 1.9 * z, ...P.light, 0.35 * (1 - dk * 0.5) * sink); // сияние без края
+    soft.put(tx, ty, R * 3.4 * z, ...mix(P.from, P.light, 0.5), 0.3 * (1 - dk * 0.4) * sink); soft.put(tx, ty, R * 1.9 * z, ...P.light, 0.35 * (1 - dk * 0.35) * sink); // сияние без края
     for (let k = 0; k < 6; k++) { const f = 1 - k / 6, off = (a - bw) * (k / 5) * 0.9, [x, y] = scr(T.x + ux * off, T.y + uy * off); // объёмная капля: слои от края к середине светлее,
       ink.put(x, y, bw * (0.55 + 0.45 * f) * z, ...mix(col, [1, 1, 0.92], 0.5 * (1 - f) * (1 - dk * 0.5)), 0.9 * sink); } // сдвиг слоёв к клетке вытягивает слезу
     ink.put(tx - (ux * 0.3 + uy * 0.35) * R * z, ty - (uy * 0.3 - ux * 0.35) * R * z, R * 0.26 * z, 1, 1, 0.95, 0.6 * sink); // блик
