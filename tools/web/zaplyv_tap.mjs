@@ -84,6 +84,11 @@ await p.waitForTimeout(700); { const t = await p.evaluate(() => [...document.que
   const notch = await p.evaluate(() => document.getElementById('sicknotch').getBoundingClientRect().width), cnt = await p.textContent('#count');
   await p.evaluate(() => { const a = zaplyvWorld().me[0]; a.sick = -1; a.m = 1; });
   say(hi > 50 && lo < hi - 20 && lo > 5 && notch > 4 && /мкм/.test(cnt) && await seen('#growbar'), 'test_L040: полоса роста ' + hi.toFixed(0) + '% → ' + lo.toFixed(0) + '% назад, засечка заражения ' + notch.toFixed(0) + ' px, «' + cnt + '»'); }
+// test_L042 (прогоны 0.61 и 0.63, О44: «вирус молчит в момент посадки… совет только на экране гибели»): вирус сел на клетку —
+// в ту же секунду надпись, что случилось и что делать пальцем.
+await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.phages.length = 0; w.phages.push({ x: a.x + 8, y: a.y, vx: 0, vy: 0, d: Math.PI, t: 0, id: 91, host: 'me', cool: 0 }); });
+await p.waitForTimeout(600); { const t = await p.evaluate(() => [...document.querySelectorAll('#toast.on')].map(e => e.textContent).join('')); say(/вирус/i.test(t) && /развернись/.test(t), 'test_L042: вирус сел на клетку — сразу надпись, что делать (' + (t || 'надписи нет') + ')'); }
+await p.evaluate(() => { const w = zaplyvWorld(); w.phages.length = 0; for (const a of w.me) a.sick = -1; });
 if (await tap('#flag', 'флажок в игре')) say(await seen('#note') && await marks() === m + 1, 'флажок в игре: отметка записана и надпись видна');
 if (await tap('#pause', 'пауза')) say(await on('genome') && (await p.textContent('#gtitle')) === 'Пауза', 'пауза открывает меню «Пауза»');
 if (await tap('#phub [data-t=genome]', 'строка «Геном» в паузе')) say(await seen('#ring'), 'строка «Геном» открывает кольцо');
