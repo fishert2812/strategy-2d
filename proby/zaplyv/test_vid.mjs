@@ -114,6 +114,25 @@ check('test_vid_fag_lapy: вирус садится как в жизни — ш�
   if (feet(shot(false, 2)).length) return 'стряхнутый вирус не поджал лапы';
   return '';
 });
+check('test_vid_lizis_oblako: лопнула — сок встаёт за 0,1 с в паре размеров клетки и расплывается облаком √(4Dt), густота как 1/t; пустую оболочку трясёт вода (Ф3, Ф4)', () => {
+  const C = { r: 1, g: 1, b: 1 }, fx = new Fx({}, [C, C, C]), P = vid.V.lysis; fx.reset(); fx.lyse(0, 0, null);
+  const x0 = fx.drops[0].x, y0 = fx.drops[0].y, far = () => Math.max(...fx.drops.map(p => Math.hypot(p.x - x0, p.y - y0)));
+  for (let i = 0; i < 6; i++) fx.step(1 / 60); const d1 = far(); for (let i = 0; i < 24; i++) fx.step(1 / 60); const d2 = far();
+  if (d1 < 30 || d2 > 80) return 'брызги летят не на 30–60: ' + d1.toFixed(0) + ' → ' + d2.toFixed(0);
+  if (d2 - d1 > d1 * 0.1) return 'брызги катятся после 0,1 с: ' + d1.toFixed(0) + ' → ' + d2.toFixed(0);
+  if (!fx.clouds.length) return 'на месте брызг нет облака';
+  const look = () => { const pts = [], b = { put: (x, y, r, cr, cg, cb, a) => { if (cr === P.cloud[0] && cg === P.cloud[1]) pts.push({ r, a }); } }; fx.drawOver({ scr: (x, y) => [x, y], z: 1, time: 0, glow: b, ink: b }); return pts[0]; };
+  const a = look(); for (let i = 0; i < 90; i++) fx.step(1 / 60); const b = look(); // t растёт с ~0,65 до ~2,15 — втрое с лишним
+  const tr = (fx.clouds[0].t + P.t0) / (fx.clouds[0].t + P.t0 - 1.5);
+  if (Math.abs(b.r / a.r - Math.sqrt(tr)) > 0.05) return 'облако растёт не как корень из времени: ' + (b.r / a.r).toFixed(2) + ' вместо ' + Math.sqrt(tr).toFixed(2);
+  if (Math.abs(a.a / b.a - tr) > 0.05) return 'облако бледнеет не как 1/t';
+  const g = new Fx({}, [C, C, C]); g.reset(); for (let i = 0; i < 300; i++) g.ghosts.push({ x: 0, y: 0, ang: 0, L: 8, w: 6, p0: 0, t: 0 });
+  const msd = () => g.ghosts.reduce((s, q) => s + q.x * q.x + q.y * q.y, 0) / g.ghosts.length;
+  for (let i = 0; i < 60; i++) g.step(1 / 60); const m1 = msd(); for (let i = 0; i < 180; i++) g.step(1 / 60); const m4 = msd();
+  if (m1 < 4 * P.ghost_D * 0.6 || m1 > 4 * P.ghost_D * 1.4) return 'оболочку трясёт не по Ф3: за 1 с ' + m1.toFixed(0) + ' ед.² вместо ' + 4 * P.ghost_D;
+  if (m4 / m1 < 3 || m4 / m1 > 5) return 'оболочка уплывает, а не топчется: за вчетверо дольше уходит в ' + Math.sqrt(m4 / m1).toFixed(1) + ' раза дальше вместо 2';
+  return '';
+});
 check('test_vid_capsule_dent: капсула прогибается от удара хищника и пружинит обратно', () => {
   vid.stepVid(5); const was = paint({ capsule: true }).join('|'); vid.poke(-15, 13); const hit = paint({ capsule: true }).join('|');
   vid.stepVid(5); const after = paint({ capsule: true }).join('|');
