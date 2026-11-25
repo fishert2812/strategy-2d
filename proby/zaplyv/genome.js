@@ -30,7 +30,7 @@ export function card(slot, genes, from, book, G, arcName) {
 const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent?.appendChild(e); return e; };
 const pt = (r, deg) => { const t = deg * Math.PI / 180; return `${(r * Math.cos(t)).toFixed(1)} ${(r * Math.sin(t)).toFixed(1)}`; };
 
-export function genomeScreen({ G, cfg, world, icon = () => '', onOpen, onClose, onCabinet, onSend = () => {}, onDraw = () => {} }) {
+export function genomeScreen({ G, cfg, world, icon = () => '', onOpen, onClose, onSend = () => {}, onDraw = () => {} }) {
   const $ = id => document.getElementById(id);
   const svg = $('ring'), box = $('gcard');
   const S = { open: false, blink: null }; G.pipe = cfg.plasmid_genes;
@@ -78,7 +78,7 @@ export function genomeScreen({ G, cfg, world, icon = () => '', onOpen, onClose, 
     el('text', { x: 0, y: -R1 - 13, 'text-anchor': 'middle', fill: '#fff', 'font-size': 12, opacity: 0.6 }, svg).textContent = 'ori';
     const own = all.filter(p => !p.plasmid), n = own.filter(p => w.genes[p.slot.id]).length, np = all.filter(p => p.plasmid && !p.skill && w.genes[p.slot.id]).length;
     $('gchips').innerHTML = `<span>включено ${n} из ${own.length}</span><span>чужих ${np}</span>`;
-    const send = document.createElement('button'); send.id = 'gsend'; send.className = 'flag'; send.style.display = 'none'; send.onclick = onSend; $('gchips').appendChild(send); onDraw();
+    $('gsend')?.remove(); const send = document.createElement('button'); send.id = 'gsend'; send.className = 'flag'; send.style.display = 'none'; send.onclick = onSend; $('pserv').appendChild(send); onDraw(); // «Отметки · N» — служебное, на первом уровне паузы
     $('gsub').textContent = `поколение ${w.stats.gen} · кишечная палочка`;
   }
 
@@ -101,8 +101,7 @@ export function genomeScreen({ G, cfg, world, icon = () => '', onOpen, onClose, 
   }
   function close() { if (!S.open) return; S.open = false; S.blink = null; $('genome').classList.remove('on'); onClose(); }
   $('pause').onclick = open;
-  $('gon').onclick = close; $('gback').onclick = close;
-  $('gcab').onclick = onCabinet;
+  $('gon').onclick = close; // «Назад» и разделы паузы — в main.js (tab)
   S.openScreen = open; S.close = close;
   S.center = () => { const r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal, k = Math.min(r.width / vb.width, r.height / vb.height); return [(r.left + r.width / 2 - (vb.x + vb.width / 2) * k) / innerWidth, (r.top + r.height / 2 - (vb.y + vb.height / 2) * k) / innerHeight]; }; // где центр кольца на экране — туда ставим клетку
   S.inner = () => { const r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal; return R0 * Math.min(r.width / vb.width, r.height / vb.height); }; // радиус окна внутри кольца, px

@@ -6,7 +6,7 @@ import { look } from './look.js';
 import { whip } from './whip.js';
 import { layout, card } from './genome.js';
 import { mark, message } from './feedback.js';
-import { entries, shelf, page } from './almanah.js';
+import { entries, shelf, page, links } from './almanah.js';
 import * as karta from './karta.js';
 import { readFileSync } from 'node:fs';
 import { night } from './night.js';
@@ -617,6 +617,16 @@ check('test_L019: Альманах — разделы, счёт словами, 
   console.log('    паспорт: ' + S2.count + '; ' + S2.pills.map(p => p.label).join(' / ') + '; амёба: ' + P.blocks.map(b => b[0]).join(' · ') + '; ген: ' + Gp.name);
 });
 
+// Урок L037 (Роман 25.11: «Навигация в альманахе… даже на Википедии удобнее»): на карточке связи из книги — кто ест, кого ест,
+// только то, что есть в игре; строки ведут на карточки, текст строки — слово в слово из kniga/kto_s_kem.json.
+check('test_L037: связи карточки Альманаха — из книги, только из игры', () => {
+  const S = JSON.parse(readFileSync(new URL('./kniga/kto_s_kem.json', import.meta.url))), me = links('me', S), am = links('amoeba', S);
+  const eats = me.find(g => g.head === 'КТО ЕСТ'); if (!eats || !eats.rows.some(r => r.k === 'bdello')) return 'у «Ты» нет «кто ест» с красной запятой: ' + JSON.stringify(me.map(g => g.head));
+  for (const g of [...me, ...am]) for (const r of g.rows) { const x = S.svyazi.find(q => q.t === r.t); if (!x || x.st !== 'igra' || x.z === 'nichego') return `строка «${r.t}» не из игры`; }
+  if (links('nikto', S).length) return 'у неизвестного есть связи';
+  console.log('    паспорт: у «Ты» ' + me.map(g => g.head.toLowerCase() + ' ' + g.rows.length).join(', ') + '; у амёбы ' + am.map(g => g.head.toLowerCase() + ' ' + g.rows.length).join(', '));
+});
+
 // Урок L020 (Роман, 0.32: «почему жгутики зеленые такие выбивается из стиля»): у образца берём форму и движение, цвет — из стиля игры.
 check('test_L020: жгутики в цвете оболочки — светло-голубые, не зелёные, прозрачнее тела', () => {
   const [r, g, b] = cfg.flag.color, hue = c => { const [r, g, b] = c, mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn || 1;
@@ -807,6 +817,15 @@ check('test_L032 (прогон 0.54, О22 повтор): уснула среди
     if (a.spore > 0) return 'не проснулась за 60 с (заплыв ' + s + ')';
     if (t > cfg.spore + cfg.spore_max + 1) return 'спала ' + t.toFixed(0) + ' с — дольше обещанного'; }
   console.log('    паспорт: спала среди охотников, с —', out.join(' '));
+});
+check('test_L033 (прогон 0.54, О33: «Убери палец, и клетка сама поплывёт к ближайшей еде» — стояли 11 с): с «Чует еду» без пальца клетка сама доплывает до куска', () => {
+  const go = sense => { const w = new World(cfg, 600); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9;
+    const a = w.me[0]; w.genes.sense = sense; w.food = [{ x: a.x + 110, y: a.y - 60, vx: 0, vy: 0, s: 1 }]; const e0 = w.stats.eaten; let t = 0;
+    while (w.stats.eaten === e0 && t < 8) { w.step(1 / 30, null); t += 1 / 30; } return w.stats.eaten > e0 ? t : null; };
+  const yes = go(true), no = go(false);
+  console.log('    паспорт: без пальца до куска в 125 — с умением', yes === null ? 'не доплыла' : yes.toFixed(1) + ' с', '| без умения', no === null ? 'стоит' : no.toFixed(1) + ' с');
+  if (yes === null) return 'с «Чует еду» клетка без пальца не доплыла до еды за 8 с';
+  if (no !== null) return 'без умения клетка сама доплыла — умение ничего не меняет';
 });
 
 check('test_L024: умение не приходит дочке раньше встречи с тем, о ком оно (поле «после встречи с» в книге), а после встречи приходит', () => {

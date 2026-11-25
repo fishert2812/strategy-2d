@@ -138,7 +138,7 @@ function load() {
 const S = load();
 if (process.argv.includes('--teksty')) {
   const u = new URL('teksty_genov.json', import.meta.url); const { sushchestva, ...tg } = S.teksty; writeFileSync(u, JSON.stringify({ ...tg, geny: sobrat(S.records) }, null, 1) + '\n');
-  writeFileSync(new URL('teksty_sushchestv.json', import.meta.url), JSON.stringify({ _: 'Собрано из записей книги, руками не править: node proby/zaplyv/kniga/sverka.mjs --teksty', podpisi: { kto: '', sovet: 'Совет', priroda: 'В природе' }, sushchestva: sobratS(S.records) }, null, 1) + '\n');
+  writeFileSync(new URL('teksty_sushchestv.json', import.meta.url), JSON.stringify({ _: 'Собрано из записей книги, руками не править: node proby/zaplyv/kniga/sverka.mjs --teksty', podpisi: { kto: '', sovet: 'Совет', priroda: 'В природе', almanah_cveta: 'Под микроскопом почти все здесь бесцветные и прозрачные. Цвета в игре это наши метки, чтобы ты различал, кто есть кто. По-настоящему цветные только зелёная нить и бурый комок.', eda_tochki: 'Еду в воде никто не видит, даже под лучшим микроскопом. Мы показываем её точками, чтобы ты видел то, что клетка чувствует.' } /* две строки Альманаха про цвет и еду: биолог, 25.11 */, sushchestva: sobratS(S.records) }, null, 1) + '\n');
   console.log('  teksty_genov.json собран из записей'); process.exit(0);
 }
 if (process.argv.includes('--selftest')) {
