@@ -687,7 +687,7 @@ function pathText(w) {
   const nature = mm < 60 ? mm + ' мин' : Math.floor(mm / 60) + ' ч' + (mm % 60 ? ' ' + (mm % 60) + ' мин' : '');
   const genes = Object.keys(w.genes).map(geneName).join(', ') || 'пока нет';
   const lost = Object.entries(s.lost).map(([k, n]) => (TEKSTY[k]?.imya || (cards[k] ? cards[k].name : k)) + ' — ' + n).join(', ');
-  return `<b class="potomki">Потомков в капле: ${s.potomki}</b>${s.potomki ? '' : '<small>Вырасти семью до десяти — дальше каждая дочка уплывает жить сама и считается</small>'}<br>Плыл ${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}, проплыл ${Math.round(s.path / 26)} мкм<br>`
+  return `<b class="potomki">Потомков в капле: ${s.potomki}</b><br>Плыл ${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}, проплыл ${Math.round(s.path / 26)} мкм<br>`
     + `Поколений: ${s.gen} — в природе это ≈ ${nature}<br>Клеток было до ${s.most}, съедено ${s.eaten}<br>`
     + `Мутации: ${genes}` + (lost ? `<br>Отняли клеток: ${lost}` : '');
 }
