@@ -47,6 +47,36 @@
       "chasti": { "zhgutiki": { "cvet": [1.3, 1.0, 1.2], "razmah": 0.42 }, "vorsinki": { "n": 130, "dlina": 0.5, "tolsh": 0.014, "razbros": 0.75, "vraznoboy": 0.9, "izgib": 0.5, "volna": 0.45, "zvenya": 4, "cvet": [1.35, 1.05, 1.25], "a": 0.9, "a_konec": 0.25 },
         "obolochka": { "sloi": [ { "r": 1.0, "cvet": [1.0, 0.72, 0.88], "a": 0.55 }, { "r": 0.95, "cvet": [0.6, 0.9, 1.0], "kromka": [0.5, 0.75, 0.9], "a": 0.5, "razrez": true }, { "r": 0.9, "cvet": [1.0, 0.25, 0.7], "plotno": true } ] }, "nukleoid": {}, "ribosomy": {}, "vklyucheniya": {} }
     },
+    "seno": {
+      "_": "Сенная палочка (грам-положительная): длинная матовая палочка без стеклянной оболочки, жгутики тонкие по всему телу. Образец: referensy/sennaya_palochka.",
+      "forma": { "tip": "os", "tochki": [[-1.9, 0.05, 1], [0, -0.05, 1], [1.9, 0.05, 1]] },
+      "chasti": { "zhgutiki": { "n": 9, "dlina_tela": 1.2, "tolsh": 0.028, "razmah": 0.5, "cvet": [0.75, 0.6, 1.2], "a": 0.8 },
+        "obolochka": { "sloi": [ { "r": 1.0, "cvet": [0.62, 0.42, 1.0], "plotno": true } ] } }
+    },
+    "sinegnoyka": {
+      "_": "Синегнойная палочка: розовая, слегка изогнутая, жгутики на заднем полюсе, редкий длинный ворс. Образец: referensy/sinegnoyka.",
+      "forma": { "tip": "os", "tochki": [[-1.5, 0.3, 0.95], [0, -0.12, 1], [1.5, 0.3, 0.95]] },
+      "chasti": { "zhgutiki": { "n": 2, "gde": "korma", "razlet": 0.25, "dlina_tela": 1.3, "tolsh": 0.03, "cvet": [1.3, 0.8, 1.1] },
+        "vorsinki": { "n": 46, "dlina": 0.55, "tolsh": 0.012, "razbros": 0.8, "vraznoboy": 1.1, "izgib": 0.7, "volna": 0.5, "zvenya": 4, "cvet": [1.3, 0.85, 1.15], "a": 0.7, "a_konec": 0.2 },
+        "obolochka": { "sloi": [ { "r": 1.0, "cvet": [1.0, 0.3, 0.72], "plotno": true } ] } }
+    },
+    "zapyataya": {
+      "_": "Красная запятая (вибрион): тело запятой 2,7 к 1, один жгутик на заднем полюсе длиной с тело. Образец: referensy/krasnaya_zapyataya.",
+      "forma": { "tip": "os", "tochki": [[-1.25, 0.55, 0.9], [-0.6, 0.05, 1], [0, -0.15, 1.02], [0.6, 0.05, 1], [1.25, 0.55, 0.92]] },
+      "chasti": { "zhgutiki": { "n": 1, "gde": "korma", "dlina_tela": 1.0, "tolsh": 0.05, "suzh": 0.2, "razmah": 0.5, "shag": 1.6, "cvet": [0.95, 0.7, 1.1] },
+        "obolochka": { "sloi": [ { "r": 1.0, "cvet": [0.72, 0.42, 0.8], "plotno": true } ] } }
+    },
+    "kokki": {
+      "_": "Кокки гроздью (стафилококк): матовые шары слиплись гроздью, жгутиков и ворса нет. Образец: referensy/kokki_grozdyu.",
+      "forma": { "tip": "os", "tochki": [[0, 0, 1]] }, "gruppa": { "n": 14, "uklad": "grozd", "zazor": 0.92 },
+      "chasti": { "obolochka": { "sloi": [ { "r": 1.0, "cvet": [0.5, 0.36, 1.0], "plotno": true } ] } }
+    },
+    "garpun": {
+      "_": "Гарпунщица (ацинетобактер): короткая бугристая розовая палочка, жгутиков нет, короткий ворс. Образец: referensy/garpunshchica.",
+      "forma": { "tip": "os", "tochki": [[-0.42, 0.03, 0.95], [0, -0.03, 1.06], [0.42, 0.03, 0.93]] }, "gruppa": { "n": 3, "uklad": "cep", "zazor": 0.95 },
+      "chasti": { "vorsinki": { "n": 60, "dlina": 0.16, "tolsh": 0.012, "razbros": 0.7, "vraznoboy": 0.9, "izgib": 0.4, "cvet": [1.3, 0.8, 1.0], "a": 0.6 },
+        "obolochka": { "sloi": [ { "r": 1.0, "cvet": [1.0, 0.3, 0.6], "plotno": true } ] } }
+    },
     "tuflya": {
       "forma": { "tip": "tuflya" },
       "chasti": { "telo": {}, "puzyri_edy": {}, "zerna": {}, "yadro": {}, "sokr_puzyr": {}, "resnichki": {} }
