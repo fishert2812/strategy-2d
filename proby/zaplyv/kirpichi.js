@@ -32,30 +32,20 @@ export const BRICKS = {
       if (gi < 0.03 || base <= 0.05) continue; // ещё не вышла из оболочки
       const th0 = P.th * (0.6 + 0.8 * rnd(c.seed + i)) * Math.min(1, gi * 3) * z, run = (c.t * 1.3 + i * 0.17) % 1, pts = [], ws = [];
       for (let k = 0; k <= 24; k++) { const u = k / 24; pts.push(scr(...bez(R0, C, tip, u))); ws.push(th0 * (1 - 0.85 * u)); } // одна гладкая лента, к концу сходит на нет
-      tube.put(pts, ws, P.skin, P.core, 0.8);
-      for (let k = 0; k <= 24; k += 3) glow.put(...pts[k], ws[k] * 3.5, ...P.halo, 0.05); // мягкое бирюзовое свечение вокруг
-      if (w > 0.05) { const k = Math.round((1 - run) * 24), e = w * Math.sin(Math.PI * run); glow.put(...pts[k], th0 * 2.2, ...P.energy, 0.35 * e); } // по нити к клетке бежит тёплый свет
+      tube.put(pts, ws, P.skin, P.core, 0.85); // лента со светлой сердцевиной и мягким свечением вокруг (lenta.js)
+      if (w > 0.05) { const k = Math.round((1 - run) * 20), e = w * Math.sin(Math.PI * run); tube.put(pts.slice(k, k + 5), ws.slice(k, k + 5).map(v => v * 0.8), P.energy, [1, 1, 0.85], 0.6 * e, 2.5); } // по нити к клетке бежит тёплый свет — штрихом внутри нити
     }
   },
-  // Растворение: цель — светящаяся капля с бликом — плавно темнеет и вздрагивает, потом из неё текут сплошные струи к клетке,
-  // а сама она тает по мере того, как вещество уходит; струи у клетки светлеют и входят в неё.
+  // Растворение: цель — светящаяся стеклянная капля с бликом — плавно темнеет и вздрагивает, сжимается, вытягивается каплей в сторону клетки
+  // (её тянут нити, движение задаёт tyaga навыка) и, войдя в оболочку, гаснет внутри.
   rastvorenie(c) {
-    const { P, p, F, T, rt, r, scr, z, glow, ink, tube, seed } = c, dk = sm(p / P.dark), col = mix(P.from, P.to, dk);
-    let left = 0; const qs = [];
-    for (let j = 0; j < P.pieces; j++) qs.push(sm((p - P.dark - j / P.pieces * P.stagger * (1 - P.dark)) / ((1 - P.dark) * (1 - P.stagger))));
-    for (const q of qs) left += (1 - q) / P.pieces;
-    const R = rt * Math.sqrt(left) * (1 + 0.06 * Math.sin(c.t * 30) * dk * (1 - dk)), [tx, ty] = scr(T.x, T.y); // капля тает: площадь по остатку вещества
-    const ex = F.x - T.x, ey = F.y - T.y, el = Math.hypot(ex, ey) || 1, st = R * 1.6 * sm((p - P.dark * 0.5) / P.dark); // капля вытягивается слезой к клетке
-    if (R > 0.3) { glow.put(tx, ty, R * 3.2 * z, ...mix(P.from, P.light, 0.5), 0.18 * (1 - dk * 0.6)); glow.put(tx, ty, R * 1.8 * z, ...P.light, 0.22 * (1 - dk * 0.6)); // сияние без края: два мягких слоя
-      for (let k = 0; k < 5; k++) ink.put(tx, ty, R * (1 - k * 0.17) * z, ...mix(col, [1, 1, 0.9], k * 0.12 * (1 - dk * 0.5)), 0.95); // объёмная капля: к середине светлее
-      ink.put(tx - R * 0.35 * z, ty - R * 0.4 * z, R * 0.28 * z, 1, 1, 0.95, 0.65); // блик
-      if (st > 0.2) { const pts = [], ws = []; for (let k = 0; k <= 10; k++) { const u = k / 10; pts.push(scr(T.x + ex / el * st * u, T.y + ey / el * st * u)); ws.push(R * z * 0.9 * (1 - u) ** 0.7); } tube.put(pts, ws, col, P.light, 0.9); } } // хвост слезы к клетке
-    qs.forEach((q, j) => { if (q <= 0) return;
-      const a = seed + j * 2.39996, home = [T.x + Math.cos(a) * rt * 0.3, T.y + Math.sin(a) * rt * 0.3];
-      const end = [F.x + Math.cos(a) * r * 0.3, F.y + Math.sin(a) * r * 0.15];
-      const al = 1 - sm((q - 0.85) / 0.15), sz = rt * 0.3 * z, cc = mix(col, P.light, q), q0 = Math.max(0, q - P.tail), pts = [], ws = [];
-      for (let k = 0; k <= 12; k++) { const u = k / 12; pts.push(scr(...bez(home, [(home[0] + end[0]) / 2, (home[1] + end[1]) / 2], end, q0 + (q - q0) * u))); ws.push(sz * Math.sin(Math.PI * (0.15 + 0.7 * u)) * (0.4 + 0.6 * u)); }
-      tube.put(pts, ws, cc, P.light, 0.7 * al); glow.put(...pts[12], sz * 3, ...P.light, 0.3 * al); }); // сгусток светится и подсвечивает нить
+    const { P, p, F, T, rt, scr, z, glow, ink, tube } = c, dk = sm(p / P.dark), col = mix(P.from, P.to, dk), sink = 1 - sm((p - 0.82) / 0.18);
+    const ex = F.x - T.x, ey = F.y - T.y, el = Math.hypot(ex, ey) || 1, ux = ex / el, uy = ey / el, R = rt * (1 - P.shrink * sm(p)) * (1 + 0.05 * Math.sin(c.t * 25) * dk * (1 - dk));
+    const st = 1 + P.stretch * sm((p - P.dark) / (1 - P.dark)), a = R * st, bw = R / Math.sqrt(st), [tx, ty] = scr(T.x, T.y); // слеза: длиннее к клетке, тоньше
+    glow.put(tx, ty, R * 3.4 * z, ...mix(P.from, P.light, 0.5), 0.16 * (1 - dk * 0.6) * sink); glow.put(tx, ty, R * 1.9 * z, ...P.light, 0.2 * (1 - dk * 0.5) * sink); // сияние без края
+    for (let k = 0; k < 6; k++) { const f = 1 - k / 6, off = (a - bw) * (k / 5) * 0.9, [x, y] = scr(T.x + ux * off, T.y + uy * off); // объёмная капля: слои от края к середине светлее,
+      ink.put(x, y, bw * (0.55 + 0.45 * f) * z, ...mix(col, [1, 1, 0.92], 0.5 * (1 - f) * (1 - dk * 0.5)), 0.9 * sink); } // сдвиг слоёв к клетке вытягивает слезу
+    ink.put(tx - (ux * 0.3 + uy * 0.35) * R * z, ty - (uy * 0.3 - ux * 0.35) * R * z, R * 0.26 * z, 1, 1, 0.95, 0.6 * sink); // блик
   },
   // Наливается светом: свет разливается изнутри начинки от места входа, вокруг мягкое сияние без края, всё плавно гаснет.
   naliv(c) {
@@ -86,7 +76,8 @@ export class Kirpichi {
   busy() { return this.list.length; }
   step(dt) { for (const e of this.list) e.t += dt; this.list = this.list.filter(e => e.t < e.N.dlit); }
   draw(d) {
-    for (const e of this.list) { const f = e.from, r = f.r || 18, c0 = { F: f, T: e.to, A: f.a || 0, r, w: f.w || r * 0.5, rt: e.rt || 6 * Math.sqrt(e.size), seed: e.seed };
+    for (const e of this.list) { const f = e.from, r = f.r || 18, c0 = { F: f, T: e.to, A: f.a || 0, r, w: f.w || r * 0.5, rt: e.rt || 6 * Math.sqrt(e.size), seed: e.seed }, Y = e.N.tyaga;
+      if (Y) { const k = sm((e.t - Y.ot) / (Y.do - Y.ot)), [ex, ey] = rim(c0, Math.atan2(e.to.y - f.y, e.to.x - f.x), Y.vglub); c0.T = { x: e.to.x + (ex - e.to.x) * k, y: e.to.y + (ey - e.to.y) * k }; } // цель тянут к клетке и внутрь
       for (const s of e.N.shagi) { if (e.t < s.ot || e.t > s.do) continue;
         BRICKS[s.k]({ ...d, ...c0, P: { ...this.K.kirpichi[s.k], ...s }, p: (e.t - s.ot) / (s.do - s.ot), t: e.t - s.ot }); } }
   }

@@ -44,7 +44,7 @@ class Dots {
   done() { this.g.instanceCount = this.n; this.g.attributes.pr.needsUpdate = this.g.attributes.col.needsUpdate = true; this.n = 0; }
 }
 const glow = new Dots(6000, true), ink = new Dots(6000, false), tube = new Lenta(4000, scene, 4), kp = new Kirpichi();
-const z = 6.5, cell = { x: 0, y: 30, a: -Math.PI / 2, r: 18, w: 8.5 }, food = { x: 4, y: -38 }, scr = (x, y) => [W / 2 + x * z, H * 0.55 + y * z];
+const z = 7.5, cell = { x: 0, y: 30, a: -Math.PI / 2, r: 18, w: 8.5 }, food = { x: 4, y: -38 }, scr = (x, y) => [W / 2 + x * z, H * 0.55 + y * z];
 const steps = (N && N.shagi) || [], gone = (steps.find(s => s.k === 'rastvorenie') || { ot: 1e9 }).ot, loop = (N ? N.dlit : 1) + 0.7;
 let time = 0, t = 0; const rr = i => { const x = Math.sin(i * 91.7) * 43758.5; return x - Math.floor(x); };
 const motes = Array.from({ length: 40 }, (_, i) => ({ x: (rr(i) - 0.5) * 140, y: (rr(i + 50) - 0.5) * 220, d: 0.5 + rr(i + 9) * 0.8, r: 0.6 + rr(i + 3) * 2.2, a: 0.05 + rr(i + 7) * 0.12, v: 1 + rr(i + 1) * 3 }));
