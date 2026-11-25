@@ -4,6 +4,8 @@
 // и свои умения режима, ветка хищника:
 //   gulp — Г51 «Глотает целиком»: коснулась живой клетки заметно мельче себя — она тает внутри и идёт в рост.
 //          Кто «мельче» — решает масса, поэтому выросшая ест и тех, кто ел её в начале (амёба, колокольчик, коловратка, туфелька).
+//   igla — Г55 «Нить-игла» (шестой путь выделения, T6SS; биолог, круг 15): резкий тычок носом в бактерию-соперницу —
+//          уколотая замирает целым телом, тускнеет и через t секунд растекается едой. Кокков не берёт: толстая стенка.
 // Свой файл; sim.js зовёт отсюда step(), main.js — draw(). Числа и слова — evo.json, имена генов — только книга.
 const url = new URL('./evo.json', import.meta.url);
 export const E = url.protocol === 'file:' ? JSON.parse((await import('node:fs')).readFileSync(url, 'utf8')) : await (await fetch(url)).json();
@@ -20,7 +22,7 @@ const mass = (q, who) => q.m || E.glotat.razmer[who] || 1;
 // Шаг режима: глотание и выбор способности на росте (событие rost из rost.js). Способность берёт world.pick — уровни умений там же.
 export function step(w, dt, radius) {
   if (!on(w)) return;
-  gulp(w, dt, radius);
+  gulp(w, dt, radius); igla(w, radius);
   if (w.choice.length || !w.events.some(e => e[0] === 'rost')) return;
   const left = pool(w);
   for (let i = left.length - 1; i > 0; i--) { const j = Math.floor(w.r() * (i + 1)); [left[i], left[j]] = [left[j], left[i]]; }
@@ -54,10 +56,34 @@ function gulp(w, dt, radius) {
   }
 }
 
+// Г55: тычок — нос клетки (впереди, в пределах dlina за краем) на скорости не ниже skorost. Уколотая стоит (её ход в sim.js гаснет:
+// отдыхает бесконечно, гарпун не заряжается), через t секунд гибнет и растекается соком.
+function igla(w, radius) {
+  const now = w.stats.time;
+  for (const q of w.pseudos) if (q.igla !== undefined && now - q.igla >= E.igla.t) { q.gone = true; w.spill(q.x, q.y); }
+  if (!w.me.some(a => has(w, 'igla'))) return;
+  for (const a of w.me) {
+    if (Math.hypot(a.vx, a.vy) < E.igla.skorost) continue;
+    const r = radius(a.m), ax = Math.cos(a.a), ay = Math.sin(a.a);
+    for (const q of w.pseudos) {
+      if (q.igla !== undefined || q.gone) continue;
+      const dx = q.x - a.x, dy = q.y - a.y, d = Math.hypot(dx, dy) || 1;
+      if (d > r + E.igla.dlina || (dx * ax + dy * ay) / d < E.igla.nos) continue;
+      q.igla = now; q.t = q.rest = 1e9; q.cool = 1e9; q.vx *= 0.2; q.vy *= 0.2;
+      w.stats.igla = (w.stats.igla || 0) + 1; w.events.push(['igla', q.x, q.y]);
+    }
+  }
+}
+
 // Временный вид глотания (до кирпичей анимации 'glotat'): нити оболочки тянутся к добыче и обволакивают её,
 // добыча темнеет и сжимается, клетка наливается светом. scr — мир → экран.
 export function draw({ w, a, x, y, z, glow, scr }) {
-  if (!on(w) || !w.gulps) return;
+  if (!on(w)) return;
+  if (a === w.me[0]) for (const q of w.pseudos) if (q.igla !== undefined) { // уколотая темнеет целым телом (до кирпича 'igla')
+    const [qx, qy] = scr(q.x, q.y), u = Math.min(1, (w.stats.time - q.igla) / E.igla.t);
+    glow.put(qx, qy, 16 * z, 0.3, 0.25, 0.3, 0.25 + 0.35 * u);
+  }
+  if (!w.gulps) return;
   for (const g of w.gulps) {
     if (g.a !== a) continue;
     const u = Math.min(1, g.t / E.glotat.t), [gx, gy] = scr(g.x, g.y), R = 13 * Math.sqrt(g.m) * z * (1 - u * 0.7);
