@@ -1,0 +1,654 @@
+{
+ "_": "Способности «Заплыва» по договору движка (design/dlya_dvizhka/dogovor.md, раздел 4). Хозяин — тред мутаций; «Эволюция» читает. Способность не несёт своей физики: ставит часть (daet_chast), сдвигает параметр части или характеристику (menyaet), выбирает исход правила (ishod), включает другие способности по уровням (urovni, vklyuchaet). Число строкой — ключ mutacii.json/data.json, «оценка» — подобрать ботом. nuzhno — чего не хватает в движке, чтобы запись работала без кода. Г1–Г23 — черновик треда «Эволюции», Г24, Г27–Г50 — тред мутаций. Слов для игрока здесь нет: только ключ книги.",
+ "harakteristiki": [
+  "tyaga",
+  "soprotivlenie",
+  "snos",
+  "zahvat_edy",
+  "rost",
+  "prochnost",
+  "zashchita_virus",
+  "zashchita_yad",
+  "scepka",
+  "zametnost",
+  "cena_edy",
+  "plavuchest",
+  "prityazhenie_edy",
+  "povorot",
+  "golod",
+  "zapas",
+  "zashchita_kislota"
+ ],
+ "_harakteristiki": "закрытый список из договора движка, раздел 1; расширяет только тред движка",
+ "sposobnosti": {
+  "flagellum": {
+   "kniga": "Г1",
+   "menyaet": [
+    {
+     "chast": "zhgutik",
+     "parametr": "n",
+     "na": 2,
+     "ist": "Д1"
+    }
+   ],
+   "cena": {
+    "eda": "оценка"
+   },
+   "zhest": null,
+   "nuzhna_beda": "sliz",
+   "proba": "время прохода через тяж слизи"
+  },
+  "sense": {
+   "kniga": "Г2",
+   "daet_chast": {
+    "chutyo": {
+     "porog": "оценка"
+    }
+   },
+   "ist": "Е3",
+   "zhest": "otpustit_palec",
+   "proba": "без пальца доплывает до куска в 125 мкм за N с"
+  },
+  "fim": {
+   "kniga": "Г3",
+   "daet_chast": {
+    "fimbrii": {
+     "n": "оценка"
+    }
+   },
+   "ist": "П1",
+   "zhest": null,
+   "nuzhna_beda": "techenie",
+   "proba": "сносит ли течением у водоросли"
+  },
+  "magnit_kompas": {
+   "kniga": "Г5",
+   "daet_chast": {
+    "magnitnaya_cepochka": {}
+   },
+   "ist": "Н10",
+   "nuzhna_beda": "il_vnizu",
+   "proba": "доля времени у ила"
+  },
+  "fast": {
+   "kniga": "Г6",
+   "menyaet": [
+    {
+     "chast": "ribosomy",
+     "parametr": "n",
+     "na": "оценка",
+     "ist": "Н3"
+    }
+   ],
+   "cena": {
+    "eda": "оценка"
+   },
+   "proba": "время до первого роста"
+  },
+  "nitrat": {
+   "kniga": "Г7",
+   "daet_chast": {
+    "dyhanie_bez_kisloroda": {}
+   },
+   "ist": "Е6",
+   "nuzhna_beda": "malo_kisloroda",
+   "zametka": "слить с Г9 (книга)"
+  },
+  "svet": {
+   "kniga": "Г8",
+   "daet_chast": {
+    "svetovoy_nasos": {}
+   },
+   "ist": "Е5",
+   "nuzhna_beda": "svet_i_golod",
+   "proba": "убыль массы на свету без еды"
+  },
+  "malo_kisloroda": {
+   "kniga": "Г9",
+   "ot": "nitrat",
+   "zametka": "слить с Г7"
+  },
+  "capsule": {
+   "kniga": "Г11",
+   "daet_chast": {
+    "kapsula": {
+     "tolshchina": "оценка"
+    }
+   },
+   "ist": "О2",
+   "nuzhna_beda": "ameba",
+   "proba": "выскользнула ли из амёбы"
+  },
+  "kolchuga": {
+   "kniga": "Г12",
+   "daet_chast": {
+    "s_sloy": {}
+   },
+   "ist": "О3",
+   "nuzhna_beda": "bdello",
+   "proba": "отскок бделловибриона"
+  },
+  "lock": {
+   "kniga": "Г13",
+   "menyaet": [
+    {
+     "chast": "pory",
+     "parametr": "zamok",
+     "na": "drugoy",
+     "ist": "Р11"
+    }
+   ],
+   "nuzhna_beda": "virus",
+   "proba": "сел ли вирус"
+  },
+  "crispr": {
+   "kniga": "Г14",
+   "daet_chast": {
+    "pamyat_o_virusah": {}
+   },
+   "ist": "Р7",
+   "nuzhna_beda": "virus",
+   "proba": "второй вирус того же вида"
+  },
+  "spore": {
+   "kniga": "Г15",
+   "daet_chast": {
+    "spyachka": {}
+   },
+   "ist": "Р12",
+   "zhest": "zamert",
+   "nuzhna_beda": "yad_ili_virus"
+  },
+  "kurli": {
+   "kniga": "Г16",
+   "daet_chast": {
+    "kurli": {}
+   },
+   "ist": "П4",
+   "semya": true
+  },
+  "kvorum": {
+   "kniga": "Г17",
+   "semya": true,
+   "ist": "оценка"
+  },
+  "kolicin": {
+   "kniga": "Г18",
+   "pravilo": "yad_oblako",
+   "ist": "Р4",
+   "cena": {
+    "rost": 1
+   },
+   "zametka": "биолог: выпускает ценой своей гибели, в игре — теряешь один рост"
+  },
+  "bla": {
+   "kniga": "Г19",
+   "daet_chast": {
+    "nozhnicy_antibiotika": {}
+   },
+   "ist": "оценка",
+   "nuzhna_beda": "pleseni_yad"
+  },
+  "plazmida_f": {
+   "kniga": "Г20",
+   "daet_chast": {
+    "trubochka_obmena": {}
+   },
+   "ist": "П2",
+   "semya": true
+  },
+  "profag": {
+   "kniga": "Г21",
+   "semya": false,
+   "nuzhna_beda": "virus",
+   "zametka": "близко к Г38 «Вирус-жилец» (тред мутаций)"
+  },
+  "cepochka": {
+   "kniga": "Г22",
+   "semya": true,
+   "ist": "Ф6"
+  },
+  "toxin": {
+   "kniga": "Г23",
+   "daet_chast": {
+    "nit_igla_cdi": {}
+   },
+   "ist": "Р1",
+   "pravilo": "ukol_cdi",
+   "proba": "соперница замерла от касания"
+  },
+  "flu": {
+   "kniga": "Г24",
+   "daet_chast": {
+    "zastyozhka": {}
+   },
+   "menyaet": [
+    {
+     "harakteristika": "scepka",
+     "na": "оценка"
+    }
+   ],
+   "semya": true,
+   "ishod": {
+    "pravilo": "zarazhenie",
+    "na": "k_sosedke"
+   },
+   "nuzhna_beda": "rassypayutsya",
+   "proba": "разброс семьи за минуту"
+  },
+  "snap": {
+   "kniga": "Г27",
+   "menyaet": [
+    {
+     "chast": "zhgutik",
+     "parametr": "podlom",
+     "na": true
+    },
+    {
+     "harakteristika": "povorot",
+     "na": "оценка"
+    }
+   ],
+   "zhest": "rezkiy_povorot",
+   "chuzhaya": true,
+   "cena": {
+    "zametka": "в густой воде не работает (биолог, круг 17)"
+   },
+   "proba": "потеря скорости на развороте"
+  },
+  "abort": {
+   "kniga": "Г28",
+   "daet_chast": {
+    "sistema_abi": {}
+   },
+   "ishod": {
+    "pravilo": "zarazhenie",
+    "na": "tiho"
+   },
+   "semya": true,
+   "nuzhna_beda": "virus",
+   "proba": "сколько сестёр заразилось от одной"
+  },
+  "gas": {
+   "kniga": [
+    "Г29",
+    "Г4"
+   ],
+   "daet_chast": {
+    "gazovye_puzyrki": {}
+   },
+   "menyaet": [
+    {
+     "harakteristika": "plavuchest",
+     "na": "оценка"
+    },
+    {
+     "harakteristika": "soprotivlenie",
+     "na": "оценка"
+    }
+   ],
+   "zhest": "otpustit_palec",
+   "chuzhaya": true,
+   "nuzhna_beda": "glubina",
+   "proba": "подъём без пальца за 10 с"
+  },
+  "door": {
+   "kniga": "Г30",
+   "menyaet": [
+    {
+     "chast": "pory",
+     "parametr": "zakryta",
+     "na": true
+    },
+    {
+     "harakteristika": "zashchita_yad",
+     "na": 1
+    },
+    {
+     "harakteristika": "zahvat_edy",
+     "na": "door.food"
+    }
+   ],
+   "nuzhna_beda": "yad_sharikov",
+   "proba": "вошёл ли яд шарика"
+  },
+  "decoy": {
+   "kniga": "Г31",
+   "daet_chast": {
+    "puzyrki_obolochki": {}
+   },
+   "menyaet": [
+    {
+     "harakteristika": "cena_edy",
+     "na": "оценка"
+    }
+   ],
+   "ishod": {
+    "pravilo": "zarazhenie",
+    "na": "na_puzyrek"
+   },
+   "nuzhna_beda": "virus",
+   "proba": "доля вирусов, севших на пузырьки"
+  },
+  "wall": {
+   "kniga": "Г32",
+   "menyaet": [
+    {
+     "chast": "stenka",
+     "parametr": "sbroshena",
+     "na": true
+    },
+    {
+     "harakteristika": "prochnost",
+     "na": "оценка"
+    }
+   ],
+   "nuzhno": [
+    "правило «яд плесени»"
+   ],
+   "nuzhna_beda": "pleseni_yad"
+  },
+  "upstream": {
+   "kniga": "Г33",
+   "menyaet": [
+    {
+     "harakteristika": "snos",
+     "na": "оценка"
+    }
+   ],
+   "nuzhno": [
+    "правило «поток вихря»: снос в потоке"
+   ],
+   "nuzhna_beda": "vihr"
+  },
+  "steady": {
+   "kniga": "Г34",
+   "menyaet": [
+    {
+     "chast": "zhgutik",
+     "parametr": "tugoy",
+     "na": true
+    },
+    {
+     "harakteristika": "snos",
+     "na": "steady.tumble"
+    },
+    {
+     "harakteristika": "povorot",
+     "na": "steady.turn"
+    }
+   ],
+   "cena": {
+    "eda": "оценка"
+   },
+   "proba": "длина пробежки между кувырками"
+  },
+  "citrate": {
+   "kniga": "Г35",
+   "daet_chast": {
+    "perenoschik_citrata": {}
+   },
+   "eda_vidy": [
+    "citrat"
+   ],
+   "nuzhna_beda": "konkurenty",
+   "proba": "рост там, где жёлтая еда выедена"
+  },
+  "spread": {
+   "kniga": "Г36",
+   "semya": true,
+   "nuzhno": [
+    "правило семьи «разъезд»"
+   ],
+   "cena": {
+    "zametka": "поодиночке легче съесть"
+   }
+  },
+  "cut": {
+   "kniga": "Г37",
+   "ot": "crispr",
+   "ishod": {
+    "pravilo": "zarazhenie",
+    "na": "razrez"
+   },
+   "nuzhna_beda": "virus",
+   "cena": {
+    "zametka": "иногда режет подарок соседки"
+   }
+  },
+  "tenant": {
+   "kniga": [
+    "Г38",
+    "Г21"
+   ],
+   "ishod": {
+    "pravilo": "zarazhenie",
+    "na": "zhilec"
+   },
+   "nuzhna_beda": "virus",
+   "zametka": "Г21 «профаг» (Эволюция) — та же запись"
+  },
+  "mire": {
+   "kniga": "Г39",
+   "daet_chast": {
+    "sliz": {}
+   },
+   "menyaet": [
+    {
+     "harakteristika": "zashchita_virus",
+     "na": "оценка"
+    }
+   ],
+   "nuzhna_beda": "virus",
+   "zametka": "противовес «одному вирусу слизь нужна» ждёт «да» Романа"
+  },
+  "lean": {
+   "kniga": "Г40",
+   "menyaet": [
+    {
+     "harakteristika": "golod",
+     "na": "lean.slow"
+    }
+   ],
+   "nuzhna_beda": "golod",
+   "proba": "сколько секунд живёт в пустой воде"
+  },
+  "share": {
+   "kniga": "Г41",
+   "semya": true,
+   "nuzhno": [
+    "правило семьи «общий стол»: облачко остатков"
+   ],
+   "eda_vidy": [
+    "ostatki"
+   ]
+  },
+  "store": {
+   "kniga": [
+    "Г42",
+    "Г10"
+   ],
+   "daet_chast": {
+    "zapas_sahara": {}
+   },
+   "menyaet": [
+    {
+     "harakteristika": "zapas",
+     "na": "store.n"
+    }
+   ],
+   "nuzhna_beda": "golod",
+   "proba": "сколько секунд живёт в пустой воде"
+  },
+  "acetate": {
+   "kniga": "Г43",
+   "eda_vidy": [
+    "uksus"
+   ],
+   "nuzhno": [
+    "след «муть» за семьёй"
+   ]
+  },
+  "nose": {
+   "kniga": "Г44",
+   "menyaet": [
+    {
+     "chast": "chutyo",
+     "parametr": "dalnost",
+     "na": "оценка"
+    }
+   ],
+   "nuzhno": [
+    "поиск бурого комка без пальца"
+   ]
+  },
+  "courier": {
+   "kniga": "Г45",
+   "ishod": {
+    "pravilo": "zarazhenie",
+    "na": "dar"
+   },
+   "nuzhna_beda": "virus"
+  },
+  "mutator": {
+   "kniga": "Г46",
+   "nuzhno": [
+    "правило деления: выбор дочек чаще"
+   ]
+  },
+  "magnet": {
+   "kniga": "Г47",
+   "daet_chast": {
+    "retseptor_tar": {}
+   },
+   "urovni": [
+    {
+     "menyaet": [
+      {
+       "harakteristika": "prityazhenie_edy",
+       "na": "magnet.lvl.0"
+      },
+      {
+       "harakteristika": "povorot",
+       "na": "magnet.lvl.0.turn"
+      }
+     ]
+    },
+    {
+     "menyaet": [
+      {
+       "harakteristika": "prityazhenie_edy",
+       "na": "magnet.lvl.1"
+      },
+      {
+       "harakteristika": "povorot",
+       "na": "magnet.lvl.1.turn"
+      }
+     ]
+    },
+    {
+     "menyaet": [
+      {
+       "harakteristika": "prityazhenie_edy",
+       "na": "magnet.lvl.2"
+      },
+      {
+       "harakteristika": "povorot",
+       "na": "magnet.lvl.2.turn"
+      }
+     ]
+    }
+   ],
+   "proba": "еды за 15 с одного пути"
+  },
+  "shield": {
+   "kniga": "Г48",
+   "urovni": [
+    {
+     "vklyuchaet": [
+      "lock"
+     ]
+    },
+    {
+     "vklyuchaet": [
+      "door"
+     ]
+    },
+    {
+     "ishod": {
+      "pravilo": "otskok",
+      "na": "na_sharik"
+     }
+    }
+   ],
+   "menyaet": [
+    {
+     "harakteristika": "rost",
+     "na": "оценка"
+    }
+   ],
+   "nuzhna_beda": "virus",
+   "proba": "сел ли вирус; вошёл ли яд"
+  },
+  "tail": {
+   "kniga": "Г49",
+   "urovni": [
+    {
+     "vklyuchaet": [
+      "steady"
+     ]
+    },
+    {
+     "vklyuchaet": [
+      "flagellum"
+     ],
+     "sled": "koridor"
+    },
+    {
+     "menyaet": [
+      {
+       "harakteristika": "tyaga",
+       "na": "tail.boost"
+      },
+      {
+       "harakteristika": "povorot",
+       "na": "tail.wide"
+      }
+     ]
+    }
+   ],
+   "menyaet": [
+    {
+     "harakteristika": "zametnost",
+     "na": "tail.loud"
+    }
+   ],
+   "proba": "время пути через слизь"
+  },
+  "memory": {
+   "kniga": "Г50",
+   "urovni": [
+    {
+     "vklyuchaet": [
+      "crispr"
+     ],
+     "ishod": {
+      "pravilo": "zarazhenie",
+      "na": "pamyat"
+     }
+    },
+    {
+     "nasledstvo": "pamyat"
+    },
+    {
+     "ishod": {
+      "pravilo": "zarazhenie",
+      "na": "pamyat_eda"
+     }
+    }
+   ],
+   "nuzhna_beda": "virus",
+   "proba": "знакомый и незнакомый вирус — два разных события"
+  }
+ }
+}
