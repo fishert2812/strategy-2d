@@ -14,7 +14,7 @@ float vn(vec3 x){ vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
 
 // Общий свет: рассеянный, блик, кромка (Френель) другим цветом, прозрачность по краю гуще.
 const LIGHT_FRAG = `
-uniform float bump; uniform float alpha0; uniform float rimK;
+uniform float bump; uniform float alpha0; uniform float rimK; uniform float ridge; uniform float edgeA;
 varying vec3 vN; varying vec3 vP; varying vec4 vA; varying vec3 vB;
 ${NOISE}
 void main(){
@@ -26,13 +26,14 @@ void main(){
   float fres = pow(1.0 - abs(n.z), 2.2);
   float spec = pow(max(dot(reflect(-L, n), vec3(0.0, 0.0, 1.0)), 0.0), 28.0);
   float cav = 0.75 + 0.25 * vn(q * 2.0);
-  vec3 col = vA.rgb * (0.18 + 0.72 * d) * cav + vB * fres * rimK + spec * 0.55;
-  gl_FragColor = vec4(col, vA.a * mix(alpha0, 1.0, fres));
+  float rg = ridge * max(1.0 - smoothstep(0.0, 0.075, abs(vn(vP * 4.0) - 0.5)), 0.35 * (1.0 - smoothstep(0.0, 0.045, abs(vn(vP * 8.0 + 4.0) - 0.5)))) * (1.0 - 0.6 * fres); // две сетки разной частоты: тяжи густые, как на образце // светлые складки мембраны сеткой поперёк тела (амёба на образцах)
+  vec3 col = vA.rgb * (0.18 + 0.72 * d) * cav + vB * fres * rimK + spec * 0.55 + vB * rg;
+  gl_FragColor = vec4(col, vA.a * min(1.0, mix(alpha0, edgeA, fres) + rg * 0.6));
 }`;
 
 function kind(geo, max, vertexBody, opts = {}) {
   const mat = new THREE.ShaderMaterial({
-    uniforms: { time: { value: 0 }, bump: { value: opts.bump ?? 0.35 }, alpha0: { value: opts.alpha0 ?? 1 }, rimK: { value: opts.rimK ?? 1.1 } },
+    uniforms: { time: { value: 0 }, bump: { value: opts.bump ?? 0.35 }, alpha0: { value: opts.alpha0 ?? 1 }, rimK: { value: opts.rimK ?? 1.1 }, ridge: { value: opts.ridge ?? 0 }, edgeA: { value: opts.edgeA ?? 1 } },
     transparent: (opts.alpha0 ?? 1) < 1, depthWrite: (opts.alpha0 ?? 1) >= 1, flatShading: !!opts.flat,
     vertexShader: `uniform float time; attribute vec4 cA; attribute vec3 cB; attribute vec4 prm;
       varying vec3 vN; varying vec3 vP; varying vec4 vA; varying vec3 vB;
@@ -40,7 +41,7 @@ function kind(geo, max, vertexBody, opts = {}) {
       void main(){
         vec3 p = position; vec3 nn = normal;
         ${vertexBody}
-        vP = ${opts.vp || 'position'} + prm.y; vA = cA; vB = cB;
+        vP = ${opts.vp || 'position'} + prm.y; vA = cA; vB = cB; ${opts.after || ''}
         vN = normalize(normalMatrix * mat3(instanceMatrix) * nn);
         gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(p, 1.0);
       }`,
@@ -83,16 +84,24 @@ export class Bodies {
     const ball = new THREE.IcosahedronGeometry(1, 3);
     this.ball = kind(ball.clone(), 600, 'p += nn * 0.05 * sin(time * 2.0 + prm.y + p.x * 4.0);', { bump: 0.5, order: 1 });
     this.knob = kind(new THREE.IcosahedronGeometry(1, 1), 1500, '', { bump: 0.2, order: 1 });
-    this.amoeba = kind(new THREE.IcosahedronGeometry(1, 4), 12,
+    this.amoeba = kind(new THREE.IcosahedronGeometry(1, 6), 12, // дробно: край гладкий, без граней (Роман: «не профессионально»)
       `vec3 dir = normalize(position);
        float r = 1.0 + 0.22 * (vn(dir * 2.2 + vec3(time * 0.35 + prm.y)) - 0.5) * 2.0;
        float lobe = max(0.0, dot(dir.xy, vec2(cos(prm.z), sin(prm.z))));
        r += 0.45 * pow(lobe, 4.0) * prm.x + 0.3 * pow(max(0.0, vn(dir * 1.3 + vec3(prm.y, time * 0.2, 0.0)) - 0.45) * 2.0, 2.0);
-       p = dir * r; nn = dir;`, { bump: 0.4, alpha0: 0.6, order: 2, rimK: 1.2 });
+       p = dir * r; nn = dir;`, { bump: 0.35, alpha0: 0.3, order: 2, rimK: 0.9, ridge: 1.3, edgeA: 0.7 }); // амёба: зовёт vid.js (amoeba3d)
+    // Шип акантамёбы (акантоподия): стеклянный конус, остриём наружу; гнётся дугой к острию (prm.z), чуть дышит.
+    // Ложноножка-палец акантамёбы (образец Романа): сужается к круглому кончику, гнётся дугой (prm.z) и волной (prm.w), медленно шевелится.
+    const fp = []; for (let i = 0; i <= 16; i++) { const u = i / 16; fp.push(new THREE.Vector2(0.28 + 0.95 * (1 - u) ** 1.4, -1 + 2 * u)); } // конус: толстый у корня, вливается в тело, к концу сужается (акантоподия)
+    for (let i = 1; i <= 8; i++) { const a = i / 8 * Math.PI / 2; fp.push(new THREE.Vector2(Math.max(0.28 * Math.cos(a), 1e-4), 1 + 0.28 * Math.sin(a) * 0.6)); } // узкий скруглённый кончик, без шишечки
+    this.spines = kind(new THREE.LatheGeometry(fp, 24), 500,
+      'float u = (p.y + 1.0) * 0.5; float wv = prm.w * sin(u * 4.5 + time * 0.8 + prm.y) * u; p.x += prm.z * u * u + wv; nn.x -= prm.z * u; nn = normalize(nn); p += nn * 0.04 * sin(time * 2.0 + prm.y + p.y * 3.0);',
+      { bump: 0.05, alpha0: 0.3, edgeA: 0.95, order: 1, rimK: 1.2, ridge: 0, after: 'vA.a *= smoothstep(-1.0, -0.55, position.y);' }); // раньше тела; основание тает в теле — сквозь стекло не видно срезов
     const head = new THREE.IcosahedronGeometry(1, 0).toNonIndexed(); head.computeVertexNormals();
     this.head = kind(head, 120, '', { bump: 0.0, order: 3, flat: true, rimK: 0.8, alpha0: 0.35 }); // голова фага — стекло: сквозь неё видна нить ДНК (fx.js), грани блестят ободком
     this.tail = kind(new THREE.CylinderGeometry(0.28, 0.28, 2, 8), 120, '', { bump: 0.1, order: 1 });
-    this.all = [this.core, this.skin, this.ball, this.knob, this.amoeba, this.head, this.tail];
+    this.all = [this.core, this.skin, this.ball, this.knob, this.amoeba, this.spines, this.head, this.tail];
+    globalThis.zaplyvBodies ??= this; // vid.js рисует амёбу этими телами, даже если main.js не передал их явно
     for (const m of this.all) this.scene.add(m);
   }
   resize(W, H) { this.cam.right = W; this.cam.bottom = -H; this.cam.updateProjectionMatrix(); }
@@ -122,7 +131,10 @@ export class Bodies {
   }
   sphere(x, y, r, col, rim, seed, zs = 1) { this.put(this.ball, x, y, -Math.PI / 2, r, r, r * zs, [col[0], col[1], col[2], 1], rim, [0, seed, 0, 0]); }
   spike(x, y, r, col) { this.put(this.knob, x, y, -Math.PI / 2, r, r, r, [col[0], col[1], col[2], 1], [1, 1, 1], [0, 0, 0, 0]); }
-  blobby(x, y, r, heading, moving, col, rim, seed) { this.put(this.amoeba, x, y, -Math.PI / 2, r, r, r * 0.5, [col[0], col[1], col[2], 1], rim, [moving, seed, -heading, 0]); }
+  blobby(x, y, r, heading, moving, col, rim, seed, sx = 1, sy = 1, ang = -Math.PI / 2) { this.put(this.amoeba, x, y, ang, r * sx, r * sy, r * 0.5, [col[0], col[1], col[2], 1], rim, [moving, seed, -heading, 0]); }
+  // Шип: от точки основания (x, y) наружу под углом ang, длина len, полуширина у основания w; bend — отход острия вбок (экранные единицы).
+  spine(x, y, ang, len, w, col, rim, seed, bend = 0, wave = 0) { const c = Math.cos(ang), sn = Math.sin(ang);
+    this.put(this.spines, x + c * len / 2, y + sn * len / 2, ang, w, len / 2, w, [col[0], col[1], col[2], 1], rim, [0, seed, bend / w, wave]); }
   phage(x, y, ang, s) {
     this.put(this.head, x - Math.cos(ang) * s * 2.1, y - Math.sin(ang) * s * 2.1, ang, s * 0.85, s * 1.15, s * 0.85, [0.8, 0.92, 1, 1], [1, 0.5, 0.6], [0, 0, 0, 0]);
     this.put(this.tail, x - Math.cos(ang) * s * 0.4, y - Math.sin(ang) * s * 0.4, ang, s, s * 0.8, s, [0.6, 0.62, 0.72, 1], [0.9, 0.9, 1], [0, 0, 0, 0]);

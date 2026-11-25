@@ -287,6 +287,14 @@ check('test_vid_ryvok: рывок — один знак на всю игру: в
   if (shot('snap', 0, 0).n0) return 'сувойка (щелчок без угла) даёт рывок клетке';
   return '';
 });
+check('test_vid_ameba_obyom: амёба в игре — объёмное тело со стеклянной оболочкой, шипы — сплошные стеклянные конусы, ядро и зёрна внутри; точек нет, кроме мягкой тени (Роман 25.11: «не объёмная… пятно из точек»)', () => {
+  const got = { blobby: 0, spine: 0, sphere: 0 }, dots = [], br = { put: (...q) => dots.push(q) };
+  const B = { spines: {}, blobby: () => got.blobby++, spine: (x, y, a, len, w) => { if (!(len > 0 && w > 0)) got.bad = 1; got.spine++; }, sphere: () => got.sphere++ };
+  vid.amoeba({ m: { id: 5, m: 6 }, x: 0, y: 0, r: 40, head: 0, sp: 0, side: 1, time: 1, z: 2, glow: br, ink: br, bubbles: br, bodies: B });
+  if (got.blobby !== 1) return 'нет объёмного тела'; if (got.spine < vid.V.amoeba.spikes) return 'шипов меньше, чем в образце: ' + got.spine; if (got.bad) return 'пустой шип';
+  if (got.sphere < 1 + vid.V.amoeba.vac) return 'внутри нет ядра и пузырьков'; if (dots.length > 1) return 'амёба всё ещё рисует точки: ' + dots.length;
+  return '';
+});
 check('test_vid_lysis: клетка от фага лопается прорывом — брызги вязко гаснут, остаётся пустая оболочка с дырой', () => {
   const C = { r: 1, g: 1, b: 1 }, fx = new Fx({}, [C, C, C]); fx.reset();
   // клетка плыла здесь (vid помнит форму), потом лопнула
