@@ -76,7 +76,7 @@ if (await tap('#ptabs [data-t=genome]', 'снова «Геном»')) say(await 
 // «Отправить» в геноме: меню «Поделиться» телефона подменяем, отметки должны уйти одним сообщением.
 await p.evaluate(() => { navigator.share = async d => { window.shared = d.text; }; });
 m = await marks();
-if (await tap('#gsend', '«Отправить» в геноме')) say(await p.evaluate(n => (window.shared || '').includes('отметок ' + n), m) && await marks() === 0, '«Отправить» отдаёт отметки и очищает их');
+if (await tap('#gsend', '«Отметки» в геноме') && await tap('#mlsend', '«Отправить» в списке отметок')) say(await p.evaluate(n => (window.shared || '').includes('отметок ' + n), m) && await marks() === 0, '«Отправить» отдаёт отметки и очищает их');
 const t0 = await p.evaluate(() => zaplyvWorld().stats.time);
 // test_L021: на кольце у каждого живого гена значок-снимок, карточка гена — со значком 64.
 say(await p.evaluate(() => { const live = Object.keys(zaplyvWorld().cfg.genes).length, im = [...document.querySelectorAll('#ring image')];
@@ -101,7 +101,7 @@ if (await p.evaluate(() => { const w = zaplyvWorld(); w.choice = []; }) === unde
     const last = await p.evaluate(() => { const q = JSON.parse(localStorage.getItem('zaplyv.marks') || '[]'); return q[q.length - 1] || {}; });
     say(await marks() === m + 1 && (last.text || '').includes('тут странно') && (last.img || '').length > 3000 && !(await on('fsheet')), 'test_L023: отметка со словами и картинкой записана, лист закрыт');
     await p.evaluate(() => { navigator.canShare = () => true; navigator.share = async d => { window.shared = d.text; window.sharedFiles = (d.files || []).map(f => [f.name, f.size, f.type]); }; window.sharedFiles = null; });
-    if (await tap('#pause', 'пауза перед отправкой') && await tap('#gsend', '«Отправить» отметку с местом')) { await p.waitForFunction(() => window.sharedFiles, null, { timeout: 5000 }).catch(() => {}); const sf = await p.evaluate(() => [window.shared || '', window.sharedFiles || []]);
+    if (await tap('#pause', 'пауза перед отправкой') && await tap('#gsend', '«Отметки» перед отправкой') && await tap('#mlsend', '«Отправить» отметку с местом')) { await p.waitForFunction(() => window.sharedFiles, null, { timeout: 5000 }).catch(() => {}); const sf = await p.evaluate(() => [window.shared || '', window.sharedFiles || []]);
       say(sf[0].includes('тут странно') && sf[1].some(f => f[1] > 3000 && /mesto/.test(f[0]) && f[2] === 'image/jpeg'), 'test_L023: «Отправить» отдаёт слова и картинку места (' + sf[1].map(f => f[0]).join(', ') + ')'); }
     if (await on('genome')) await tap('#gon', '«Плыть дальше» после отправки'); } }
 // Выбор дочки при делении: касание самой дочки берёт её ген.
@@ -143,6 +143,15 @@ await whole(['#again', '#tomenu', '#cab', '#eno'], 'экран гибели'); /
 say(await p.evaluate(() => ['hud', 'scalebox', 'ver'].every(i => getComputedStyle(document.getElementById(i)).visibility === 'hidden') && getComputedStyle(document.getElementById('end')).backgroundColor.startsWith('rgb(')), 'test_L031: лист гибели непрозрачный, надписи игры под ним скрыты');
 m = await marks();
 if (await tap('#eno', '«Не так» на экране гибели')) say(await seen('#note') && await marks() === m + 1, '«Не так» на экране гибели: отметка и надпись видна');
+// test_L034 (Роман 25.11: «Сбрось пожалуйста счетчик проблем! Там куча говна записана»): случайную отметку убирает «Убрать»,
+// в списке отметок одна уходит по ✕, все — «Стереть все» и второе касание. Счётчик на кнопке идёт за ними.
+if (await tap('#nundo', '«Убрать» случайную отметку')) say(await marks() === m, 'test_L034: «Убрать» под надписью снимает только что записанную отметку');
+await tap('#eno', '«Не так» ещё раз'); await tap('#eno', '«Не так» в третий раз'); m = await marks();
+if (await tap('#esend', '«Отметки» на экране гибели')) {
+  say(await on('mlist') && await p.locator('#mlrows .mlrow').count() === m && (await p.textContent('#esend')).includes('· ' + m), 'test_L034: «Отметки · ' + m + '» открывает список всех отметок');
+  if (await tap('#mlrows .mlrow button', '✕ у первой отметки')) say(await marks() === m - 1 && (await p.textContent('#esend')).includes('· ' + (m - 1)), 'test_L034: ✕ убирает одну отметку, счётчик меньше на 1');
+  if (await tap('#mlwipe', '«Стереть все»')) say(await marks() === m - 1 && /Точно/.test(await p.textContent('#mlwipe')), 'test_L034: первое касание «Стереть все» только спрашивает');
+  if (await tap('#mlwipe', '«Точно стереть»')) say(await marks() === 0 && !(await on('mlist')) && !(await seen('#esend')), 'test_L034: второе касание стирает все отметки, кнопки счётчика нет'); }
 // «Ночь рода» (спецификация design/zaplyv_noch_roda_spec.md): каждая кнопка ночи отвечает пальцу.
 const toNight = async w => await tap('#tomenu', '«Меню режимов» ' + w) && await tap('#mscene [data-m=night]', 'режим «Ночь рода» ' + w) && await tap('#mgo', '«Начать ночь» ' + w);
 if (await toNight('с экрана гибели')) say(await on('night') && await seen('#ndanger'), '«Ночь рода» из меню открывает выбор опасности');
