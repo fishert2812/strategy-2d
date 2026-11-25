@@ -40,8 +40,10 @@ const mix = (p, q, k) => [p[0] + (q[0] - p[0]) * k, p[1] + (q[1] - p[1]) * k, p[
 // Спящая клетка (сон-персистер, биолог: design/zaplyv_vid_i_fizika.md, «Сон»). Не светится и не бледнеет: темнеет и плотнеет по краю,
 // жгут сложен вдоль тела и не крутится, крупинки внутри замерли. Засыпает за V.sleep.fall с, просыпается дольше — V.sleep.wake с.
 // c: a, x, y (экран), z, time, cfg, bodies, glow, ink.
+const shells = new Map(); // где скорлупа спящей: по ней fx.js рисует трещину, когда хищник пробует взять
+export const shellOf = id => shells.get(id);
 export function sleeper(c) {
-  const { a, x, y, z, time, cfg, bodies, ink } = c, S = V.sleep;
+  const { a, x, y, z, time, cfg, bodies, glow, ink } = c, S = V.sleep;
   const w = 8.5 * Math.pow(a.m, 0.3) * z, half = w * 2.1, ux = Math.cos(a.a), uy = Math.sin(a.a);
   const k = Math.max(0, Math.min(1, (cfg.spore - a.spore) / S.fall, a.spore / S.wake)), e = k * k * (3 - 2 * k); // 0 — бодрая, 1 — спит
   const along = (u, o) => [x + ux * u - uy * o, y + uy * u + ux * o];
@@ -50,6 +52,10 @@ export function sleeper(c) {
   bodies.rod(x, y, a.a, H, W, 0, mix(S.awake, S.skin, e), mix(S.awake_core, S.core, e), a.id, 0);
   for (let i = 0; i < S.dense; i++) { const t = i * 2.39996, r = Math.sqrt((i + 0.5) / S.dense), [px, py] = along(Math.cos(t) * r * (H - W * 0.5), Math.sin(t) * r * W * 0.55); ink.put(px, py, 1.1 * z + 0.4, 0.14, 0.08, 0.18, 0.45 * e); } // густое тёмное нутро
   for (let i = 0; i < S.edge; i++) { const [u, o] = rim(i / S.edge, H - W, W * 0.94), [px, py] = along(u, o); ink.put(px, py, 1.3 * z + 0.3, 0.08, 0.1, 0.2, 0.55 * e); } // плотный край
+  const Sh = V.shell, sL = Math.max(0, H - W), sR = W * Sh.gap; // скорлупа (дизайнер, «пока скорлупа цела, клетку не съедят»): тонкая твёрдая оболочка с бликами
+  shells.set(a.id, { x: a.x, y: a.y, ang: a.a, L: sL / z, R: sR / z, e, t: time });
+  if (glow) for (let i = 0; i < Sh.n; i++) { const p = i / Sh.n, [u, o] = rim(p, sL, sR), [px, py] = along(u, o), gl = Math.max(0, Math.cos((p - 0.15) * 6.283 * 2)) ** 6; // два блика на твёрдом
+    ink.put(px, py, Sh.w * z + 0.5, ...Sh.dark, 0.5 * e); glow.put(px, py, Sh.w * 0.7 * z + 0.4, ...Sh.color, (Sh.alpha + 0.4 * gl) * e); }
   const live = 1 - e; // крупинки замирают вместе со сном
   for (let i = 0; i < 4; i++) { const t = (time * live + i * 2.1) * (0.5 + i * 0.17) + a.id, [px, py] = along(Math.sin(t) * (H - W * 0.6), Math.cos(t * 1.3) * W * 0.4); ink.put(px, py, 0.9 * z + 0.7, 0.75, 0.85, 0.9, 0.35 + 0.15 * live); }
   for (let j = 0; j < 4; j++) for (let i = 1; i <= 10; i++) { // жгутики: на бодрой торчат вбок, у спящей сложены вдоль тела к корме
