@@ -773,14 +773,14 @@ function paint(time) {
     for (let i = 0; i <= n; i++) {
       const u = (i / n - 0.5) * g.len, v = Math.sin(u / g.len * 6.283 + g.id) * g.w * 0.8 + Math.sin(time * 0.4 + i * 0.3) * 2;
       const px = x + (ca * u - sa * v) * z, py = y + (sa * u + ca * v) * z, edge = 1 - Math.abs(i / n - 0.5) * 2;
-      const S = cfg.slime_look, fade = Math.min(1, edge * 3); // гель прозрачный: внутри едва заметен, видна только граница — тонкая светлая кромка, а не пелена (Роман 25.11: «мутнота… фильтр»)
-      glow.put(px, py, g.w * z * S.core, 0.55, 0.8, 0.95, S.core_a * fade);
+      const S = g.nest ? cfg.bdello_nest.look : cfg.slime_look, fade = Math.min(1, edge * 3); // гель прозрачный: внутри едва заметен, видна только граница — тонкая светлая кромка, а не пелена (Роман 25.11: «мутнота… фильтр»)
+      glow.put(px, py, g.w * z * S.core, ...(S.color || [0.55, 0.8, 0.95]), S.core_a * fade); // гнездо запятых — ржавая биоплёнка, видна издали (L054)
 
       if (i % 3 === 0) ink.put(px + Math.sin(i * 7.1) * g.w * 0.5 * z, py + Math.cos(i * 5.3) * g.w * 0.5 * z, 0.8 * z + 0.3, 0.8, 0.9, 1, 0.35);
     }
-    const S = cfg.slime_look, m = Math.ceil(g.len * z / S.rim_step); // кромка геля сплошной тонкой линией с двух сторон
+    const S = g.nest ? cfg.bdello_nest.look : cfg.slime_look, m = Math.ceil(g.len * z / (g.nest ? Math.min(S.rim_step, S.rim * z * 0.8 + 0.2) : S.rim_step)); // у гнезда кромка внахлёст — сплошная // кромка геля сплошной тонкой линией с двух сторон
     for (let j = 0; j <= m; j++) { const u = (j / m - 0.5) * g.len, v = Math.sin(u / g.len * 6.283 + g.id) * g.w * 0.8 + Math.sin(time * 0.4 + j / m * n * 0.3) * 2, f = Math.min(1, (1 - Math.abs(j / m - 0.5) * 2) * 3);
-      for (const sd of [-1, 1]) { const vv = v + sd * g.w * 0.5 * S.core; ink.put(x + (ca * u - sa * vv) * z, y + (sa * u + ca * vv) * z, S.rim * z + 0.3, 0.75, 0.92, 1, S.rim_a * f); } }
+      for (const sd of [-1, 1]) { const vv = v + sd * g.w * 0.5 * S.core; ink.put(x + (ca * u - sa * vv) * z, y + (sa * u + ca * vv) * z, S.rim * z + 0.3, ...(S.rim_c || [0.75, 0.92, 1]), S.rim_a * f); } }
   }
   { const Zc = cfg.zone, wn = world.warning(); // край зоны затягивания: тонкая сплошная линия (точки — язык еды, их не занимаем), еле видна всегда, ярче в полутора радиусах, разгорается только у ближайшей (L030)
     for (const zn of world.zones()) { const [wx, wy, R] = zn, [x, y] = scr(wx, wy), Rz = R * z; if (!on(x, y, Rz)) continue;

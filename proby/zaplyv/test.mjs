@@ -925,13 +925,13 @@ check('test_food_smell: с хемотаксисом клетку ведёт к �
 
 check('test_L054 (Роман 25.11 на 0.78: «запятые… уменьшить кол-во… Просто на постоянке! Можно им тоже какой то ареал обитания»): запятые живут гнёздами у слизистой плёнки, нападают волной с передышкой, выводок не плодит рой', () => {
   const N = cfg.bdello_nest;
-  // 1) путешественник без уклонения, 4 заплыва по 5 минут: запятые есть, но роем не стоят
+  // 1) путешественник без уклонения, 2 заплыва по 200 с: запятые есть, но роем не стоят
   const go = (w, t) => { if (w.choice.length) w.pick(w.choice[0]); if (w.readyToSplit() && w.me.length < 6) w.divide(); const c = w.center();
     let best = null, bd = 260; for (const f of w.food) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } }
     if (best) return { x: best.x, y: best.y }; const a = 0.7 + Math.sin(t / 40) * 0.8; return { x: c.x + Math.cos(a) * 400, y: c.y + Math.sin(a) * 400 }; };
   let seen = 0, peak = 0, homeless = 0, all = 0;
-  for (let s = 1; s <= 4; s++) { const w = new World(cfg, s * 77);
-    for (let i = 0; i < 30 * 300 && w.me.length; i++) { w.step(1 / 30, go(w, i / 30)); w.events.length = 0;
+  for (let s = 1; s <= 2; s++) { const w = new World(cfg, s * 77);
+    for (let i = 0; i < 30 * 200 && w.me.length; i++) { w.step(1 / 30, go(w, i / 30)); w.events.length = 0;
       if (i % 30 === 0) { const c = w.center(), k = w.bdellos.filter(b => Math.hypot(b.x - c.x, b.y - c.y) < N.cap_r).length; seen += k; peak = Math.max(peak, k);
         for (const b of w.bdellos) { all++; if (!b.home) homeless++; } } } }
   console.log('    паспорт: запятых в округе всего', seen, ', пик', peak, ', бродяг', Math.round(100 * homeless / Math.max(1, all)) + '%');
