@@ -104,7 +104,7 @@ check('[flu] сцепка: сёстры держатся строем за па�
   // Шесть сестёр в живой капле (соседи едят и ловят как обычно) 40 с плывут за пальцем зигзагом. Меряем после первых 5 с:
   // среднее расстояние сестры до середины семьи и разнобой хода. Среднее, а не самая дальняя: одну сестру может на миг утащить пасть.
   const go = genes => { let far = 0, dis = 0, n = 0;
-    for (const seed of [1, 2, 3, 4, 5, 6]) { const w = new World(cfg, seed); w.mode = 'swim'; w.divide = () => {}; for (const g of genes) w.genes[g] = true;
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) { const w = new World(cfg, seed); w.mode = 'swim'; w.divide = () => {}; for (const g of genes) w.genes[g] = true; // семья не растёт: у новорождённой рывок назад — это не разнобой строя
       const a = w.me[0]; a.m = 1.5; for (let i = 1; i < 6; i++) w.me.push({ ...a, id: 10 + i, x: a.x + (i % 3) * 40 - 40, y: a.y + Math.floor(i / 3) * 40, vx: 0, vy: 0, sick: -1 });
       for (let t = 0; t < 40 && w.me.length > 2; t += 1 / 30) { if (w.choice.length) w.pick(w.choice[0]);
         const ang = Math.floor(t / 1.5) * 2.1; w.step(1 / 30, { dx: Math.cos(ang), dy: Math.sin(ang), p: 1 }); // палец водит зигзагом
@@ -112,8 +112,12 @@ check('[flu] сцепка: сёстры держатся строем за па�
         far += w.me.reduce((s, b) => s + Math.hypot(b.x - c.x, b.y - c.y), 0) / L; dis += w.me.reduce((s, b) => s + Math.hypot(b.vx - vx, b.vy - vy), 0) / L; n++; } }
     return { far: far / n, dis: dis / n }; };
   const a = go(['flu']), b = go([]);
-  console.log(`    паспорт: 6 заплывов по 40 с, шесть сестёр, палец зигзагом — сестра от середины семьи в среднем: со сцепкой ${a.far.toFixed(0)}, без ${b.far.toFixed(0)} | разнобой хода сестёр: ${a.dis.toFixed(1)} и ${b.dis.toFixed(1)}`);
-  if (!(a.far < b.far * 0.7)) return 'со сцепкой семья не держится вместе';
+  console.log(`    паспорт: 10 заплывов по 40 с, шесть сестёр, палец зигзагом — сестра от середины семьи в среднем: со сцепкой ${a.far.toFixed(0)}, без ${b.far.toFixed(0)} | разнобой хода сестёр: ${a.dis.toFixed(1)} и ${b.dis.toFixed(1)}`);
+  // Главное — семья стоит плотом: сестра от середины не дальше 1,3 размера плота (как соты, M.flu.pack). Без сцепки та же семья заметно шире;
+  // насколько шире, решает мир (толчки, пасти), поэтому сравнение мягче: 0,8 (25.11, толчок кокка #188 сжал и семью без сцепки).
+  const raftR = 13 * Math.sqrt(1.5) * Math.sqrt(6) * M.flu.pack;
+  if (!(a.far < raftR * 1.3)) return 'со сцепкой семья не стоит плотом: сестра от середины ' + a.far.toFixed(0) + ' при плоте ' + raftR.toFixed(0);
+  if (!(a.far < b.far * 0.8)) return 'со сцепкой семья не держится вместе';
   if (!(a.dis < b.dis * 0.6)) return 'со сцепкой сёстры плывут вразнобой';
 });
 check('[flu] сцепка: туфелька не втягивает сестру из плота, одиночку втягивает', () => {
@@ -122,11 +126,25 @@ check('[flu] сцепка: туфелька не втягивает сестру
   console.log(`    паспорт: пасть туфельки схватила — из плота в ${M.flu.min.slipper + 1}: ${big}, из пары: ${small}, без сцепки: ${none}`);
   if (big) return 'плот не спас'; if (!small) return 'пара спаслась, хотя меньше порога'; if (!none) return 'без сцепки не схватила — сравнение не работает';
 });
-check('[flu] сцепка: цена — вирус из лопнувшей сестры садится на соседок по плоту', () => {
-  const sick = genes => { const w = family(genes); run(w, 3, null); w.r = () => 0; w.me[0].sick = 0.05; run(w, 0.1, null); return w.me.filter(b => b.sick >= 0).length; };
-  const a = sick(['flu']), b = sick([]);
-  console.log(`    паспорт: заражено соседок сразу после лопания — со сцепкой ${a}, без ${b}`);
-  if (!(a > b)) return 'вирус в плоту не переходит';
+check('[flu] сцепка: амёба объедает плот с края по одной — после куска сыта, остальные живы', () => {
+  const left = genes => { const w = family(genes); w.divide = () => {}; run(w, 2, null); const c = w.center();
+    w.amoebas = [{ x: c.x + 50, y: c.y, vx: 0, vy: 0, m: 8, id: 99 }]; run(w, 10, null); return w.me.length; };
+  const a = left(['flu']), b = left([]);
+  console.log(`    паспорт: шесть сестёр стоят у амёбы 10 с — осталось со сцепкой ${a}, без ${b}`);
+  if (!(a >= 3)) return 'амёба глотает плот целиком';
+  if (!(a > b)) return 'без сцепки амёба ест так же медленно — сравнение не работает';
+});
+check('[flu] сцепка: цена — вирус сел на сестру в плоту, соседняя помечена больной', () => {
+  const land = genes => { let n = 0, m = 0;
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) { const w = family(genes); let k = seed; w.r = () => (k = (k * 16807) % 2147483647) / 2147483647; run(w, 3, null);
+      const a = w.me[0]; w.phages = [{ x: a.x, y: a.y, vx: 0, vy: 0, d: 0, host: 'me', on: a, t: 0.02, off: 0 }]; run(w, 0.1, null);
+      n += w.me.filter(b => b !== a && b.sick >= 0).length; m += w.events.filter(e => e[0] === 'sick').length; } return { n, m }; };
+  const a = land(['flu']), b = land([]);
+  console.log(`    паспорт: 10 раз вирус сел на сестру — заболело соседних со сцепкой ${a.n} (меток на экране ${a.m}), без ${b.n} (${b.m})`);
+  if (!(a.n >= 3)) return 'вирус в плоту не переходит на соседнюю';
+  if (a.n > 10) return 'вирус переходит больше чем на одну соседнюю';
+  if (b.n) return 'без сцепки соседняя тоже заболевает — сравнение не работает';
+  if (!(a.m > b.m)) return 'больную соседнюю не видно';
 });
 
 check('мутации только в режиме «Мутации»: в обычном заплыве их не дают и они не действуют', () => {
@@ -149,6 +167,9 @@ check('режим «Мутации»: дочки приносят свои но�
   if (got.some(g => M.pipe.includes(g))) return 'чужая мутация пришла дочке, а не по трубочке';
 });
 
+// Облако вирусов вокруг клетки (как после лопнувшей соседки): встреча с вирусом в обычной игре редкая (замер 25.11: 7 посадок за 18 минут),
+// поэтому бот-замер умений против вирусов ставит клетку в облако — проверяем, что умение работает в деле, а не то, как часто вирус встречается.
+const virusy = (w, n = 14) => { const a = w.me[0]; for (let i = 0; i < n; i++) { const t = i / n * 6.283; w.cloud(a.x + Math.cos(t) * (120 + 20 * (i % 4)), a.y + Math.sin(t) * (120 + 20 * (i % 4)), 'me', 20); } };
 // Бот режима «Мутации»: делится, плывёт к еде, от опасных отворачивает, берёт первую дочку. Встречает ли он то, где мутация важна.
 const bot = w => {
   if (w.choice.length) w.pick(w.choice[0]);
@@ -164,7 +185,7 @@ check('бот в режиме «Мутации» встречает каждую
   const meet = { snap: 0, abort: 0, gas: 0, door: 0, decoy: 0, flu: 0, steady: 0, citrate: 0 };
   for (const g of Object.keys(meet)) for (const seed of [1, 2, 3, 4, 5, 6]) {
     const w = new World(cfg, seed); w.mode = 'mut'; w.genes[g] = true;
-    if (g === 'abort' || g === 'decoy') { const P = cfg.pond; w.me[0].y = (P.film * 0.6 - P.y0) * P.h; w.tidy = 0; } // вирусы живут в сладкой воде под плёнкой — туда и плывёт голодный
+    if (g === 'abort' || g === 'decoy') { const P = cfg.pond; w.me[0].y = (P.film * 0.6 - P.y0) * P.h; w.tidy = 0; virusy(w); } // вирусы живут в сладкой воде под плёнкой — туда и плывёт голодный
     for (let t = 0; t < 120 && w.me.length; t += 1 / 30) {
       const near = g === 'abort' || g === 'decoy'; // против вирусов бот палец не отпускает: в живой капле стоящего съедают раньше вируса
       const aim = !near && (t % 6) < 1 ? null : bot(w), a0 = w.me[0];
@@ -183,6 +204,16 @@ check('бот в режиме «Мутации» встречает каждую
   console.log('    паспорт: за 6 заплывов по 120 с — щелчков', meet.snap, '| тихих гибелей', meet.abort, '| кадров всплытия', meet.gas, '| кадров у кокка с закрытой дверью', meet.door, '| вирусов на пузырьках', meet.decoy, '| ровно на крутом повороте', meet.steady, '| голубых точек съедено', meet.citrate, '| пасть сорвалась с плота', meet.flu);
   const miss = Object.keys(meet).filter(g => !meet[g]);
   if (miss.length) return 'бот не встретил, где важно: ' + miss.join(', ');
+});
+
+// Бот обычного заплыва со сцепкой (новых генов не берёт: память о вирусах закрыла бы заражение). 6 заплывов по 3 минуты, раз в минуту рядом облако вирусов.
+check('[flu] сцепка: в обычном заплыве бот встречает цену — вирус сел на сестру, заболела и соседняя', () => {
+  const per = [];
+  for (const seed of [1, 2, 3, 4, 5, 6]) { const w = new World(cfg, seed); w.mode = 'swim'; w.genes.flu = true; let sat = 0;
+    virusy(w); for (let t = 0; t < 180 && w.me.length; t += 1 / 30) { w.choice = []; w.step(1 / 30, bot(w)); if (t > 0 && Math.abs(t % 60) < 1 / 60) virusy(w); sat += w.events.filter(e => e[0] === 'sick').length; w.events.length = 0; }
+    per.push(`${sat - (w.stats.fluSick || 0)}/${w.stats.fluSick || 0}`); }
+  console.log('    паспорт: по заплывам «вирус сел сам / заболела соседняя»:', per.join(' '));
+  if (!per.some(x => +x.split('/')[1] > 0)) return 'за 18 минут игры цена ни разу не случилась';
 });
 
 // Вид на теле: те же кисти, что у клетки в игре (vid.skin). Своих точек не меньше 6, у разворота — один длинный хвост.
