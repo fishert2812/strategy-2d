@@ -200,8 +200,8 @@ export class Bodies {
         nr[i * 3] = nr[i * 3] * t + T.nx * u; nr[i * 3 + 1] = nr[i * 3 + 1] * t - T.ny * u; nr[i * 3 + 2] = Math.max(0, nr[i * 3 + 2]) * t + T.nz * u; } }
       else if (T && sn * q.r <= T.h - slit.k) p[i * 3 + 2] = T.h - 0.25 * slit.k - 2 * (T.h - slit.k - sn * q.r) + z0; // глубоко в теле ветка просто уходит под его поверхность
       else if (T) { const z = sn * q.r, k = slit.k, f = T.f ?? 1, u = f * (1 - Math.max(0, Math.min(1, 0.5 + (z - T.h) / (2 * k)))), t = 1 - u; p[i * 3 + 2] = T.h * u + z * t + 0.35 * k * t * u - 0.25 * k * u ** 6 + z0; // к глубине уходит под тело под углом: край заплатки ровный, без дрожи двух совпавших поверхностей
-        // свет переходит от тела к ветке втрое шире, чем сама форма: перепада света на линии встречи нет
-        const un = Math.max(u, f * (1 - Math.max(0, Math.min(1, 0.33 + (z - T.h) / (6 * k))))), tn = 1 - un; nr[i * 3] = nr[i * 3] * tn + T.nx * un; nr[i * 3 + 1] = nr[i * 3 + 1] * tn - T.ny * un; nr[i * 3 + 2] = Math.max(0, nr[i * 3 + 2]) * tn + T.nz * un; }
+        // свет переходит от тела к ветке намного шире, чем сама форма: перепада света на линии встречи нет
+        const un = Math.max(u, f * (1 - Math.max(0, Math.min(1, 0.12 + (z - T.h) / (9 * k))))), tn = 1 - un; nr[i * 3] = nr[i * 3] * tn + T.nx * un; nr[i * 3 + 1] = nr[i * 3 + 1] * tn - T.ny * un; nr[i * 3 + 2] = Math.max(0, nr[i * 3 + 2]) * tn + T.nz * un; }
       i++; }
     A.position.needsUpdate = A.normal.needsUpdate = A.uv.needsUpdate = true; m.count = 1; m.renderOrder = order ?? (plotno ? 1 : 3); m.material.transparent = m.renderOrder > 3 || !plotno;
     m.geometry.attributes.cA.array.set([col[0], col[1], col[2], alfa]); m.geometry.attributes.cB.array.set(rim); m.geometry.attributes.prm.array.set([0, seed, 0, 0]);
