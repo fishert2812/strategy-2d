@@ -102,11 +102,13 @@ check('test_kirpichi_vspyshka: волна света идёт по самой о
   console.log('    паспорт: 12 случайных существ × 5 зон, волна обходит зону за долю ' + P.beg + ' шага');
   return why.slice(0, 4).join('; ');
 });
-check('test_kirpichi_vypuklost: пока растёт вырост, тело выгибает оболочку под ним, до и после — нет', () => {
+check('test_kirpichi_vetki: пока растёт вырост, тело растит ветку на зоне — тот же объект между кадрами, растёт и уходит; до и после — нет', () => {
   const zap = sushchestvo(4), poza = { x: 0, y: 0, a: 0, tolshchina: 10 }, kp = new Kirpichi(); kp.play({ shagi: [{ k: 'vyrost', zona: 'posadka', ot: 0.2, do: 1.2 }] }, { zapis: zap, poza, seed: 2 });
-  const v0 = kp.vypuklosti(zap).length; kp.step(0.7); const v = kp.vypuklosti(zap), Zt = zona(zap, 'posadka', poza).flatMap(k => k.T.map(q => q.t)); kp.step(0.6);
-  if (v0) return 'бугор до начала выроста'; if (v.length !== 2 || v.some(b => !(b.vysota > 0) || !Zt.includes(b.t))) return 'бугры не на зоне: ' + JSON.stringify(v);
-  return kp.vypuklosti(zap).length ? 'бугор остался после выроста' : '';
+  const v0 = kp.vetki(zap).length, Zt = zona(zap, 'posadka', poza).flatMap(k => k.T.map(q => q.t)), rost = []; let prev = null, sami = true;
+  for (let t = 0; t < 1.15; t += 0.05) { kp.step(0.05); const v = kp.vetki(zap); if (v.length) { if (prev && v[0] !== prev) sami = false; prev = v[0]; rost.push(v[0].rost); if (v.some(b => !Zt.includes(b.t))) return 'ветка не на зоне'; } }
+  kp.step(0.2); if (v0) return 'ветка до начала выроста'; if (!sami) return 'объект ветки меняется между кадрами — тело не запомнит точки';
+  const mx = Math.max(...rost), im = rost.indexOf(mx); if (!(mx > 0.9 && rost[0] < 0.5 && rost[rost.length - 1] < mx * 0.6 && im > 0)) return 'ветка не растёт и не уходит: ' + rost.map(r => r.toFixed(2)).join(' ');
+  return kp.vetki(zap).length ? 'ветка осталась после выроста' : '';
 });
 // Кадр заготовки на зоне существа n (тело в начале координат, толщина 10): мазки каждой кисти отдельно.
 const naZoneKadr = (k, zn, n, t, dl = 2) => { const zap = sushchestvo(n), poza = { x: 0, y: 0, a: 0, tolshchina: 10 }, R = obvod_zon(zap, poza), kp = new Kirpichi(), m = { st: [], soft: [], ink: [] };

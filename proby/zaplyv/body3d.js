@@ -14,7 +14,7 @@ float vn(vec3 x){ vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
 
 // Общий свет: рассеянный, блик, кромка (Френель) другим цветом, прозрачность по краю гуще.
 const LIGHT_FRAG = `
-uniform float bump; uniform float alpha0; uniform float rimK; uniform float ridge; uniform float edgeA; uniform float rovno;
+uniform float bump; uniform float alpha0; uniform float rimK; uniform float ridge; uniform float edgeA; uniform float rovno; uniform float blik;
 varying vec3 vN; varying vec3 vP; varying vec4 vA; varying vec3 vB;
 ${NOISE}
 void main(){
@@ -28,13 +28,13 @@ void main(){
   float spec = pow(max(dot(reflect(-L, n), vec3(0.0, 0.0, 1.0)), 0.0), 28.0);
   float cav = 0.75 + 0.25 * vn(q * 2.0);
   float rg = ridge * max(1.0 - smoothstep(0.0, 0.075, abs(vn(vP * 4.0) - 0.5)), 0.35 * (1.0 - smoothstep(0.0, 0.045, abs(vn(vP * 8.0 + 4.0) - 0.5)))) * (1.0 - 0.6 * fres); // две сетки разной частоты: тяжи густые, как на образце // светлые складки мембраны сеткой поперёк тела (амёба на образцах)
-  vec3 col = vA.rgb * mix(0.18 + 0.72 * d, 0.5, rovno) * cav + vB * fres * rimK + spec * 0.55 + vB * rg;
+  vec3 col = vA.rgb * mix(0.18 + 0.72 * d, 0.5, rovno) * cav + vB * fres * rimK + spec * blik + vB * rg;
   gl_FragColor = vec4(col, vA.a * min(1.0, mix(alpha0, edgeA, fres) + rg * 0.6) * (1.0 - 0.85 * smoothstep(0.9, 1.0, f0))); // самый край мягко тает, а не обрывается ступенькой
 }`;
 
 function kind(geo, max, vertexBody, opts = {}) {
   const mat = new THREE.ShaderMaterial({
-    uniforms: { time: { value: 0 }, bump: { value: opts.bump ?? 0.35 }, alpha0: { value: opts.alpha0 ?? 1 }, rimK: { value: opts.rimK ?? 1.1 }, ridge: { value: opts.ridge ?? 0 }, edgeA: { value: opts.edgeA ?? 1 }, rovno: { value: opts.rovno ?? 0 } },
+    uniforms: { time: { value: 0 }, bump: { value: opts.bump ?? 0.35 }, alpha0: { value: opts.alpha0 ?? 1 }, rimK: { value: opts.rimK ?? 1.1 }, ridge: { value: opts.ridge ?? 0 }, edgeA: { value: opts.edgeA ?? 1 }, rovno: { value: opts.rovno ?? 0 }, blik: { value: opts.blik ?? 0.55 } },
     transparent: (opts.alpha0 ?? 1) < 1, depthWrite: (opts.alpha0 ?? 1) >= 1, flatShading: !!opts.flat,
     vertexShader: `uniform float time; attribute vec4 cA; attribute vec3 cB; attribute vec4 prm;
       varying vec3 vN; varying vec3 vP; varying vec4 vA; varying vec3 vB;
@@ -182,17 +182,39 @@ export class Bodies {
   }
   // Тело свободной формы (telo_os.js): кольца вдоль осевой линии, уже в экранных точках — { x, y, tx, ty, r, dr, a }.
   // plotno — плотная сердцевина, иначе стеклянная оболочка (тот же свет и узор, что у палочки). Сетка своя на каждое тело, пишется каждый кадр.
-  loft(kolca, plotno, col, rim, seed, alfa = 1, order = null) {
+  loft(kolca, plotno, col, rim, seed, alfa = 1, order = null, slit = null) { // slit(x, y) — поверхность тела под точкой { h, nx, ny, nz }: ветка плавно сливается с ней, шва нет
     const P = plotno ? this.loftC : this.loftS, R = kolca.length, G = 18; let m = P.m[P.n++];
     if (!m || m.kolec !== R) { const geo = new THREE.BufferGeometry(), idx = [];
       for (const [k, n] of [['position', 3], ['normal', 3], ['uv', 2]]) geo.setAttribute(k, new THREE.BufferAttribute(new Float32Array(R * (G + 1) * n), n).setUsage(THREE.DynamicDrawUsage));
       for (let j = 0; j < R - 1; j++) for (let k = 0; k < G; k++) { const a = j * (G + 1) + k, b = a + G + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); } geo.setIndex(idx);
       const old = m; m = kind(geo, 1, '', plotno ? { bump: 0.55, order: 1, rimK: 0.5, vp: 'vec3(uv.x, uv.y, normal.z)' } : { bump: 0.25, alpha0: 0.22, order: 3, rimK: 1.6, rovno: 0.75, vp: 'vec3(uv.x, uv.y, normal.z)' });
       m.setMatrixAt(0, new THREE.Matrix4()); m.kolec = R; if (old) { this.scene.remove(old); this.all[this.all.indexOf(old)] = m; P.m[P.n - 1] = m; } else { this.all.push(m); P.m.push(m); } this.scene.add(m); }
+    // материал слоя (this.material: { bugry, blik } в долях обычного): матовая стенка без мокрого блика и крупных пятен
+    m.material.uniforms.bump.value = (plotno ? 0.55 : 0.25) * (this.material?.bugry ?? 1); m.material.uniforms.blik.value = 0.55 * (this.material?.blik ?? 1);
     const A = m.geometry.attributes, p = A.position.array, nr = A.normal.array, uv = A.uv.array, z0 = this.vyshe || 0; let i = 0;
-    for (const q of kolca) for (let k = 0; k <= G; k++) { const t = k / G * 6.2832, c = Math.cos(t), sn = Math.sin(t), nx = -q.ty * c, ny = q.tx * c; // радиус кольца: в плоскости экрана по нормали оси, из экрана по z
+    let cg = -1;
+    for (const q of kolca) for (let k = 0; k <= G; k++) { if (!k && slit && !slit.svet && !slit.telo) { const Tc = slit(q.x, q.y); cg = Tc ? Tc.g ?? -1 : -1; } const t = k / G * 6.2832, c = Math.cos(t), sn = Math.sin(t), nx = -q.ty * c, ny = q.tx * c; // радиус кольца: в плоскости экрана по нормали оси, из экрана по z
       p[i * 3] = q.x + nx * q.r; p[i * 3 + 1] = -(q.y + ny * q.r); p[i * 3 + 2] = sn * q.r + z0;
-      const l = Math.hypot(1, q.dr); nr[i * 3] = (nx - q.tx * q.dr) / l; nr[i * 3 + 1] = -(ny - q.ty * q.dr) / l; nr[i * 3 + 2] = sn / l; uv[i * 2] = c; uv[i * 2 + 1] = q.a; i++; }
+      const l = Math.hypot(1, q.dr); nr[i * 3] = (nx - q.tx * q.dr) / l; nr[i * 3 + 1] = -(ny - q.ty * q.dr) / l; nr[i * 3 + 2] = sn / l; uv[i * 2] = slit && slit.rt ? c * q.r / slit.rt : c; uv[i * 2 + 1] = q.a;
+      const T = slit && slit(q.x + nx * q.r, q.y + ny * q.r);
+      // галтель в плане: у края тела ветка расходится вширь (высота та же), угол между боком тела и веткой скруглён
+      // снаружи профиль расширения это дуга окружности: у самого края тела она касается края (без острого клина), к концу сходит на нет
+      if (T && slit.shir) { const em = Math.min(slit.shir, q.r * slit.shir_ot), u = Math.min(1, -T.g * slit.w / (em || 1)), e = em * (T.g > 0 ? Math.max(0, 1 - T.g / 0.06) ** 2 : 1 - Math.sqrt(2 * u - u * u));
+        // точка у самого края тела после расширения ложится на край, а не торчит за него шипом (тело под веткой бывает вогнутым)
+        const X = q.x + nx * (q.r + e), Y = q.y + ny * (q.r + e), T2 = e > 0 && T.g > -0.08 ? slit(X, Y) : null, vn = T2 && T2.g < 0 ? -T2.g * slit.w * Math.max(0, 1 + Math.min(0, T.g) / 0.08) : 0;
+        p[i * 3] += nx * e - (vn ? T2.nx * vn : 0); p[i * 3 + 1] -= ny * e - (vn ? T2.ny * vn : 0); }
+      // у носа тело круглое, а корень ветки широкий: кольцо, чья середина ещё в теле, не выступает за край тела дальше своей середины (иначе уступ-воротник)
+      if (T && slit.kray && T.g < 0 && cg > -0.35) { const lish = -T.g - Math.max(0, -cg); if (lish > 0) { const m = Math.min(1, (cg + 0.35) / 0.35) * lish * slit.kray; p[i * 3] -= T.nx * m; p[i * 3 + 1] += T.ny * m; } }
+      // плавный максимум двух поверхностей: внутри тела ветка идёт по самому телу, у выхода поднимается галтелью
+      // тело под веткой (slit.telo): край тела поднимается на поверхность ветки и берёт её нормаль, контур тела поперёк основания пропадает
+      if (T && slit.svet) { if (sn > -0.05) { const z = Math.max(0, sn * q.r), un = (T.f ?? 1) * Math.max(0, Math.min(1, 0.12 + (T.h - z) / (9 * slit.k))), tn = 1 - un; nr[i * 3] = nr[i * 3] * tn + T.nx * un; nr[i * 3 + 1] = nr[i * 3 + 1] * tn - T.ny * un; nr[i * 3 + 2] = Math.max(0, nr[i * 3 + 2]) * tn + T.nz * un; } }
+      else if (T && slit.telo) { if (sn > -0.05) { const z = Math.max(0, sn * q.r), k = slit.k, u = (T.f ?? 1) * (1 - Math.max(0, Math.min(1, 0.5 + (z - T.h) / (2 * k)))), t = 1 - u; p[i * 3 + 2] = T.h * u + z * t + k * t * u - slit.telo * u + z0;
+        nr[i * 3] = nr[i * 3] * t + T.nx * u; nr[i * 3 + 1] = nr[i * 3 + 1] * t - T.ny * u; nr[i * 3 + 2] = Math.max(0, nr[i * 3 + 2]) * t + T.nz * u; } }
+      else if (T && sn * q.r <= T.h - slit.k) p[i * 3 + 2] = T.h - 0.12 * slit.k - 2 * (T.h - slit.k - sn * q.r) + z0; // глубоко в теле ветка просто уходит под его поверхность
+      else if (T) { const z = sn * q.r, k = slit.k, f = T.f ?? 1, u = f * (1 - Math.max(0, Math.min(1, 0.5 + (z - T.h) / (2 * k)))), t = 1 - u; p[i * 3 + 2] = T.h * u + z * t + 0.35 * k * t * u - 0.12 * k * u ** 6 + z0; // к глубине уходит под тело под углом: край заплатки ровный, без дрожи двух совпавших поверхностей
+        // свет: у основания почти весь от тела и переходит к ветке намного шире самой формы (иначе конус корня даёт дугу-складку на теле); тело под веткой считает так же (slit.svet), на линии встречи обе стороны светятся одинаково
+        const un = f * (1 - Math.max(0, Math.min(1, 0.12 + (z - T.h) / (9 * k)))), tn = 1 - un; nr[i * 3] = nr[i * 3] * tn + T.nx * un; nr[i * 3 + 1] = nr[i * 3 + 1] * tn - T.ny * un; nr[i * 3 + 2] = Math.max(0, nr[i * 3 + 2]) * tn + T.nz * un; }
+      i++; }
     A.position.needsUpdate = A.normal.needsUpdate = A.uv.needsUpdate = true; m.count = 1; m.renderOrder = order ?? (plotno ? 1 : 3); m.material.transparent = m.renderOrder > 3 || !plotno;
     m.geometry.attributes.cA.array.set([col[0], col[1], col[2], alfa]); m.geometry.attributes.cB.array.set(rim); m.geometry.attributes.prm.array.set([0, seed, 0, 0]);
   }
