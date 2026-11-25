@@ -10,6 +10,7 @@ import * as mut from './mutacii.js'; // новые мутации: свой фа
 import { zhizn } from './zhizn.js'; // соседи живут сами: движок по паспорту существ (zhizn.json)
 import * as rost from './rost.js'; // режим «Рост»: клетка не делится, а растёт (rost.json)
 import * as dv from './dvizhok.js'; // палочки-соседи живут по анкетам (vidy.json): появление, ход, гарпун
+import * as pm from './pravila_mira.js'; // взаимодействия записями (pravila_mira.json): ест касанием, грызёт
 import * as evo from './evo.js'; // режим «Эволюция»: рост «Роста» и выбор способности на каждом росте (evo.json)
 
 export const radius = m => 13 * Math.sqrt(m);
@@ -368,10 +369,6 @@ export class World {
     const sense = this.genes.sense, c = this.cfg;
     for (const a of this.me) {
       const r = radius(a.m);
-      for (const f of this.food) {
-        const dx = a.x - f.x, dy = a.y - f.y, d = len(dx, dy);
-        if (d < r + 6 && !f.gone && rost.can(this, f.kind || 'bits')) { f.gone = true; const z = f.s || 1; this.grow(a, this.cfg.food * z * this.gain(f) * rost.kusok(this, a)); this.fed(f.x, f.y, z); } // кусок кормит по размеру
-      }
       // Бактерии клетки не глотают. Ген CDI (cdiA): нить с ядом на кончике бьёт при касании только родню — чужой штамм
       // кишечной палочки, он лопается облаком еды. Свои сородичи защищены противоядием CdiI, кокки — толстой стенкой (сверка биолога, Г18).
       if (this.genes.toxin) for (const q of this.pseudos) if (dv.anketa(dv.klyuch(q)).rodnya && !q.gone && !(q.held > 0) && dist(a, q) < r + c.pseudo_r) {
@@ -382,17 +379,10 @@ export class World {
         q.touch = (q.touch || 0) + dt;
         if (q.touch > c.pinch_t) { q.touch = 0; if (!mut.shut(this, a, q)) { a.pinch = c.pinch; this.events.push(['pinch', q.x, q.y]); } } // закрытая дверь: яд не входит
       }
-      for (const k of this.crumbs) if (rost.can(this, 'crumb') && dist(a, k) < r + radius(k.m) * 0.8) { // детрит растворяется медленно
-        const bite = Math.min(k.m, rost.gryzt(this, a, 0.4, dt)); k.m -= bite; this.grow(a, bite);
-      }
-      for (const p of this.plants) if (rost.can(this, 'plant') && dist(a, p) < r + radius(p.m)) {
-        const bite = Math.min(p.m, rost.gryzt(this, a, 0.5, dt)); p.m -= bite; this.grow(a, bite);
-      }
     }
+    pm.shag(this, dt, radius); // ест касанием, грызёт детрит и водоросль: правила pravila_mira.json
     this.food = this.food.filter(f => !f.gone);
     this.prey = this.prey.filter(q => !q.gone);
-    this.plants = this.plants.filter(p => p.m > 0.3);
-    this.crumbs = this.crumbs.filter(k => k.m > 0.2);
   }
 
   // Пасть: клетку не съедают мгновенно — её держат, пока смыкается пищеварительный пузырёк (cfg.grab с).

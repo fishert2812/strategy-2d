@@ -1,0 +1,36 @@
+{
+	"_": "Правила взаимодействия «Заплыва» (договор движка, раздел 3: /mnt/project-files/design/dlya_dvizhka/dogovor.md). Одна запись — одно взаимодействие «кто делает что с кем». Код исполнения один на все записи (pravila_mira.js); новое взаимодействие из уже известных способов — новая запись без кода. kto и kogo — список мира (me — наши клетки, food — растворённая еда, crumbs — детрит, plants — водоросли; любой другой список мира тоже годится). kogo.dostup — какую еду клетка уже умеет есть в «Росте» (rost.json eda): поле куска (kind) или одно слово для всего списка. uslovie.rasstoyanie: kasanie — край к краю; zazor — сколько ещё сверх радиуса охотника (единицы экрана, до mera.mkm договора), k_r — какая доля радиуса жертвы считается касанием. sposob — закрытый список способов (pravila_mira.js SPOSOB): kasanie — съедает кусок целиком в миг касания; gryzt — откусывает массу каждую секунду, пока касается. itog.ohotnik.massa: osnova — ключ data.json (сколько даёт кусок), na — множители из закрытого списка (razmer — величина куска, cennost — food_kinds.gain его вида, kusok — сколько всасывает крупная клетка в «Росте»). itog.ostatok — меньше этой массы жертва исчезает. zakon — номер закона книги, vid — кирпич анимации.",
+	"sposoby": ["kasanie", "gryzt"],
+	"mnozhiteli": ["razmer", "cennost", "kusok"],
+	"pravila": {
+		"eda_kasaniem": {
+			"kto": { "spisok": "me" },
+			"kogo": { "spisok": "food", "dostup": { "pole": "kind", "po_umolch": "bits" } },
+			"uslovie": { "rasstoyanie": "kasanie", "zazor": 6, "k_r": 0 },
+			"zakon": "Л6",
+			"sposob": "kasanie",
+			"itog": { "zhertva": "gibel", "ohotnik": { "massa": { "osnova": "food", "na": ["razmer", "cennost", "kusok"] }, "sobytie": "eat" } },
+			"vid": "kirpich:vsasyvanie"
+		},
+		"gryzt_detrit": {
+			"kto": { "spisok": "me" },
+			"kogo": { "spisok": "crumbs", "dostup": "crumb" },
+			"uslovie": { "rasstoyanie": "kasanie", "zazor": 0, "k_r": 0.8 },
+			"zakon": "Л6",
+			"sposob": "gryzt",
+			"hod": { "skorost": 0.4 },
+			"itog": { "zhertva": "ubyvaet", "ostatok": 0.2, "ohotnik": { "massa": "otkus" } },
+			"vid": "kirpich:vsasyvanie"
+		},
+		"gryzt_vodorosl": {
+			"kto": { "spisok": "me" },
+			"kogo": { "spisok": "plants", "dostup": "plant" },
+			"uslovie": { "rasstoyanie": "kasanie", "zazor": 0, "k_r": 1 },
+			"zakon": "Л6",
+			"sposob": "gryzt",
+			"hod": { "skorost": 0.5 },
+			"itog": { "zhertva": "ubyvaet", "ostatok": 0.3, "ohotnik": { "massa": "otkus" } },
+			"vid": "kirpich:vsasyvanie"
+		}
+	}
+}
