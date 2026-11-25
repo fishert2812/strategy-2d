@@ -6,7 +6,9 @@
   "gas": "gvpA",
   "door": "ompF",
   "decoy": "decoy",
-  "flu": "flu"
+  "flu": "flu",
+  "steady": "steady",
+  "citrate": "citT"
  },
  "pipe": [
   "snap",
@@ -59,5 +61,19 @@
   "pack": 1.0,
   "align": 4,
   "sep": 2.3
+ },
+ "steady": {
+  "angle": 1.45,
+  "turn": 1.8,
+  "time": 0.5,
+  "keep": 2,
+  "look": 5
+ },
+ "citrate": {
+  "n": 40,
+  "near": 700,
+  "far": 900,
+  "food": 0.06,
+  "r": 14
  }
 }

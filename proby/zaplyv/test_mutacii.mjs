@@ -71,6 +71,28 @@ check('[decoy] отвлекает вирусы пузырьками: за кле
   if (!(a.m < b.m)) return 'пузырьки ничего не стоят';
 });
 
+check('[steady] плывёт ровнее: на зигзаге пальца клетка реже кувыркается и проходит дальше', () => {
+  const go = genes => { const w = mw(5, genes), a = w.me[0]; let n = 0, was = 0, path = 0;
+    for (let t = 0; t < 20; t += 1 / 30) { const ang = Math.floor(t / 1.5) * 2.1; w.step(1 / 30, { dx: Math.cos(ang), dy: Math.sin(ang), p: 1 }); // палец поворачивает на 120°
+      if (a.tumble > 0 && !was) n++; was = a.tumble > 0; path += Math.hypot(a.vx, a.vy) / 30; }
+    return { n, path }; };
+  const a = go(['steady']), b = go([]);
+  console.log(`    паспорт: за 20 с зигзага кувырков с умением ${a.n}, без ${b.n} | путь ${a.path.toFixed(0)} и ${b.path.toFixed(0)}`);
+  if (!b.n) return 'без умения не кувыркается — сравнение не работает';
+  if (!(a.n < b.n / 2)) return 'с умением кувыркается не реже';
+  if (!(a.path > b.path)) return 'с умением проходит не дальше';
+});
+
+check('[citrate] ест голубую еду: без умения клетка проплывает сквозь голубую точку и не растёт, с умением съедает', () => {
+  const go = genes => { const w = mw(8, genes), a = w.me[0]; run(w, 0.1, null); const m0 = a.m, q = { x: a.x + 60, y: a.y, ph: 0 }; w.cit.push(q);
+    run(w, 2, { dx: 1, dy: 0, p: 1 }); return { ate: !!q.gone, grow: a.m - m0, n: w.cit.length }; };
+  const a = go(['citrate']), b = go([]);
+  console.log(`    паспорт: голубых точек вокруг ${b.n} | с умением съела ${a.ate}, выросла на ${a.grow.toFixed(3)} | без умения съела ${b.ate}, ${b.grow.toFixed(3)}`);
+  if (!b.n) return 'голубых точек в капле нет';
+  if (b.ate || b.grow > 0) return 'без умения голубая точка съедается';
+  if (!a.ate || !(a.grow > 0)) return 'с умением голубая точка не стала едой';
+});
+
 // «Сцепка» (Г24) — в обычном заплыве. Семья из шести сестёр плывёт за пальцем 10 с.
 const family = (genes, n = 6) => { const w = mw(21, genes, 'swim'); const a = w.me[0]; a.m = 1.5;
   for (let i = 1; i < n; i++) w.me.push({ ...a, id: 10 + i, x: (i % 3) * 40 - 40, y: Math.floor(i / 3) * 40, vx: 0, vy: 0, sick: -1 }); return w; };
@@ -136,13 +158,16 @@ const bot = w => {
 };
 // Для каждой мутации — 6 заплывов бота, у которого с начала только она: встречает ли он то, где она важна.
 check('бот в режиме «Мутации» встречает каждую мутацию в деле: щелчок, тихая гибель, всплытие, кокк у закрытой двери, вирус на пузырьке', () => {
-  const meet = { snap: 0, abort: 0, gas: 0, door: 0, decoy: 0, flu: 0 };
+  const meet = { snap: 0, abort: 0, gas: 0, door: 0, decoy: 0, flu: 0, steady: 0, citrate: 0 };
   for (const g of Object.keys(meet)) for (const seed of [1, 2, 3, 4, 5, 6]) {
     const w = new World(cfg, seed); w.mode = 'mut'; w.genes[g] = true;
     if (g === 'abort' || g === 'decoy') { const P = cfg.pond; w.me[0].y = (P.film * 0.6 - P.y0) * P.h; w.tidy = 0; } // вирусы живут в сладкой воде под плёнкой — туда и плывёт голодный
     for (let t = 0; t < 120 && w.me.length; t += 1 / 30) {
       const near = g === 'abort' || g === 'decoy'; // против вирусов бот палец не отпускает: в живой капле стоящего съедают раньше вируса
-      w.step(1 / 30, !near && (t % 6) < 1 ? null : bot(w)); // иногда отпускает палец
+      const aim = !near && (t % 6) < 1 ? null : bot(w), a0 = w.me[0];
+      const sharp = g === 'steady' && aim && a0 && !a0.tumble && Math.abs(wrap(Math.atan2(aim.y - a0.y, aim.x - a0.x) - a0.a)) > cfg.swim.tumble_angle; // поворот, на котором без умения был бы кувырок
+      w.step(1 / 30, aim); // иногда отпускает палец
+      if (sharp && w.me[0] === a0 && !a0.tumble) meet.steady++;
       for (const e of w.events) if (e[0] === g) meet[g]++;
       w.events.length = 0;
       if (g === 'door') for (const a of w.me) for (const q of w.prey) if (Math.hypot(a.x - q.x, a.y - q.y) < 30) meet.door++;
@@ -150,8 +175,9 @@ check('бот в режиме «Мутации» встречает каждую
     }
     if (g === 'decoy') meet.decoy += w.stats.decoy || 0;
     if (g === 'flu') meet.flu += w.stats.raft || 0;
+    if (g === 'citrate') meet.citrate += w.stats.citrate || 0;
   }
-  console.log('    паспорт: за 6 заплывов по 120 с — щелчков', meet.snap, '| тихих гибелей', meet.abort, '| кадров всплытия', meet.gas, '| кадров у кокка с закрытой дверью', meet.door, '| вирусов на пузырьках', meet.decoy, '| пасть сорвалась с плота', meet.flu);
+  console.log('    паспорт: за 6 заплывов по 120 с — щелчков', meet.snap, '| тихих гибелей', meet.abort, '| кадров всплытия', meet.gas, '| кадров у кокка с закрытой дверью', meet.door, '| вирусов на пузырьках', meet.decoy, '| ровно на крутом повороте', meet.steady, '| голубых точек съедено', meet.citrate, '| пасть сорвалась с плота', meet.flu);
   const miss = Object.keys(meet).filter(g => !meet[g]);
   if (miss.length) return 'бот не встретил, где важно: ' + miss.join(', ');
 });

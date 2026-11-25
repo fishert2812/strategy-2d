@@ -22,7 +22,9 @@ await p.waitForFunction(() => window.zaplyvProbe && zaplyvProbe.frames > 20, nul
 // Касание пальцем: элемент должен быть виден, не меньше 44 pt и сверху в точке касания.
 async function tap(sel, what) {
   const el = p.locator(sel).first(); await el.scrollIntoViewIfNeeded({ timeout: 2000 }).catch(() => {}); // длинный экран палец прокручивает
-  const box = await el.boundingBox().catch(() => null);
+  await el.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {}); // лист ещё открывается: ждём саму кнопку, а не паузу
+  let box = await el.boundingBox().catch(() => null);
+  for (let i = 0; i < 10 && box; i++) { await p.waitForTimeout(60); const b2 = await el.boundingBox().catch(() => null); if (b2 && Math.abs(b2.x - box.x) < 0.5 && Math.abs(b2.y - box.y) < 0.5) break; box = b2; } // лист выехал до конца
   if (!box || box.width < 1) return say(false, `${what}: кнопки ${sel} не видно`), false;
   const top = await p.evaluate(([s, x, y]) => { const e = document.querySelector(s), h = document.elementFromPoint(x, y); return !!h && (h === e || e.contains(h)) || (h ? (h.id || h.tagName) + " " + h.textContent.slice(0, 20) : "пусто"); }, [sel, box.x + box.width / 2, box.y + box.height / 2]);
   if (top !== true) return say(false, `${what}: в точке касания ${sel} лежит другой слой (${top})`), false;
@@ -86,7 +88,7 @@ await whole(['#gon', '#gmenu', '#gcab', '#gno', '#gflag'], 'пауза с выб
 await notBook(await p.evaluate(() => [[...(document.querySelector('#gcard h2')?.childNodes || [])].filter(n => n.nodeType === 3).map(n => n.textContent).join(''), ...[...document.querySelectorAll('#gcard p')].filter(e => e.querySelector('b')).map(e => [...e.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join(''))]), 'карточка гена на кольце');
 if (await tap('#gon', '«Плыть дальше»')) { await p.waitForTimeout(500); say(!(await on('genome')) && await p.evaluate(() => zaplyvWorld().stats.time) > t0, '«Плыть дальше» закрывает геном, мир идёт'); }
 // test_L031 (прогон 0.44: «из игры в меню режимов попасть нельзя»): из паузы «Меню» открывает меню режимов, «Плыть» возвращает в тот же заплыв.
-if (await tap('#pause', 'пауза снова') && await tap('#gmenu', '«Меню» в паузе')) { const t1 = await p.evaluate(() => zaplyvWorld().stats.time); say(await on('menu'), 'test_L031: «Меню» в паузе открывает меню режимов');
+if (await p.evaluate(() => { const w = zaplyvWorld(); w.choice = []; }) === undefined && await tap('#pause', 'пауза снова') && (await p.evaluate(() => document.querySelector('#ptabs [data-t=genome]')?.click()), await p.waitForTimeout(300), await tap('#gmenu', '«Меню» в паузе'))) { const t1 = await p.evaluate(() => zaplyvWorld().stats.time); say(await on('menu'), 'test_L031: «Меню» в паузе открывает меню режимов');
   if (await tap('#mgo', '«Плыть» из меню паузы')) { await p.waitForTimeout(500); say(!(await on('menu')) && await p.evaluate(t => zaplyvWorld().stats.time > t, t1), 'test_L031: «Плыть» из меню паузы продолжает тот же заплыв'); } }
 // test_L023 (Б16, Роман: «куда я его могу поставить чтобы игра вырезала…»): флажок тянут пальцем на место — игра вырезает кусок кадра и спрашивает словами.
 { const fb = await p.locator('#flag').boundingBox(), sx = fb.x + fb.width / 2, sy = fb.y + fb.height / 2; m = await marks();
@@ -115,9 +117,10 @@ await p.waitForTimeout(600);
 const g0 = await p.evaluate(() => zaplyvWorld().choice[0]);
 if (await tap('#cards button', 'карточка гена дочки')) say(await p.evaluate(g => zaplyvWorld().genes[g], g0), 'карточка дочки даёт её ген');
 // test_L030 (дизайнер 24.11: колокольчик и коловратка убивают новичка без признака): у воронки на экране оранжевый край, у ближайшей он разгорается.
-{ const lit = async d => { await p.evaluate(d => { const w = zaplyvWorld(), a = w.me[0]; for (const l of ['amoebas', 'bdellos', 'slippers', 'bells', 'rotis']) w[l].length = 0; w.choice = [];
+{ const lit = async d => { await p.evaluate(d => { const w = zaplyvWorld(), a = w.me[0]; for (const l of ['amoebas', 'bdellos', 'slippers', 'bells', 'rotis']) w[l].length = 0; w.choice = []; w.me.length = 1; Object.assign(a, { vx: 0, vy: 0, grab: null, held: 0 }); // одна клетка у края: встреча с воронкой гарантирована
     w.bells.push({ x: a.x + 300, y: a.y, dir: 0, shut: 0, id: 7001 }); const [bx, by] = w.bell(w.bells[0]); w.bells[0].x -= bx - (a.x + w.cfg.vortex_r + d); w.bells[0].y -= by - a.y; zaplyvProbe.warn = {}; }, d);
-    await p.waitForTimeout(250); return p.evaluate(() => zaplyvProbe.warn.bell || 0); };
+    if (d < 200) await p.waitForFunction(() => zaplyvProbe.warn.bell > 0, null, { timeout: 2500 }).catch(() => {}); else await p.waitForTimeout(400); // ждём сам признак, а не паузу (WebKit рисует первые кадры с задержкой)
+    return p.evaluate(() => zaplyvProbe.warn.bell || 0); };
   const near = await lit(60), far = await lit(900);
   say(near > 0 && !far, `test_L030: край воронки разгорается, когда до него меньше полутора секунд хода (кадров с тревогой ${near}), и молчит вдали (${far})`); }
 await p.evaluate(() => { const w = zaplyvWorld(), c = w.center(); w.events.push(['gene', c.x, c.y, 'fim']); }); await p.waitForFunction(() => document.getElementById('toast').textContent.startsWith('Ген от сородича'), null, { timeout: 4000 }).catch(() => {});

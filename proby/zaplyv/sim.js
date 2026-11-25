@@ -191,8 +191,8 @@ export class World {
       let thrust = 0;
       if (want !== null && s > 1) {
         const d = wrap(want - a.a);
-        if (!a.tumble && Math.abs(d) > sw.tumble_angle && (len(a.vx, a.vy) > s * 0.4 || a.grab || a.held > 0)) {
-          a.tumble = mut.snap(this, a) ? 0 : sw.tumble_time; // разворот рывком вместо кувырка (режим «Мутации»); кувырок стряхивает фага, который ещё не впрыснул
+        if (!a.tumble && Math.abs(d) > mut.tumbleAngle(this, sw.tumble_angle) && (len(a.vx, a.vy) > s * 0.4 || a.grab || a.held > 0)) {
+          a.tumble = mut.snap(this, a) ? 0 : mut.tumbleTime(this, sw.tumble_time); // разворот рывком вместо кувырка (режим «Мутации»); кувырок стряхивает фага, который ещё не впрыснул
           if (a.grab) this.escape(a);
           if (a.held > c.bdello_kill - c.bdello_loose) for (const b of this.bdellos) if (b.on === a) { b.on = null; b.t = 0; a.held = 0; a.free = c.free; this.events.push(['shake', b.x, b.y]); } // прилип, но ещё не вошёл — стряхнёшь
           for (const g of this.phages) if (g.on === a) { g.on = null; g.cool = 1.5; g.vx = -Math.cos(g.d) * 60; g.vy = -Math.sin(g.d) * 60; this.events.push(['shake', g.x, g.y]); }
