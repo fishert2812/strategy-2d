@@ -50,4 +50,5 @@ jobs:
       - run: bash tools/web/test_L002.sh out/site
       - run: bash tools/web/check_site.sh "$SITE" "$(cat out/site/version.txt)"
       - run: bash tools/web/check_zaplyv.sh out/site
-      - run: bash tools/web/check_proby.sh out/site "$SITE"
+      - if: ${{ !cancelled() }} # сверка адреса со сборкой не ждёт пробу скорости: версию подтверждаем, даже если проба красная
+        run: bash tools/web/check_proby.sh out/site "$SITE"
