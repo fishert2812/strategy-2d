@@ -16,9 +16,14 @@ const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
 let bad = 0;
 // ONLY=L014 — запустить только проверки с этим номером урока (так selftest ломает игру и ждёт красного у нужной проверки).
 const TITLES = []; // названия проверок: по ним видно, у какого умения есть тест «сделал → случилось» (урок L024)
+// PART=a|b|c делит проверки на три части, шаг 50 гоняет их параллельно: целиком файл шёл 300 с при пределе 300 (25.11).
+// Три самых долгих бот-замера (по 67–85 с) разведены по частям, к ним добавлены средние; всё прочее — в c.
+const CHASTI = { a: ['test_L024: каждого', 'test_L014', 'test_L013'], b: ['простой игрок', 'test_L054', 'test_L009'], c: [] };
+const chast = name => Object.keys(CHASTI).find(k => CHASTI[k].some(n => name.startsWith(n))) || 'c';
 const check = (name, fn) => {
   TITLES.push(name);
   if (process.env.ONLY && !name.includes('test_' + process.env.ONLY)) return;
+  if (process.env.PART && chast(name) !== process.env.PART) return;
   try { const r = fn(); if (r) { bad++; console.log('  ПРОВАЛ', name + ':', r); } else console.log('  ок   ', name); }
   catch (e) { bad++; console.log('  ПРОВАЛ', name + ':', e.stack); }
 };
