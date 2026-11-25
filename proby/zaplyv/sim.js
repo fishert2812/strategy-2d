@@ -148,7 +148,7 @@ export class World {
       c.m /= 2; c.gen = (c.gen || 0) + 1; this.stats.gen = Math.max(this.stats.gen, c.gen);
       const ax = Math.cos(c.a), ay = Math.sin(c.a), r = radius(c.m);
       const D = this.cfg.split_apart * r / 2; // дочки торец к торцу: центры на полдлины палочки от точки деления, иначе палочки наложены и колония складывает их бок о бок
-      const kid = { x: c.x - ax * D, y: c.y - ay * D, vx: c.vx - ax * 60, vy: c.vy - ay * 60, m: c.m, a: c.a, sick: -1, gen: c.gen, id: ++this.ids }; born.push(mut.kid(this, c, kid));
+      const kid = { x: c.x - ax * D, y: c.y - ay * D, vx: c.vx, vy: c.vy, m: c.m, a: c.a, sick: -1, gen: c.gen, id: ++this.ids }; born.push(mut.kid(this, c, kid));
       const spin = c.spin ?? (c.id % 2 ? 1 : -1); c.spin = kid.spin = spin; kid.drift = c.drift; // сёстры дрейфуют вместе и поворачивают в одну сторону: цепочка, а не «две таблетки» бок о бок
       c.x += ax * D; c.y += ay * D;
       this.events.push(['split', c.x, c.y, c.id, kid.id]); // вид деления знает пару: мать и дочка (vid.birth)

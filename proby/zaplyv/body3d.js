@@ -41,7 +41,7 @@ function kind(geo, max, vertexBody, opts = {}) {
       void main(){
         vec3 p = position; vec3 nn = normal;
         ${vertexBody}
-        vP = position + prm.y; vA = cA; vB = cB; ${opts.after || ''}
+        vP = ${opts.vp || 'position'} + prm.y; vA = cA; vB = cB; ${opts.after || ''}
         vN = normalize(normalMatrix * mat3(instanceMatrix) * nn);
         gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(p, 1.0);
       }`,
@@ -77,10 +77,10 @@ export class Bodies {
     const cap = capsule(); // ось Y, полувысота 2; прямая часть нарезана поперёк, иначе перетяжке негде сжаться
     const pinch = 'p += nn * 0.04 * sin(time * 3.0 + p.y * 5.0 + prm.y);' // лёгкое дыхание оболочки
       + 'p.x += prm.z * (p.y * p.y - 1.3); nn.x -= prm.z * 2.0 * p.y; nn = normalize(nn);' // изгиб дугой в повороте
-      + 'p.y += sign(p.y) * prm.w * min(abs(p.y), 1.0);' // удлинение только прямой частью: торцы остаются круглыми, а не вытягиваются лимоном
-      + 'float pf = 1.0 - prm.x * exp(-p.y * p.y / 0.06); p.xz *= pf;'; // перетяжка — узкая перегородка в радиус шириной, какой бы длины ни была палочка
-    this.core = kind(cap.clone(), 200, pinch, { bump: 0.55, order: 1, rimK: 0.5 });
-    this.skin = kind(cap.clone(), 200, pinch, { bump: 0.25, alpha0: 0.22, order: 3, rimK: 1.6 });
+      + 'p.y += sign(p.y) * prm.w * min(abs(p.y), 1.0); vec3 pe = p;' // pe: узор кожи по настоящей длине — у длинной матери он не растянут, при делении не скачет // удлинение только прямой частью: торцы остаются круглыми, а не вытягиваются лимоном
+      + 'float dq = max(0.0, prm.x - abs(p.y)); float pf = sqrt(max(0.0, 1.0 - dq * dq)); p.xz *= pf;'; // перетяжка по физике (п. 14): по бокам купола будущих полюсов радиусом R, между ними сужающаяся V; шейка r = R·√(1−u²), prm.x = u
+    this.core = kind(cap.clone(), 200, pinch, { bump: 0.55, order: 1, rimK: 0.5, vp: 'pe' });
+    this.skin = kind(cap.clone(), 200, pinch, { bump: 0.25, alpha0: 0.22, order: 3, rimK: 1.6, vp: 'pe' });
     const ball = new THREE.IcosahedronGeometry(1, 3);
     this.ball = kind(ball.clone(), 600, 'p += nn * 0.05 * sin(time * 2.0 + prm.y + p.x * 4.0);', { bump: 0.5, order: 1 });
     this.knob = kind(new THREE.IcosahedronGeometry(1, 1), 1500, '', { bump: 0.2, order: 1 });
@@ -118,10 +118,10 @@ export class Bodies {
   }
   // Палочка: оболочка и содержимое. half — полудлина, w — полуширина, pinch 0..1 — перетяжка.
   // bend — на сколько концы отходят вбок от середины (экранные единицы, + к оси (-sin, cos)).
-  rod(x, y, ang, half, w, pinch, skin, core, seed, bend = 0) {
+  rod(x, y, ang, half, w, pinch, skin, core, seed, bend = 0, dna = 0) { // dna 0..1: нуклеоид (содержимое) вытягивается и делится надвое до кольца
     const sy = half / 2, glow = c => [c[0] * 0.5 + 0.5, c[1] * 0.5 + 0.5, c[2] * 0.5 + 0.5];
     const E = (h, r) => Math.max(h / r - 2, -0.9), hc = half * 0.86, wc = w * 0.7; // сколько добавить прямой части сверх двух радиусов
-    this.put(this.core, x, y, ang, wc, wc, wc, [core[0], core[1], core[2], 1], glow(core), [pinch * 0.95, seed, bend / (4 * wc), E(hc, wc)]);
+    this.put(this.core, x, y, ang, wc, wc, wc, [core[0], core[1], core[2], 1], glow(core), [Math.max(pinch, dna), seed, bend / (4 * wc), E(hc, wc)]);
     this.put(this.skin, x, y, ang, w, w, w, [skin[0], skin[1], skin[2], 1], glow(skin), [pinch, seed, bend / (4 * w), E(half, w)]);
   }
   // Только прозрачная оболочка без содержимого: сквозь неё видны органы (коловратка).
