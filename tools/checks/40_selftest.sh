@@ -15,9 +15,9 @@ case_() {
   (cd "$WT" && git reset -q --hard HEAD && git clean -qfd && eval "$*" &&
    git -c user.name=selftest -c user.email=selftest@local commit -qam selftest --allow-empty >/dev/null)
   # поломка, которая не изменила ни одного файла (код ушёл из-под sed), ничего не проверяет: это провал самопроверки, а не «зелёный сторож»
-  if [ "$want" = red ] && [ -z "$(cd "$WT" && git diff --name-only selftest-base HEAD)" ]; then
+  if [ "$want" = red ] && [ -z "$(cd "$WT" && git diff --name-only origin/selftest-base HEAD)" ]; then
     echo "  SELFTEST: $name — поломка не легла (sed не нашёл код), сторож не проверен"; fail=1
-    (cd "$WT" && git reset -q --hard selftest-base); return; fi
+    (cd "$WT" && git reset -q --hard origin/selftest-base); return; fi
   (cd "$WT" && BASE_REF=selftest-base bash "$ROOT/tools/checks/$step" >/dev/null 2>&1); rc=$?
   (cd "$WT" && git reset -q --hard selftest-base 2>/dev/null || git reset -q --hard origin/selftest-base)
   got=green; [ $rc -ne 0 ] && got=red
