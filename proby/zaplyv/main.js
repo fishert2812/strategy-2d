@@ -6,6 +6,7 @@ import * as THREE from './three.module.min.js';
 import { World, radius } from './sim.js';
 import * as mut from './mutacii.js';
 import * as rost from './rost.js';
+import * as dv from './dvizhok.js'; // палочки-соседи рисуются по анкетам (vidy.json)
 import * as evo from './evo.js'; // режим «Эволюция»: пока только по адресу ?rezhim=evo, плитка в меню — когда все умения нарисованы
 import { Stick } from './controls.js';
 import { follow } from './soft.js';
@@ -26,7 +27,9 @@ const genomeData = await (await fetch('genome.json')).json();
 const W = 720; // ширина экрана в единицах игры
 const canvas = document.getElementById('c');
 const gl = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' });
-gl.setPixelRatio(Math.min(devicePixelRatio, cfg.dpr_max)); // на iPhone плотность 3: кадр в 2,5 (полная тяжелее в полтора раза), иначе клетки и еда мягкие (Роман 25.11: «бактерия стала чуть-чуть размытая», урок L038)
+// Плотность кадра (Роман 25.11: «мутнота», ночью: «расплывчатое»): на iPhone сразу полная — 3 точки на точку экрана. Если телефон её не тянет
+// (средний кадр за cfg.dpr_check кадров дольше cfg.dpr_slow мс), один раз и насовсем на этот заход откатываемся до cfg.dpr_max (L052).
+let dprNow = Math.min(devicePixelRatio, cfg.dpr_full); gl.setPixelRatio(dprNow);
 let H = W;
 const cam = new THREE.OrthographicCamera(0, W, 0, W, -1, 1);
 const back = new THREE.Scene(); // фон и дальнее
@@ -227,9 +230,9 @@ function menuOpen() {
   const shoot = () => { for (const i of mo.querySelectorAll('img[data-k]')) if (!i.src) try { i.src = snap(i.dataset.k, KAB.items[i.dataset.k]); } catch (_) {} };
   requestAnimationFrame(() => requestAnimationFrame(shoot)); // снимки живых моделей — когда сцена уже рисуется
   const nb = ROD.branches || 1, w10 = nb % 10, w100 = nb % 100; $('mstate').textContent = ROD.deaths ? 'род: ' + nb + ' ' + (w10 === 1 && w100 !== 11 ? 'ветка' : w10 >= 2 && w10 <= 4 && (w100 < 12 || w100 > 14) ? 'ветки' : 'веток') + (ROD.gens ? ' · ' + ROD.gens + ' поколений' : '') : 'капля пруда, 10 мкм'; // пустые счётчики не показываем
-  const n = [...met].filter(k => KAB.items[k] && k !== 'me').length, g = [...met].filter(k => k.startsWith('gene:')).length;
+  const g = [...met].filter(k => k.startsWith('gene:')).length; // обитателей считает строка Альманаха ниже, второй счёт спорил с ней (прогон 0.74: «12 обитателей» рядом с «10 из 10»)
   const pl = (k, a, b, c) => k % 10 === 1 && k % 100 !== 11 ? a : k % 10 >= 2 && k % 10 <= 4 && (k % 100 < 12 || k % 100 > 14) ? b : c;
-  $('mknow').textContent = n ? 'Ты знаешь ' + n + ' ' + pl(n, 'обитателя', 'обитателей', 'обитателей') + (g ? ' · ' + g + ' ' + pl(g, 'ген', 'гена', 'генов') : '') : '';
+  $('mknow').textContent = g ? 'Ты знаешь ' + g + ' ' + pl(g, 'ген', 'гена', 'генов') : '';
   $('mquiet').textContent = ROD.quiet ? 'Звук выкл' : 'Звук вкл'; $('mak').textContent = kab.label().replace(/^Альманах · /, '');
   const live = menuGo.back && !ended && world.me.length; $('mback').hidden = !live; // из паузы — путь назад в паузу
   menuPick(live ? world.mode : 'swim', true); // обычный заплыв — одно касание
@@ -246,13 +249,13 @@ function menuPick(m, quiet) {
   $('mscene').querySelector(`.mo[data-m=${m}]`)?.scrollIntoView({ block: 'nearest' }); // выбранный режим виден целиком, даже когда сцена ниже
   $('mscene').classList.toggle('picked', !quiet);
   mSel = m; const same = menuGo.back && !ended && world.me.length && m === world.mode; // тот же режим из паузы: «Продолжить» тот же заплыв, рядом «Новый заплыв» (О45)
-  $('mgo').textContent = same ? 'Продолжить' : M.go; $('mnew').hidden = !same;
+  $('mgo').textContent = same ? 'Продолжить' : M.go; $('mnew').hidden = !same; $('mnew').sure = false; $('mnew').classList.remove('sure'); $('mnew').textContent = 'Новый заплыв';
 }
 function menuGo() { if (mSel === 'night') { $('menu').classList.remove('on'); openNight(); } else if (menuGo.back && !ended && world.me.length && mSel === world.mode) { $('menu').classList.remove('on'); menuGo.back = false; } else { menuGo.back = false; start(null, mSel); } } // из паузы: «Плыть» в том же режиме возвращает в тот же заплыв, другой режим — новый заплыв
 for (const o of document.querySelectorAll('#mscene .mo')) { o.onclick = () => menuPick(o.dataset.m); o.ondblclick = () => { menuPick(o.dataset.m); if (!MODES[o.dataset.m].lock) menuGo(); }; }
 $('mgo').onclick = menuGo;
 $('mquiet').onclick = () => { ROD.quiet = !ROD.quiet; saveRod(); $('mquiet').textContent = ROD.quiet ? 'Звук выкл' : 'Звук вкл'; };
-$('mnew').onclick = () => { menuGo.back = false; start(null, mSel); };
+$('mnew').onclick = () => { const n = $('mnew'); if (!n.sure) { n.sure = true; n.classList.add('sure'); n.textContent = 'Точно заново?'; return; } menuGo.back = false; start(null, mSel); }; // второе касание, как в паузе: смахивание по режимам не бросает заплыв (прогон 0.76)
 $('mback').onclick = () => { $('menu').classList.remove('on'); menuGo.back = false; genome.openScreen(); };
 $('malm').onclick = () => kab.open('Режимы');
 
@@ -324,12 +327,13 @@ const KNIGA = await fetch('kniga/teksty_sushchestv.json').then(r => r.ok ? r.jso
 // Снимок модели: на миг подменяем мир студией с одним существом в середине кадра, рисуем тем же paint и вырезаем середину.
 const LISTS = { me: 'me', phage: 'phages', bdello: 'bdellos', amoeba: 'amoebas', slipper: 'slippers', bell: 'bells', roti: 'rotis',
   pseudo: 'pseudos', strain: 'pseudos', donor: 'donors', coccus: 'prey', plant: 'plants', crumb: 'crumbs' };
+for (const k of dv.zhivut()) LISTS[k] = 'pseudos'; dv.vitrina(KAB, cards, TEKSTY); // виды из анкет: снимок и карточка собираются сами
 function studio(k, it) {
   const w = new World(cfg, 7), a = it.a, id = 9001;
   if (it.gene) { w.genes = { [it.gene]: true }; k = 'me'; } // ген — твоя клетка с этим геном: видно, что он меняет на теле
   for (const l of new Set([...Object.values(LISTS), 'food', 'slime', 'away'])) w[l] = [];
   const e = { x: 0, y: 0, vx: 0, vy: 0, a, d: a, dir: a, m: k === 'amoeba' ? 5 : k === 'plant' ? 4 : k === 'crumb' ? 3 : k === 'coccus' ? 1 : 1.1, id,
-    sick: -1, gen: 0, t: 0, cool: 0, held: 0, shut: 0, sit: true, link: 0, host: null, strain: k === 'strain' };
+    sick: -1, gen: 0, t: 0, cool: 0, held: 0, shut: 0, sit: true, link: 0, host: null, strain: k === 'strain', vid: dv.V.vidy[k] ? k : undefined };
   if (k === 'bell') { e.x = -Math.cos(a) * cfg.bell_stalk / 2; e.y = -Math.sin(a) * cfg.bell_stalk / 2; }
   if (k === 'amoeba') e.vx = 20; // ползёт: видна ложноножка
   if (k === 'coccus') e.id = 9004; // гроздь: самая узнаваемая форма кокков
@@ -341,7 +345,7 @@ function studio(k, it) {
 let shotLow = false;
 function shotDensity() {
   if (shotLow || gl.getPixelRatio() <= 2) return; shotLow = true; gl.setPixelRatio(2); resize();
-  requestAnimationFrame(() => { shotLow = false; gl.setPixelRatio(Math.min(devicePixelRatio, cfg.dpr_max)); resize(); });
+  requestAnimationFrame(() => { shotLow = false; gl.setPixelRatio(dprNow); resize(); });
 }
 function snap(k, it) {
   shotDensity();
@@ -660,7 +664,7 @@ function ask() {
   world.choice.forEach((g, i) => {
     const go = () => { world.pick(g); kids = null; $('genes').classList.remove('on'); fx.ring(world.center().x, world.center().y, 0, 300); beep(660, 0.4, 0.06, 'sine', 1.5); };
     const b = document.createElement('button');
-    b.innerHTML = '<img class="gicon" alt=""><span></span><small></small>'; b.children[1].textContent = geneName(g); b.children[2].textContent = geneBook(g).daet || ''; b.firstChild.src = icon(g); b.firstChild.style.borderColor = geneColor(g); b.onclick = go; box.appendChild(b); // имя и «что даёт» — только из книги (урок L018)
+    b.innerHTML = '<img class="gicon" alt=""><span></span><small></small>'; b.children[1].textContent = geneName(g); b.children[2].textContent = mut.daet(world, g, geneBook(g)); b.firstChild.src = icon(g); b.firstChild.style.borderColor = geneColor(g); b.onclick = go; box.appendChild(b); // имя и «что даёт» — только из книги (урок L018)
     const k = document.createElement('button'); k.className = 'kid'; k.style.left = i ? '52%' : '2%'; k.onclick = go; k.setAttribute('aria-label', geneName(g)); $('genes').appendChild(k);
   });
   $('genes').classList.add('on'); $('toast').classList.remove('on'); // всплывашка не ложится на заголовок выбора
@@ -684,6 +688,7 @@ function events() {
     fx.on(k, x, y, size, y2); // вид — fx.js, здесь звук и подписи
     if (k === 'spore') { beep(200, 0.6, 0.06, 'sine', 0.5); say('Уснула! Спящую не берут — переждёшь беду', 2600); }
     if (k === 'rost') { beep(440, 0.5, 0.05, 'sine', 1.5); say(rost.text(size), 3200); world.rostT = world.stats.time; } // режим «Рост»: подросла, что теперь можно есть
+    if (k === 'igla') { beep(1300, 0.08, 0.05, 'square', 0.5); } // нить-игла уколола соперницу
     if (k === 'gulp') { beep(200, 0.35, 0.06, 'sine', 0.6); } // проглотила живую клетку
     if (k === 'spit') { beep(260, 0.15, 0.04, 'sine', 0.7); tell('spit', 'Пасть тебя не взяла: ты больше её рта'); }
     if (k === 'sprout') { beep(520, 0.3, 0.05, 'sine', 2); }
@@ -697,6 +702,7 @@ function events() {
     if (k === 'stick') { beep(520, 0.06, 0.04, 'square'); tell('stick', 'Сел вирус! Резко развернись — стряхнёшь, пока не впрыснул'); } // прилип фаг: сказать сразу, а не на экране гибели (L042)
     if (k === 'shake') { beep(700, 0.07, 0.03); }
     if (k === 'learn') { beep(620, 0.4, 0.05, 'sine', 1.4); say('Пережила фага! Его кусок — новая полоска CRISPR: теперь T4 не страшен', 3000); }
+    if (k === 'magnet') beep(392 * Math.pow(2, Math.min(size - 1, 12) / 12), 0.12, 0.05, 'sine', 1.3); // магнит: серия поглощений — восходящие ноты
     if (k === 'snap') { beep(1200, 0.06, 0.04, 'square', 0.3); } // сувойка сжалась пружиной
     if (k === 'slip') beep(900, 0.08, 0.03, 'sine', 1.5); // капсула сработала: амёба не удержала
     if (k === 'shrug') beep(1100, 0.05, 0.03); // новая дверь сработала: вирус отброшен
@@ -773,22 +779,22 @@ function paint(time) {
     for (let i = 0; i <= n; i++) {
       const u = (i / n - 0.5) * g.len, v = Math.sin(u / g.len * 6.283 + g.id) * g.w * 0.8 + Math.sin(time * 0.4 + i * 0.3) * 2;
       const px = x + (ca * u - sa * v) * z, py = y + (sa * u + ca * v) * z, edge = 1 - Math.abs(i / n - 0.5) * 2;
-      const S = cfg.slime_look, fade = Math.min(1, edge * 3); // гель прозрачный: внутри едва заметен, видна только граница — тонкая светлая кромка, а не пелена (Роман 25.11: «мутнота… фильтр»)
-      glow.put(px, py, g.w * z * S.core, 0.55, 0.8, 0.95, S.core_a * fade);
+      const S = g.nest ? cfg.bdello_nest.look : cfg.slime_look, fade = Math.min(1, edge * 3); // гель прозрачный: внутри едва заметен, видна только граница — тонкая светлая кромка, а не пелена (Роман 25.11: «мутнота… фильтр»)
+      glow.put(px, py, g.w * z * S.core, ...(S.color || [0.55, 0.8, 0.95]), S.core_a * fade); // гнездо запятых — ржавая биоплёнка, видна издали (L054)
 
       if (i % 3 === 0) ink.put(px + Math.sin(i * 7.1) * g.w * 0.5 * z, py + Math.cos(i * 5.3) * g.w * 0.5 * z, 0.8 * z + 0.3, 0.8, 0.9, 1, 0.35);
     }
-    const S = cfg.slime_look, m = Math.ceil(g.len * z / S.rim_step); // кромка геля сплошной тонкой линией с двух сторон
+    const S = g.nest ? cfg.bdello_nest.look : cfg.slime_look, m = Math.ceil(g.len * z / (g.nest ? Math.min(S.rim_step, S.rim * z * 0.8 + 0.2) : S.rim_step)); // у гнезда кромка внахлёст — сплошная // кромка геля сплошной тонкой линией с двух сторон
     for (let j = 0; j <= m; j++) { const u = (j / m - 0.5) * g.len, v = Math.sin(u / g.len * 6.283 + g.id) * g.w * 0.8 + Math.sin(time * 0.4 + j / m * n * 0.3) * 2, f = Math.min(1, (1 - Math.abs(j / m - 0.5) * 2) * 3);
-      for (const sd of [-1, 1]) { const vv = v + sd * g.w * 0.5 * S.core; ink.put(x + (ca * u - sa * vv) * z, y + (sa * u + ca * vv) * z, S.rim * z + 0.3, 0.75, 0.92, 1, S.rim_a * f); } }
+      for (const sd of [-1, 1]) { const vv = v + sd * g.w * 0.5 * S.core; ink.put(x + (ca * u - sa * vv) * z, y + (sa * u + ca * vv) * z, S.rim * z + 0.3, ...(S.rim_c || [0.75, 0.92, 1]), S.rim_a * f); } }
   }
   { const Zc = cfg.zone, wn = world.warning(); // край зоны затягивания: тонкая сплошная линия (точки — язык еды, их не занимаем), еле видна всегда, ярче в полутора радиусах, разгорается только у ближайшей (L030)
     for (const zn of world.zones()) { const [wx, wy, R] = zn, [x, y] = scr(wx, wy), Rz = R * z; if (!on(x, y, Rz)) continue;
       const d = world.me.reduce((m, a) => Math.min(m, Math.hypot(a.x - wx, a.y - wy)), 1e9), lv = wn && wn.zone[0] === wx && wn.zone[1] === wy ? wn.level : 0;
-      const al = (d < R * 1.5 ? Zc.near : Zc.far) + (Zc.warn - Zc.near) * lv, [cr, cg, cb] = Zc.color, n = Math.max(90, Math.round(6.283 * Rz / Zc.step)), sz = (0.6 + 0.4 * lv) * z + 0.5;
-      for (let k = 0; k < n; k++) { const t = k / n * 6.283; ink.put(x + Math.cos(t) * Rz, y + Math.sin(t) * Rz, sz, cr, cg, cb, al); }
+      const al = (d < R * 1.5 ? Zc.near : Zc.far) + (Zc.warn - Zc.near) * lv, [cr, cg, cb] = Zc.color, sz = (0.6 + 0.4 * lv) * z + 0.5, n = Math.max(90, Math.ceil(6.283 * Rz / (sz * 0.9))); // точки внахлёст: сплошная линия, не пунктир (L047, Роман 25.11 про амёбу)
+      const ala = al * Math.min(1, sz * 0.9 / Zc.step); for (let k = 0; k < n; k++) { const t = k / n * 6.283; ink.put(x + Math.cos(t) * Rz, y + Math.sin(t) * Rz, sz, cr, cg, cb, ala); } // точек втрое больше — каждая бледнее, линия той же силы
       for (let k = 0; k < Zc.ticks; k++) { const t = k / Zc.ticks * 6.283 + time * 0.2; // чёрточки внутрь: куда тянет, видно, даже когда рта не видно
-        for (let i = 0; i < 6; i++) { const r = Rz * (1 - Zc.tick * i / 5); ink.put(x + Math.cos(t) * r, y + Math.sin(t) * r, sz * (1 - i * 0.1), cr, cg, cb, al * (1 - i * 0.12)); } }
+        const nt = Math.max(6, Math.ceil(Rz * Zc.tick / (sz * 0.8))); for (let i = 0; i <= nt; i++) { const f = i / nt, r = Rz * (1 - Zc.tick * f); ink.put(x + Math.cos(t) * r, y + Math.sin(t) * r, sz * (1 - f * 0.5), cr, cg, cb, al * (1 - f * 0.6)); } } // чёрточка сплошная, сужается внутрь
       if (lv > 0) probe.warn[zn[3]] = (probe.warn[zn[3]] || 0) + 1;
       for (const a of world.me) { if (Math.hypot(a.x - wx, a.y - wy) > R) continue; const [ax, ay] = scr(a.x, a.y); // тебя тянет: штрихи бегут от клетки к рту
         for (let k = 0; k < Zc.streak; k++) { const f = (time * 1.2 + k / Zc.streak) % 1;
@@ -899,23 +905,7 @@ function paint(time) {
       for (let k = 0; k <= 14; k++) { const u = k / 14 * f; ink.put(x + (tx - x) * u, y + (ty - y) * u, 1.2 * z + 0.4, 1, 0.95, 0.6, 0.8); }
       glow.put(x + (tx - x) * ((time * 2) % 1) * f, y + (ty - y) * ((time * 2) % 1) * f, 3 * z, 1, 0.9, 0.5, 0.6); }
   }
-  for (const q of world.pseudos) { // синегнойка: палочка как ты, зеленоватая, один жгутик сзади
-    const [x, y] = scr(q.x, q.y); if (!on(x, y)) continue;
-    const w = 7.5 * z, ux = Math.cos(q.a), uy = Math.sin(q.a);
-    const col = q.strain ? [0.66, 0.7, 0.76] : [0.45, 0.95, 0.72], rim = q.strain ? [0.32, 0.36, 0.44] : [0.15, 0.55, 0.42];
-    if (q.held > 0) { bodies.sphere(x, y, w * 1.5, col, [1, 0.5, 0.3], q.id); glow.put(x, y, w * 3, 1, 0.3, 0.1, 0.15); continue; } // в ней хищник: шарик
-    if (q.strain) { // чужой штамм кишечной палочки: серая, жгутики со всех сторон, как у тебя
-      bodies.rod(x, y, q.a, w * 2.4, w * 1.05, 0, col, rim, q.id, Math.sin(time * 3 + q.id) * w * 0.15);
-      for (let j = 0; j < 4; j++) for (let k = 1; k <= 12; k++) { const f = k / 12, s = j < 2 ? 1 : -1, b = (j % 2 ? 0.6 : -0.6) * w * 2;
-        const wv = Math.sin(f * 9 - time * 22 + j) * w * 0.6 * f, dx = -uy * s * 3.5 - ux * 2.5, dy = ux * s * 3.5 - uy * 2.5, L = Math.hypot(dx, dy); // нить отходит вбок-назад и вьётся
-        glow.put(x + ux * b - uy * s * w + dx * f * w - dy / L * wv, y + uy * b + ux * s * w + dy * f * w + dx / L * wv, Math.max(z, 0.7), 0.75, 0.8, 0.9, 0.4 * (1 - f * 0.5)); }
-      continue;
-    }
-    bodies.rod(x, y, q.a, w * 2.3, w, 0, col, rim, q.id, Math.sin(time * 4 + q.id) * w * 0.2);
-    for (let k = 1; k <= 28; k++) { const f = k / 28, wv = Math.sin(f * 10 - time * 26) * w * 0.6 * f;
-      glow.put(x - ux * (w * 2.3 + f * w * 7) - uy * wv, y - uy * (w * 2.3 + f * w * 7) + ux * wv, 1.1 * Math.max(z, 0.7), 0.6, 1, 0.8, 0.55 * (1 - f * 0.5)); }
-    if (q.cool > 0) glow.put(x, y, w * 3.5, 0.5, 1, 0.75, 0.25 * q.cool); // только что стреляла
-  }
+  for (const q of world.pseudos) { const [x, y] = scr(q.x, q.y); if (on(x, y)) dv.risuy(q, { x, y, z, time, bodies, glow }); } // палочки из анкет (vidy.json): тело, цепочка, цвет-метка, жгутики
   for (const e of world.events) if (e[0] === 'split') vid.splitAt(e[3], e[4]); // деление касанием случилось между шагами: рисуем его с первого же кадра, а не после шага
   fx.drawUnder({ scr, z, time, glow, ink }); mut.drawWorld({ w: world, scr, z, glow, ink }); // пузырьки-обманки
   for (const b of world.bdellos) { // бделловибрион: запятая вдвое мельче тебя, один толстый жгутик; на рывке — след
@@ -925,7 +915,7 @@ function paint(time) {
     glow.put(x, y, w * 4, 1, 0.3, 0.1, 0.12 + (b.on ? 0.1 * Math.sin(time * 16) : 0));
     if (b.aim) { const [cr, cg, cb] = cfg.zone.color, [tx, ty] = scr(b.aim.x, b.aim.y), L = Math.hypot(tx - x, ty - y); probe.warn.bdello = (probe.warn.bdello || 0) + 1; // выбрала тебя: светится и тянет тонкую линию прицела к клетке (L030)
       glow.put(x, y, w * 6, cr, cg, cb, 0.35 + 0.2 * Math.sin(time * 12));
-      const run = (time * 40) % 16; for (let k = 2; k < L / 4; k++) { const d = k * 4 + run; if (d % 16 > 8 || d > L) continue; const u = d / L; ink.put(x + (tx - x) * u, y + (ty - y) * u, 0.8 * z + 0.5, cr, cg, cb, 0.55 * (1 - u * 0.5)); } } // штрихи бегут от запятой к тебе
+      const rr = 0.8 * z + 0.5, st = rr * 0.8; for (let d = 8; d < L; d += st) { const u = d / L, pu = 0.55 + 0.45 * Math.sin(d / 7 - time * 14); ink.put(x + (tx - x) * u, y + (ty - y) * u, rr, cr, cg, cb, 0.32 * pu * (1 - u * 0.5)); glow.put(x + (tx - x) * u, y + (ty - y) * u, rr * 2.2, cr, cg, cb, 0.05 * pu); } } // сплошная светящаяся нить, по ней к тебе бегут волны яркости (Роман: пунктир — халтура)
     for (let k = 1; k <= 22; k++) { const s = k / 22, wv = Math.sin(s * 9 - time * 30) * w * 0.5 * s;
       glow.put(x - ux * (w * 1.5 + s * w * 6) - uy * wv, y - uy * (w * 1.5 + s * w * 6) + ux * wv, 1.1 * Math.max(z, 0.7), 1, 0.55, 0.3, 0.6 * (1 - s * 0.6)); }
     if (sp > 150) for (let k = 1; k <= 8; k++) ink.put(x - b.vx * 0.012 * k * z, y - b.vy * 0.012 * k * z, w * (1 - k / 10), 1, 0.4, 0.2, 0.18 * (1 - k / 9)); // рывок
@@ -997,12 +987,12 @@ function paint(time) {
   }
   fx.drawOver({ scr, z, time, glow, ink });
   if (down) { // джойстик под большим пальцем: кольцо в точке касания и шарик за пальцем
-    for (let i = 0; i < 32; i++) { const t = i * 0.19635; glow.put(down.x + Math.cos(t) * STICK, down.y + Math.sin(t) * STICK, 2.2, 1, 1, 1, 0.25); }
+    for (let i = 0, n = Math.ceil(6.283 * STICK / 1.4); i < n; i++) { const t = i * 6.283 / n; glow.put(down.x + Math.cos(t) * STICK, down.y + Math.sin(t) * STICK, 1.8, 1, 1, 1, 0.1); } // сплошное кольцо: шаг меньше радиуса
     const dx = finger.x - down.x, dy = finger.y - down.y, l = Math.hypot(dx, dy), k = l > STICK ? STICK / l : 1;
     glow.put(down.x + dx * k, down.y + dy * k, 26, 0.7, 0.95, 1, 0.22);
   } else if (!moved && world.me.length) { // подсказка без слов: палец внизу экрана тянет вверх
     const k = (time / 1.6) % 1, x = W / 2, y = H * 0.78;
-    for (let i = 0; i < 32; i++) { const t = i * 0.19635; glow.put(x + Math.cos(t) * STICK, y + Math.sin(t) * STICK, 2.2, 1, 1, 1, 0.2); }
+    for (let i = 0, n = Math.ceil(6.283 * STICK / 1.4); i < n; i++) { const t = i * 6.283 / n; glow.put(x + Math.cos(t) * STICK, y + Math.sin(t) * STICK, 1.8, 1, 1, 1, 0.08); }
     glow.put(x, y - STICK * k, 26, 1, 1, 1, 0.35 * (1 - k * 0.5));
   }
   const wrap = (v, n) => ((v % n) + n) % n;
@@ -1047,10 +1037,12 @@ function render(t, after) {
 }
 // Замер для проверки: кадры, худший и средний кадр за последние 5 с, число клеток и точек.
 window.zaplyvWorld = () => world; // для проверок и кадров
+if (new URLSearchParams(location.search).has('pesochnica')) import('./pesochnica.js'); // песочница движка: пустая вода, умения касанием (pesochnica.js)
 window.zaplyvScr = (x, y) => { const [sx, sy] = scr(x, y); return [sx * innerWidth / W, sy * innerHeight / H]; }; // для проверок: где на экране точка мира (в точках CSS)
-const probe = window.zaplyvProbe = { warn: {}, frames: 0, worst: 0, avg: 0, js: 0, jsWorst: 0, cells: 0, dots: 0, errors: 0 };
+const probe = window.zaplyvProbe = { dpr0: dprNow, warn: {}, frames: 0, worst: 0, avg: 0, js: 0, jsWorst: 0, cells: 0, dots: 0, errors: 0 };
 addEventListener('error', () => probe.errors++);
 let last = performance.now(), acc = [], js = [];
+const dprAcc = [];
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   if (($('menu').classList.contains('on') || $('night').classList.contains('on')) && !frame.hid) { frame.hid = true; $('pause').style.display = $('flag').style.display = 'none'; } // кнопки заплыва не лежат поверх меню и ночи
@@ -1058,6 +1050,9 @@ function frame(now) {
   if ($('night').classList.contains('on')) { last = now; nightFrame(dt); probe.frames++; requestAnimationFrame(frame); return; } // ночь рода закрывает мир
   const play = !ended; // замер «средний кадр» — только пока плывёшь; экран гибели в него не подмешивается
   if (play) { acc.push(now - last); if (acc.length > 300) acc.shift(); }
+  if (play && !shotLow && dprNow > cfg.dpr_max && probe.frames > 90) { dprAcc.push(now - last); if (dprAcc.length >= cfg.dpr_check) { // тяжело — плотность ниже, один раз
+    if (dprAcc.reduce((a, b) => a + b, 0) / dprAcc.length > cfg.dpr_slow) { dprNow = Math.min(devicePixelRatio, cfg.dpr_max); gl.setPixelRatio(dprNow); resize(); probe.dprDrop = probe.frames; }
+    dprAcc.length = 0; } }
   last = now;
   const t0 = performance.now();
   if (!ended && !paused && !frozen) tick(dt);
@@ -1081,7 +1076,7 @@ function frame(now) {
   if (solo) for (const l in solo) world[l] = [];
   try { render(now / 1000, () => { if (!ended) { js.push(performance.now() - t0); if (js.length > 300) js.shift(); } }); } finally { if (solo) Object.assign(world, solo); }
   if (probe.frames % 60 === 0) knowGenes();
-  probe.frames++; probe.cells = world.me.length; probe.z = view.z; // масштаб камеры: тап-обход проверяет, что она возвращается (L029)
+  probe.frames++; probe.dpr = dprNow; probe.cells = world.me.length; probe.z = view.z; // масштаб камеры: тап-обход проверяет, что она возвращается (L029)
   probe.js = js.reduce((s, v) => s + v, 0) / Math.max(js.length, 1); probe.jsWorst = Math.max(0, ...js.slice(5)); probe.path = Math.max(probe.path || 0, world.stats.path);
   probe.dots = world.food.length + world.prey.length + world.phages.length;
   probe.worst = Math.max(...acc.slice(5)); probe.avg = acc.reduce((s, v) => s + v, 0) / Math.max(acc.length, 1); probe.ended = ended;

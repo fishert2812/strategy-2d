@@ -10,6 +10,7 @@ import * as vokrug from './vokrug.js';
 import * as mut from './mutacii.js'; // новые мутации: свой файл, здесь только узкие крюки
 import { zhizn } from './zhizn.js'; // соседи живут сами: движок по паспорту существ (zhizn.json)
 import * as rost from './rost.js'; // режим «Рост»: клетка не делится, а растёт (rost.json)
+import * as dv from './dvizhok.js'; // палочки-соседи живут по анкетам (vidy.json): появление, ход, гарпун
 import * as evo from './evo.js'; // режим «Эволюция»: рост «Роста» и выбор способности на каждом росте (evo.json)
 
 export const radius = m => 13 * Math.sqrt(m);
@@ -111,11 +112,13 @@ export class World {
       const at = pt(), R = 30 + r() * 50;
       for (let i = 0; i < c.patch_food; i++) { const t = r() * 6.283, d = R * Math.sqrt(r()); this.food.push({ x: at.x + Math.cos(t) * d, y: at.y + Math.sin(t) * d, vx: 0, vy: 0, s: c.grain[0] + (c.grain[1] - c.grain[0]) * (1 - d / R) * r() }); } // в середине пятна куски крупнее
     }
-    if (far > c.bdello_from && this.stats.gen > 0 && r() < c.bdello_chance[b] * (1 + far * c.danger_growth) * Math.min(2, this.me.length / 2)) /* хищник идёт на густую добычу: пока ты один, его нет */ this.bdellos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: r(), id: ++this.ids });
+    if (far > c.bdello_from && this.stats.gen > 0) { const N = c.bdello_nest; // запятые живут гнёздами в слизистой плёнке, где густо их добычи (бделловибрион — житель биоплёнок); вне гнезда — редкая бродяга
+      if (r() < N.chance[b]) { const at = pt(), home = { x: at.x, y: at.y, ph: r() * (N.hunt + N.calm) }; this.slime.push({ ...at, a: r() * 3.14, len: N.mat, w: N.mat * 0.4, nest: true, id: ++this.ids }); // плёнку видно издали — гнездо видно заранее
+        for (let i = 0, n = N.n[0] + Math.floor(r() * (N.n[1] - N.n[0] + 1)); i < n; i++) this.bdellos.push({ x: at.x + (r() - 0.5) * N.mat, y: at.y + (r() - 0.5) * N.mat * 0.4, vx: 0, vy: 0, a: r() * 6.283, t: r(), home, id: ++this.ids }); }
+      else if (r() < N.stray) this.bdellos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: r(), id: ++this.ids }); }
     if (far > c.slipper_from && r() < c.slipper_chance[b]) this.slippers.push({ ...pt(), a: r() * 6.283, back: 0, id: ++this.ids });
     if (far > c.donor_from && r() < c.donor_chance[b]) this.donors.push({ ...pt(), a: r() * 6.283, link: 0, gave: false, id: ++this.ids });
-    if (!safe && far > c.pseudo_from && r() < c.pseudo_chance[b]) this.pseudos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: 0, cool: 0, id: ++this.ids });
-    if (!safe && far > c.strain_from && r() < c.strain_chance[b]) this.pseudos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: 0, cool: 0, strain: true, id: ++this.ids }); // чужой штамм кишечной палочки: серая соперница за еду
+    dv.poyavlenie(this, b, far, safe, pt, (u, v) => ({ x: ox + u * C, y: oy + v * C })); // гарпунщица, серая соперница и их вариации: по записям vidy.json
     if (!safe && far > c.roti_from && r() < c.roti_chance[b]) this.rotis.push({ ...pt(), a: r() * 6.283, sit: false, t: r() * c.roti_swim, id: ++this.ids });
     if (r() < c.slime_chance[b]) { const at = pt(); this.slime.push({ ...at, a: r() * 3.14, len: 160 + r() * 220, w: 22 + r() * 22, id: ++this.ids }); } // тяж слизи: вязкий гель
     if (r() < c.crumb_chance[b]) this.crumbs.push({ ...pt(), m: 2 + r() * 3, id: ++this.ids }); // детрит: бурый комок, медленно тонет
@@ -146,7 +149,7 @@ export class World {
       c.m /= 2; c.gen = (c.gen || 0) + 1; this.stats.gen = Math.max(this.stats.gen, c.gen);
       const ax = Math.cos(c.a), ay = Math.sin(c.a), r = radius(c.m);
       const D = this.cfg.split_apart * r / 2; // дочки торец к торцу: центры на полдлины палочки от точки деления, иначе палочки наложены и колония складывает их бок о бок
-      const kid = { x: c.x - ax * D, y: c.y - ay * D, vx: c.vx - ax * 60, vy: c.vy - ay * 60, m: c.m, a: c.a, sick: -1, gen: c.gen, id: ++this.ids }; born.push(kid);
+      const kid = { x: c.x - ax * D, y: c.y - ay * D, vx: c.vx - ax * 60, vy: c.vy - ay * 60, m: c.m, a: c.a, sick: -1, gen: c.gen, id: ++this.ids }; born.push(mut.kid(this, c, kid));
       const spin = c.spin ?? (c.id % 2 ? 1 : -1); c.spin = kid.spin = spin; kid.drift = c.drift; // сёстры дрейфуют вместе и поворачивают в одну сторону: цепочка, а не «две таблетки» бок о бок
       c.x += ax * D; c.y += ay * D;
       this.events.push(['split', c.x, c.y, c.id, kid.id]); // вид деления знает пару: мать и дочка (vid.birth)
@@ -166,8 +169,8 @@ export class World {
   }
 
   inherit(genes) { for (const g of genes) if (this.cfg.genes[g]) { this.genes[g] = true; this.from[g] = 'kid'; } } // «Ночь рода»: заплыв начинается веткой рода
-  offer(g) { return !this.genes[g] && (this.posle[g] || []).every(k => this.met.has(k) || this.known.has(k)); } // умение дочке — только после встречи с тем, от кого оно (книга, поле posle)
-  pick(g) { this.genes[g] = true; this.from[g] = 'kid'; this.choice = []; }
+  offer(g) { return (!this.genes[g] || mut.more(this, g)) && (this.posle[g] || []).every(k => this.met.has(k) || this.known.has(k)); } // умение дочке — только после встречи с тем, от кого оно (книга, поле posle)
+  pick(g) { mut.up(this, g); this.genes[g] = true; this.from[g] = 'kid'; this.choice = []; }
 
   // Шаг мира. target — джойстик {dx, dy, p}, точка мира {x, y} или null, если палец отпущен.
   step(dt, target) {
@@ -269,7 +272,7 @@ export class World {
     if (this.look <= 0 && this.me.length) { // встречи: кого увидел впервые — в кабинет (событие 'meet' без паузы)
       this.look = 0.5;
       const R = this.cfg.meet;
-      for (const [k, list] of [['coccus', this.prey], ['plant', this.plants], ['slime', this.slime], ['crumb', this.crumbs], ['phage', this.phages], ['amoeba', this.amoebas], ['bdello', this.bdellos], ['slipper', this.slippers], ['bell', this.bells], ['roti', this.rotis], ['pseudo', this.pseudos.filter(q => !q.strain)], ['strain', this.pseudos.filter(q => q.strain)], ['donor', this.donors]])
+      for (const [k, list] of [['coccus', this.prey], ['plant', this.plants], ['slime', this.slime], ['crumb', this.crumbs], ['phage', this.phages], ['amoeba', this.amoebas], ['bdello', this.bdellos], ['slipper', this.slippers], ['bell', this.bells], ['roti', this.rotis], ...dv.zhivut().map(k => [k, dv.svoi(this, k)]), ['donor', this.donors]])
         if (!this.met.has(k) && list.some(o => this.me.some(a => dist(a, o) < R))) { this.met.add(k); this.events.push(['meet', k]); }
     }
     this.tidy -= dt;
@@ -335,7 +338,7 @@ export class World {
   // Медленное течение воды: у каждого места своё направление, меняется во времени.
   flow(x, y) { const t = hash(Math.floor(x / 500), Math.floor(y / 500), 77) * 6.283 + this.stats.time * 0.05; return [Math.cos(t) * this.cfg.flow, Math.sin(t) * this.cfg.flow]; }
 
-  grow(a, v) { a.m = Math.min(rost.cap(this), a.m + v * (this.genes.lock ? this.cfg.lock_food : 1) * mut.food(this) * (1 + this.rush)); } // сменил замок: та же пора впускает и еду — медленнее
+  grow(a, v) { const dv = v * (this.genes.lock ? this.cfg.lock_food : 1) * mut.food(this) * (1 + this.rush); if (!rost.vsos(this, a, dv)) a.m = Math.min(rost.cap(this), a.m + dv); } /* в «Росте» съеденное всасывается плавно (rost.js) */ // сменил замок: та же пора впускает и еду — медленнее
   split() { return this.genes.fast ? this.cfg.split * this.cfg.fast_split : this.cfg.split; } // быстрый рост: больше рибосом — делишься раньше
   // Съел — серия: куски подряд (не дольше cfg.rush_gap между ними) разгоняют рост, как в экспоненциальной фазе.
   gain(f) { return this.cfg.food_kinds[f.kind || 'bits'].gain; } // три вида еды: крошки, глюкоза, белковый сок
@@ -367,7 +370,7 @@ export class World {
       }
       // Бактерии клетки не глотают. Ген CDI (cdiA): нить с ядом на кончике бьёт при касании только родню — чужой штамм
       // кишечной палочки, он лопается облаком еды. Свои сородичи защищены противоядием CdiI, кокки — толстой стенкой (сверка биолога, Г18).
-      if (this.genes.toxin) for (const q of this.pseudos) if (q.strain && !q.gone && !(q.held > 0) && dist(a, q) < r + c.pseudo_r) {
+      if (this.genes.toxin) for (const q of this.pseudos) if (dv.anketa(dv.klyuch(q)).rodnya && !q.gone && !(q.held > 0) && dist(a, q) < r + c.pseudo_r) {
         q.gone = true; this.spill(q.x, q.y); this.events.push(['pop', q.x, q.y]);
       }
       for (const q of this.prey) { // кокк: долго висишь вплотную — выпускает бактериоцин, щиплет (замедление, не смерть)
@@ -409,7 +412,7 @@ export class World {
 
   rodNear(p, reach) { // ближайшая палочка любого рода: ты, синегнойка, сородич (кокки — не его добыча)
     let best = null, bd = reach;
-    for (const a of [...this.me, ...this.pseudos, ...this.donors]) { if (a.held > 0) continue; const d = Math.hypot(a.x - p.x, a.y - p.y); if (d < bd) { bd = d; best = a; } }
+    for (const a of [...this.me, ...this.pseudos, ...this.donors]) { if (a.held > 0) continue; const d = Math.hypot(a.x - p.x, a.y - p.y) / (this.me.includes(a) ? mut.loud(this) : 1); if (d < bd) { bd = d; best = a; } } // сильный хвост шумит: тебя замечают дальше
     return best;
   }
   nearest(p, reach) {
@@ -450,28 +453,7 @@ export class World {
     // Сама не нападает. Кто врежется в неё первым — получает выстрел гарпуна (секреция VI типа): «око за око».
     // Бделловибрион, врезавшись в неё, гибнет — рядом с ней от запятых безопасно.
     this.pseudos = this.pseudos.filter(q => !q.gone); this.donors = this.donors.filter(q => !q.gone);
-    for (const q of this.pseudos) {
-      if (q.held > 0) continue; // в ней хищник: округлилась в шарик
-      q.t -= dt; q.cool = Math.max(0, q.cool - dt);
-      if (q.t <= 0) {
-        let best = null, bd = c.pseudo_sense;
-        for (const f of this.food) { const d = Math.hypot(f.x - q.x, f.y - q.y); if (d < bd) { bd = d; best = f; } }
-        q.a = best ? Math.atan2(best.y - q.y, best.x - q.x) : q.a + (r() - 0.5) * 3; q.t = 0.25 + r() * 1.2; q.rest = 0.25;
-      }
-      const go = q.t > q.rest ? (q.strain ? c.strain_speed : c.pseudo_speed) : 0, k = Math.min(1, 6 * dt);
-      q.vx += (Math.cos(q.a) * go - q.vx) * k; q.vy += (Math.sin(q.a) * go - q.vy) * k; q.x += q.vx * dt; q.y += q.vy * dt;
-      for (const f of this.food) if (!f.gone && Math.hypot(f.x - q.x, f.y - q.y) < 14) f.gone = true;
-      for (const a of [...this.me]) {
-        const dx = q.x - a.x, dy = q.y - a.y, d = Math.hypot(dx, dy) || 1;
-        if (d > radius(a.m) + c.pseudo_r || a.spore > 0) continue;
-        const mine = (a.vx * dx + a.vy * dy) / d, its = -(q.vx * dx + q.vy * dy) / d; // кто на кого налетел
-        a.vx -= dx / d * 120; a.vy -= dy / d * 120; q.vx += dx / d * 120; q.vy += dy / d * 120;
-        if (mine > its && q.cool <= 0 && !q.strain) { // у чужого штамма гарпуна нет — только толкнёт
-          q.cool = c.pseudo_cool; a.stun = c.pseudo_stun; a.m *= c.pseudo_hit; this.events.push(['zap', q.x, q.y, a.x, a.y]);
-          if (a.m < c.pseudo_min) this.lose(a, a.x, a.y, 'pseudo');
-        }
-      }
-    }
+    dv.shag(this, dt, radius); // палочки из анкет: рывки к еде, толчок, гарпун в ответ на таран
     // Сородич с плазмидой: мирно дрейфует. Побудь с ним рядом впритык cfg.conj с — он протянет пилю-мостик
     // и передаст копию плазмиды с геном (конъюгация): мутация без деления. Каждый делится один раз.
     for (const d of this.donors) {
@@ -497,14 +479,17 @@ export class World {
         if (h.held <= 0) { // жертва-шарик съедена изнутри: выходят новые хищники
           if (mine) this.lose(h, h.x, h.y, 'bdello'); else h.gone = true;
           b.on = null; b.t = 0;
-          for (let i = 0; i < c.bdello_brood; i++) this.bdellos.push({ x: h.x, y: h.y, vx: 0, vy: 0, a: r() * 6.283, t: 0.5, id: ++this.ids });
+          const near = this.bdellos.filter(q => Math.hypot(q.x - h.x, q.y - h.y) < c.bdello_nest.cap_r).length; // выводок не плодит рой: в округе не больше bdello_nest.cap
+          for (let i = 0; i < Math.min(c.bdello_brood, c.bdello_nest.cap - near); i++) this.bdellos.push({ x: h.x, y: h.y, vx: 0, vy: 0, a: r() * 6.283, t: 0.5, home: b.home, id: ++this.ids });
         }
         continue;
       }
       b.t -= dt;
       if (b.t <= 0) { // рывок окончен: пауза и новый курс — почти наугад, чуть к добыче, если она рядом
         const prey = this.rodNear(b, c.bdello_sense); b.aim = null;
-        if (prey && r() < 0.4 && this.me.includes(prey)) { b.aim = prey; b.aimT = c.zone.lead; b.rest = 0; b.t = c.zone.lead + c.bdello_dash; } // выбрала тебя: zone.lead секунд целится, светясь, потом бросок (признак заранее, L030)
+        const N = c.bdello_nest, calm = b.home && (this.stats.time + b.home.ph) % (N.hunt + N.calm) >= N.hunt; // гнездо охотится волной, потом передышка
+        if (prey && !calm && r() < 0.4 && this.me.includes(prey)) { b.aim = prey; b.aimT = c.zone.lead; b.rest = 0; b.t = c.zone.lead + c.bdello_dash; } // выбрала тебя: zone.lead секунд целится, светясь, потом бросок (признак заранее, L030)
+        else if (b.home && Math.hypot(b.x - b.home.x, b.y - b.home.y) > N.leash) { b.a = Math.atan2(b.home.y - b.y, b.home.x - b.x) + (r() - 0.5) * 0.6; b.rest = 0.3; b.t = 1.2; } // далеко от плёнки — назад к гнезду
         else { b.a = prey && r() < 0.4 ? Math.atan2(prey.y - b.y, prey.x - b.x) + (r() - 0.5) * 0.6 : r() * 6.283; b.rest = 0.3 + r() * 0.5; b.t = b.rest + 0.6 + r() * 0.8; }
       }
       if (b.aim && !this.me.includes(b.aim)) { b.aim = null; b.aimT = 0; } // цель пропала — бросок отменён
@@ -518,7 +503,7 @@ export class World {
         if (!b.aim) { b.a += Math.PI; b.x += Math.cos(b.a) * 6; b.y += Math.sin(b.a) * 6; break; } // не целилась в тебя — задела и отскочила: без признака не нападает
         b.on = a; b.aim = null; b.aimT = 0; b.a = Math.atan2(b.y - a.y, b.x - a.x) + Math.PI; a.held = c.bdello_kill; this.events.push(['bore', a.x, a.y]); break; // запятая вбуравливается — своё событие, не как впрыск вируса
       }
-      if (!b.on) for (const v of [...this.pseudos, ...this.donors]) if (!(v.held > 0) && Math.hypot(v.x - b.x, v.y - b.y) < 12) { // и синегнойка, и сородич — его обычная добыча
+      if (!b.on) for (const v of [...this.pseudos, ...this.donors]) if (!(v.held > 0) && dv.beret('bdello', v) && Math.hypot(v.x - b.x, v.y - b.y) < 12) { // и синегнойка, и сородич — его обычная добыча
         b.on = v; b.a = Math.atan2(b.y - v.y, b.x - v.x) + Math.PI; v.held = c.bdello_kill; break; }
     }
     // Туфелька плывёт штопором почти прямо и ни за кем не гонится. Врезалась — задний ход и поворот (реакция избегания).
@@ -565,7 +550,7 @@ export class World {
     }
     this.food = this.food.filter(f => !f.gone);
     for (const m of this.amoebas) { // амёба ползёт только по дну и нитям; в открытой воде почти стоит
-      const a = this.nearest(m, 340);
+      const a = this.nearest(m, 340 * mut.loud(this)); // сильный хвост шумит: амёба слышит дальше
       let wx = 0, wy = 0;
       m.hunt = !!(a && a.m < m.m * 0.8 && !(m.syt > 0) && !this.genes.capsule && !(a.spore > 0)); // охотится: видна её зона захвата (L030); спящую не ловит
       if (a && a.spore > 0) { const d = dist(a, m) || 1; wx = (m.x - a.x) / d * c.amoeba * c.spore_shy; wy = (m.y - a.y) / d * c.amoeba * c.spore_shy; } // спящую не берут: обнюхала и уползает (L032)
@@ -592,6 +577,7 @@ export class World {
         if (g.t <= 0) {
           g.gone = true;
           // CRISPR — память: знакомого фага режет без вреда. Незнакомого клетка переживает ценой сил и вписывает его кусок новой полоской (упрощение: в природе так выживают немногие).
+          if (mut.immune(this, h, g)) continue; // память о вирусах: помнит та клетка, что пережила
           if (g.host === 'me' && this.genes.crispr) { if (this.spacers.has('T4')) this.events.push(['cut', g.x, g.y]); else { this.spacers.add('T4'); h.m = Math.max(0.6, h.m * c.crispr_cost); this.events.push(['learn', g.x, g.y]); } continue; }
           if (h.sick === undefined || h.sick < 0) { h.sick = c.sick; if (g.host === 'me') { this.events.push(['sick', h.x, h.y]); mut.landed(this, h); } } // сцепка: в плоту заболевает и соседняя
         }
@@ -601,7 +587,7 @@ export class World {
       g.vx += (r() - 0.5) * c.phage_jitter * 6 * dt + (fx - g.vx) * Math.min(1, 1.5 * dt);
       g.vy += (r() - 0.5) * c.phage_jitter * 6 * dt + (fy - g.vy) * Math.min(1, 1.5 * dt);
       g.d += (r() - 0.5) * 3 * dt;
-      g.x += g.vx * dt; g.y += g.vy * dt;
+      mut.steer(this, g, dt); g.x += g.vx * dt; g.y += g.vy * dt;
       if (g.cool > 0) { g.cool -= dt; continue; } // стряхнутый отплывает и не липнет сразу
       if (g.host === 'me') {
         if (mut.decoy(this, g)) continue; // обманки: вирус сел на пузырёк оболочки
@@ -609,7 +595,7 @@ export class World {
         if (!a) continue;
         const d = dist(a, g);
         if (d < radius(a.m) + 2 && !(a.spore > 0) && !this.genes.lock) { g.on = a; /* сменил замок — фагу T4 не за что зацепиться */ g.t = c.inject; g.off = Math.atan2(g.y - a.y, g.x - a.x) - a.a; this.events.push(['stick', g.x, g.y]); }
-        else if (d < radius(a.m) + 2 && this.genes.lock && !g.shrug) { g.shrug = 1; const k = 80 / (d || 1); g.vx = (g.vx || 0) + (g.x - a.x) * k; g.vy = (g.vy || 0) + (g.y - a.y) * k; this.events.push(['shrug', g.x, g.y]); } // новая дверь сработала: вирус не сел — видно
+        else if (d < radius(a.m) + 2 && this.genes.lock && !g.shrug) { g.shrug = 1; const k = 80 / (d || 1); g.vx = (g.vx || 0) + (g.x - a.x) * k; g.vy = (g.vy || 0) + (g.y - a.y) * k; this.events.push(['shrug', g.x, g.y]); mut.shrug(this, g); } // новая дверь сработала: вирус не сел — видно
       } else for (const q of this.prey) if (dist(q, g) < radius(q.m) * 0.5 + 2) { g.on = q; g.t = c.inject; g.off = Math.atan2(g.y - q.y, g.x - q.x) - q.a; break; }
     }
     for (const q of this.prey) if (q.sick >= 0 && (q.sick -= dt) < 0) { // заражённый кокк лопается своим облаком

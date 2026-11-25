@@ -4,6 +4,10 @@
 // и свои умения режима, ветка хищника:
 //   gulp — Г51 «Глотает целиком»: коснулась живой клетки заметно мельче себя — она тает внутри и идёт в рост.
 //          Кто «мельче» — решает масса, поэтому выросшая ест и тех, кто ел её в начале (амёба, колокольчик, коловратка, туфелька).
+//   еда крупнеет вместе с клеткой (логика режима, ЛЭ10): с роста s новые кокки рождаются крупнее, в k раз на каждый
+//          следующий рост, — иначе корма на следующий рост почти нет и рост встаёт.
+//   igla — Г55 «Нить-игла» (шестой путь выделения, T6SS; биолог, круги 15–16): коснулась носом бактерии-соперницы —
+//          уколотая замирает, раздувается шариком (яд режет стенку изнутри) и через t секунд растекается соком. Кокков не берёт.
 // Свой файл; sim.js зовёт отсюда step(), main.js — draw(). Числа и слова — evo.json, имена генов — только книга.
 const url = new URL('./evo.json', import.meta.url);
 export const E = url.protocol === 'file:' ? JSON.parse((await import('node:fs')).readFileSync(url, 'utf8')) : await (await fetch(url)).json();
@@ -20,13 +24,13 @@ const mass = (q, who) => q.m || E.glotat.razmer[who] || 1;
 // Шаг режима: глотание и выбор способности на росте (событие rost из rost.js). Способность берёт world.pick — уровни умений там же.
 export function step(w, dt, radius) {
   if (!on(w)) return;
-  gulp(w, dt, radius);
+  gulp(w, dt, radius); igla(w, radius); krupneet(w);
   if (w.choice.length || !w.events.some(e => e[0] === 'rost')) return;
   const left = pool(w);
   for (let i = left.length - 1; i > 0; i--) { const j = Math.floor(w.r() * (i + 1)); [left[i], left[j]] = [left[j], left[i]]; }
   const n = w.events.find(e => e[0] === 'rost')[3];
-  if (n >= E.glotat.k && left.includes('gulp')) left.unshift(...left.splice(left.indexOf('gulp'), 1)); // хищная ветка не теряется в жребии
-  w.choice = left.slice(0, E.vybor);
+  if (n >= E.glotat.k && left.includes('gulp')) { w.choice = ['gulp']; return; } // «Глотать» — событие, а не одна из карт: одна карточка (логика режима, ЛЭ14)
+  w.choice = left.filter(g => g !== 'gulp').slice(0, E.vybor);
 }
 
 // Г51: касание добычи — она уходит из мира и тает внутри клетки (w.gulps), за t секунд её масса переходит в рост.
@@ -54,10 +58,40 @@ function gulp(w, dt, radius) {
   }
 }
 
+// Новые кокки — по росту клетки: помеченные (q.evo) уже подогнаны.
+function krupneet(w) {
+  const n = (w.rost || 0) - E.eda.s; if (n <= 0) return;
+  const k = E.eda.k ** n;
+  for (const q of w.prey) if (!q.evo) { q.evo = true; q.m *= k; }
+}
+
+// Г55: укол в упор — соперница у носа клетки (впереди, в пределах dlina за краем); скорость не нужна (круг 16). Уколотая стоит (её ход в sim.js гаснет:
+// отдыхает бесконечно, гарпун не заряжается), через t секунд гибнет и растекается соком.
+function igla(w, radius) {
+  const now = w.stats.time;
+  for (const q of w.pseudos) if (q.igla !== undefined && now - q.igla >= E.igla.t) { q.gone = true; w.spill(q.x, q.y); }
+  if (!w.me.some(a => has(w, 'igla'))) return;
+  for (const a of w.me) {
+    const r = radius(a.m), ax = Math.cos(a.a), ay = Math.sin(a.a);
+    for (const q of w.pseudos) {
+      if (q.igla !== undefined || q.gone) continue;
+      const dx = q.x - a.x, dy = q.y - a.y, d = Math.hypot(dx, dy) || 1;
+      if (d > r + E.igla.dlina || (dx * ax + dy * ay) / d < E.igla.nos) continue;
+      q.igla = now; q.t = q.rest = 1e9; q.cool = 1e9; q.vx *= 0.2; q.vy *= 0.2;
+      w.stats.igla = (w.stats.igla || 0) + 1; w.events.push(['igla', q.x, q.y]);
+    }
+  }
+}
+
 // Временный вид глотания (до кирпичей анимации 'glotat'): нити оболочки тянутся к добыче и обволакивают её,
 // добыча темнеет и сжимается, клетка наливается светом. scr — мир → экран.
 export function draw({ w, a, x, y, z, glow, scr }) {
-  if (!on(w) || !w.gulps) return;
+  if (!on(w)) return;
+  if (a === w.me[0]) for (const q of w.pseudos) if (q.igla !== undefined) { // уколотая раздувается шариком и светлеет к разрыву (до кирпича 'igla')
+    const [qx, qy] = scr(q.x, q.y), u = Math.min(1, (w.stats.time - q.igla) / E.igla.t);
+    glow.put(qx, qy, (10 + 14 * u) * z, 1, 0.6, 0.65, 0.15 + 0.3 * u);
+  }
+  if (!w.gulps) return;
   for (const g of w.gulps) {
     if (g.a !== a) continue;
     const u = Math.min(1, g.t / E.glotat.t), [gx, gy] = scr(g.x, g.y), R = 13 * Math.sqrt(g.m) * z * (1 - u * 0.7);

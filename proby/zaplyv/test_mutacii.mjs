@@ -1,7 +1,7 @@
 // Проверки новых мутаций (mutacii.js) без экрана: node proby/zaplyv/test_mutacii.mjs. Каждая «сделал → случилось» с [ключом] гена.
 import { World } from './sim.js';
 import { look } from './look.js';
-import { M } from './mutacii.js';
+import { M, drawWorld } from './mutacii.js';
 import * as mut from './mutacii.js';
 import * as vid from './vid.js';
 import { readFileSync } from 'node:fs';
@@ -115,6 +115,79 @@ check('[citrate] ест голубую еду: без умения клетка 
   if (!a.ate || !(a.grow > 0)) return 'с умением голубая точка не стала едой';
 });
 
+// Пищевой магнит (З1): клетка стоит, палец отпущен. Крупинки на 32, 55 и 80 от неё и россыпь из 10 на 75 с другой стороны.
+// Уровень 1 берёт ближнюю, по одной; 2 — дальше и по несколько; 3 — дальше всех и всю россыпь разом, с волной и ленивым поворотом.
+const magnetAt = L => { const w = mw(9, L ? ['magnet'] : []), a = w.me[0]; if (L) w.lvl = { magnet: L }; run(w, 0.1, null);
+  const one = d => ({ x: a.x + d, y: a.y, vx: 0, vy: 0, s: 0.7 }), near = one(32), mid = one(55), far = one(80), heap = [];
+  for (let i = 0; i < 10; i++) { const t = Math.PI + (i - 4.5) * 0.2; heap.push({ x: a.x + Math.cos(t) * 75, y: a.y + Math.sin(t) * 75, vx: 0, vy: 0, s: 0.7 }); }
+  w.food.push(near, mid, far, ...heap); let most = 0, ev = 0, lazy = 0;
+  for (let t = 0; t < 5; t += 1 / 30) { w.step(1 / 30, null); most = Math.max(most, (a.pulled || []).length); ev += w.events.filter(e => e[0] === 'magnet').length; if (a.casc > 0) lazy++; w.events.length = 0; }
+  return { near: !!near.gone, mid: !!mid.gone, far: !!far.gone, heap: heap.filter(f => f.gone).length, most, ev, cascade: w.stats.cascade || 0, lazy, turn: mut.turnRate(w, { mag: L, pulled: [{}] }, 1), still: mut.turnRate(w, { mag: L, pulled: [] }, 1) }; };
+check('[magnet] пищевой магнит: еда рядом сама плывёт к клетке; с каждым уровнем — дальше и больше крупинок разом', () => {
+  const r = [0, 1, 2, 3].map(magnetAt), [o, a, b, c] = r;
+  console.log('    паспорт: уровень → ближняя/средняя/дальняя, из россыпи 10, крупинок разом, нот, каскадов:', r.map((x, i) => `${i}: ${+x.near}${+x.mid}${+x.far} ${x.heap} ×${x.most} ♪${x.ev} ${x.cascade}`).join(' | '));
+  if (o.near || o.mid || o.heap) return 'без умения стоящая клетка съела еду издалека';
+  if (!a.near || a.mid || a.far) return 'уровень 1 должен взять только ближнюю';
+  if (a.most !== 1) return 'уровень 1 тянет не по одной крупинке';
+  if (!b.near || !b.mid || b.far || b.most < 2) return 'уровень 2 должен брать дальше и по несколько';
+  if (!c.far || c.heap < 10) return 'уровень 3 должен втянуть и дальнюю, и всю россыпь';
+  if (!c.cascade || b.cascade) return 'каскад (вся россыпь разом, волна) — только у уровня 3';
+  if (!(a.turn < 1 && b.turn < a.turn && c.turn < b.turn) || a.still !== 1) return 'цена: пока еда плывёт, поворот медленнее, и тем медленнее, чем выше уровень';
+  if (!(c.ev > b.ev && b.ev > a.ev)) return 'нот серии с уровнем не больше';
+  const w = mw(9, ['magnet']); w.lvl = { magnet: 1 }; const ok = w.offer('magnet'); w.pick('magnet'); w.pick('magnet'); const top = !w.offer('magnet');
+  if (!ok || w.lvl.magnet !== 3 || !top) return 'дочка не поднимает уровень магнита до 3 (уровень ' + w.lvl.magnet + ')';
+  const s = mw(9, ['magnet'], 'swim'); s.lvl = { magnet: 1 }; if (s.offer('magnet')) return 'в обычном заплыве магнит предлагают снова';
+});
+
+// Защита от вирусов и яда (З5, книга Г48): уровни — дочка приносит умение снова. 1 — вирус не садится, 2 — и яд шариков не входит, 3 — отскочивший вирус летит на шарик.
+const shieldAt = L => { const w = mw(11); for (let i = 0; i < L; i++) w.pick('shield'); return w; };
+check('[shield] защита от вирусов и яда: с каждым уровнем — вирус не садится, яд шариков гаснет, вирус отскакивает на шарик; еда входит медленнее', () => {
+  const hit = L => { const w = shieldAt(L), a = w.me[0]; run(w, 0.1, null); const q = { x: a.x + 90, y: a.y + 10, vx: 0, vy: 0, m: 0.6, a: 0, id: 990, pair: false }; w.prey.push(q);
+    w.cloud(a.x - 12, a.y, 'me', 0); let stick = 0; for (let t = 0; t < 3; t += 1 / 30) { w.step(1 / 30, null); stick += w.events.filter(e => e[0] === 'stick').length; w.events.length = 0; }
+    const m0 = a.m; w.grow(a, 0.1); return { stick, poison: mut.shut(w, null, null), coccus: q.sick >= 0 || !!q.gone, gain: a.m - m0, genes: Object.keys(w.genes).join(',') }; };
+  const r = [0, 1, 2, 3].map(hit), [o, a, b, c] = r;
+  console.log('    паспорт: уровень → вирус сел, яд закрыт, шарик заражён отскочившим, прирост от той же еды:', r.map((x, i) => `${i}: ${x.stick} ${+x.poison} ${+x.coccus} ${x.gain.toFixed(3)} [${x.genes}]`).join(' | '));
+  if (!o.stick || o.poison || o.coccus) return 'без умения вирус должен сесть, яд — войти';
+  if (a.stick || a.poison) return 'уровень 1: вирус не должен садиться, яд ещё входит';
+  if (b.stick || !b.poison || b.coccus) return 'уровень 2: вирус не садится и яд не входит, отскока на шарик ещё нет';
+  if (c.stick || !c.poison || !c.coccus) return 'уровень 3: отскочивший вирус должен сесть на шарик';
+  if (!(a.gain < o.gain && b.gain < a.gain && c.gain <= b.gain)) return 'цена: от еды растёт медленнее, на уровне 2 заметно медленнее';
+  const w = mw(11); w.me[0].m = 9; const got = new Set(); for (let i = 0; i < 40; i++) { w.choice = []; w.me[0].m = 9; w.divide(); w.choice.forEach(g => got.add(g)); }
+  if (got.has('lock') || got.has('door')) return 'в режиме «Мутации» замок и дверь приходят по отдельности, а должны ступенями защиты';
+});
+
+// Сильный хвост (З5, книга Г49): 1 — ровный ход (steady), 2 — слизь не тормозит и за клеткой коридор, 3 — разгон на прямой. Цена: хищники замечают дальше.
+const tailAt = L => { const w = mw(12); for (let i = 0; i < L; i++) w.pick('tail'); return w; };
+check('[tail] сильный хвост: с каждым уровнем — ровнее, через слизь без торможения, разгон на прямой; хищники замечают дальше', () => {
+  const swim = (L, slime) => { const w = tailAt(L), a = w.me[0]; if (slime) w.slime.push({ x: a.x + 150, y: a.y, a: 0, len: 600, w: 60, id: 995 }); const x0 = a.x; let top = 0;
+    for (let t = 0; t < 4; t += 1 / 30) { w.step(1 / 30, { dx: 1, dy: 0, p: 1 }); top = Math.max(top, a.boost || 0); } return { path: a.x - x0, top, cor: (w.corridor || []).length, genes: Object.keys(w.genes).join(','), turn: mut.turnRate(w, { boost: 1 }, 1) / mut.turnRate(w, { boost: 0 }, 1) }; };
+  const r = [0, 1, 2, 3].map(L => ({ L, water: swim(L, false), slime: swim(L, true) }));
+  console.log('    паспорт: уровень → путь за 4 с в воде / в слизи, разгон, точек коридора:', r.map(x => `${x.L}: ${x.water.path.toFixed(0)}/${x.slime.path.toFixed(0)} ↑${x.water.top.toFixed(1)} ⋯${x.slime.cor} [${x.water.genes}]`).join(' | '));
+  const [o, a, b, c] = r;
+  if (!a.water.genes.includes('steady')) return 'уровень 1 должен дать ровный ход (steady)';
+  if (!(b.slime.path > a.slime.path * 1.2) || !b.slime.cor || a.slime.cor) return 'уровень 2: в слизи не тормозит и оставляет коридор';
+  if (!(c.water.top >= 1) || !(c.water.path > b.water.path * 1.1) || b.water.top) return 'уровень 3: разгон на прямой только у третьего';
+  if (!(c.water.turn < 1)) return 'на разгоне поворот должен быть шире';
+  const hear = L => { const w = tailAt(L), a = w.me[0]; return !!w.rodNear({ x: a.x + 115, y: a.y }, 100); };
+  if (hear(0) || !hear(1) || !hear(3)) return 'цена: хищники должны замечать клетку с хвостом дальше, на каждом уровне';
+});
+
+// Память о вирусах (З5, книга Г50): 1 — пережила первый вирус, второй такой же режет; 2 — дочки рождаются с памятью матери; 3 — знакомый вирус становится едой.
+check('[memory] память о вирусах: первый вирус не убивает, второй режется; дочки помнят; знакомый вирус становится едой', () => {
+  const shot = (w, a) => { w.phages.push({ x: a.x, y: a.y, vx: 0, vy: 0, host: 'me', d: 0, on: a, t: 0.01, off: 0 }); const m0 = a.m; w.step(1 / 30, null); w.step(1 / 30, null); return { sick: a.sick >= 0, dm: a.m - m0 }; };
+  const go = L => { const w = mw(14); for (let i = 0; i < L; i++) w.pick('memory'); const a = w.me[0]; a.m = 2; run(w, 0.1, null);
+    const first = shot(w, a), second = shot(w, a); a.m = 9; w.divide(); w.choice = []; const kid = w.me.find(b => b !== a); const k = kid ? shot(w, kid) : null; return { first, second, kid: k }; };
+  const r = [0, 1, 2, 3].map(go), f = x => `${+x.sick}/${x.dm.toFixed(2)}`;
+  console.log('    паспорт: уровень → первый вирус (болеет/сила), второй, вирус на дочке:', r.map((x, i) => `${i}: ${f(x.first)} ${f(x.second)} ${x.kid ? f(x.kid) : '—'}`).join(' | '));
+  const [o, a, b, c] = r;
+  if (!o.first.sick) return 'без умения вирус заражает';
+  if (a.first.sick || !(a.first.dm < 0)) return 'уровень 1: первый вирус не убивает, но клетка худеет';
+  if (a.second.sick || a.second.dm < 0) return 'уровень 1: второй такой же вирус клетку не трогает';
+  if (!a.kid || !(a.kid.dm < 0)) return 'уровень 1: дочка ещё не помнит вирус матери';
+  if (!b.kid || b.kid.sick || b.kid.dm < 0) return 'уровень 2: дочка рождается с памятью матери';
+  if (!(c.second.dm > 0) || b.second.dm > 0) return 'уровень 3: знакомый вирус становится едой';
+});
+
 // Режим «Голод» (Роман 25.11 08:47: «Да отдельным режимом давай попробуем»): без еды клетка худеет и гибнет.
 const starveT = (genes, m0 = 1, mode = 'golod') => { const w = mw(4, genes, mode), a = w.me[0]; a.m = m0; let t = 0; for (; t < 200 && w.me.length; t += 1 / 30) w.step(1 / 30, null); return { t, w, a }; };
 check('режим «Голод»: в пустой воде клетка худеет и гибнет от голода, в обычном заплыве — нет', () => {
@@ -208,8 +281,8 @@ check('мутации только в режиме «Мутации»: в обы
 
 check('режим «Мутации»: одна дочка приносит новую мутацию, другая — прежнее умение; чужие — только соседка по трубочке', () => {
   const w = mw(13); const got = [];
-  for (let i = 0; i < 8; i++) { w.choice = []; w.splits = i * cfg.gene_every; w.me.length = 1; w.me[0].m = 9; w.divide(); if (w.choice[0]) { got.push(...w.choice); w.pick(w.choice.find(g => g in M.genes) || w.choice[0]); } }
-  const own = Object.keys(M.genes).filter(g => !M.pipe.includes(g) && !M.golod.genes.includes(g)); // умения голода живут в режиме «Голод»
+  for (let i = 0; i < 14; i++) { w.choice = []; w.splits = i * cfg.gene_every; w.me.length = 1; w.me[0].m = 9; w.divide(); if (w.choice[0]) { got.push(...w.choice); w.pick(w.choice.find(g => g in M.genes) || w.choice[0]); } }
+  const own = Object.keys(M.genes).filter(g => !M.pipe.includes(g) && !M.golod.genes.includes(g) && !Object.values(M.combo).flat(2).includes(g)); // умения голода живут в режиме «Голод»; прежние гены объединённых умений приходят их ступенями
   console.log(`    паспорт: дочки предложили ${got.join(',')}`);
   if (!own.every(g => got.includes(g))) return 'не все свои мутации пришли дочкам';
   if (got.some(g => M.pipe.includes(g))) return 'чужая мутация пришла дочке, а не по трубочке';
@@ -231,17 +304,17 @@ const bot = w => {
 };
 // Для каждой мутации — 6 заплывов бота, у которого с начала только она: встречает ли он то, где она важна.
 check('бот в режиме «Мутации» встречает каждую мутацию в деле: щелчок, тихая гибель, всплытие, кокк у закрытой двери, вирус на пузырьке', () => {
-  const meet = { snap: 0, abort: 0, gas: 0, door: 0, decoy: 0, flu: 0, steady: 0, citrate: 0, lean: 0, store: 0 };
+  const meet = { snap: 0, abort: 0, gas: 0, door: 0, decoy: 0, flu: 0, steady: 0, citrate: 0, lean: 0, store: 0, magnet: 0, shield: 0, tail: 0, memory: 0 };
   for (const g of Object.keys(meet)) for (const seed of [1, 2, 3, 4, 5, 6]) {
-    const w = new World(cfg, seed); w.mode = M.golod.genes.includes(g) ? 'golod' : 'mut'; w.genes[g] = true;
-    if (g === 'abort' || g === 'decoy') { const P = cfg.pond; w.me[0].y = (P.film * 0.6 - P.y0) * P.h; w.tidy = 0; virusy(w); } // вирусы живут в сладкой воде под плёнкой; бот заплывает в их облако
+    const w = new World(cfg, seed); w.mode = M.golod.genes.includes(g) ? 'golod' : 'mut'; if (g in M.levels) w.pick(g); else w.genes[g] = true; // умение с уровнями приходит, как от дочки
+    if (g === 'abort' || g === 'decoy' || g === 'shield' || g === 'memory') { const P = cfg.pond; w.me[0].y = (P.film * 0.6 - P.y0) * P.h; w.tidy = 0; virusy(w); } // вирусы живут в сладкой воде под плёнкой; бот заплывает в их облако
     for (let t = 0; t < 120 && w.me.length; t += 1 / 30) {
-      const near = g === 'abort' || g === 'decoy'; // против вирусов бот палец не отпускает: в живой капле стоящего съедают раньше вируса
+      const near = g === 'abort' || g === 'decoy' || g === 'shield' || g === 'memory'; // против вирусов бот палец не отпускает: в живой капле стоящего съедают раньше вируса
       const aim = !near && (t % 6) < 1 ? null : bot(w), a0 = w.me[0];
       const sharp = g === 'steady' && aim && a0 && !a0.tumble && Math.abs(wrap(Math.atan2(aim.y - a0.y, aim.x - a0.x) - a0.a)) > cfg.swim.tumble_angle; // поворот, на котором без умения был бы кувырок
       w.step(1 / 30, aim); // иногда отпускает палец
       if (sharp && w.me[0] === a0 && !a0.tumble) meet.steady++;
-      for (const e of w.events) if (e[0] === g) meet[g]++;
+      for (const e of w.events) if (e[0] === g || (g === 'shield' && e[0] === 'shrug')) meet[g]++; // защита: вирус отскочил от оболочки
       w.events.length = 0;
       if (g === 'door') for (const a of w.me) for (const q of w.prey) if (Math.hypot(a.x - q.x, a.y - q.y) < 30) meet.door++;
       if (g === 'gas' && w.me[0] && w.me[0].lift > M.gas.up / 2) meet.gas++;
@@ -250,9 +323,12 @@ check('бот в режиме «Мутации» встречает каждую
     if (g === 'decoy') meet.decoy += w.stats.decoy || 0;
     if (g === 'flu') meet.flu += w.stats.raft || 0;
     if (g === 'citrate') meet.citrate += w.stats.citrate || 0;
+    if (g === 'memory') meet.memory += (w.stats.learned || 0) + (w.stats.cutKnown || 0); // пережила вирус или разрезала знакомый
+    if (g === 'tail') meet.tail += Math.round(w.stats.boost || 0) + (w.stats.corridor || 0); // разгон на прямой и коридор в слизи
+    if (g === 'magnet') meet.magnet += w.stats.magnet || 0; // крупинка сама приплыла и съедена
     if (g === 'store') meet.store += w.stats.melted || 0; // крупинка растаяла, когда еды не было рядом
   }
-  console.log('    паспорт: за 6 заплывов по 120 с — щелчков', meet.snap, '| тихих гибелей', meet.abort, '| кадров всплытия', meet.gas, '| кадров у кокка с закрытой дверью', meet.door, '| вирусов на пузырьках', meet.decoy, '| ровно на крутом повороте', meet.steady, '| голубых точек съедено', meet.citrate, '| кадров голода мелкой', meet.lean, '| растаяло крупинок', meet.store, '| пасть сорвалась с плота', meet.flu);
+  console.log('    паспорт: за 6 заплывов по 120 с — щелчков', meet.snap, '| тихих гибелей', meet.abort, '| кадров всплытия', meet.gas, '| кадров у кокка с закрытой дверью', meet.door, '| вирусов на пузырьках', meet.decoy, '| ровно на крутом повороте', meet.steady, '| голубых точек съедено', meet.citrate, '| кадров голода мелкой', meet.lean, '| растаяло крупинок', meet.store, '| приплыло магнитом', meet.magnet, '| вирус отскочил от защиты', meet.shield, '| хвост: секунд разгона и точек коридора', meet.tail, '| память: пережито и разрезано вирусов', meet.memory, '| пасть сорвалась с плота', meet.flu);
   const miss = Object.keys(meet).filter(g => !meet[g]);
   if (miss.length) return 'бот не встретил, где важно: ' + miss.join(', ');
 });
@@ -281,6 +357,22 @@ check('каждая новая мутация видна на теле свои�
   if (sl !== 1) miss.push('у разворота не один хвост');
   if (!sn) miss.push('щелчок разворота не виден');
   return miss.length ? 'не видно: ' + miss.join(', ') : '';
+});
+
+check('test_mut_scepka_shchelchok: сёстры сцепились — застёжка щёлкает: вспыхивает, зубцы сходятся, у шва мягкая вспышка и гаснет, зубцы — сплошные черты; расцепились надолго и снова встали — щёлкает снова, на краю не мигает (дизайнер)', () => {
+  const w = mw(3, ['flu']), a = w.me[0]; a.m = 1; w.me.push({ ...a, id: 99, x: a.x + 40, y: a.y, vx: 0, vy: 0 }); // щель 14: застёжке есть что тянуть
+  const shot = () => { const ring = [], hot = []; const b = { put: (x, y, r, cr, cg, cb, al) => { if (cr === 0.75) ring.push({ x, y, r, al }); else if (cr === 0.55) hot.push(al); } };
+    drawWorld({ w, scr: (x, y) => [x, y], z: 1, glow: b, ink: { put: () => {} } }); return { ring: ring.filter(q => q.al > 0.01), hot: Math.max(0, ...hot) }; };
+  w.stats.time = 10; const s0 = shot(); w.stats.time = 10.1; const s1 = shot(); w.stats.time = 11; const s2 = shot();
+  if (!s0.hot) return 'застёжек нет'; if (!(s0.hot > s2.hot * 1.5)) return 'застёжка не вспыхнула при сцепке: ' + s0.hot.toFixed(2) + ' против ' + s2.hot.toFixed(2);
+  if (s1.ring.length !== 1 || s1.ring[0].r < 4) return 'нет мягкой вспышки у шва (одно пятно): ' + s1.ring.length; if (s2.ring.length) return 'вспышка не погасла';
+  const bar = []; drawWorld({ w, scr: (x, y) => [x, y], z: 1, glow: { put: (x, y, r, cr) => { if (cr === 0.55) bar.push({ x, y, r }); } }, ink: { put: () => {} } });
+  let gap = 0; for (let i = 1; i < bar.length; i++) { const d = Math.hypot(bar[i].x - bar[i - 1].x, bar[i].y - bar[i - 1].y); if (d < 4 && d > bar[i].r + bar[i - 1].r) gap++; }
+  if (gap) return 'застёжка бусами: разрывов ' + gap + ' (L047)';
+  w.me[1].x += 200; w.stats.time = 11.2; shot(); w.me[1].x -= 200; w.stats.time = 11.4; if (shot().hot > s2.hot * 1.5) return 'на краю застёжка мигает щелчками';
+  w.me[1].x += 200; w.stats.time = 12; shot(); w.stats.time = 14; shot(); w.me[1].x -= 200; w.stats.time = 15; const s3 = shot();
+  if (!(s3.hot > s2.hot * 1.5)) return 'повторная сцепка не щёлкнула';
+  return '';
 });
 
 console.log(bad ? `МУТАЦИИ: провалов ${bad}` : 'МУТАЦИИ: все проверки прошли');

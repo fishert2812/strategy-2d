@@ -138,6 +138,28 @@
    "soon": "здесь встанет плазмида от сородича или вставка фага"
   }
  ],
+ "skills": [
+  {
+   "id": "magnet",
+   "gene": "tar",
+   "color": "#62c8ff"
+  },
+  {
+   "id": "shield",
+   "gene": "ompC+",
+   "color": "#c9a2ff"
+  },
+  {
+   "id": "tail",
+   "gene": "flhDC+",
+   "color": "#62c8ff"
+  },
+  {
+   "id": "memory",
+   "gene": "cas+",
+   "color": "#c9a2ff"
+  }
+ ],
  "from": {
   "kid": "от дочки",
   "pipe": "по трубочке от сородича",

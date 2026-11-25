@@ -51,6 +51,7 @@ ONLY=L042 case_ "test_L042: вирус сел молча" 52_zaplyv_tap.sh red "
 ONLY=L044 case_ "test_L044: Альманах молчит, что цвета — метки" 52_zaplyv_tap.sh red "sed -i 's/\$(.knote.).hidden = !S.note;/\$(\"knote\").hidden = true;/' $Z/almanah.js"
 ONLY=L050 case_ "test_L050: деление снова рывком (vid.birth не вызван)" 52_zaplyv_tap.sh red "sed -i 's/vid.birth(a, time, world.me)/({ d: [0, 0], pinch: 0 })/' $Z/main.js"
 ONLY=L045 case_ "test_L045: вирус снова слетает от любого поворота" 50_zaplyv.sh red "sed -i 's/ \&\& c.inject - g.t < c.phage_shake//' $Z/sim.js"
+ONLY=L052 case_ "test_L052: кадр снова не в полную плотность" 52_zaplyv_tap.sh red "sed -i 's/\"dpr_full\": 3,/\"dpr_full\": 2.5,/' $Z/data.json"
 ONLY=L021 case_ "test_L021: значки генов пропали" 52_zaplyv_tap.sh red "sed -i 's/^function icon(g) {/function icon(g) { return String();/' $Z/main.js"
 case_ "test_L035: слова не впечатаны в картинку" 52_zaplyv_tap.sh red "sed -i 's/lines.forEach((l, k) => g.fillText/lines.forEach((l, k) => String/; s/g.fillText(.⚑ . + head, pad, ih + pad + 22);//' $Z/main.js"
 case_ "test_L034: ✕ не убирает отметку" 52_zaplyv_tap.sh red "sed -i 's/marks.splice(i, 1); keepMarks();/keepMarks();/' $Z/main.js"
@@ -61,7 +62,7 @@ case_ "test_L040: полоса роста стоит на месте" 52_zaplyv_
 case_ "test_L031: лист гибели помнит прокрутку" 52_zaplyv_tap.sh red "sed -i 's/\$(.end.).scrollTop = 0; //' $Z/main.js"
 case_ "test_L025: кнопки гибели ниже края экрана" 52_zaplyv_tap.sh red "sed -i 's/flex-shrink: 0; position: sticky;/flex-shrink: 0;/' $Z/index.html"
 # L018 (расширен) и L024 «антибред»: черновая строка умения мимо книги, описание в data.json, слово мира без имени из Альманаха, умение без теста-обещания — красное.
-case_ "test_L018: выбор дочки снова с черновой строкой" 52_zaplyv_tap.sh red "sed -i \"s/b.children\[2\].textContent = geneBook(g).daet || '';/b.children[2].textContent = 'отпустил палец у водоросли';/\" $Z/main.js"
+case_ "test_L018: выбор дочки снова с черновой строкой" 52_zaplyv_tap.sh red "sed -i \"s/b.children\[2\].textContent = mut.daet(world, g, geneBook(g));/b.children[2].textContent = 'отпустил палец у водоросли';/\" $Z/main.js"
 ONLY=L018 case_ "test_L018: описание умения снова в data.json" 50_zaplyv.sh red "sed -i 's/\"fim\": \"fimH\"/\"fim\": \"отпустил палец у водоросли\"/' $Z/data.json"
 ONLY=L024 case_ "test_L024: «водоросль» вместо имени из Альманаха" 50_zaplyv.sh red "sed -i 's/Отпусти палец у зелёной нити/Отпусти палец у водоросли/' $Z/kniga/teksty_genov.json"
 ONLY=L024 case_ "test_L024: умение дочке до встречи" 50_zaplyv.sh red "sed -i 's/return !this.genes\[g\] \&\& (this.posle/return !this.genes[g] || (this.posle/' $Z/sim.js"
@@ -75,8 +76,11 @@ ONLY=L047 case_ "test_L047: образец — свой рендер" 60_kirpich
 ONLY=L047 case_ "test_L047: навык в игре без приёмки" 60_kirpichi.sh red "sed -i '0,/\"v_igre\": false/s//\"v_igre\": true/' $Z/kirpichi.json"
 # L033: «Чует еду» без пальца снова стоит
 ONLY=L033 case_ "test_L033: без пальца клетка с умением стоит" 50_zaplyv.sh red "sed -i 's/} else if (this.genes.sense) {/} else if (false) {/' $Z/sim.js"
-# L052: еда снова кладётся один раз и колония выедает экран
-ONLY=L052 case_ "test_L052: еда вокруг колонии не прибывает" 61_eda_vokrug.sh red "sed -i 's/ vokrug.regrow(this, c1);//' $Z/sim.js"
+# L054: запятые снова плодят рой и нападают без передышки
+ONLY=L054 case_ "test_L054: выводок без предела" 50_zaplyv.sh red "sed -i 's/c.bdello_nest.cap - near)/99)/' $Z/sim.js"
+ONLY=L054 case_ "test_L054: гнездо без передышки" 50_zaplyv.sh red "sed -i 's/if (prey \\&\\& !calm \\&\\& r()/if (prey \\&\\& r()/' $Z/sim.js"
+# L055: еда снова кладётся один раз и колония выедает экран
+ONLY=L055 case_ "test_L055: еда вокруг колонии не прибывает" 61_eda_vokrug.sh red "sed -i 's/ vokrug.regrow(this, c1);//' $Z/sim.js"
 # L051: дочки снова складываются бок о бок
 ONLY=L051 case_ "test_L051: сёстры дрейфуют врозь" 50_zaplyv.sh red "sed -i 's/ kid.drift = c.drift;//' $Z/sim.js"
 # L049: колония снова застревает на четырёх
