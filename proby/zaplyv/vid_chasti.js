@@ -54,14 +54,15 @@ const RIS = {
       const cl = w * st.kanal * (1.25 - fill);
       for (let k = 0; k < st.kanaly; k++) { const t = k / st.kanaly * 6.283 + P.id, d = w * st.r * 0.3; B.spine(cx + Math.cos(t) * d, cy + Math.sin(t) * d, t, cl, w * st.kanal_tolsh, st.cvet, [1, 1, 1], P.id * 7 + k); } }); },
   vorsinki(st, F, P, B, at) { const w = P.tolshchina; // пили: тонкие сплошные трубочки по всему краю, разной длины и наклона, слегка гнутые
-    // Ступень дальности (тред движка 25.11: 40 существ на экране): крупное — мех слоем и волоски трубками, среднее — только мех слоем, мелкое — без ворса.
+    // Ступень дальности (тред движка 25.11: 40 существ на экране): крупное — только волоски трубками (слои меха вблизи расходятся и читаются рядами точек, L047),
+    // среднее — мех слоем (слои ближе пикселя, сливаются в пушок) и немного трубок, мелкое — немного трубок не тоньше точки.
     // Без B.meh (моки тестов, старый рисунок) — волоски трубками всегда, как раньше.
     let n = st.n, rmin = 0; // издали волосков меньше, но они не тоньше ~1 точки экрана: силуэт остаётся пушистым
     if (B.meh) { if (w < (st.porog_melko ?? 0)) { n = st.n_izdali ?? 0; rmin = 0.5; } else { // пороги — в точках экрана по толщине тела (поза уже в экранных точках, z в ней учтён)
-      if (st.meh_sloi && F.O) { const ux = Math.cos(P.a), uy = Math.sin(P.a);
+      if (st.meh_sloi && F.O && w < (st.porog_krupno ?? 0)) { const ux = Math.cos(P.a), uy = Math.sin(P.a);
         B.meh(F.O.kolca().map(q => ({ x: P.x + (q.x * ux - q.y * uy) * w, y: P.y + (q.x * uy + q.y * ux) * w, tx: q.tx * ux - q.ty * uy, ty: q.tx * uy + q.ty * ux, r: q.r * w })),
-          { dlina: w * st.meh_dlina, gustota: st.meh_gustota / w * 10, sloi: w < (st.porog_krupno ?? 0) ? Math.ceil(st.meh_sloi / 2) : st.meh_sloi, krug: w < (st.porog_krupno ?? 0) ? 8 : 12, cvet: st.cvet, konchik: st.konchik || st.cvet, a: st.meh_a ?? 0.9 }); } // среднее — вдвое реже слои и грани: издали не видно
-      if (w < (st.porog_krupno ?? 0)) { n = st.n_izdali ?? 0; rmin = 0.5; } } }
+          { dlina: w * st.meh_dlina, gustota: st.meh_gustota / w * 10, sloi: Math.ceil(st.meh_sloi / 2), krug: 8, cvet: st.cvet, konchik: st.konchik || st.cvet, a: st.meh_a ?? 0.9 }); } // среднее — вдвое реже слои и грани: издали не видно
+      if (w < (st.porog_krupno ?? 0)) { n = st.n_sred ?? st.n_izdali ?? 0; rmin = 0.4; } } }
     for (let j = 0; j < n; j++) { const k = n < st.n ? Math.floor(j * st.n / n) : j, t = (k + hash(P.id, k + 602) * 0.8) / st.n * 6.283 + P.id, e = F.kray(t), l = w * st.dlina * (1 + 0.25 * Math.sin(P.time * 3 + k * 1.7)) * (1 - (st.razbros || 0) * hash(P.id, k + 600)) * (hash(P.id, k + 604) < (st.na_tele || 0) ? 0.55 : 1); // на лицевой стороне волосок смотрит на зрителя: виден короче
       let an = P.a + e.n + (hash(P.id, k + 601) - 0.5) * (st.vraznoboy || 0), lic = hash(P.id, k + 604) < (st.na_tele || 0), q = lic ? 0.3 + 0.62 * hash(P.id, k + 605) : 1, [lx, ly] = at(e.u * q, e.o * q); const gn = (hash(P.id, k + 603) - 0.5) * (st.izgib || 0) + Math.sin(P.time * 1.3 + k) * 0.06, Z = st.zvenya || (st.izgib || st.a_konec ? 3 : 1);
       const pts = [lx, ly]; for (let i = 0; i < Z; i++) { lx += Math.cos(an) * l / Z; ly += Math.sin(an) * l / Z; pts.push(lx, ly); an += (gn + (st.volna || 0) * Math.sin(i * 8.4 / Z + k + P.time * 1.1)) * 4 / Z; } // изгиб на всю длину один и тот же при любом числе звеньев: больше звеньев — плавнее дуга

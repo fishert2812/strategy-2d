@@ -17,7 +17,7 @@ if (!fs.existsSync(ref)) { console.error('нет образца ' + ref); proces
   try {
     const ctx = await b.newContext({ ...pw.devices[process.env.TELEFON || "iPhone 16"], deviceScaleFactor: 2 }), p = await ctx.newPage(), errs = [];
     p.on('pageerror', e => errs.push(e.message));
-    await p.goto(`http://127.0.0.1:${port}/zaplyv/stend/?navyk=${name}&sushchestvo=${process.env.SUSHCHESTVO || 3}&zapis=1`); await p.waitForFunction(() => window.stendReady, null, { timeout: 30000 });
+    await p.goto(`http://127.0.0.1:${port}/zaplyv/stend/?navyk=${name}&sushchestvo=${process.env.SUSHCHESTVO || 3}&zapis=1${process.env.MEH === "0" ? "&meh=0" : ""}`); await p.waitForFunction(() => window.stendReady, null, { timeout: 30000 });
     const nf = +nfArg || Math.round((N.dlit + 0.7) * 30) * 3, // три круга подряд, без склейки: стык круга не прячется повтором ролика
       mid = Math.round((0.5 + N.dlit * 0.55) * 30);
     for (let i = 0; i < nf; i++) { await p.evaluate(() => window.stend(1 / 30)); await p.screenshot({ path: `${tmp}/f${String(i).padStart(4, '0')}.png` }); }
