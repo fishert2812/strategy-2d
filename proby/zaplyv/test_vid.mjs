@@ -100,6 +100,20 @@ check('test_vid_bell: колокольчик как в жизни — испуг
   if (!(wide(o) < wide(c) * 0.5)) return 'раскрытый стебель всё ещё в спирали';
   return '';
 });
+check('test_vid_fag_lapy: вирус садится как в жизни — шесть лап веером, все ступни замирают на одной линии поперёк хвоста, хвост стоит вышкой; плывёт — лапы поджаты и шевелятся', () => {
+  const g = {}, s = 10, shot = (on, time) => { const pts = []; vid.phageLegs({ P: (a, b) => [a, b], s, on, key: g, seed: 0, time, ink: { put: (x, y, r) => pts.push({ x, y, r }) } }); return pts; };
+  const free = shot(false, 0), feet = q => q.filter(p => p.r > s * vid.V.legs.w * 1.5);
+  if (feet(free).length) return 'плывущий вирус уже стоит на ступнях';
+  shot(true, 0.05); const mid = shot(true, 0.1); for (let t = 0.15; t < 1; t += 0.05) shot(true, t); const sat = shot(true, 1);
+  const f = feet(sat); if (f.length !== 6) return 'ступней не шесть: ' + f.length;
+  const ax = f.map(p => p.x); if (Math.max(...ax) - Math.min(...ax) > 0.5) return 'ступни не на одной линии поперёк хвоста';
+  if (f.filter(p => p.y < 0).length !== 3) return 'лапы не поровну по обе стороны хвоста';
+  const key = q => q.map(p => p.x.toFixed(2) + ':' + p.y.toFixed(2)).join('|'); if (key(shot(true, 1.3)) !== key(sat)) return 'севший вирус шевелит лапами';
+  if (key(shot(false, 2.02)) === key(shot(false, 2.3))) return 'плывущий вирус не шевелит лапами';
+  if (!(feet(mid).length === 0 || mid.some(p => !sat.some(q => q.x === p.x && q.y === p.y)))) return 'лапы встали мгновенно, без посадки';
+  if (feet(shot(false, 2)).length) return 'стряхнутый вирус не поджал лапы';
+  return '';
+});
 check('test_vid_capsule_dent: капсула прогибается от удара хищника и пружинит обратно', () => {
   vid.stepVid(5); const was = paint({ capsule: true }).join('|'); vid.poke(-15, 13); const hit = paint({ capsule: true }).join('|');
   vid.stepVid(5); const after = paint({ capsule: true }).join('|');

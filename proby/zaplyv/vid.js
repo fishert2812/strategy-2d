@@ -242,3 +242,21 @@ export function bell(c) {
     ink.put(x + dx * u - dy * o, y + dy * u + dx * o, (0.9 + 0.5 * k) * z + 0.4, ...B.col, 0.6 + 0.3 * k); }
   return [x + dx * len, y + dy * len, 1 - k];
 }
+
+// Лапы вируса (биолог, «Вид существ», вирус: «садится строго на лапы, перпендикулярно боку клетки, стоя как вышка»).
+// Плывёт — шесть лап поджаты к хвосту и шевелятся. Сел (on) — лапы за V.legs.land с расставлены веером по борту:
+// колено наружу, ступня на плёнке, все шесть ступней на одной линии поперёк хвоста. P(a, b): a — вдоль хвоста, b — поперёк.
+export function phageLegs(c) {
+  const { P, s, on, key, seed, time, ink } = c, L = V.legs, put = (p, r, a) => ink.put(p[0], p[1], r, ...L.col, a);
+  const m = legs.get(key) || { k: 0, t: time }, k = Math.max(0, Math.min(1, m.k + (on ? 1 : -1) * Math.min(0.1, Math.max(0, time - m.t)) / L.land)); legs.set(key, { k, t: time });
+  const e = k * k * (3 - 2 * k), base = 0.85 * s;
+  for (let j = 0; j < 6; j++) {
+    const sd = j < 3 ? -1 : 1, i = j % 3, wig = Math.sin(time * 9 + j + seed) * s * 0.15 * (1 - e);
+    const kx = base + s * (0.35 + 0.15 * i), ky = sd * s * (0.7 + 0.4 * i), fx = base + s * (1.4 + 0.25 * i) + wig, fy = sd * s * (0.55 + 0.45 * i); // поджаты
+    const lx = base + s * L.knee, ly = sd * s * (L.spread * (i + 1) * 0.55), gx = base + s * L.foot, gy = sd * s * L.spread * (i + 1); // веером на плёнке
+    const K = [kx + (lx - kx) * e, ky + (ly - ky) * e], F = [fx + (gx - fx) * e, fy + (gy - fy) * e], A = [base, sd * 0.35 * s];
+    for (let t = 0.2; t <= 1; t += 0.2) { put(P(A[0] + (K[0] - A[0]) * t, A[1] + (K[1] - A[1]) * t), s * L.w, L.a); put(P(K[0] + (F[0] - K[0]) * t, K[1] + (F[1] - K[1]) * t), s * L.w, L.a); }
+    if (e > 0.5) put(P(F[0], F[1]), s * L.w * 1.8, L.a * e); // ступня-штифт на плёнке
+  }
+}
+const legs = new WeakMap(); // по самому вирусу: у вирусов нет номера
