@@ -182,6 +182,9 @@ export class World {
       else if (target) {
         const tx = target.x - a.x, ty = target.y - a.y, l = len(tx, ty) || 1;
         want = Math.atan2(ty, tx); s = speed / rost.hod(this, a) * Math.min(1, l / 60);
+      } else if (this.genes.sense) { // палец убран, а клетка чует сахар: сама плывёт к ближайшей еде, спокойнее, чем под пальцем (книга: «убери палец — поплывёт сама»)
+        let best = null, bd = c.sense_r; for (const f of this.food) { const d = Math.hypot(f.x - a.x, f.y - a.y); if (d < bd) { bd = d; best = f; } }
+        if (best) { want = Math.atan2(best.y - a.y, best.x - a.x); s = speed / rost.hod(this, a) * c.sense_idle; }
       }
       if (want !== null && this.genes.sense) { // хемотаксис: клетка сама подруливает к ближайшей еде впереди, еда не движется
         let best = null, bd = c.sense_r;
