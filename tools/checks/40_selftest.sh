@@ -88,6 +88,10 @@ ONLY=L033 case_ "test_L033: без пальца клетка с умением �
 # L054: запятые снова плодят рой и нападают без передышки
 ONLY=L054 case_ "test_L054: выводок без предела" 50_zaplyv.sh red "sed -i 's/c.bdello_nest.cap - near)/99)/' $Z/sim.js"
 ONLY=L054 case_ "test_L054: гнездо без передышки" 50_zaplyv.sh red "sed -i 's/if (prey \\&\\& !calm \\&\\& r()/if (prey \\&\\& r()/' $Z/sim.js"
+# L056: «Чует еду» снова не видит комков
+ONLY=L056 case_ "test_L056: чутьё без детрита и водоросли" 50_zaplyv.sh red "sed -i 's/\\[\\[this.crumbs, .crumb.\\], \\[this.plants, .plant.\\]\\]/[]/' $Z/sim.js"
+# L047: кисть снова с малым запасом — в людном кадре точки выпадают, кольцо рвётся бусами
+ONLY=L047 case_ "test_L047: кисть без запаса" 52_zaplyv_tap.sh red "sed -i 's/\"kist\": { \"glow\": 20000, \"ink\": 20000 }/\"kist\": { \"glow\": 3000, \"ink\": 3000 }/' $Z/data.json"
 # L047: след за клеткой снова бусами
 ONLY=L047 case_ "test_L047: след бусами" 53_zaplyv_vid.sh red "sed -i 's/wake.put(x, y, (5 + 9 \\* p.t)/wake.put(x, y, (1.1 + 9 * p.t)/' $Z/main.js"
 # L057: колония снова делится рывком, проходит сквозь себя и расплывается

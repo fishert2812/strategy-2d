@@ -87,11 +87,16 @@ await p.waitForTimeout(700); { const t = await p.evaluate(() => [...document.que
   const one = async () => { const [cx] = await p.evaluate(() => { const a = zaplyvWorld().me[0]; return zaplyvScr(a.x + 70, a.y); }); return lum({ x: cx - 4, y: 120, width: 8, height: 120 }); };
   const strip = async () => { const v = []; for (let k = 0; k < 5; k++) { const f = await p.evaluate(() => zaplyvProbe.frames); await p.waitForFunction(f => zaplyvProbe.frames > f + 1, f, { timeout: 5000 }).catch(() => {}); v.push(await one()); } // медиана пяти дорисованных кадров:
     return v.sort((a, b) => a - b)[2]; }; // один чёрный или пересвеченный кадр (вода плывёт, кадр не дорисован) замер не сбивает
+  // Меряем только рисунок игры: надписи поверх холста (подсказка, карточка встречи) на время замера прячем. Иначе всплывшая
+  // сверху надпись попадала в полосу и давала «пелену» (CI 25.11: «40 / 67» на чистом main, тяж ни при чём). Кто был над полосой — в паспорт.
+  const nad = await p.evaluate(() => { const a = zaplyvWorld().me[0], [x] = zaplyvScr(a.x + 70, a.y), ids = new Set();
+    for (let y = 120; y <= 240; y += 20) for (const e of document.elementsFromPoint(x, y)) if (e.id !== 'c' && e !== document.body && e !== document.documentElement) ids.add(e.id || e.className || e.tagName);
+    const st = document.createElement('style'); st.id = 'zamer046'; st.textContent = 'body > :not(canvas) { visibility: hidden !important; }'; document.head.appendChild(st); return [...ids].join(', '); });
   await p.waitForTimeout(300); const before = await strip();
   await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.slime.push({ x: a.x + 70, y: a.y, a: Math.PI / 2, len: 380, w: 40, id: 77 }); });
   await p.waitForTimeout(400); const inside = await strip();
-  await p.evaluate(() => { const w = zaplyvWorld(); w.slime.length = 0; w.tidy = 0; });
-  say(inside - before < 25, `test_L046: тяж слизи прозрачный, не пелена (яркость полосы без тяжа ${before.toFixed(0)}, с тяжем ${inside.toFixed(0)})`); }
+  await p.evaluate(() => { const w = zaplyvWorld(); w.slime.length = 0; w.tidy = 0; document.getElementById('zamer046')?.remove(); });
+  say(inside - before < 25, `test_L046: тяж слизи прозрачный, не пелена (яркость полосы без тяжа ${before.toFixed(0)}, с тяжем ${inside.toFixed(0)}; надписи над полосой спрятаны: ${nad || 'не было'})`); }
 // test_L039 (Роман 25.11: «в процессе игры они просто уплывают куда-то, исчезают. И я не понимаю, почему»): сестра за кадром видна стрелкой у края,
 // а гибель за краем называет убийцу.
 { await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.me.push({ ...a, id: 990, x: a.x + 2500, y: a.y, held: 1, vx: 0, vy: 0 }); });
@@ -318,6 +323,13 @@ if (await tap('#mscene [data-m=mut]', 'объект «Мутации»') && awai
   await p.evaluate(() => { const w = zaplyvWorld(); w.genes.memory = true; w.genes.crispr = true; }); await land(93); await p.waitForTimeout(1500); const t1 = await toast();
   await p.evaluate(() => { const w = zaplyvWorld(); w.genes.memory = false; w.genes.crispr = false; }); await land(94); await p.waitForFunction(() => [...document.querySelectorAll('#toast.on')].some(e => /Сел вирус/.test(e.textContent)), null, { timeout: 4000 }).catch(() => {}); const t2 = await toast();
   say(!/Сел вирус/.test(t1) && /Сел вирус/.test(t2), `с памятью о вирусах совета «Сел вирус! Резко развернись» нет, без памяти есть («${t1}» / «${t2}»)`); }
+// test_L047 (кольцо зоны, холодная приёмка: «пунктирная дуга из бусин на фоне»): в людном кадре у кисти хватает запаса — ни одна точка не выпала, кольца и нити не рвутся
+{ const lost = await p.evaluate(async () => { const w = zaplyvWorld(), a = w.me[0]; w.genes.spore = true;
+    for (let i = 0; i < 9; i++) w.me.push({ ...a, id: 600 + i, x: a.x + (i % 3) * 30, y: a.y + Math.floor(i / 3) * 30, vx: 0, vy: 0 });
+    for (let i = 0; i < 8; i++) { const t = i / 8 * 6.283; w.amoebas.push({ x: a.x + Math.cos(t) * 260, y: a.y + Math.sin(t) * 260, m: 6, hunt: true, id: 800 + i, vx: 0, vy: 0, a: 0 }); }
+    const l0 = zaplyvProbe.lost || 0, f0 = zaplyvProbe.frames; await new Promise(r => { const k = () => zaplyvProbe.frames >= f0 + 20 ? r() : requestAnimationFrame(k); k(); });
+    const l1 = zaplyvProbe.lost - l0; w.amoebas.length = 0; w.me.length = 1; return l1; });
+  say(lost === 0, 'test_L047: людный кадр (10 клеток, 8 амёб с кольцами) — точек кисти выпало ' + lost); }
 say(!errs.length, 'ошибок страницы нет' + (errs.length ? ': ' + errs.join('; ') : ''));
 await b.close();
 console.log(bad ? `КАСАНИЯ: провалов ${bad}` : 'КАСАНИЯ: все кнопки отвечают пальцу');
