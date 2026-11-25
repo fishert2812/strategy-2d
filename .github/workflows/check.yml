@@ -7,7 +7,7 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45 # полная проверка 25.11 идёт 24–30 мин; при 30 прогоны пачек снимались на финише
     steps:
       - uses: actions/checkout@v4
         with:
