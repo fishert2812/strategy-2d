@@ -146,7 +146,7 @@ class Dots {
     target.add(this.mesh);
   }
   put(x, y, r, cr, cg, cb, ca = 1) {
-    if (this.n >= this.max) return;
+    if (this.n >= this.max) { this.lost = (this.lost || 0) + 1; return; } // запас кончился: точка выпала — линия рвётся в пунктир (L047); probe.lost ловит
     const i = this.n++;
     this.a[i * 3] = x; this.a[i * 3 + 1] = y; this.a[i * 3 + 2] = r;
     this.c[i * 4] = cr; this.c[i * 4 + 1] = cg; this.c[i * 4 + 2] = cb; this.c[i * 4 + 3] = ca;
@@ -158,8 +158,8 @@ class Dots {
   }
 }
 const far = new Dots(80, back, 1, 'ring', 0);
-const glow = new Dots(3000, scene, 3, true, 0.6);
-const ink = new Dots(3000, scene, 4, false, 0.8);
+const glow = new Dots(cfg.kist.glow, scene, 3, true, 0.6);
+const ink = new Dots(cfg.kist.ink, scene, 4, false, 0.8); // запас кисти с избытком: в людном кадре (кольца зон, нити, колонии) 3000 не хватало и кольцо зоны рвалось бусинами
 const near = new Dots(12, scene, 5, false, 0); // передний план: размытые клетки у края кадра
 const dust = new Dots(120, scene, 3, true, 0.9);
 const bubbles = new Dots(60, scene, 4, 'ring', 0);
@@ -859,7 +859,7 @@ function paint(time) {
     const tx = x + vx * L * 0.2, ty = y + vy * L * 0.2;
     bodies.shell(tx, ty, a, L * 0.24, w, skin, q.id, Math.sin(time * 0.9 + q.id) * w * 0.15); // туловище
     bodies.sphere(tx - vx * L * 0.08, ty - vy * L * 0.08, w * 0.5, [0.85, 0.65, 0.3], [1, 0.85, 0.5], q.id, 0.6); // желудок: съеденное
-    for (let k = 0; k < 5; k++) ink.put(tx - vx * L * (0.04 + k * 0.03) + vy * Math.sin(k * 2.3) * w * 0.3, ty - vy * L * (0.04 + k * 0.03) - vx * Math.sin(k * 2.3) * w * 0.3, 1.3 * z + 0.4, 0.4, 0.9, 0.3, 0.6); // зелёные съеденные водоросли
+    for (let k = 0; k < 5; k++) bodies.sphere(tx - vx * L * (0.04 + k * 0.03) + vy * Math.sin(k * 2.3) * w * 0.3, ty - vy * L * (0.04 + k * 0.03) - vx * Math.sin(k * 2.3) * w * 0.3, 1.3 * z + 0.4, [0.4, 0.9, 0.3], [0.7, 1, 0.6], (q.id || 1) * 7 + k); // зелёные съеденные водоросли — объёмные комочки в желудке, не плоские точки
     vid.roti({ tx, ty, vx, vy, L, w, pw, time, id: q.id, z, glow, ink, bite: q.bite || 0 }); // венец, зубцы панциря, кишка и челюсти — vid.js
     const [mx, my] = scr(...world.head(q));
     for (let k = 0; k < 30; k++) { // поток в рот: крупинки прямо к голове, гуще и быстрее на полной силе
@@ -909,9 +909,9 @@ function paint(time) {
     const w = 7 * z;
     if (d.held > 0) { bodies.sphere(x, y, w * 1.4, [1, 0.88, 0.55], [1, 0.5, 0.3], d.id); glow.put(x, y, w * 3, 1, 0.3, 0.1, 0.15); continue; }
     bodies.rod(x, y, d.a, w * 2.1, w, 0, [1, 0.88, 0.55], [0.85, 0.6, 0.25], d.id, Math.sin(time * 1.5 + d.id) * w * 0.15);
-    if (!(d.held > 0)) for (let k = 0; k < 14; k++) { const t = k / 14 * 6.283 + time * 0.8; glow.put(x + Math.cos(t) * w * 0.45, y + Math.sin(t) * w * 0.45, 1.1 * z + 0.4, 1, 0.95, 0.6, 0.7); } // плазмида
+    if (!(d.held > 0)) { const pr = 1.1 * z + 0.4, np = Math.max(14, Math.ceil(6.283 * w * 0.45 / (pr * 0.8))); for (let k = 0; k < np; k++) { const t = k / np * 6.283 + time * 0.8; glow.put(x + Math.cos(t) * w * 0.45, y + Math.sin(t) * w * 0.45, pr, 1, 0.95, 0.6, 0.7 * 14 / np); } } // плазмида: точки внахлёст — сплошное колечко, не бусы (L047)
     if (d.to) { const [tx, ty] = scr(d.to.x, d.to.y), f = Math.min(1, d.link / cfg.conj); // пиля-мостик тянется, по нему бежит ДНК
-      for (let k = 0; k <= 14; k++) { const u = k / 14 * f; ink.put(x + (tx - x) * u, y + (ty - y) * u, 1.2 * z + 0.4, 1, 0.95, 0.6, 0.8); }
+      const br = 1.2 * z + 0.4, nb = Math.max(14, Math.ceil(Math.hypot(tx - x, ty - y) * f / (br * 0.8))); for (let k = 0; k <= nb; k++) { const u = k / nb * f; ink.put(x + (tx - x) * u, y + (ty - y) * u, br, 1, 0.95, 0.6, 0.8); } // мостик сплошной нитью: шаг меньше точки (L047)
       glow.put(x + (tx - x) * ((time * 2) % 1) * f, y + (ty - y) * ((time * 2) % 1) * f, 3 * z, 1, 0.9, 0.5, 0.6); }
   }
   for (const q of world.pseudos) { const [x, y] = scr(q.x, q.y); if (on(x, y)) dv.risuy(q, { x, y, z, time, bodies, glow }); } // палочки из анкет (vidy.json): тело, цепочка, цвет-метка, жгутики
@@ -1090,7 +1090,7 @@ function frame(now) {
   if (probe.frames % 60 === 0) knowGenes();
   probe.frames++; probe.dpr = dprNow; probe.cells = world.me.length; probe.z = view.z; // масштаб камеры: тап-обход проверяет, что она возвращается (L029)
   probe.js = js.reduce((s, v) => s + v, 0) / Math.max(js.length, 1); probe.jsWorst = Math.max(0, ...js.slice(5)); probe.path = Math.max(probe.path || 0, world.stats.path);
-  probe.dots = world.food.length + world.prey.length + world.phages.length;
+  probe.dots = world.food.length + world.prey.length + world.phages.length; probe.lost = (glow.lost || 0) + (ink.lost || 0); // выпавшие точки кисти за всю игру: должно быть 0
   probe.worst = Math.max(...acc.slice(5)); probe.avg = acc.reduce((s, v) => s + v, 0) / Math.max(acc.length, 1); probe.ended = ended;
   requestAnimationFrame(frame);
 }
