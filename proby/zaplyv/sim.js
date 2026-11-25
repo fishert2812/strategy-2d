@@ -189,12 +189,11 @@ export class World {
         const tx = target.x - a.x, ty = target.y - a.y, l = len(tx, ty) || 1;
         want = Math.atan2(ty, tx); s = speed / rost.hod(this, a) * Math.min(1, l / 60);
       } else if (this.genes.sense) { // палец убран, а клетка чует сахар: сама плывёт к ближайшей еде, спокойнее, чем под пальцем (книга: «убери палец — поплывёт сама»)
-        let best = null, bd = c.sense_r; for (const f of this.food) { const d = Math.hypot(f.x - a.x, f.y - a.y); if (d < bd) { bd = d; best = f; } }
+        const best = this.chuet(a); // любая еда, которую клетка умеет есть: крошки, сок, бурый комок детрита, водоросль (Роман 25.11, отметка 1: «У меня скилл — плывут к еде! Но никто к еде не плывет»)
         if (best) { want = Math.atan2(best.y - a.y, best.x - a.x); s = speed / rost.hod(this, a) * c.sense_idle; }
       }
       if (want !== null && this.genes.sense) { // хемотаксис: клетка сама подруливает к ближайшей еде впереди, еда не движется
-        let best = null, bd = c.sense_r;
-        for (const f of this.food) { const d = Math.hypot(f.x - a.x, f.y - a.y) / c.sense_like[f.kind || 'bits']; if (d < bd) { bd = d; best = f; } } // белковый сок чуется сильнее сахара (Е4)
+        const best = this.chuet(a); // белковый сок чуется сильнее сахара (Е4)
         if (best) { const d = wrap(Math.atan2(best.y - a.y, best.x - a.x) - want); if (Math.abs(d) < 1.2) want += d * c.sense_pull; }
       }
       const a0 = a.a;
@@ -338,6 +337,12 @@ export class World {
   flow(x, y) { const t = hash(Math.floor(x / 500), Math.floor(y / 500), 77) * 6.283 + this.stats.time * 0.05; return [Math.cos(t) * this.cfg.flow, Math.sin(t) * this.cfg.flow]; }
 
   grow(a, v) { const dv = v * (this.genes.lock ? this.cfg.lock_food : 1) * mut.food(this) * (1 + this.rush); if (!rost.vsos(this, a, dv)) a.m = Math.min(rost.cap(this), a.m + dv); } /* в «Росте» съеденное всасывается плавно (rost.js) */ // сменил замок: та же пора впускает и еду — медленнее
+  // «Чует еду»: ближайшая еда в чутье — крошки и сок, бурые комки детрита и водоросли, если клетка их уже ест («Рост» открывает еду по ростам).
+  // До комка считается до края: он большой. Сок чуется дальше (sense_like).
+  chuet(a) { const c = this.cfg; let best = null, bd = c.sense_r;
+    for (const f of this.food) { const d = Math.hypot(f.x - a.x, f.y - a.y) / c.sense_like[f.kind || 'bits']; if (d < bd) { bd = d; best = f; } }
+    for (const [list, k] of [[this.crumbs, 'crumb'], [this.plants, 'plant']]) if (rost.can(this, k)) for (const q of list) { const d = (Math.hypot(q.x - a.x, q.y - a.y) - radius(q.m)) / (c.sense_like[k] || 1); if (d < bd) { bd = d; best = q; } }
+    return best; }
   split() { return this.genes.fast ? this.cfg.split * this.cfg.fast_split : this.cfg.split; } // быстрый рост: больше рибосом — делишься раньше
   // Съел — серия: куски подряд (не дольше cfg.rush_gap между ними) разгоняют рост, как в экспоненциальной фазе.
   gain(f) { return this.cfg.food_kinds[f.kind || 'bits'].gain; } // три вида еды: крошки, глюкоза, белковый сок
