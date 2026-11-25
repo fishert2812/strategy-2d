@@ -138,7 +138,7 @@ function render(md) {
     if (/^---+$/.test(l.trim())) { out.push('<hr>'); continue; }
     if ((m = l.match(/^\{\{zapisi:([a-z_]+)(?::(.+))?\}\}$/))) { out.push(Z.filter(r => r.file === m[1] && (!m[2] || r.gruppa === m[2])).map(zapis).join('')); continue; }
     if (l.trim() === '{{problemy}}') { const ST = { novaya: ['новая', 3], chinim: ['чиним', 4], gotovo: ['готово к стройке', 4], vyshlo: ['вышло', 6], pravilo: ['стало правилом', 6] };
-      out.push(`<div class="card">` + Object.entries(ST).map(([k, [n]]) => `<div class="r"><b>${n}</b><span>${PR.filter(p => p.status === k).length}</span></div>`).join('') + '</div>' +
+      out.push(`<div class="card"><div class="t">Открыто сейчас: ${PR.length}</div></div>` +
         [...PR].reverse().map(p => `<div class="card"><div class="t"><span class="code">${p.id}</span>«${esc(p.slova)}»</div><div class="step s${ST[p.status][1]}">${ST[p.status][0]}${p.versiya ? ' в ' + p.versiya : ''} · ${p.kogda}</div>${row('Что с этим', p.chto)}</div>`).join('')); continue; }
     if (l.trim() === '{{kto_s_kem}}') { const N = KK.kto, S = KK.svyazi, nm = Object.fromEntries(N);
       const cell = (a, b) => { const x = S.filter(s => s.a === a && s.b === b); return `<td class="k-${x.length ? x[0].st : 'net'}">${x.map(s => ZN[s.z][0]).join('')}</td>`; };
