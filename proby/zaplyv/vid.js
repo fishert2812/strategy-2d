@@ -43,12 +43,15 @@ export function sleeper(c) {
   const w = 8.5 * Math.pow(a.m, 0.3) * z, half = w * 2.1, ux = Math.cos(a.a), uy = Math.sin(a.a);
   const k = Math.max(0, Math.min(1, (cfg.spore - a.spore) / S.fall, a.spore / S.wake)), e = k * k * (3 - 2 * k); // 0 — бодрая, 1 — спит
   const along = (u, o) => [x + ux * u - uy * o, y + uy * u + ux * o];
-  bodies.rod(x, y, a.a, half, w, 0, mix(S.awake, S.skin, e), mix(S.awake_core, S.core, e), a.id, 0);
-  for (let i = 0; i < S.edge; i++) { const [u, o] = rim(i / S.edge, half - w, w * 0.92), [px, py] = along(u, o); ink.put(px, py, 1.2 * z + 0.3, 0.1, 0.13, 0.22, 0.3 * e); } // плотный край
+  // Спящая — та же палочка, не спора: вдвое-втрое короче при той же толщине, мельче себя бодрой; нутро темнее и гуще (биолог, О28).
+  const H = half + (w * S.short - half) * e, W = w * (1 - S.thin * e);
+  bodies.rod(x, y, a.a, H, W, 0, mix(S.awake, S.skin, e), mix(S.awake_core, S.core, e), a.id, 0);
+  for (let i = 0; i < S.dense; i++) { const t = i * 2.39996, r = Math.sqrt((i + 0.5) / S.dense), [px, py] = along(Math.cos(t) * r * (H - W * 0.5), Math.sin(t) * r * W * 0.55); ink.put(px, py, 1.1 * z + 0.4, 0.14, 0.08, 0.18, 0.45 * e); } // густое тёмное нутро
+  for (let i = 0; i < S.edge; i++) { const [u, o] = rim(i / S.edge, H - W, W * 0.94), [px, py] = along(u, o); ink.put(px, py, 1.3 * z + 0.3, 0.08, 0.1, 0.2, 0.55 * e); } // плотный край
   const live = 1 - e; // крупинки замирают вместе со сном
-  for (let i = 0; i < 4; i++) { const t = (time * live + i * 2.1) * (0.5 + i * 0.17) + a.id, [px, py] = along(Math.sin(t) * (half - w * 0.6), Math.cos(t * 1.3) * w * 0.4); ink.put(px, py, 0.9 * z + 0.7, 0.75, 0.85, 0.9, 0.35 + 0.15 * live); }
+  for (let i = 0; i < 4; i++) { const t = (time * live + i * 2.1) * (0.5 + i * 0.17) + a.id, [px, py] = along(Math.sin(t) * (H - W * 0.6), Math.cos(t * 1.3) * W * 0.4); ink.put(px, py, 0.9 * z + 0.7, 0.75, 0.85, 0.9, 0.35 + 0.15 * live); }
   for (let j = 0; j < 4; j++) for (let i = 1; i <= 10; i++) { // жгутики: на бодрой торчат вбок, у спящей сложены вдоль тела к корме
-    const s = j % 2 ? 1 : -1, b = (j < 2 ? -0.5 : 0.5) * w * 2, f = i / 10, wv = live * Math.sin(f * 7 - time * 6 + j) * w * 0.25 * f;
+    const s = j % 2 ? 1 : -1, b = (j < 2 ? -0.5 : 0.5) * w * 2 * (1 - 0.6 * e), f = i / 10, wv = live * Math.sin(f * 7 - time * 6 + j) * w * 0.25 * f;
     const out = [b - f * w * 1.5, s * (w + f * w * 2.5) + wv], fold = [b - f * w * 2.4, s * w * 1.08];
     const [px, py] = along(out[0] + (fold[0] - out[0]) * e, out[1] + (fold[1] - out[1]) * e);
     ink.put(px, py, 0.7 * z + 0.3, 0.5, 0.55, 0.65, 0.35);
@@ -171,4 +174,14 @@ export function skin(c) {
       glow.put(xr + (xt - xr) * B, yr + (yt - yr) * B, (0.8 * Math.max(z, 0.7) + 0.3) * (1 - s * 0.45), fc[0], fc[1], fc[2], cfg.flag.alpha * (1 - s * 0.6)); // нить в цвете оболочки: светло-голубая, тоньше и прозрачнее к концу
     }
   }
+}
+
+// Знак гена на сопернице (zhizn.js, С27: соседка научила её): тот же вид, что на твоей клетке, проще — ободок шубы, нити яда, бусины памяти.
+// main.js зовёт там, где рисует соперниц: marks(q, { scr, z, glow, ink }).
+export function marks(q, d) {
+  const g = q.genes; if (!g) return; const { scr, z, glow, ink } = d, N = V.sosed.strain, L = N.L, w = N.w, ca = Math.cos(q.a || 0), sa = Math.sin(q.a || 0);
+  const P = (u, o) => scr(q.x + ca * u - sa * o, q.y + sa * u + ca * o);
+  if (g.capsule) for (let i = 0; i < 28; i++) { const [u, o] = rim(i / 28, L, w * V.capsule.r), [x, y] = P(u, o); glow.put(x, y, 2 * z, 0.6, 0.9, 1, 0.3); }
+  if (g.toxin) for (let f = 0; f < 4; f++) { const [u0, o0, nu, no] = rim(f / 4 + 0.12, L, w); for (let k = 1; k <= 5; k++) { const s = k / 5 * w * V.toxin.len, [x, y] = P(u0 + nu * s, o0 + no * s); ink.put(x, y, (k === 5 ? 1.4 : 0.8) * z, 0.95, 0.5, 0.3, 0.8); } }
+  if (g.crispr) for (let i = 0; i < 3; i++) { const [x, y] = P(-L * 0.6 + i * w * 0.35, 0); ink.put(x, y, 1.3 * z, 0.7, 1, 0.6, 0.8); }
 }
