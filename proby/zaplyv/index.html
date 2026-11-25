@@ -136,6 +136,14 @@ button:active { background: rgba(60, 255, 200, 0.3); }
 #ftext { width: 100%; box-sizing: border-box; font: 17px -apple-system, system-ui, sans-serif; border-radius: 14px; padding: 10px; background: #04121a; color: #e8f2f2; border: 1px solid rgba(207, 227, 230, 0.35); }
 #fbtns { display: flex; gap: 10px; width: 100%; align-items: center; } #fbtns button { flex: 1; width: auto; } #fsave { min-height: 56px; } #fcancel { min-height: 44px; font-size: 17px; }
 #fsheet.top { justify-content: flex-start; padding-top: calc(env(safe-area-inset-top) + 12px); }
+/* Список отметок «Не так»: убрать одну, стереть все (Роман 25.11: «Сбрось пожалуйста счетчик проблем!») */
+#mlist { z-index: 66; justify-content: flex-end; background: rgba(2, 6, 10, 0.6); padding: 0 12px calc(env(safe-area-inset-bottom) + 12px); }
+#mlbox { width: 100%; max-width: 420px; max-height: 80vh; border-radius: 22px; padding: 14px; box-sizing: border-box; background: rgba(8, 22, 30, 0.97); border: 1px solid rgba(255, 170, 120, 0.45); display: flex; flex-direction: column; gap: 10px; }
+#mlbox h2 { margin: 0; font-size: 20px; text-align: center; } #mlrows { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.mlrow { display: flex; gap: 8px; align-items: center; font-size: 14px; line-height: 1.3; } .mlrow img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; }
+.mlrow span { flex: 1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; } .mlrow button { width: 44px; min-height: 44px; padding: 0; flex: none; }
+#mlbtns { display: flex; gap: 10px; } #mlbtns button { flex: 1; width: auto; font-size: 17px; } #mlwipe.sure { border-color: #ff8a6a; color: #ffb4a0; } #mlclose { min-height: 44px; }
+#nundo { position: fixed; z-index: 61; right: 10px; top: calc(env(safe-area-inset-top) + 108px); width: auto; min-height: 44px; padding: 0 16px; display: none; } #nundo.on { display: block; }
 #note.ok { background: rgba(6, 22, 28, 0.95); border-color: rgba(120, 255, 210, 0.6); color: #e8f2f2; } /* записано — не опасность */
 #flag { position: fixed; z-index: 20; right: 10px; top: calc(env(safe-area-inset-top) + 8px); width: 48px; min-height: 48px; height: 48px; padding: 0; border-radius: 50%;
   background: rgba(2, 4, 10, 0.35); border: 1px solid rgba(255, 170, 120, 0.45); color: #ffb48a; font-size: 20px; }
@@ -271,7 +279,9 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
     <div id="knav"><button id="kprev"></button><button id="knext"></button></div><button id="kswim">Плыть</button></div>
 </div>
 <div id="toast"></div>
-<div id="note" role="status"></div>
+<div id="note" role="status"></div><button id="nundo" class="ghost">Убрать</button>
+<div class="layer" id="mlist"><div id="mlbox"><h2 id="mlhead"></h2><div id="mlrows"></div>
+  <div id="mlbtns"><button id="mlwipe" class="ghost"></button><button id="mlsend">Отправить</button></div><button id="mlclose" class="ghost">Закрыть</button></div></div>
 <script type="module" src="main.js"></script>
 </body>
 </html>
