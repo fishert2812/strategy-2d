@@ -58,6 +58,11 @@ if (await tap('#gback', '«‹ Пауза» из генома') && await tap('#p
 // test_L019: у каждой карточки полки — снимок живой модели (картинка не пустая), разделы и карточка отвечают пальцу
 await p.waitForFunction(() => { const a = [...document.querySelectorAll('#shelf .kc img')]; return a.length && a.every(i => i.naturalWidth > 100 && i.src.length > 5000); }, null, { timeout: 6000 }).catch(() => {}); // снимки встают по одному: ждём их, а не время
 say(await p.evaluate(() => [...document.querySelectorAll('#shelf .kc img')].every(i => i.naturalWidth > 100 && i.src.length > 5000)), 'test_L019: у каждой записи Альманаха — снимок модели из игры');
+// test_L044 (Роман 25.11: «у нас образовательная игра… чтобы выглядело примерно как в жизни»): в Альманахе сказано, что цвета — наши
+// метки (под микроскопом почти все бесцветные), а еду в воде не видно — мы рисуем её точками; слова из книги (подписи).
+{ const P = await p.evaluate(async () => (await (await fetch('kniga/teksty_sushchestv.json')).json()).podpisi), note = () => p.evaluate(() => { const e = document.getElementById('knote'); return e && !e.hidden && e.getBoundingClientRect().height > 10 ? e.textContent : ''; });
+  say(P.almanah_cveta && await note() === P.almanah_cveta, 'test_L044: в «Обитателях» строка книги, что цвета — наши метки');
+  if (await tap('#kpills button:nth-child(2)', 'раздел «Еда» (подпись)')) say(P.eda_tochki && await note() === P.eda_tochki, 'test_L044: в «Еде» строка книги, что еду не видно и мы рисуем её точками'); }
 if (await tap('#kpills button:nth-child(2)', 'раздел «Еда»')) say(await p.evaluate(() => document.querySelectorAll('#shelf .kc').length > 0 && document.querySelector('#kpills .on').dataset.g === 'food'), 'раздел «Еда» открылся');
 if (await tap('#kpills button:nth-child(1)', 'раздел «Обитатели»')) say(await p.evaluate(() => !!document.querySelector('#shelf .kc[data-k=me]')), 'раздел «Обитатели» открылся');
 if (await tap('#shelf .kc[data-k=me]', 'карточка «Ты»')) say(await seen('#kcard') && await p.evaluate(() => document.querySelectorAll('#kblocks .kb').length >= 2 && document.getElementById('kimg').naturalWidth > 100), 'карточка открылась: модель и блоки текста');
