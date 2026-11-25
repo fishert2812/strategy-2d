@@ -13,9 +13,20 @@
     "puzyri_edy": { "n": 6, "r": 0.13, "cvet": [0.95, 0.7, 0.4], "kromka": [1, 0.9, 0.7] },
     "sokr_puzyr": { "gde": [-0.55, 0.55], "period": 4, "r": 0.26, "kanal": 0.22, "kanaly": 7, "kanal_tolsh": 0.08, "cvet": [0.85, 0.97, 1] },
     "vorsinki": { "n": 40, "dlina": 0.18, "tolsh": 0.025, "cvet": [0.8, 0.95, 0.9], "a": 0.8 },
+    "obolochka": { "sloi": [ { "r": 1.0, "cvet": [0.35, 0.85, 1.0] }, { "r": 0.9, "cvet": [0.75, 0.95, 1.0] } ] },
+    "nukleoid": { "dlina": 0.6, "shirina": 0.42, "petli": 4, "zvenya": 170, "tolsh": 0.05, "temp": 0.25, "cvet": [1.0, 0.6, 0.25], "a": 1 },
+    "ribosomy": { "n": 120, "r": 0.045, "drozh": 0.012, "cvet": [1.0, 0.5, 0.9], "kromka": [1, 0.85, 1] },
+    "vklyucheniya": { "n": 3, "r": 0.13, "cvet": [0.95, 0.97, 0.85], "kromka": [1, 1, 1] },
+    "zhgutiki": { "n": 5, "dlina": 7.5, "tolsh": 0.04, "shag": 2.3, "razmah": 0.3, "oboroty": 2.5, "zvenya": 56, "sbor": 2.5, "puchok": 0.16, "cvet": [0.7, 0.92, 1.0], "a": 1 },
     "zhgutik_vint": { "n": 1, "razlet": 0.25, "dlina": 3.5, "shag": 0.9, "razmah": 0.22, "oboroty": 1.5, "zvenya": 40, "tolsh": 0.06, "cvet": [0.75, 0.8, 0.9], "a": 1 }
   },
   "vidy": {
+    "nasha": {
+      "_": "Наша клетка (кишечная палочка) целиком из частей: жгутики кругом, ворсинки, тело с цитоплазмой, слои оболочки, клубок ДНК, рибосомы, гранулы запаса.",
+      "forma": { "tip": "palochka" },
+      "chasti": { "zhgutiki": {}, "vorsinki": { "n": 110, "dlina": 0.34, "tolsh": 0.018, "razbros": 0.7, "vraznoboy": 0.9, "izgib": 0.5, "cvet": [0.7, 0.93, 1.0], "a": 0.75 },
+        "obolochka": { "sloi": [ { "r": 1.0, "cvet": [0.35, 0.85, 1.0] }, { "r": 0.87, "cvet": [0.6, 0.9, 1.0], "kromka": [0.5, 0.75, 0.9], "a": 0.5 }, { "r": 0.76, "cvet": [1.0, 0.25, 0.7], "plotno": true } ] }, "nukleoid": {}, "ribosomy": {}, "vklyucheniya": {} }
+    },
     "tuflya": {
       "forma": { "tip": "tuflya" },
       "chasti": { "telo": {}, "puzyri_edy": {}, "zerna": {}, "yadro": {}, "sokr_puzyr": {}, "resnichki": {} }

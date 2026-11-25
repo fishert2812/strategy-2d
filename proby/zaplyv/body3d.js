@@ -99,7 +99,7 @@ export class Bodies {
       'float u = (p.y + 1.0) * 0.5; float wv = prm.w * sin(u * 4.5 + time * 0.8 + prm.y) * u; p.x += prm.z * u * u + wv; nn.x -= prm.z * u; nn = normalize(nn); p += nn * 0.04 * sin(time * 2.0 + prm.y + p.y * 3.0);',
       { bump: 0.05, alpha0: 0.3, edgeA: 0.95, order: 1, rimK: 1.2, ridge: 0, after: 'vA.a *= smoothstep(-1.0, -0.55, position.y);' }); // раньше тела; основание тает в теле — сквозь стекло не видно срезов
     // Нить: короткая стеклянная трубка между двумя точками экрана. Из таких звеньев внахлёст — жгутики и ворсинки сплошными, без бус (кисти точек на тонких нитях дают пунктир).
-    this.rope = kind(new THREE.CylinderGeometry(1, 1, 2, 6, 1, true), 2400, '', { bump: 0, alpha0: 0.95, edgeA: 0.35, order: 1, rimK: 0.5 });
+    this.rope = kind(new THREE.CylinderGeometry(1, 1, 2, 6, 1, true), 6000, '', { bump: 0, alpha0: 0.95, edgeA: 0.35, order: 1, rimK: 0.5 });
     // Туфелька: прозрачное тело-туфля — тупой нос, корма уже, на боку косая ротовая бороздка; плотнее в середине, край тает в кромку.
     const slipV = 'float u = clamp(p.y * 0.5, -1.0, 1.0); p.xz *= (1.0 - 0.45 * smoothstep(0.5, -1.0, u)) * (1.0 + 0.18 * smoothstep(0.0, 0.6, u)); float g = exp(-pow((u - 0.25) * 1.4, 2.0)) * smoothstep(-0.4, 1.0, p.x); p.x -= 1.0 * g; nn.x -= 1.5 * g; nn = normalize(nn);'
       + 'p += nn * 0.03 * sin(time * 2.0 + prm.y + p.y * 3.0); p.y += sign(p.y) * prm.w * min(abs(p.y), 1.0);';
@@ -119,7 +119,7 @@ export class Bodies {
     if (m.count >= m.instanceMatrix.count) return;
     const i = m.count++;
     Q.setFromAxisAngle(Z, -ang - Math.PI / 2);
-    M.compose(V.set(x, -y, 0), Q, S.set(sx, sy, sz));
+    M.compose(V.set(x, -y, this.vyshe || 0), Q, S.set(sx, sy, sz));
     m.setMatrixAt(i, M);
     const A = m.geometry.attributes;
     A.cA.array.set(ca, i * 4); A.cB.array.set(cb, i * 3); A.prm.array.set(prm, i * 4);
@@ -143,7 +143,7 @@ export class Bodies {
   // Шип: от точки основания (x, y) наружу под углом ang, длина len, полуширина у основания w; bend — отход острия вбок (экранные единицы).
   slipper(x, y, ang, half, w, col, rim, seed, fr = 0, fcol = rim) { this.put(this.slip, x, y, ang, w, w, w * 0.7, [col[0], col[1], col[2], 1], rim, [0, seed, 0, Math.max(half / w - 2, -0.9)]);
     if (fr) { const wf = w * (1 + fr); this.put(this.fringe, x, y, ang, wf, wf, wf * 0.7, [fcol[0], fcol[1], fcol[2], 1], fcol, [0, seed, 0, Math.max((half + w * fr) / wf - 2, -0.9)]); } }
-  seg(x0, y0, x1, y1, r, col, a = 1) { const dx = x1 - x0, dy = y1 - y0, l = Math.hypot(dx, dy); if (l < 1e-3 || this.rope.count >= 2400) return; this.put(this.rope, (x0 + x1) / 2, (y0 + y1) / 2, Math.atan2(dy, dx), r, l / 2, r, [col[0], col[1], col[2], a], col, [0, 0, 0, 0]); } // звено нити встык: внахлёст полупрозрачные концы дают яркие узлы-бусы
+  seg(x0, y0, x1, y1, r, col, a = 1) { const dx = x1 - x0, dy = y1 - y0, l = Math.hypot(dx, dy); if (l < 1e-3 || this.rope.count >= 6000) return; this.put(this.rope, (x0 + x1) / 2, (y0 + y1) / 2, Math.atan2(dy, dx), r, l / 2, r, [col[0], col[1], col[2], a], col, [0, 0, 0, 0]); } // звено нити встык: внахлёст полупрозрачные концы дают яркие узлы-бусы
   spine(x, y, ang, len, w, col, rim, seed, bend = 0, wave = 0) { const c = Math.cos(ang), sn = Math.sin(ang);
     this.put(this.spines, x + c * len / 2, y + sn * len / 2, ang, w, len / 2, w, [col[0], col[1], col[2], 1], rim, [0, seed, bend / w, wave]); }
   phage(x, y, ang, s) {
