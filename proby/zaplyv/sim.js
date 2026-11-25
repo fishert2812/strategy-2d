@@ -570,7 +570,7 @@ export class World {
         const ground = this.biome(m.x, m.y) === 2 || this.plants.some(p => dist(p, m) < 160) || this.crumbs.some(k => dist(k, m) < 120);
         const v = c.amoeba * (ground ? 1 : c.amoeba_open);
         wx = (a.x - m.x) / d * v; wy = (a.y - m.y) / d * v;
-        if (d < radius(m.m) + radius(a.m) * 0.3 && !this.genes.capsule) { this.lose(a, m.x, m.y, 'amoeba'); m.m += a.m * 0.5; }
+        if (d < radius(m.m) + radius(a.m) * 0.3 && !this.genes.capsule) { this.lose(a, m.x, m.y, 'amoeba'); m.m += a.m * 0.5; mut.bite(this, m); }
         else if (d < radius(m.m) + radius(a.m) * 0.3 && !(m.slip > this.stats.time)) { m.slip = this.stats.time + 1; this.events.push(['slip', a.x, a.y]); } // капсула сработала: видно, что выскользнула // амёба обтекает целиком — из неё не вырваться, спасает капсула
       }
       const k = Math.min(1, dt);
@@ -589,7 +589,7 @@ export class World {
           g.gone = true;
           // CRISPR — память: знакомого фага режет без вреда. Незнакомого клетка переживает ценой сил и вписывает его кусок новой полоской (упрощение: в природе так выживают немногие).
           if (g.host === 'me' && this.genes.crispr) { if (this.spacers.has('T4')) this.events.push(['cut', g.x, g.y]); else { this.spacers.add('T4'); h.m = Math.max(0.6, h.m * c.crispr_cost); this.events.push(['learn', g.x, g.y]); } continue; }
-          if (h.sick === undefined || h.sick < 0) { h.sick = c.sick; if (g.host === 'me') this.events.push(['sick', h.x, h.y]); }
+          if (h.sick === undefined || h.sick < 0) { h.sick = c.sick; if (g.host === 'me') { this.events.push(['sick', h.x, h.y]); mut.landed(this, h); } } // сцепка: в плоту заболевает и соседняя
         }
         continue;
       }
