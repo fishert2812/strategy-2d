@@ -52,8 +52,8 @@ const RIS = {
       for (let k = 0; k < st.kanaly; k++) { const t = k / st.kanaly * 6.283 + P.id, d = w * st.r * 0.3; B.spine(cx + Math.cos(t) * d, cy + Math.sin(t) * d, t, cl, w * st.kanal_tolsh, st.cvet, [1, 1, 1], P.id * 7 + k); } }); },
   vorsinki(st, F, P, B, at) { const w = P.tolshchina; // пили: тонкие сплошные трубочки по всему краю, разной длины и наклона, слегка гнутые
     for (let k = 0; k < st.n; k++) { const t = (k + hash(P.id, k + 602) * 0.8) / st.n * 6.283 + P.id, e = F.kray(t), l = w * st.dlina * (1 + 0.25 * Math.sin(P.time * 3 + k * 1.7)) * (1 - (st.razbros || 0) * hash(P.id, k + 600));
-      let an = P.a + e.n + (hash(P.id, k + 601) - 0.5) * (st.vraznoboy || 0), [lx, ly] = at(e.u, e.o); const gn = (hash(P.id, k + 603) - 0.5) * (st.izgib || 0) + Math.sin(P.time * 1.3 + k) * 0.06, Z = st.izgib ? 3 : 1;
-      for (let i = 0; i < Z; i++) { const nx = lx + Math.cos(an) * l / Z, ny = ly + Math.sin(an) * l / Z; B.seg(lx, ly, nx, ny, w * st.tolsh * (1 - 0.3 * i / Z), st.cvet, st.a * (1 - 0.25 * i / Z)); lx = nx; ly = ny; an += gn; } } },
+      let an = P.a + e.n + (hash(P.id, k + 601) - 0.5) * (st.vraznoboy || 0), [lx, ly] = at(e.u, e.o); const gn = (hash(P.id, k + 603) - 0.5) * (st.izgib || 0) + Math.sin(P.time * 1.3 + k) * 0.06, Z = st.zvenya || (st.izgib || st.a_konec ? 3 : 1);
+      for (let i = 0; i < Z; i++) { const nx = lx + Math.cos(an) * l / Z, ny = ly + Math.sin(an) * l / Z; B.seg(lx, ly, nx, ny, w * st.tolsh, st.cvet, st.a * (1 - (1 - (st.a_konec ?? 0.75)) * (i + 0.5) / Z)); lx = nx; ly = ny; an += gn + (st.volna || 0) * Math.sin(i * 2.1 + k + P.time * 1.1); } } }, // volna — волосок вьётся; толщина ровная, к кончику гаснет только прозрачность (биолог 25.11)
   zhgutik_vint(st, F, P, B, at) { const w = P.tolshchina, hl = P.dlina / 2; // левый винт (биолог: шаг 2–2,5 мкм, размах 0,4–0,6), крутится и ввинчивается вперёд; цепочка трубок встык
     for (let f = 0; f < st.n; f++) { const t = Math.PI + (f - (st.n - 1) / 2) * st.razlet, e = F.kray(t), [x0, y0] = at(e.u, e.o), an = P.a + Math.PI + (f - (st.n - 1) / 2) * st.razlet * 0.3;
       const ca = Math.cos(an), sa = Math.sin(an), L = w * st.dlina, sh = w * st.shag, r = w * st.razmah, ph = P.time * st.oboroty * 6.283 + f;
@@ -79,7 +79,7 @@ const RIS = {
   // Ход (P.beg = 1): каждая нить огибает тело и уходит в общий пучок-штопор за кормой, по пучку бежит винтовая волна.
   zhgutiki(st, F, P, B, at) { const w = P.tolshchina, beg = P.beg ?? 0, ph = P.time * st.oboroty * 6.283, Z = st.zvenya;
     const [kx, ky] = at(-1, 0), [k2x, k2y] = at(-0.9, 0), kl = Math.hypot(kx - k2x, ky - k2y) || 1, bx = (kx - k2x) / kl, by = (ky - k2y) / kl, hv = P.hvost || 0; // кончик кормы и куда она смотрит: там собирается пучок
-    for (let f = 0; f < st.n; f++) { const t = (f + 0.5) / st.n * 6.283 + P.id, e = F.kray(t), [x0, y0] = at(e.u * 0.97, e.o * 0.97), na = P.a + e.n, nx0 = Math.cos(na), ny0 = Math.sin(na), L = (st.dlina_tel ? st.dlina_tel * P.dlina : w * st.dlina) * (0.8 + 0.4 * hash(P.id, f + 61)); // dlina_tel: длина в длинах тела (по образцам 0,8–1,5), иначе в толщинах
+    for (let f = 0; f < st.n; f++) { const t = (f + 0.5) / st.n * 6.283 + P.id, e = F.kray(t), [x0, y0] = at(e.u * 0.97, e.o * 0.97), na = P.a + e.n, nx0 = Math.cos(na), ny0 = Math.sin(na), L = (st.dlina_tela ? P.dlina * st.dlina_tela : w * st.dlina) * (0.8 + 0.4 * hash(P.id, f + 61)); // длина по цветным образцам: 1–1,5 длины тела (Роман 25.11: «зачем нам такие длинные жгуты?»)
       let rx = nx0 * 0.75 + bx * 0.65, ry = ny0 * 0.75 + by * 0.65; const rl = Math.hypot(rx, ry) || 1, pv = (hash(P.id, f + 60) - 0.5) * 0.7, cp = Math.cos(pv), sp = Math.sin(pv); [rx, ry] = [(rx * cp - ry * sp) / rl, (rx * sp + ry * cp) / rl]; // покой: от оболочки наружу и назад
       const slow = P.time * 0.6 + f * 1.7, faza = f / st.n * 6.283, tk = F.O ? F.O.korma_t : Math.PI, ob = (F.O ? F.O.obvod : 6.283) * w, tn = ((t % 6.283) + 6.283) % 6.283; let dt = tk - tn; if (dt > 3.1416) dt -= 6.283; if (dt < -3.1416) dt += 6.283; // до кончика кормы по обводу, короткой дорогой
       const D0 = Math.abs(dt) / 6.283 * ob + hv, kriv = (hash(P.id, f + 62) - 0.5) * 2.6 + Math.sign(rx * by - ry * bx || 1) * -0.5; let lx, ly, pxr = x0, pyr = y0;
@@ -91,7 +91,8 @@ const RIS = {
         let xb, yb; if (d < D0 - hv) { const e = F.kray(tn + dt * d / ((D0 - hv) || 1)), [ex, ey] = at(e.u, e.o), pod = w * 0.07 * Math.min(1, d / (w * 0.5)), en = P.a + e.n; xb = ex + Math.cos(en) * pod; yb = ey + Math.sin(en) * pod; }
         else { const za = d - (D0 - hv), k = sm(0, w * st.sbor, za), obk = k * w * (st.razmah * Math.sin(za / (w * st.shag) * 6.283 - ph) + st.puchok * Math.sin(za / (w * st.shag) * 3.1416 - ph * 0.5 + faza)) * (1 - 0.3 * s); xb = kx + bx * za - by * obk; yb = ky + by * za + bx * obk; }
         const nx = xr + (xb - xr) * beg, ny = yr + (yb - yr) * beg;
-        if (i) B.seg(lx, ly, nx, ny, w * st.tolsh * (1 - 0.75 * s), st.cvet, st.a * (1 - 0.5 * s)); lx = nx; ly = ny; } } },
+        // к кончику тоньше не больше чем на suzh (биолог: не больше 30 %)
+        if (i) B.seg(lx, ly, nx, ny, w * st.tolsh * (1 - (st.suzh ?? 0.75) * s), st.cvet, st.a * (1 - 0.85 * sm(0.45, 1, s))); lx = nx; ly = ny; } } },
   // Гранулы запаса (включения): несколько плотных шариков у полюсов, в стороне от клубка ДНК.
   vklyucheniya(st, F, P, B, at) { B.vyshe = P.nad; const w = P.tolshchina;
     for (let k = 0; k < st.n; k++) { const [px, py] = at((k % 2 ? 1 : -1) * (0.5 + 0.2 * hash(P.id, k + 300)) * (1 - w / (P.dlina / 2) * 0.35), (hash(P.id, k + 301) - 0.5) * 0.6); B.sphere(px, py, w * st.r * (0.8 + 0.4 * hash(P.id, k + 302)), st.cvet, st.kromka, P.id + k + 20, 0.9); } },

@@ -44,7 +44,7 @@ check('test_nasha_niti: жгутики и клубок ДНК сплошные �
   for (let beg = 0; beg <= 1.001; beg += 0.1) { const B = tela(); sobrat({ forma: Z.forma, chasti: { zhgutiki: {}, nukleoid: {} } }, P({ beg }), B);
     const S = B.L.seg, zh = { ...VC.chasti.zhgutiki, ...Z.chasti.zhgutiki }, vsego = zh.n * zh.zvenya + VC.chasti.nukleoid.zvenya;
     if (S.length < vsego * 0.98) return 'при сборе пучка ' + beg.toFixed(1) + ' звеньев ' + S.length + ' из ' + vsego + ': нить рваная';
-    for (let i = 1; i < S.length; i++) { const d = Math.hypot(S[i].x0 - S[i - 1].x1, S[i].y0 - S[i - 1].y1); if (d > 1e-6 && d < 60) hud = Math.max(hud, d); } // d ≥ 60 — начало другой нити
+    for (let i = 1; i < S.length; i++) { if (i < zh.n * zh.zvenya ? i % zh.zvenya === 0 : i === zh.n * zh.zvenya) continue; const d = Math.hypot(S[i].x0 - S[i - 1].x1, S[i].y0 - S[i - 1].y1); if (d > 1e-6) hud = Math.max(hud, d); } // граница нитей — по счёту звеньев, а не по расстоянию: короткий жгутик кончается рядом с корнем соседнего
     const dl = Math.max(...S.map(s => Math.hypot(s.x1 - s.x0, s.y1 - s.y0))); if (dl > 35 * 0.6) return 'звено длиной ' + dl.toFixed(1) + ' при толщине тела 35: нить пойдёт углами'; }
   if (hud > 0) return 'между соседними звеньями зазор ' + hud.toFixed(2);
 });
@@ -102,7 +102,7 @@ check('test_nasha_svoboda: тело свободной формы (Роман 25
     for (const ch of chasti) { const B = tela(); sobrat({ forma: zap.forma, chasti: { [ch]: Z.chasti[ch] } }, process.env.NASHA_OTORVAT && ch === 'zhgutiki' ? { ...poza, x: poza.x + w } : poza, B); const L = B.L;
       if (!(L.seg.length + L.sphere.length + L.put.length)) hud = imya + ': пусто у части ' + ch;
       if (ch === 'zhgutiki') for (let i = 0; i < L.seg.length; i += VC.chasti.zhgutiki.zvenya) zazor = Math.max(zazor, do_kraya(M, L.seg[i].x0, L.seg[i].y0) / w - 0.03);
-      if (ch === 'vorsinki') { const Zv = Z.chasti.vorsinki.izgib ? 3 : 1; for (let i = 0; i < L.seg.length; i += Zv) if (do_kraya(M, L.seg[i].x0, L.seg[i].y0) > w * 0.05) hud = imya + ': ворсинка растёт не из края'; }
+      if (ch === 'vorsinki') { const Zv = Z.chasti.vorsinki.zvenya || (Z.chasti.vorsinki.izgib ? 3 : 1); for (let i = 0; i < L.seg.length; i += Zv) if (do_kraya(M, L.seg[i].x0, L.seg[i].y0) > w * 0.05) hud = imya + ': ворсинка растёт не из края'; }
       if (['ribosomy', 'vklyucheniya'].includes(ch) && L.sphere.some(s => !vnutri(M, s.x, s.y))) hud = imya + ': зёрна части ' + ch + ' вылезли за тело';
       if (ch === 'nukleoid' && L.seg.some(s => !vnutri(M, s.x0, s.y0))) hud = imya + ': ДНК вылезла за тело';
       if (ch === 'obolochka') for (let i = 1; i < L.put.length; i++) { const e = rovno_vnutri(L.put[i - 1].kolca, L.put[i].kolca); if (e) hud = imya + ': слой ' + i + ' ' + e; } } }

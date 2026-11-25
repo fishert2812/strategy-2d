@@ -29,7 +29,7 @@ export function fizika(f, cfg, k = K) {
 }
 // Части образца из ползунков. Ползунок с полем chast правит один параметр одной части записи («vorsinki», «dlina»): новая ручка — это строка в konstruktor.json, не код.
 // Цвет — один тон на всё существо (perekrasit): оболочка, сердцевина и части красятся от него.
-export function chasti_obrazca(f, k = K) { const Z = VC.vidy[f.sborka].chasti, ch = { zhgutiki: { n: f.zhgutiki, dlina: f.zh_dlina * k.sborka.zh_dlina / f.tolshchina }, vorsinki: { n: f.vorsinki } };
+export function chasti_obrazca(f, k = K) { const Z = VC.vidy[f.sborka].chasti, ch = { zhgutiki: { n: f.zhgutiki, dlina: f.zh_dlina * k.sborka.zh_dlina / f.tolshchina, dlina_tela: 0 }, vorsinki: { n: f.vorsinki } };
   for (const [kl, p] of Object.entries(k.polzunki)) if (p.chast && f[kl] != null) (ch[p.chast[0]] ??= {})[p.chast[1]] = f[kl];
   if (f.ton != null) for (const [c, v] of Object.entries(perekrasit(Z, f.ton, k.sborka.nasyshch))) ch[c] = { ...v, ...ch[c] };
   return ch; }
