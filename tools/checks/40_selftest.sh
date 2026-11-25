@@ -49,6 +49,7 @@ ONLY=L043 case_ "test_L043: опасный встречается молча" 52
 ONLY=L046 case_ "test_L046: слизь снова мутной пеленой" 52_zaplyv_tap.sh red "sed -i 's/\"core\": 0.55, \"core_a\": 0.02/\"core\": 1.2, \"core_a\": 0.06/' $Z/data.json"
 ONLY=L042 case_ "test_L042: вирус сел молча" 52_zaplyv_tap.sh red "sed -i \"s/tell('stick', 'Сел вирус! Резко развернись — стряхнёшь, пока не впрыснул');//\" $Z/main.js"
 ONLY=L044 case_ "test_L044: Альманах молчит, что цвета — метки" 52_zaplyv_tap.sh red "sed -i 's/\$(.knote.).hidden = !S.note;/\$(\"knote\").hidden = true;/' $Z/almanah.js"
+ONLY=L048 case_ "test_L048: деление снова рывком (vid.birth не вызван)" 52_zaplyv_tap.sh red "sed -i 's/vid.birth(a, time, world.me)/({ d: [0, 0], pinch: 0 })/' $Z/main.js"
 ONLY=L021 case_ "test_L021: значки генов пропали" 52_zaplyv_tap.sh red "sed -i 's/^function icon(g) {/function icon(g) { return String();/' $Z/main.js"
 case_ "test_L035: слова не впечатаны в картинку" 52_zaplyv_tap.sh red "sed -i 's/lines.forEach((l, k) => g.fillText/lines.forEach((l, k) => String/; s/g.fillText(.⚑ . + head, pad, ih + pad + 22);//' $Z/main.js"
 case_ "test_L034: ✕ не убирает отметку" 52_zaplyv_tap.sh red "sed -i 's/marks.splice(i, 1); keepMarks();/keepMarks();/' $Z/main.js"

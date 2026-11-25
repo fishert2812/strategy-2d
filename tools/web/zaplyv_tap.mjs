@@ -93,6 +93,12 @@ await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.phages.length =
 await p.waitForTimeout(600); { const t = await p.evaluate(() => [...document.querySelectorAll('#toast.on')].map(e => e.textContent).join('')); say(/вирус/i.test(t) && /развернись/.test(t), 'test_L042: вирус сел на клетку — сразу надпись, что делать (' + (t || 'надписи нет') + ')'); }
 await p.evaluate(() => { const w = zaplyvWorld(); w.phages.length = 0; for (const a of w.me) a.sick = -1; });
 if (await tap('#flag', 'флажок в игре')) say(await seen('#note') && await marks() === m + 1, 'флажок в игре: отметка записана и надпись видна');
+// test_L048 (Роман 25.11 на 0.70: «почему мы не починили блять деление клеток?»): плавное деление лежало в vid.js, но main.js его не звал —
+// дочка появлялась рывком. После деления несколько кадров рисуется рождение: дочки из одной клетки с перетяжкой расходятся.
+{ const ok = await p.evaluate(async () => { const w = zaplyvWorld(); w.choice = []; w.cfg.auto_split = 1e9; const a = w.me[0]; a.m = w.split() + 0.01; a.held = 0; a.grab = null; a.sick = -1; a.spore = 0;
+    await new Promise(r => setTimeout(r, 100)); const n = w.divide(); w.choice = []; const t0 = zaplyvProbe.birth || 0; await new Promise(r => setTimeout(r, 250));
+    return n > 0 && (zaplyvProbe.birth || 0) > t0; });
+  say(ok, 'test_L048: деление рисуется — дочка выходит из матери с перетяжкой, а не появляется рывком'); }
 if (await tap('#pause', 'пауза')) say(await on('genome') && (await p.textContent('#gtitle')) === 'Пауза', 'пауза открывает меню «Пауза»');
 if (await tap('#phub [data-t=genome]', 'строка «Геном» в паузе')) say(await seen('#ring'), 'строка «Геном» открывает кольцо');
 if (await tap('#ring .slot', 'ген на кольце')) say(await p.evaluate(() => !!document.querySelector('#gcard h2')), 'касание гена открывает карточку');

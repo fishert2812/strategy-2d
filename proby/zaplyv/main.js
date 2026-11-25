@@ -394,7 +394,7 @@ function geneShot(g, NW, NH, crop = 0) {
 }
 const geneColor = g => { for (const a of genomeData.arcs) if (a.slots.some(x => x.id === g)) return a.color; const p = genomeData.plasmids.find(x => x.id === g); return p ? p.color : '#7cc8ff'; }; // рамка значка — цвет группы гена
 function icon(g) {
-  if (!icons.has(g)) { let url = ''; try { url = geneShot(g, 320, 320, 128); } catch (e) { url = ''; } icons.set(g, url); }
+  if (!icons.has(g)) { let url = ''; try { url = geneShot(g, 320, 320, 128); } catch (e) { url = ""; } icons.set(g, url); }
   return icons.get(g);
 }
 const idle = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 2000 }) : setTimeout(f, 300));
@@ -914,6 +914,7 @@ function paint(time) {
       glow.put(x - ux * (w * 2.3 + f * w * 7) - uy * wv, y - uy * (w * 2.3 + f * w * 7) + ux * wv, 1.1 * Math.max(z, 0.7), 0.6, 1, 0.8, 0.55 * (1 - f * 0.5)); }
     if (q.cool > 0) glow.put(x, y, w * 3.5, 0.5, 1, 0.75, 0.25 * q.cool); // только что стреляла
   }
+  for (const e of world.events) if (e[0] === 'split') vid.splitAt(e[3], e[4]); // деление касанием случилось между шагами: рисуем его с первого же кадра, а не после шага
   fx.drawUnder({ scr, z, time, glow, ink }); mut.drawWorld({ w: world, scr, z, glow, ink }); // пузырьки-обманки
   for (const b of world.bdellos) { // бделловибрион: запятая вдвое мельче тебя, один толстый жгутик; на рывке — след
     const [x, y] = scr(b.x, b.y); if (!on(x, y) && !b.aim) continue; // целится из-за кадра — линия прицела всё равно видна
@@ -945,15 +946,18 @@ function paint(time) {
     if (a.spore > 0) continue; // перёд ведёт, корма и пучок жгутиков идут по его следу
     const lk = a.g ? look({ ...world.genes, [a.g]: true }, cfg.look, world.spacers.size) : lkAll, w = 8.5 * Math.pow(a.m, rost.vid(world)) * z * (a.g ? 1.9 : 1), sp = Math.hypot(a.vx, a.vy);
     const run = sp > 25 && !a.tumble, wob = run ? 0.035 : 0.015; // встречное вращение тела к пучку: 3 раза в секунду
-    const half = a.held > 0 ? w * (1.05 + 0.6 * a.held / cfg.bdello_kill) : w * (1.6 + 1.0 * Math.min(a.m, cfg.split) / cfg.split), tailW = w * 7.5 / z; // хищник внутри — клетка округляется в шарик
+    const half = a.held > 0 ? w * (1.05 + 0.6 * a.held / cfg.bdello_kill) : w * (1.6 + 1.0 * Math.min(a.m, world.split()) / world.split()), tailW = w * 7.5 / z; // хищник внутри — клетка округляется в шарик
     const body = follow(a, half / z, tailW);
-    const [x0, y0] = scr(body.cx, body.cy), sag = body.sag * z;
-    const ang = body.ang + Math.sin(time * 18.8 + a.id) * wob, ax = Math.cos(ang), ay = Math.sin(ang);
+    const wm = w * Math.pow(2, rost.vid(world)); // мать: вдвое тяжелее, полудлина как у созревшей (см. half)
+    const bo = vid.birth(a, time, world.me, body.ang, half / z, w / z, body.cx, body.cy, wm * 2.6 / z, wm / z); // деление: мать стягивается, дочки расходятся торец к торцу (vid.json split)
+    if (bo) { probe.birth = time; if (bo.hide) continue; } // обход пальцем (test_L048) видит, что рождение рисуется; вторая дочка ещё часть матери
+    const [x0, y0] = scr(bo ? bo.x : body.cx, bo ? bo.y : body.cy), sag = body.sag * z * (bo ? bo.sag : 1), hl = bo ? half * bo.fl : half, wl = bo ? w * bo.fw : w;
+    const ang = (bo ? bo.ang : body.ang) + Math.sin(time * 18.8 + a.id) * wob, ax = Math.cos(ang), ay = Math.sin(ang);
     const x = x0 - ay * sag * 0.675, y = y0 + ax * sag * 0.675; // центр модели так, чтобы концы легли на хорду
     const along = (s, o = 0) => [x + ax * s - ay * o, y + ay * s + ax * o];
     const arc = u => -sag * 0.675 + sag * (1 - Math.min(1, (u * z / half) ** 2)); // прогиб в точке u (u — в единицах мира от центра)
-    const pinch = a.m >= cfg.split && !rost.on(world) ? 0.62 + 0.12 * Math.sin(time * 6) : 0; // перетяжка: вот-вот две
-    bodies.rod(x, y, ang, half, w, pinch, [CELL[0].r, CELL[0].g, CELL[0].b], [CORE[0].r, CORE[0].g, CORE[0].b], a.id, -sag);
+    const pinch = bo ? bo.pinch : (a.m >= world.split() && !rost.on(world) ? 0.62 + 0.12 * Math.sin(time * 6) : 0); // перетяжка: вот-вот две
+    bodies.rod(x, y, ang, hl, wl, pinch, [CELL[0].r, CELL[0].g, CELL[0].b], [CORE[0].r, CORE[0].g, CORE[0].b], a.id, -sag);
     rost.draw({ w: world, a, x, y, ang, half, wd: w, z, glow, time, scr }); // контур следующего роста, струйки от комка
     if (a.grab) glow.put(x, y, half * 1.8, 1, 0.25, 0.15, 0.22 + 0.15 * Math.sin(time * 14)); // схвачена: бьётся в пасти
     if (world.rush > 0.05) glow.put(x, y, half * (1.4 + world.rush * 0.6), 1, 0.75, 0.35, 0.08 + 0.1 * world.rush); // разгон роста: рибосомы работают на всю

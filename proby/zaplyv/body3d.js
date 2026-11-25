@@ -58,15 +58,26 @@ function kind(geo, max, vertexBody, opts = {}) {
 
 const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), V = new THREE.Vector3(), S = new THREE.Vector3(), Z = new THREE.Vector3(0, 0, 1);
 
+// Капсула для палочки. Готовая CapsuleGeometry кладёт на прямую часть только два кольца, у концов: перетяжка в середине
+// (pinch) сжимала пустое место, и клетка перед делением и в делении выглядела ровной (урок L048).
+function capsule(caps = 6, mid = 20, round = 16) {
+  const pts = [], P = (x, y) => pts.push(new THREE.Vector2(Math.max(x, 1e-4), y));
+  for (let i = 0; i <= caps; i++) { const a = -Math.PI / 2 + i / caps * Math.PI / 2; P(Math.cos(a), -1 + Math.sin(a)); }
+  for (let i = 1; i < mid; i++) { const t = -1 + 2 * i / mid; P(1, Math.sign(t) * Math.abs(t) ** 1.8); } // кольца гуще к середине: там перегородка
+  for (let i = 0; i <= caps; i++) { const a = i / caps * Math.PI / 2; P(Math.cos(a), 1 + Math.sin(a)); }
+  return new THREE.LatheGeometry(pts, round);
+}
+
 export class Bodies {
   constructor() {
     this.scene = new THREE.Scene();
     this.cam = new THREE.OrthographicCamera(0, 720, 0, -1280, -2000, 2000);
     this.cam.position.z = 1000;
-    const cap = new THREE.CapsuleGeometry(1, 2, 8, 16); // ось Y, полувысота 2
-    const pinch = 'float pf = 1.0 - prm.x * exp(-p.y * p.y / 0.3); p.xz *= pf;'
-      + 'p += nn * 0.04 * sin(time * 3.0 + p.y * 5.0 + prm.y);' // перетяжка и лёгкое дыхание оболочки
-      + 'p.x += prm.z * (p.y * p.y - 1.3); nn.x -= prm.z * 2.0 * p.y; nn = normalize(nn);'; // изгиб дугой в повороте
+    const cap = capsule(); // ось Y, полувысота 2; прямая часть нарезана поперёк, иначе перетяжке негде сжаться
+    const pinch = 'p += nn * 0.04 * sin(time * 3.0 + p.y * 5.0 + prm.y);' // лёгкое дыхание оболочки
+      + 'p.x += prm.z * (p.y * p.y - 1.3); nn.x -= prm.z * 2.0 * p.y; nn = normalize(nn);' // изгиб дугой в повороте
+      + 'p.y += sign(p.y) * prm.w * min(abs(p.y), 1.0);' // удлинение только прямой частью: торцы остаются круглыми, а не вытягиваются лимоном
+      + 'float pf = 1.0 - prm.x * exp(-p.y * p.y / 0.06); p.xz *= pf;'; // перетяжка — узкая перегородка в радиус шириной, какой бы длины ни была палочка
     this.core = kind(cap.clone(), 200, pinch, { bump: 0.55, order: 1, rimK: 0.5 });
     this.skin = kind(cap.clone(), 200, pinch, { bump: 0.25, alpha0: 0.22, order: 3, rimK: 1.6 });
     const ball = new THREE.IcosahedronGeometry(1, 3);
@@ -100,8 +111,9 @@ export class Bodies {
   // bend — на сколько концы отходят вбок от середины (экранные единицы, + к оси (-sin, cos)).
   rod(x, y, ang, half, w, pinch, skin, core, seed, bend = 0) {
     const sy = half / 2, glow = c => [c[0] * 0.5 + 0.5, c[1] * 0.5 + 0.5, c[2] * 0.5 + 0.5];
-    this.put(this.core, x, y, ang, w * 0.7, sy * 0.86, w * 0.7, [core[0], core[1], core[2], 1], glow(core), [pinch * 0.95, seed, bend / (4 * 0.7 * w), 0]);
-    this.put(this.skin, x, y, ang, w, sy, w, [skin[0], skin[1], skin[2], 1], glow(skin), [pinch, seed, bend / (4 * w), 0]);
+    const E = (h, r) => Math.max(h / r - 2, -0.9), hc = half * 0.86, wc = w * 0.7; // сколько добавить прямой части сверх двух радиусов
+    this.put(this.core, x, y, ang, wc, wc, wc, [core[0], core[1], core[2], 1], glow(core), [pinch * 0.95, seed, bend / (4 * wc), E(hc, wc)]);
+    this.put(this.skin, x, y, ang, w, w, w, [skin[0], skin[1], skin[2], 1], glow(skin), [pinch, seed, bend / (4 * w), E(half, w)]);
   }
   // Только прозрачная оболочка без содержимого: сквозь неё видны органы (коловратка).
   shell(x, y, ang, half, w, skin, seed, bend = 0) {
