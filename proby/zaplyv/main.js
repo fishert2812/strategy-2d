@@ -393,7 +393,7 @@ let paused = false;
 const genome = genomeScreen({ G: genomeData, cfg, world: () => world, icon: g => icon(g),
   onOpen: () => { paused = true; document.body.classList.add('paused'); pad.end(0); down = null; finger = null; openTab(); },
   onClose: () => { paused = false; document.body.classList.remove('paused'); leaveTabs(); },
-  onCabinet: () => tab('alm'), onSend: () => send(), onDraw: () => showMarks() });
+  onCabinet: () => tab('alm'), onSend: () => openMarks(), onDraw: () => showMarks() });
 
 // Пауза с вкладками (книга, Э17): Геном · Карта · Альманах, внизу одна «Плыть». Открывается та, с которой ушёл;
 // в самый первый раз — Геном (карта ещё пуста), после первой гибели — Карта.
@@ -470,21 +470,42 @@ $('mcv').addEventListener('click', e => { // касание отметки — �
 // «Не так»: одно касание — отметка с моментом игры. Копятся здесь, «Отправить» — меню «Поделиться» телефона.
 let marks = [];
 try { marks = JSON.parse(localStorage.getItem('zaplyv.marks') || '[]'); } catch (_) {}
+const keepMarks = () => { try { if (marks.length) localStorage.setItem('zaplyv.marks', JSON.stringify(marks)); else localStorage.removeItem('zaplyv.marks'); } catch (_) {} };
 function showMarks() {
-  const n = marks.length, label = `Отправить отметки · ${n}`;
-  $('esend').style.display = n ? '' : 'none'; $('esend').textContent = label;
-  const g = $('gsend'); if (g) { g.style.display = n ? '' : 'none'; g.textContent = `Отправить · ${n}`; }
+  const n = marks.length;
+  $('esend').style.display = n ? '' : 'none'; $('esend').textContent = `Отметки · ${n}`;
+  const g = $('gsend'); if (g) { g.style.display = n ? '' : 'none'; g.textContent = `Отметки · ${n}`; }
+  if ($('mlist').classList.contains('on')) listMarks();
 }
+// Список отметок: каждую можно убрать ✕, все сразу — «Стереть все» и второе касание «Точно стереть». Отправить — оттуда же.
+let wipeSure = false;
+function listMarks() {
+  const n = marks.length; if (!n) { $('mlist').classList.remove('on'); return; }
+  $('mlhead').textContent = `Отметки · ${n}`; $('mlrows').textContent = '';
+  marks.forEach((m, i) => { const row = document.createElement('div'); row.className = 'mlrow';
+    if (m.img) { const im = new Image(); im.src = m.img; im.alt = ''; row.appendChild(im); }
+    const t = document.createElement('span'); t.textContent = m.at + ' · ' + m.text; row.appendChild(t);
+    const x = document.createElement('button'); x.className = 'ghost'; x.textContent = '✕'; x.setAttribute('aria-label', 'Убрать отметку ' + (i + 1));
+    x.onclick = () => { marks.splice(i, 1); keepMarks(); showMarks(); }; row.appendChild(x); $('mlrows').appendChild(row); });
+  $('mlwipe').textContent = wipeSure ? 'Точно стереть?' : 'Стереть все'; $('mlwipe').classList.toggle('sure', wipeSure);
+}
+const openMarks = () => { wipeSure = false; $('mlist').classList.add('on'); listMarks(); };
+$('mlwipe').onclick = () => { if (!wipeSure) { wipeSure = true; listMarks(); return; } marks = []; keepMarks(); wipeSure = false; showMarks(); say('Отметки стёрты', 1800); };
+$('mlsend').onclick = async () => { await send(); showMarks(); };
+$('mlclose').onclick = () => $('mlist').classList.remove('on');
+// Случайное касание флажка (О38: приняли за «закончить заплыв»): под надписью «Убрать» — последняя отметка уходит.
+let undoT = 0;
+const offerUndo = () => { const u = $('nundo'), r = $('note').getBoundingClientRect(); u.style.top = (r.height ? r.bottom + 8 : 108) + 'px'; u.classList.add('on'); clearTimeout(undoT); undoT = setTimeout(() => $('nundo').classList.remove('on'), 3500); };
+$('nundo').onclick = () => { marks.pop(); keepMarks(); showMarks(); $('nundo').classList.remove('on'); $('note').classList.remove('on'); say('Отметка убрана', 1500); };
 // Отклик на касание флажка виден на любом экране: флажок вспыхивает, рядом своя надпись поверх всех слоёв (урок L017).
 let noteT = 0;
 function flag(screen, btn) {
   const now = new Date(), at = `${now.getDate()}.${String(now.getMonth() + 1).padStart(2, '0')} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
   let text; try { text = mark(world, cards, $('ver').textContent.replace('Заплыв ', ''), screen, cfg.flag_r, { x: view.x, y: view.y }); } catch (e) { text = $('ver').textContent + ' · ' + screen + ' · (подробности не собрались: ' + e.message + ')'; }
   marks.push({ at, text });
-  try { localStorage.setItem('zaplyv.marks', JSON.stringify(marks)); } catch (_) {}
-  showMarks();
-  const n = $('note'); n.classList.remove('ok'); n.textContent = `⚑ Отметка ${marks.length} записана` + (screen === 'игра' ? ' · отправить — на паузе' : ''); n.classList.add('on');
-  clearTimeout(noteT); noteT = setTimeout(() => n.classList.remove('on'), 2200);
+  keepMarks(); showMarks();
+  const n = $('note'); n.classList.remove('ok'); n.textContent = `⚑ Отметка ${marks.length} записана` + (screen === 'игра' ? ' · отправить — на паузе' : ''); n.classList.add('on'); offerUndo();
+  clearTimeout(noteT); noteT = setTimeout(() => n.classList.remove('on'), 3500);
   if (btn) { btn.classList.remove('hit'); void btn.offsetWidth; btn.classList.add('hit'); }
   try { beep(880, 0.08, 0.04, 'sine', 0.8); } catch (_) {}
 }
@@ -495,7 +516,7 @@ async function send() {
     if (navigator.share && files.length && navigator.canShare?.({ files })) await navigator.share({ text, files }); // картинки мест — вместе со словами
     else if (navigator.share) await navigator.share({ text });
     else { await navigator.clipboard.writeText(text); say('Скопировано — вставь в чат', 2200); }
-    marks = []; try { localStorage.removeItem('zaplyv.marks'); } catch (_) {}
+    marks = []; keepMarks();
     showMarks();
   } catch (e) { if (e?.name !== 'AbortError') say('Не отправилось — отметки целы, попробуй ещё', 2200); } /* отменил отправку — отметки остаются */
 }
@@ -536,7 +557,7 @@ const fclose = () => { $('fsheet').classList.remove('on'); frozen = false; };
 $('fcancel').onclick = fclose;
 $('gflag').onclick = $('gno').onclick = e => flag('геном', e.currentTarget);
 $('eno').onclick = e => flag('экран гибели', e.currentTarget);
-$('esend').onclick = send;
+$('esend').onclick = openMarks;
 showMarks();
 function meet(k) { // первая встреча: на секунду имя у края экрана, без паузы и без нажатий
   if (met.has(k) || !cards[k]) return;
