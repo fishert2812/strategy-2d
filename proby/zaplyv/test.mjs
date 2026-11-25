@@ -16,9 +16,14 @@ const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
 let bad = 0;
 // ONLY=L014 — запустить только проверки с этим номером урока (так selftest ломает игру и ждёт красного у нужной проверки).
 const TITLES = []; // названия проверок: по ним видно, у какого умения есть тест «сделал → случилось» (урок L024)
+// PART=a|b|c делит проверки на три части, шаг 50 гоняет их параллельно: целиком файл шёл 300 с при пределе 300 (25.11).
+// Три самых долгих бот-замера (по 67–85 с) разведены по частям, к ним добавлены средние; всё прочее — в c.
+const CHASTI = { a: ['test_L024: каждого', 'test_L014', 'test_L013'], b: ['простой игрок', 'test_L054', 'test_L009'], c: [] };
+const chast = name => Object.keys(CHASTI).find(k => CHASTI[k].some(n => name.startsWith(n))) || 'c';
 const check = (name, fn) => {
   TITLES.push(name);
   if (process.env.ONLY && !name.includes('test_' + process.env.ONLY)) return;
+  if (process.env.PART && chast(name) !== process.env.PART) return;
   try { const r = fn(); if (r) { bad++; console.log('  ПРОВАЛ', name + ':', r); } else console.log('  ок   ', name); }
   catch (e) { bad++; console.log('  ПРОВАЛ', name + ':', e.stack); }
 };
@@ -878,6 +883,17 @@ check('test_L033 (прогон 0.54, О33: «Убери палец, и клет�
   console.log('    паспорт: без пальца до куска в 125 — с умением', yes === null ? 'не доплыла' : yes.toFixed(1) + ' с', '| без умения', no === null ? 'стоит' : no.toFixed(1) + ' с');
   if (yes === null) return 'с «Чует еду» клетка без пальца не доплыла до еды за 8 с';
   if (no !== null) return 'без умения клетка сама доплыла — умение ничего не меняет';
+});
+
+check('test_L056 (Роман 25.11, отметка 1 на 0.83: «Вот еда! У меня скилл — плывут к еде! Но никто к еде не плывет. Отпустил палец еду не видят»): с «Чует еду» вся колония без пальца сама плывёт к бурому комку детрита и к водоросли и ест их', () => {
+  const go = (sense, kind) => { const w = new World(cfg, 601); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9;
+    const a = w.me[0]; w.genes.sense = sense; for (let i = 1; i < 4; i++) w.me.push({ ...a, id: 50 + i, x: a.x - 40 * i, y: a.y + 25 * (i % 2), vx: 0, vy: 0 });
+    const q = { x: a.x + 150, y: a.y - 70, m: 4, id: 99, t: 0.5 }; w[kind].push(q); const m0 = w.me.map(c => c.m); let t = 0;
+    while (t < 12) { w.step(1 / 30, null); t += 1 / 30; w.events.length = 0; }
+    return w.me.filter((c, i) => c.m > (m0[i] || 0) + 0.05).length; };
+  const out = {}; for (const k of ['crumbs', 'plants']) out[k] = [go(true, k), go(false, k)];
+  console.log('    паспорт: из 4 клеток за 12 с без пальца поели — детрит', out.crumbs.join(' / без умения '), '· водоросль', out.plants.join(' / без умения '));
+  for (const k of ['crumbs', 'plants']) { if (out[k][0] < 3) return 'с «Чует еду» к ' + (k === 'crumbs' ? 'комку детрита' : 'водоросли') + ' доплыли и поели ' + out[k][0] + ' из 4'; if (out[k][1] > 1) return 'без умения клетки сами доплыли — умение ничего не меняет'; }
 });
 
 check('test_L024: умение не приходит дочке раньше встречи с тем, о ком оно (поле «после встречи с» в книге), а после встречи приходит', () => {
