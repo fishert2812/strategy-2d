@@ -195,7 +195,7 @@ export class World {
           a.tumble = mut.snap(this, a) ? 0 : mut.tumbleTime(this, sw.tumble_time); // разворот рывком вместо кувырка (режим «Мутации»); кувырок стряхивает фага, который ещё не впрыснул
           if (a.grab) this.escape(a);
           if (a.held > c.bdello_kill - c.bdello_loose) for (const b of this.bdellos) if (b.on === a) { b.on = null; b.t = 0; a.held = 0; a.free = c.free; this.events.push(['shake', b.x, b.y]); } // прилип, но ещё не вошёл — стряхнёшь
-          for (const g of this.phages) if (g.on === a) { g.on = null; g.cool = 1.5; g.vx = -Math.cos(g.d) * 60; g.vy = -Math.sin(g.d) * 60; this.events.push(['shake', g.x, g.y]); }
+          for (const g of this.phages) if (g.on === a && c.inject - g.t < c.phage_shake) { g.on = null; g.cool = 1.5; g.vx = -Math.cos(g.d) * 60; g.vy = -Math.sin(g.d) * 60; this.events.push(['shake', g.x, g.y]); }
         }
         // поворот с разгоном и доводкой: скорость поворота меняется плавно (не больше spin_acc рад/с²)
         // и гаснет к цели — без скачков позы ни на дуге, ни в кувырке

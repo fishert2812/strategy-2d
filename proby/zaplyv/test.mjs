@@ -62,6 +62,24 @@ check('амёба глотает клетку без капсулы и не мо
   if (res[1] !== 1) return 'с капсулой клетку всё равно съели';
 });
 
+// Урок L045 (прогон 0.68: «вирус стал безвредным»; бот: прилипший вирус в 13 из 20 случаев слетал от случайных поворотов за едой;
+// решение 25.11 по совету координатора): стряхнуть можно только нарочным резким разворотом в первые cfg.phage_shake с после посадки.
+check('test_L045: вирус стряхивает только резкий разворот сразу после посадки; позже поздно — клетка заболевает', () => {
+  const go = late => { const w = new World(cfg, 5); w.mode = 'swim'; for (const l of ['amoebas', 'bdellos', 'slippers', 'bells', 'rotis', 'pseudos', 'phages']) w[l].length = 0; w.tidy = 1e9;
+    const a = w.me[0]; a.a = 0; w.phages.push({ x: a.x + 60, y: a.y, vx: 0, vy: 0, d: 0, t: 0, id: 1, host: 'me', cool: 0 });
+    let t0 = -1, shook = false;
+    for (let t = 0; t < 4; t += 1 / 30) { const c = w.me[0]; if (!c) break; const g = w.phages.find(g => g.on === c);
+      if (g && t0 < 0) t0 = t;
+      const back = t0 >= 0 && t - t0 > late; // разворот назад
+      w.step(1 / 30, back ? { x: c.x - Math.cos(c.a) * 200, y: c.y - Math.sin(c.a) * 200 } : { x: c.x + Math.cos(c.a) * 200, y: c.y + Math.sin(c.a) * 200 });
+      if (w.events.some(e => e[0] === 'shake')) shook = true; w.events.length = 0; }
+    return { t0, shook, sick: w.me.some(c => c.sick >= 0) || !w.me.length }; };
+  const early = go(0.1), late = go(cfg.phage_shake + 0.4);
+  console.log(`    паспорт: разворот через 0,1 с после посадки — стряхнул: ${early.shook}, болеет: ${early.sick} | через ${(cfg.phage_shake + 0.4).toFixed(1)} с — стряхнул: ${late.shook}, болеет: ${late.sick}`);
+  if (early.t0 < 0) return 'вирус не сел';
+  if (!early.shook || early.sick) return 'резкий разворот сразу после посадки не стряхнул вирус';
+  if (late.shook || !late.sick) return 'поздний разворот всё ещё стряхивает вирус: случайные повороты спасают от него';
+});
 check('[crispr] фаг прилипает и впрыскивает, клетка лопается облаком новых фагов; CRISPR помнит только пережитых: первый фаг стоит сил и даёт полоску, второй режется даром', () => {
   const res = [];
   for (const crispr of [false, true]) {

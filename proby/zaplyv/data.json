@@ -16,7 +16,7 @@
 	"bdello_chance": [0.2, 0.15, 0.1],
 	"phage_jitter": 30,
 	"flow": 10,
-	"inject": 2.0,
+	"inject": 2.0, "phage_shake": 0.5,
 	"burst": 6,
 	"sick": 5,
 	"meet": 260,
