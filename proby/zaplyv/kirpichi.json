@@ -35,6 +35,21 @@
    "halo": 1.6,
    "color": [1, 0.78, 0.6]
   },
+  "vyrost": {
+   "_": "вырост способности: гладкая лопасть растёт из зоны тела по нормали, сужается к кончику, покачивается и втягивается; размеры в толщинах тела W",
+   "dlina": 1.2, "shir": 0.62, "konec": 0.26, "koren": 0.45, "profil": 1.5, "kaplya": 0.75, "belee": 0.25, "svetlee": 0.45, "razbros": 0.25, "naklon": 0.8, "sdvig": 0.8,
+   "rost": 0.35, "uhod": 0.7, "volna": 0.18, "temp": 3,
+   "a": 0.9, "halo": 0.9, "serdce": 0.7, "sheyka": 0.4, "poverh": 4, "bugor": 0.6, "bugor_shir": 0.9
+  },
+  "vybros": {
+   "_": "выброс способности: сплошная струя бьёт из зоны тела по нормали, отрывается и расплывается облаком по диффузии; размеры в толщинах тела W",
+   "dlina": 1.7, "shir": 0.5, "koren": 0.2, "a": 0.75, "razbros": 0.2, "naklon": 0.6, "gustota": 0.75, "volna": 0.04, "vylet": 0.45, "otryv": 0.4, "oblako": 0.45,
+   "puffs": 16, "r0": 0.35, "D": 0.3, "dreif": 0.3, "halo": 0, "cvet": [0.62, 1, 0.55]
+  },
+  "vspyshka": {
+   "_": "вспышка оболочки: по зоне тела бежит волна света с мягким хвостом, за ней светится вся зона и гаснет; размеры в толщинах тела W",
+   "shir": 0.16, "otstup": 0.02, "beg": 0.55, "hvost": 0.3, "lob": 0.06, "fon": 0.45, "halo": 2.2
+  },
   "oblako": {
    "_": "облако соков расплывается по формуле диффузии: радиус √(r0² + 4·D·t), яркость падает как r0²/r²",
    "puffs": 14,
@@ -70,6 +85,38 @@
    "priemka": null,
    "tyaga": { "ot": 1.0, "do": 2.0, "vglub": 0.5 }
   },
+  "vyrost": {
+   "nazvanie": "Вырост (заготовка способности)",
+   "dlit": 2.4,
+   "obrazec": "ref_24.jpg",
+   "shagi": [
+    { "k": "vyrost", "zona": "rot", "ot": 0, "do": 1.6 },
+    { "k": "vyrost", "zona": "posadka", "ot": 0.5, "do": 2.4 }
+   ],
+   "v_igre": false,
+   "priemka": null
+  },
+  "vybros": {
+   "nazvanie": "Выброс (заготовка способности)",
+   "dlit": 2.2,
+   "obrazec": "ref_17.jpg",
+   "shagi": [
+    { "k": "vybros", "zona": "scepka", "ot": 0, "do": 2.2 },
+    { "k": "vybros", "zona": "posadka", "ot": 0.4, "do": 2.2, "cvet": [1, 0.6, 0.85] }
+   ],
+   "v_igre": false,
+   "priemka": { "verdikt": "принято", "rolik": "design/kadry/kirpichi/vybros_ryadom.mp4", "otzyv": "design/kadry/kirpichi/vybros_priemka_4.md", "data": "2026-11-25" }
+  },
+  "vspyshka": {
+   "nazvanie": "Вспышка оболочки (заготовка способности)",
+   "dlit": 1.8,
+   "obrazec": "ref_24.jpg",
+   "shagi": [
+    { "k": "vspyshka", "zona": "obolochka", "ot": 0, "do": 1.8 }
+   ],
+   "v_igre": false,
+   "priemka": { "verdikt": "принято", "rolik": "design/kadry/kirpichi/vspyshka_ryadom.mp4", "otzyv": "design/kadry/kirpichi/vspyshka_priemka_2.md", "data": "2026-11-25" }
+  },
   "est": {
    "nazvanie": "Есть кусок (бактерия)",
    "dlit": 2.3,
@@ -84,5 +131,6 @@
   }
  },
  "_priemka": "Навык идёт в игру (v_igre: true) только с приёмкой: ролик стенда рядом с референсом Романа посмотрела отдельная сессия по stend/PRIEMKA.md и написала «принято» (урок L047).",
+ "_zona": "Шаг может сидеть на зоне тела (zona: rot, obolochka, posadka, scepka, udar — zony.js). Тогда kp.play(навык или запись { shagi }, { zapis, poza }): кирпич берёт куски зоны, толщину тела W и тон тела.",
  "_tyaga": "tyaga навыка: с ot по do цель плавно едет к борту клетки и уходит в неё на долю vglub (её тянут нити или ток воды)."
 }

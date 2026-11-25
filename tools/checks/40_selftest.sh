@@ -76,6 +76,12 @@ ONLY=L032 case_ "test_L032: спящую снова держат запятые 
 ONLY=L047 case_ "test_L047: нить снова пунктиром" 60_kirpichi.sh red "sed -i 's/tube\.put(pts, ws, mix(P\.skin, P\.skin2, [^;]*;/pts.forEach((q, k) => k % 4 || glow.put(...q, ws[k], ...P.energy, 0.9));/' $Z/kirpichi.js"
 ONLY=L047 case_ "test_L047: образец — свой рендер" 60_kirpichi.sh red "sed -i 's/\"obrazec\": \"ref_21.jpg\"/\"obrazec\": \"niti_ryadom_s_obrazcom.png\"/' $Z/kirpichi.json"
 ONLY=L047 case_ "test_L047: навык в игре без приёмки" 60_kirpichi.sh red "sed -i '0,/\"v_igre\": false/s//\"v_igre\": true/' $Z/kirpichi.json"
+ONLY=L047 case_ "test_L047: вырост цепочкой точек" 60_kirpichi.sh red "sed -i 's/      } else tube.put(pts, ws, skin, core, P.a \\* Math.min(1, g \\* 3), P.halo);/      } else pts.forEach((q, i) => i % 3 || c.glow.put(...q, ws[i], ...skin, 0.9));/' $Z/kirpichi.js"
+ONLY=L047 case_ "test_kirpichi_vyrost: вырост растёт внутрь тела" 60_kirpichi.sh red "sed -i 's/nx = Math.cos(an), ny = Math.sin(an)/nx = -Math.cos(an), ny = -Math.sin(an)/' $Z/kirpichi.js"
+ONLY=L047 case_ "test_L047: струя выброса цепочкой точек" 60_kirpichi.sh red "sed -i 's/        tube.put(pts, ws.map(w => Math.min(w, dl \\* 0.3)), col, core,/        pts.forEach((q, i) => i % 3 || c.glow.put(...q, ws[i], ...col, 0.9)); if (0) tube.put(pts, ws, col, core,/' $Z/kirpichi.js"
+ONLY=L047 case_ "test_kirpichi_vybros: облако выброса не расплывается" 60_kirpichi.sh red "sed -i 's/\"puffs\": 16, \"r0\": 0.35, \"D\": 0.3,/\"puffs\": 16, \"r0\": 0.35, \"D\": 0,/' $Z/kirpichi.json"
+ONLY=L047 case_ "test_L047: вспышка оболочки бегущими точками" 60_kirpichi.sh red "sed -i 's/        if (pts.length > 2) tube.put(pts, ws, col, core, env \\* (1 - sm/        if (pts.length > 2) pts.forEach((q, i) => i % 3 || c.glow.put(...q, ws[i], ...col, 0.9)); if (0) tube.put(pts, ws, col, core, env * (1 - sm/' $Z/kirpichi.js"
+ONLY=L047 case_ "test_kirpichi_vspyshka: свет ушёл с оболочки" 60_kirpichi.sh red "sed -i 's/\"otstup\": 0.02/\"otstup\": 0.9/' $Z/kirpichi.json"
 # L033: «Чует еду» без пальца снова стоит
 ONLY=L033 case_ "test_L033: без пальца клетка с умением стоит" 50_zaplyv.sh red "sed -i 's/} else if (this.genes.sense) {/} else if (false) {/' $Z/sim.js"
 # L054: запятые снова плодят рой и нападают без передышки
