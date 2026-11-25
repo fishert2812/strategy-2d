@@ -1,16 +1,63 @@
-// Живой мир записью: node test_mir.mjs
-import { sozdat, shag, perepis, zhivogo, MR } from './mir_zhizn.js';
-let bad = 0; const check = (n, f) => { let e; try { e = f(); } catch (x) { e = 'ошибка скрипта: ' + x.message + ' ' + (x.stack || '').split('\n')[1]; } console.log((e ? '  ПРОВАЛ ' : '  ок    ') + n + (e ? ': ' + e : '')); if (e) bad++; };
-const prozhit = (M, sek, dt = 0.1) => { const t0 = Date.now(); for (let t = 0; t < sek; t += dt) shag(M, dt); return (Date.now() - t0) / (sek / dt); };
-const M = sozdat('kaplya', 3), nach = perepis(M), n0 = M.sv.length; const ms = prozhit(M, 600); const kon = perepis(M);
-check('test_mir_zhivet: мир из записей живёт 10 минут сам — все виды живы, рождаются, гибнут, охотники едят', () => {
-  console.log('    паспорт: было', n0, JSON.stringify(nach)); console.log('    паспорт: стало', M.sv.length, JSON.stringify(kon)); console.log('    паспорт: события', JSON.stringify(M.schet), '| шаг мира', ms.toFixed(2), 'мс');
-  for (const v of Object.keys(nach)) if (!kon[v]) return 'вид ' + v + ' вымер за 10 минут';
-  if (M.schet.rodilos < 50) return 'родилось всего ' + M.schet.rodilos; if (M.schet.syel < 3) return 'инфузория съела ' + M.schet.syel; if (M.schet.proboy < 5) return 'пробоев ' + M.schet.proboy; if (M.schet.mutantov < 5) return 'мутантов ' + M.schet.mutantov; });
-check('test_mir_predel: мир не разрастается без края — еда в воде держит число существ', () => { if (M.sv.length >= MR.zhizn.predel) return 'упёрлись в защитный предел ' + MR.zhizn.predel + ': число держит заглушка, а не еда'; if (M.sv.length < n0 * 0.4) return 'мир вымирает: ' + M.sv.length + ' из ' + n0; });
-check('test_mir_odinakovo: то же зерно — тот же мир; другое зерно — другой', () => { const a = sozdat('kaplya', 5), b = sozdat('kaplya', 5), c = sozdat('kaplya', 6); prozhit(a, 60); prozhit(b, 60); prozhit(c, 60);
-  if (JSON.stringify(perepis(a)) + a.sv[0].x !== JSON.stringify(perepis(b)) + b.sv[0].x) return 'одно зерно дало разные миры'; if (a.sv[0].x === c.sv[0].x) return 'разные зёрна дали одно и то же'; });
-check('test_mir_veshchestvo: вещество не берётся из ничего — без притока еды и без еды в воде мир только худеет', () => { const K = JSON.parse(JSON.stringify(MR)); K.pole.pritok = 0; K.pole.nachalo = 0; const m = sozdat('kaplya', 2, K), b0 = zhivogo(m) + m.pole.vsego(); prozhit(m, 60); const b1 = zhivogo(m) + m.pole.vsego();
-  console.log('    паспорт: вещества было', b0.toFixed(1), '→ стало', b1.toFixed(1)); if (b1 > b0 + 1e-6) return 'вещества прибавилось: ' + b0.toFixed(2) + ' → ' + b1.toFixed(2); });
-check('test_mir_bez_ohotnikov: правило встречи одно на всех — убрали охотников, никто никого не ест', () => { const K = JSON.parse(JSON.stringify(MR)); for (const v of ['zapyataya', 'infuzoriya', 'garpun']) delete K.miry.kaplya.naselenie[v]; const m = sozdat('kaplya', 2, K); prozhit(m, 120); if (m.schet.syel + m.schet.proboy) return 'без охотников кого-то съели'; });
-console.log(bad ? 'МИР: провалов ' + bad : 'МИР: все проверки прошли'); process.exit(bad ? 1 : 0);
+// Проверки сборки мира по записи (mir_sborka.js) без экрана: node proby/zaplyv/test_mir.mjs. Провал — код 1.
+// Самопроверки в конце: испорченная запись поймана, амёба со «любит» света не в иле — сторож ареала краснеет.
+import * as M from './mir_sborka.js';
+import * as pole from './pole.js';
+import { readFileSync } from 'node:fs';
+const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url))), pond = cfg.pond, Z = M.ZAPIS;
+let bad = 0;
+const check = (name, fn) => {
+  try { const r = fn(); if (r) { bad++; console.log('  ПРОВАЛ', name + ':', r); } else console.log('  ок   ', name); }
+  catch (e) { bad++; console.log('  ПРОВАЛ', name + ':', e.stack); }
+};
+const W = M.sobrat(Z, cfg, 11), f = W.pole, glub = c => (Math.floor(c / f.n) + 0.5) / f.m;
+const dolya = (mir, k, ok) => { let a = 0, b = 0; mir.N[k].forEach((n, c) => { b += n; if (ok(glub(c))) a += n; }); return b ? a / b : 0; };
+
+check('test_mir_zapis: запись мира без ошибок, каждый вид — существующая запись', () => { const b = M.oshibki(Z); if (b.length) return b.join('; '); });
+
+check('test_mir_chislo: каждый вид в капле есть, числа соразмерны плотности', () => {
+  const s = Object.keys(Z.vidy).map(k => [k, M.vsego(W, k)]);
+  console.log('    паспорт: особей в капле —', s.map(([k, n]) => k + ' ' + n).join(', '));
+  const net = s.filter(([, n]) => !n).map(([k]) => k); if (net.length) return 'вымерли с начала: ' + net.join(', ');
+  if (!(M.vsego(W, 'coccus') > M.vsego(W, 'roti') * 5)) return 'кокков не больше коловраток — плотность не работает';
+});
+
+const areal = mir => { // где вид живёт — следует из поля и его «любит»
+  const a = dolya(mir, 'amoeba', d => d >= pond.silt), b = dolya(mir, 'bell', d => d < 0.4), s = dolya(mir, 'seno', d => d < 0.15);
+  console.log(`    амёб в иле ${(a * 100).toFixed(0)} %, колокольчиков в светлой воде ${(b * 100).toFixed(0)} %, сенной палочки у плёнки ${(s * 100).toFixed(0)} %`);
+  if (a < 0.8) return 'амёбы не в иле'; if (b < 0.8) return 'колокольчики не у света'; if (s < 0.8) return 'сенная палочка не у кислорода плёнки';
+};
+check('test_mir_areal: амёба в иле, колокольчик у света, сенная палочка у плёнки — по полю, а не по шансу', () => areal(W));
+
+check('test_mir_start: у старта тихо (опасных ближе tiho_r нет), но жизнь и еда рядом', () => {
+  const S = Z.start, R = S.tiho_r, near = M.razvernut(W, { x0: S.x - 2 * R, y0: S.y - 2 * R, x1: S.x + 2 * R, y1: S.y + 2 * R });
+  const zlo = near.filter(q => M.opasen(q.vid) && Math.hypot(q.x - S.x, q.y - S.y) < R - 60), eda = pole.okno(f, { x0: S.x - 200, y0: S.y - 200, x1: S.x + 200, y1: S.y + 200 }).filter(q => Math.hypot(q.x - S.x, q.y - S.y) < 200);
+  console.log(`    паспорт: в двух радиусах тишины ${near.length} особей, опасных в тишине ${zlo.length}, еды в радиусе 200 ${eda.length}`);
+  if (zlo.length) return 'у старта опасные: ' + zlo.map(q => q.vid).join(', ');
+  if (!near.some(q => q.vid === 'coccus')) return 'у старта никого — пусто';
+  if (eda.length < 5) return 'у старта еды ' + eda.length + ', нужно 5+';
+});
+
+check('test_mir_razvernut: в окне столько особей, сколько в его клетках; второй раз — те же на тех же местах', () => {
+  const b = { x0: 2000, y0: 3000, x1: 4400, y1: 5000 }, a = M.razvernut(W, b), again = M.razvernut(W, b);
+  let want = 0; for (const c of new Set(a.map(q => q.kletka))) for (const k in W.N) want += W.N[k][c];
+  if (a.length !== want) return `развернули ${a.length}, в клетках ${want}`;
+  if (a.length !== again.length || a.some((q, i) => q !== again[i])) return 'второй раз — другие особи';
+  const out = a.filter(q => pole.kletka(f, q.x, q.y) !== q.kletka && Math.hypot(q.x - (f.X0 + (q.kletka % f.n + 0.5) * f.C), q.y - (f.Y0 + (Math.floor(q.kletka / f.n) + 0.5) * f.C)) > f.C);
+  if (out.length) return 'особи далеко от своей клетки: ' + out.length;
+});
+
+check('test_mir_semya: одно зерно — один мир, другое — другой', () => {
+  const a = M.sobrat(Z, cfg, 5), b = M.sobrat(Z, cfg, 5), c = M.sobrat(Z, cfg, 6), sig = m => Object.keys(Z.vidy).map(k => M.vsego(m, k)).join();
+  if (sig(a) !== sig(b)) return 'одно зерно — разные миры'; if (sig(a) === sig(c)) return 'разные зёрна — один мир';
+});
+
+check('самопроверка: испорченная запись поймана, амёба «любит свет» — сторож ареала красный', () => {
+  const b = M.oshibki({ ...Z, vidy: { ...Z.vidy, drakon: { plotnost: 1, gruppa: [1, 1], massa: [1, 1], s_rosta: 0, lyubit: {} }, amoeba: { ...Z.vidy.amoeba, gruppa: [3] } } });
+  if (!b.some(s => s.startsWith('drakon')) || !b.some(s => s.startsWith('amoeba.gruppa'))) return 'испорченная запись прошла: ' + b.join('; ');
+  const z2 = structuredClone(Z); z2.vidy.amoeba.lyubit = { svet: [0.5, 1] };
+  if (!M.lyubit('amoeba', z2).svet || !areal(M.sobrat(z2, cfg, 11))) return 'амёба, любящая свет, всё равно в иле — сторож ничего не меряет';
+  console.log('    (так и должно быть: сторож ареала покраснел на испорченной амёбе)');
+});
+
+console.log(bad ? `МИР: провалов ${bad}` : 'МИР: все проверки прошли');
+process.exit(bad ? 1 : 0);

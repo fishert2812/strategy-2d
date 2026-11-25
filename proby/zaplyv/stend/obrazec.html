@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Заплыв · стенд с образцом</title>
+<style>
+html, body { margin: 0; height: 100%; background: #04101a; overflow: hidden; font-family: -apple-system, system-ui, sans-serif; color: #dff3f5; }
+canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
+#ob { position: fixed; left: 12px; right: 12px; top: calc(env(safe-area-inset-top) + 40px); height: calc(48% - 52px); display: flex; align-items: center; justify-content: center; }
+#ob img { max-width: 100%; max-height: 100%; border-radius: 10px; }
+.pd { position: fixed; left: 0; right: 0; text-align: center; font-weight: 600; font-size: 16px; pointer-events: none; }
+.pd small { font-weight: 400; color: #8fb8be; margin-left: 6px; }
+#p1 { top: calc(env(safe-area-inset-top) + 12px); } #p2 { top: 50%; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ob"></div><div class="pd" id="p1"></div><div class="pd" id="p2"></div>
+<script type="module">
+// Стенд сравнения с образцом: сверху цветной образец из design/referensy/, снизу та же запись существа, собранная движком
+// из частей (vid_chasti.json, раздел vidy, рисунок sobrat из vid_chasti.js — тот же, что в игре). ?vid=nasha.
+// Образец лежит вне репозитория: съёмка (tools/web/sravnenie.mjs) отдаёт его window.obrazec(картинка, подпись).
+// Нет записи — на экране «нет записи», window.sravnenie.oshibka; кадр с такой ошибкой — провал проверки, а не пустой кадр.
+import * as THREE from '../three.module.min.js';
+import { Bodies } from '../body3d.js';
+import { VC, sobrat } from '../vid_chasti.js';
+const q = new URLSearchParams(location.search), vid = q.get('vid') || 'nasha', Z = VC.vidy[vid];
+const O = await fetch('obrazcy.json').then(r => r.json()), M = O.vidy[vid], poza = M?.poza || { dlina: 3, tolshchina: 120, ugol: -1.5708 };
+const $ = id => document.getElementById(id), info = window.sravnenie = { vid, zapis: !!Z, obrazec: M ? M.papka + '/' + M.fail : null, chastey: 0, oshibka: !Z ? 'нет записи «' + vid + '» в vid_chasti.json' : !M ? 'нет образца для «' + vid + '» в stend/obrazcy.json' : '' };
+$('p1').textContent = 'Образец'; $('p2').textContent = 'Движок'; const s2 = document.createElement('small'); s2.textContent = Z ? vid : 'нет записи'; $('p2').append(s2);
+window.obrazec = (src, podpis) => new Promise(ok => { const im = new Image(); im.onload = () => { info.obrazecShir = im.naturalWidth; ok(true); }; im.onerror = () => ok(false); im.src = src; $('ob').replaceChildren(im);
+  const s = document.createElement('small'); s.textContent = podpis || ''; $('p1').replaceChildren('Образец', s); });
+const W = 720, gl = new THREE.WebGLRenderer({ canvas: $('c'), antialias: true });
+gl.setPixelRatio(Math.min(devicePixelRatio, 3)); gl.autoClear = false;
+const H = W * innerHeight / innerWidth; gl.setSize(innerWidth, innerHeight, false);
+const cam = new THREE.OrthographicCamera(0, W, 0, H, -1, 1), back = new THREE.Scene(), bodies = new Bodies(); bodies.resize(W, H);
+const bg = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.ShaderMaterial({ depthTest: false, side: THREE.DoubleSide, // вода как в игре: тёмная толща, виньетка
+  vertexShader: 'varying vec2 v; void main(){ v = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: 'varying vec2 v; void main(){ vec3 c = mix(vec3(0.01, 0.05, 0.08), vec3(0.04, 0.16, 0.2), v.y); float d = length(v - vec2(0.5, 0.25)); gl_FragColor = vec4(c * (1.0 - 0.5 * smoothstep(0.3, 0.8, d)), 1.0); }' }));
+bg.position.set(W / 2, H / 2, 0); bg.scale.y = -1; back.add(bg);
+let time = 0;
+const kadr = dt => { time += dt; bodies.begin();
+  if (Z) info.chastey = sobrat(Z, { x: W / 2, y: H * 0.75, a: poza.ugol, dlina: poza.dlina * poza.tolshchina, tolshchina: poza.tolshchina, z: poza.tolshchina / 8.5, time, id: 7, beg: 0 }, bodies);
+  bodies.end(time); gl.clear(); gl.render(back, cam); gl.render(bodies.scene, bodies.cam); info.kadrov = (info.kadrov || 0) + 1; };
+let last = performance.now(); const go = now => { kadr(Math.min(0.05, (now - last) / 1000)); last = now; requestAnimationFrame(go); }; requestAnimationFrame(go);
+info.gotov = true;
+</script>
+</body>
+</html>
