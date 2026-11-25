@@ -139,6 +139,20 @@ check('[magnet] пищевой магнит: еда рядом сама плыв
   const s = mw(9, ['magnet'], 'swim'); s.lvl = { magnet: 1 }; if (s.offer('magnet')) return 'в обычном заплыве магнит предлагают снова';
 });
 
+// Круг магнита виден при выборе и сразу после (книга 53, разбор навыков: «при выборе навыка показать его круг на воде»), и магнит тянет только еду.
+check('[magnet] круг магнита: вокруг дочки на выборе и вспышкой после выбора; тянет только еду — не комок, не вирус, не клетку', () => {
+  const gold = w => { let n = 0; const [r, g, b] = M.magnet.gold; mut.drawWorld({ w, scr: (x, y) => [x, y], z: 1, kids: w.kidsT, ink: { put() {} }, glow: { put: (x, y, s, cr, cg, cb, al) => { if (cr === r && cg === g && cb === b && al > 0.25) n++; } } }); return n; };
+  const w = mw(13); const a = w.me[0]; w.kidsT = [{ g: 'magnet', x: a.x, y: a.y, m: 1.7 }, { g: 'shield', x: a.x + 300, y: a.y, m: 1.7 }];
+  if (!gold(w)) return 'на выборе вокруг дочки с магнитом нет круга';
+  w.kidsT = [{ g: 'shield', x: a.x, y: a.y, m: 1.7 }]; if (gold(w)) return 'круг рисуется и у дочки без магнита';
+  w.kidsT = null; w.pick('magnet'); const just = gold(w); run(w, M.magnet.show.t + 0.5, null); const late = gold(w);
+  if (!just || late) return 'после выбора круг не вспыхнул или не погас (' + just + ' → ' + late + ')';
+  const q = { x: a.x + 15, y: a.y, vx: 0, vy: 0, m: 0.6, a: 0, id: 991, pair: false }; w.prey.push(q); w.crumbs.push({ x: a.x - 15, y: a.y, m: 3, id: 992 }); w.cloud(a.x, a.y + 15, 'me', 0);
+  const c = w.crumbs.at(-1), g = w.phages.at(-1); a.pulled = []; w.food.length = 0;
+  const inj = w.cfg.inject; w.cfg.inject = 1e9; for (let t = 0; t < 1; t += 1 / 30) w.step(1 / 30, null); w.cfg.inject = inj; // cfg общий на все тесты: вернуть
+  if ((a.pulled || []).some(f => f === q || f === c || f === g)) return 'магнит тянет не еду';
+});
+
 // Защита от вирусов и яда (З5, книга Г48): уровни — дочка приносит умение снова. 1 — вирус не садится, 2 — и яд шариков не входит, 3 — отскочивший вирус летит на шарик.
 const shieldAt = L => { const w = mw(11); for (let i = 0; i < L; i++) w.pick('shield'); return w; };
 check('[shield] защита от вирусов и яда: с каждым уровнем — вирус не садится, яд шариков гаснет, вирус отскакивает на шарик; еда входит медленнее', () => {
