@@ -423,7 +423,7 @@ export class World {
       Object.assign(a, { spore: this.cfg.spore, free: this.cfg.spore + 1, grab: null, held: 0, sick: -1, m: Math.max(0.8, a.m * 0.6) });
       this.events.push(['spore', a.x, a.y]); return;
     }
-    this.me.splice(i, 1); if (who !== 'phage') this.events.push(['eaten', x, y, who]); // кто съел — у каждой гибели своя анимация (fx.js)
+    this.me.splice(i, 1); if (!this.me.length) this.choice = []; /* L061: погибла с выбором на руках — карточки не лезут на экран гибели */ if (who !== 'phage') this.events.push(['eaten', x, y, who]); // кто съел — у каждой гибели своя анимация (fx.js)
     this.stats.lost[who] = (this.stats.lost[who] || 0) + 1; this.stats.killer = who; this.stats.where = [x, y];
   }
 
