@@ -56,6 +56,9 @@ await whole(['#pause', '#flag'], 'заплыв');
 // test_L038 (Роман 25.11: «даже еда стала чуть-чуть размытая. И как будто сама бактерия стала чуть-чуть размытая»): на телефоне с плотностью 3
 // кадр считается в 2,5 точки на точку экрана, а не растягивается из двойной (3 — кадр тяжелее в полтора раза, L015).
 say(await p.evaluate(() => { const c = document.getElementById('c'); return devicePixelRatio >= 3 && c.width >= Math.round(innerWidth * 2.5) - 1; }), 'test_L038: кадр плотнее двойной на экране iPhone (холст ' + await p.evaluate(() => document.getElementById('c').width + ' на ширину ' + innerWidth) + ')');
+// test_L041 (Роман 25.11: шипастый кокк «похож на вирус… подплываю, никакого взаимодействия»): прижалась к кокку — вокруг него облачко яда.
+{ await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; zaplyvProbe.poison = 0; w.prey.push({ x: a.x + 6, y: a.y, vx: 0, vy: 0, m: 0.6, a: 0, id: 4 }); });
+  await p.waitForTimeout(500); say(await p.evaluate(() => zaplyvProbe.poison > 0), 'test_L041: у кокка, к которому прижалась клетка, видно облачко яда');  await p.evaluate(() => { const w = zaplyvWorld(); w.prey = w.prey.filter(q => q.id !== 4); }); } // кокк убран: его «отплыви» не перебивает следующие надписи
 // test_L043 (Роман 25.11 на 0.67: «Большие коричневые шары это кто в игре?… они нападают» — амёбу видел много раз, а имени и что делать
 // при встрече нет: надпись была одна на всю жизнь игры, а совет при захвате — раз за заплыв): опасный в заплыве впервые — имя и что делать
 // из книги, даже если в Альманахе он уже есть; схватили — совет каждый раз.
@@ -122,7 +125,10 @@ if (await tap('#pause', 'пауза')) say(await on('genome') && (await p.textCo
 if (await tap('#phub [data-t=genome]', 'строка «Геном» в паузе')) say(await seen('#ring'), 'строка «Геном» открывает кольцо');
 if (await tap('#ring .slot', 'ген на кольце')) say(await p.evaluate(() => !!document.querySelector('#gcard h2')), 'касание гена открывает карточку');
 m = await marks();
-if (await tap('#gflag', 'флажок в геноме')) say(await noted(m), 'флажок в геноме: отметка и надпись видна');
+if (await tap('#gflag', 'флажок в геноме')) { // флажок в меню ставится на место (отметка Романа 8, 25.11: «В меню не могу поставить флажок перенести на проблему меню!»)
+  await tap('#gback', 'место для флажка — кнопка «‹ Пауза»');
+  say(await on('fsheet') && await p.evaluate(() => /Геном · «‹ Пауза»/.test(document.getElementById('fwhere').textContent) && document.getElementById('gtitle').textContent === 'Геном') && await on('genome'), 'флажок в меню: касание места не нажимает его, лист «Что здесь не так?» называет экран и место');
+  await p.fill('#ftext', 'проба'); if (await tap('#fsave', '«Записать»')) say(await p.evaluate(m => { const a = JSON.parse(localStorage.getItem('zaplyv.marks') || '[]'); return a.length === m + 1 && /меню: Геном · место: «/.test(a[m].text); }, m), 'флажок в меню: отметка записана с экраном и местом'); }
 if (await tap('#gback', '«‹ Пауза» из генома') && await tap('#phub [data-t=alm]', 'строка «Альманах»')) say(await on('cabinet'), 'Альманах открылся из паузы');
 // test_L019: у каждой карточки полки — снимок живой модели (картинка не пустая), разделы и карточка отвечают пальцу
 await p.waitForFunction(() => { const a = [...document.querySelectorAll('#shelf .kc img')]; return a.length && a.every(i => i.naturalWidth > 100 && i.src.length > 5000); }, null, { timeout: 6000 }).catch(() => {}); // снимки встают по одному: ждём их, а не время
