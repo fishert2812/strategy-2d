@@ -232,3 +232,13 @@ export function roti(c) {
     ink.put(x, y, (1.6 - f * 0.8) * z + 0.4, ...R.jaw, 0.85); }
   if (open < 0.12) { const [x, y] = P(ju + w * 0.3, 0); glow.put(x, y, w * 0.35, 1, 0.95, 0.8, 0.5 * (1 - open / 0.12)); } // щелчок
 }
+// Колокольчик (сувойка) как в жизни (биолог, «Вид существ» №3; физика, п.5): испугался — стебель за один кадр сжимается в тугую спираль
+// и подтягивает бокал к опоре, потом за V.bell.unfold плавно распрямляется. Пока он свёрнут, венец не работает (main.js, sim.js).
+// Рисует стебель, возвращает, где на экране бокал, и насколько он раскрыт (1 — раскрыт).
+export function bell(c) {
+  const { x, y, dir, Ls, r, shut, time, id, z, ink } = c, B = V.bell, dx = Math.cos(dir), dy = Math.sin(dir);
+  const coil = shut > 0 ? (shut > B.unfold ? 1 : shut / B.unfold) : 0, k = coil * coil * (3 - 2 * coil), len = Ls * (1 - (1 - B.short) * k); // плавно: быстрее в начале развёртки
+  for (let i = 0; i <= B.dots; i++) { const f = i / B.dots, amp = r * B.amp * k + 2 * z * (1 - k), ph = f * B.turns * 6.283 * k + f * 5 + time * (1 - k), o = Math.sin(ph) * amp, u = len * f - Math.cos(ph) * amp * 0.35 * k; // спираль: виток на виток
+    ink.put(x + dx * u - dy * o, y + dy * u + dx * o, (0.9 + 0.5 * k) * z + 0.4, ...B.col, 0.6 + 0.3 * k); }
+  return [x + dx * len, y + dy * len, 1 - k];
+}
