@@ -45,6 +45,9 @@ const whole = async (sels, where) => { const out = await p.evaluate(ss => ss.map
 say(!(await on('menu')), 'самый первый запуск — сразу заплыв, без меню (дизайнер)');
 let m = await marks();
 await whole(['#pause', '#flag'], 'заплыв');
+// test_L038 (Роман 25.11: «даже еда стала чуть-чуть размытая. И как будто сама бактерия стала чуть-чуть размытая»): на телефоне с плотностью 3
+// кадр считается в 2,5 точки на точку экрана, а не растягивается из двойной (3 — кадр тяжелее в полтора раза, L015).
+say(await p.evaluate(() => { const c = document.getElementById('c'); return devicePixelRatio >= 3 && c.width >= Math.round(innerWidth * 2.5) - 1; }), 'test_L038: кадр плотнее двойной на экране iPhone (холст ' + await p.evaluate(() => document.getElementById('c').width + ' на ширину ' + innerWidth) + ')');
 if (await tap('#flag', 'флажок в игре')) say(await seen('#note') && await marks() === m + 1, 'флажок в игре: отметка записана и надпись видна');
 if (await tap('#pause', 'пауза')) say(await on('genome') && (await p.textContent('#gtitle')) === 'Пауза', 'пауза открывает меню «Пауза»');
 if (await tap('#phub [data-t=genome]', 'строка «Геном» в паузе')) say(await seen('#ring'), 'строка «Геном» открывает кольцо');
@@ -53,7 +56,7 @@ m = await marks();
 if (await tap('#gflag', 'флажок в геноме')) say(await seen('#note') && await marks() === m + 1, 'флажок в геноме: отметка и надпись видна');
 if (await tap('#gback', '«‹ Пауза» из генома') && await tap('#phub [data-t=alm]', 'строка «Альманах»')) say(await on('cabinet'), 'Альманах открылся из паузы');
 // test_L019: у каждой карточки полки — снимок живой модели (картинка не пустая), разделы и карточка отвечают пальцу
-await p.waitForTimeout(1500);
+await p.waitForFunction(() => { const a = [...document.querySelectorAll('#shelf .kc img')]; return a.length && a.every(i => i.naturalWidth > 100 && i.src.length > 5000); }, null, { timeout: 6000 }).catch(() => {}); // снимки встают по одному: ждём их, а не время
 say(await p.evaluate(() => [...document.querySelectorAll('#shelf .kc img')].every(i => i.naturalWidth > 100 && i.src.length > 5000)), 'test_L019: у каждой записи Альманаха — снимок модели из игры');
 if (await tap('#kpills button:nth-child(2)', 'раздел «Еда»')) say(await p.evaluate(() => document.querySelectorAll('#shelf .kc').length > 0 && document.querySelector('#kpills .on').dataset.g === 'food'), 'раздел «Еда» открылся');
 if (await tap('#kpills button:nth-child(1)', 'раздел «Обитатели»')) say(await p.evaluate(() => !!document.querySelector('#shelf .kc[data-k=me]')), 'раздел «Обитатели» открылся');
