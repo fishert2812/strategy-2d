@@ -43,6 +43,10 @@
     {
      "id": "steady",
      "gene": "steady"
+    },
+    {
+     "id": "magnet",
+     "gene": "tar"
     }
    ]
   },

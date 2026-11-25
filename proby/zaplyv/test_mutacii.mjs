@@ -115,6 +115,29 @@ check('[citrate] ест голубую еду: без умения клетка 
   if (!a.ate || !(a.grow > 0)) return 'с умением голубая точка не стала едой';
 });
 
+// Пищевой магнит (З1): клетка стоит, палец отпущен. Крупинки на 32, 55 и 80 от неё и россыпь из 10 на 75 с другой стороны.
+// Уровень 1 берёт ближнюю, по одной; 2 — дальше и по несколько; 3 — дальше всех и всю россыпь разом, с волной и ленивым поворотом.
+const magnetAt = L => { const w = mw(9, L ? ['magnet'] : []), a = w.me[0]; if (L) w.lvl = { magnet: L }; run(w, 0.1, null);
+  const one = d => ({ x: a.x + d, y: a.y, vx: 0, vy: 0, s: 0.7 }), near = one(32), mid = one(55), far = one(80), heap = [];
+  for (let i = 0; i < 10; i++) { const t = Math.PI + (i - 4.5) * 0.2; heap.push({ x: a.x + Math.cos(t) * 75, y: a.y + Math.sin(t) * 75, vx: 0, vy: 0, s: 0.7 }); }
+  w.food.push(near, mid, far, ...heap); let most = 0, ev = 0, lazy = 0;
+  for (let t = 0; t < 5; t += 1 / 30) { w.step(1 / 30, null); most = Math.max(most, (a.pulled || []).length); ev += w.events.filter(e => e[0] === 'magnet').length; if (a.casc > 0) lazy++; w.events.length = 0; }
+  return { near: !!near.gone, mid: !!mid.gone, far: !!far.gone, heap: heap.filter(f => f.gone).length, most, ev, cascade: w.stats.cascade || 0, lazy, turn: mut.turnRate(w, { casc: 1 }, 1) }; };
+check('[magnet] пищевой магнит: еда рядом сама плывёт к клетке; с каждым уровнем — дальше и больше крупинок разом', () => {
+  const r = [0, 1, 2, 3].map(magnetAt), [o, a, b, c] = r;
+  console.log('    паспорт: уровень → ближняя/средняя/дальняя, из россыпи 10, крупинок разом, нот, каскадов:', r.map((x, i) => `${i}: ${+x.near}${+x.mid}${+x.far} ${x.heap} ×${x.most} ♪${x.ev} ${x.cascade}`).join(' | '));
+  if (o.near || o.mid || o.heap) return 'без умения стоящая клетка съела еду издалека';
+  if (!a.near || a.mid || a.far) return 'уровень 1 должен взять только ближнюю';
+  if (a.most !== 1) return 'уровень 1 тянет не по одной крупинке';
+  if (!b.near || !b.mid || b.far || b.most < 2) return 'уровень 2 должен брать дальше и по несколько';
+  if (!c.far || c.heap < 10) return 'уровень 3 должен втянуть и дальнюю, и всю россыпь';
+  if (!c.cascade || b.cascade || !(c.turn < 1)) return 'каскад (волна, ленивый поворот) — только у уровня 3';
+  if (!(c.ev > b.ev && b.ev > a.ev)) return 'нот серии с уровнем не больше';
+  const w = mw(9, ['magnet']); w.lvl = { magnet: 1 }; const ok = w.offer('magnet'); w.pick('magnet'); w.pick('magnet'); const top = !w.offer('magnet');
+  if (!ok || w.lvl.magnet !== 3 || !top) return 'дочка не поднимает уровень магнита до 3 (уровень ' + w.lvl.magnet + ')';
+  const s = mw(9, ['magnet'], 'swim'); s.lvl = { magnet: 1 }; if (s.offer('magnet')) return 'в обычном заплыве магнит предлагают снова';
+});
+
 // Режим «Голод» (Роман 25.11 08:47: «Да отдельным режимом давай попробуем»): без еды клетка худеет и гибнет.
 const starveT = (genes, m0 = 1, mode = 'golod') => { const w = mw(4, genes, mode), a = w.me[0]; a.m = m0; let t = 0; for (; t < 200 && w.me.length; t += 1 / 30) w.step(1 / 30, null); return { t, w, a }; };
 check('режим «Голод»: в пустой воде клетка худеет и гибнет от голода, в обычном заплыве — нет', () => {
@@ -227,7 +250,7 @@ const bot = w => {
 };
 // Для каждой мутации — 6 заплывов бота, у которого с начала только она: встречает ли он то, где она важна.
 check('бот в режиме «Мутации» встречает каждую мутацию в деле: щелчок, тихая гибель, всплытие, кокк у закрытой двери, вирус на пузырьке', () => {
-  const meet = { snap: 0, abort: 0, gas: 0, door: 0, decoy: 0, flu: 0, steady: 0, citrate: 0, lean: 0, store: 0 };
+  const meet = { snap: 0, abort: 0, gas: 0, door: 0, decoy: 0, flu: 0, steady: 0, citrate: 0, lean: 0, store: 0, magnet: 0 };
   for (const g of Object.keys(meet)) for (const seed of [1, 2, 3, 4, 5, 6]) {
     const w = new World(cfg, seed); w.mode = M.golod.genes.includes(g) ? 'golod' : 'mut'; w.genes[g] = true;
     if (g === 'abort' || g === 'decoy') { const P = cfg.pond; w.me[0].y = (P.film * 0.6 - P.y0) * P.h; w.tidy = 0; virusy(w); } // вирусы живут в сладкой воде под плёнкой; бот заплывает в их облако
@@ -246,9 +269,10 @@ check('бот в режиме «Мутации» встречает каждую
     if (g === 'decoy') meet.decoy += w.stats.decoy || 0;
     if (g === 'flu') meet.flu += w.stats.raft || 0;
     if (g === 'citrate') meet.citrate += w.stats.citrate || 0;
+    if (g === 'magnet') meet.magnet += w.stats.magnet || 0; // крупинка сама приплыла и съедена
     if (g === 'store') meet.store += w.stats.melted || 0; // крупинка растаяла, когда еды не было рядом
   }
-  console.log('    паспорт: за 6 заплывов по 120 с — щелчков', meet.snap, '| тихих гибелей', meet.abort, '| кадров всплытия', meet.gas, '| кадров у кокка с закрытой дверью', meet.door, '| вирусов на пузырьках', meet.decoy, '| ровно на крутом повороте', meet.steady, '| голубых точек съедено', meet.citrate, '| кадров голода мелкой', meet.lean, '| растаяло крупинок', meet.store, '| пасть сорвалась с плота', meet.flu);
+  console.log('    паспорт: за 6 заплывов по 120 с — щелчков', meet.snap, '| тихих гибелей', meet.abort, '| кадров всплытия', meet.gas, '| кадров у кокка с закрытой дверью', meet.door, '| вирусов на пузырьках', meet.decoy, '| ровно на крутом повороте', meet.steady, '| голубых точек съедено', meet.citrate, '| кадров голода мелкой', meet.lean, '| растаяло крупинок', meet.store, '| приплыло магнитом', meet.magnet, '| пасть сорвалась с плота', meet.flu);
   const miss = Object.keys(meet).filter(g => !meet[g]);
   if (miss.length) return 'бот не встретил, где важно: ' + miss.join(', ');
 });

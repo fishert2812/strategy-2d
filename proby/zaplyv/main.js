@@ -605,7 +605,7 @@ function ask() {
   world.choice.forEach((g, i) => {
     const go = () => { world.pick(g); kids = null; $('genes').classList.remove('on'); fx.ring(world.center().x, world.center().y, 0, 300); beep(660, 0.4, 0.06, 'sine', 1.5); };
     const b = document.createElement('button');
-    b.innerHTML = '<img class="gicon" alt=""><span></span><small></small>'; b.children[1].textContent = geneName(g); b.children[2].textContent = geneBook(g).daet || ''; b.firstChild.src = icon(g); b.firstChild.style.borderColor = geneColor(g); b.onclick = go; box.appendChild(b); // имя и «что даёт» — только из книги (урок L018)
+    b.innerHTML = '<img class="gicon" alt=""><span></span><small></small>'; b.children[1].textContent = geneName(g); b.children[2].textContent = mut.daet(world, g, geneBook(g)); b.firstChild.src = icon(g); b.firstChild.style.borderColor = geneColor(g); b.onclick = go; box.appendChild(b); // имя и «что даёт» — только из книги (урок L018)
     const k = document.createElement('button'); k.className = 'kid'; k.style.left = i ? '52%' : '2%'; k.onclick = go; k.setAttribute('aria-label', geneName(g)); $('genes').appendChild(k);
   });
   $('genes').classList.add('on'); $('toast').classList.remove('on'); // всплывашка не ложится на заголовок выбора
@@ -639,6 +639,7 @@ function events() {
     if (k === 'stick') { beep(520, 0.06, 0.04, 'square'); } // прилип фаг: резко развернись — стряхнёшь
     if (k === 'shake') { beep(700, 0.07, 0.03); }
     if (k === 'learn') { beep(620, 0.4, 0.05, 'sine', 1.4); say('Пережила фага! Его кусок — новая полоска CRISPR: теперь T4 не страшен', 3000); }
+    if (k === 'magnet') beep(392 * Math.pow(2, Math.min(size - 1, 12) / 12), 0.12, 0.05, 'sine', 1.3); // магнит: серия поглощений — восходящие ноты
     if (k === 'snap') { beep(1200, 0.06, 0.04, 'square', 0.3); } // сувойка сжалась пружиной
     if (k === 'slip') beep(900, 0.08, 0.03, 'sine', 1.5); // капсула сработала: амёба не удержала
     if (k === 'shrug') beep(1100, 0.05, 0.03); // новая дверь сработала: вирус отброшен

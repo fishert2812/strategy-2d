@@ -34,7 +34,12 @@ const hungry = w => w.mode === 'golod';
 const own = (w, g) => M.golod.genes.includes(g) ? hungry(w) : w.mode === 'mut';
 const on = w => w.mode === 'mut' || hungry(w);
 const has = (w, g) => (own(w, g) || everywhere(g)) && !!w.genes[g];
-const fresh = (w, list) => list.filter(g => !w.genes[g]);
+// Уровни (З1, З5): то же умение может прийти ещё раз, пока уровень ниже M.levels[g]. Первый приход — уровень 1.
+export const lvl = (w, g) => w.genes[g] ? Math.max(1, (w.lvl || {})[g] || 0) : 0;
+export const more = (w, g) => g in M.levels && own(w, g) && lvl(w, g) < M.levels[g];
+export function up(w, g) { if (g in M.levels) (w.lvl ||= {})[g] = lvl(w, g) + 1; } // sim.js pick: до того, как ген встал
+export const daet = (w, g, book) => (g in M.levels && book['uroven' + (lvl(w, g) + 1)]) || book.daet || ''; // на карточке дочки — текст следующего уровня из книги
+const fresh = (w, list) => list.filter(g => !w.genes[g] || more(w, g));
 // Из чего выбирают дочки при делении. В режиме — одна новая мутация (кроме чужих) и одно прежнее умение.
 export function pool(w) {
   const old = Object.keys(w.cfg.genes).filter(g => !(g in M.genes) || everywhere(g));
@@ -63,7 +68,7 @@ export const tumbleAngle = (w, base) => has(w, 'steady') ? Math.min(Math.PI * 0.
 export const tumbleTime = (w, base) => has(w, 'steady') ? base * M.steady.time : base;
 export const tumbleKeep = (w, a) => a.tumble && has(w, 'steady') ? M.steady.keep : 1;
 // Пока идёт щелчок: скорость поворота и разгон — щелчка, тяга почти полная.
-export const turnRate = (w, a, base) => a.snap > 0 ? M.snap.turn : base * (raft(w) ? M.flu.turn : 1) * (!a.tumble && has(w, 'steady') ? M.steady.turn : 1); // плот поворачивает лениво; тугой жгут доворачивает на ходу
+export const turnRate = (w, a, base) => a.snap > 0 ? M.snap.turn : base * (raft(w) ? M.flu.turn : 1) * (!a.tumble && has(w, 'steady') ? M.steady.turn : 1) * (a.casc > 0 ? M.magnet.lazy : 1); // каскад магнита: поворот ленивый; плот поворачивает лениво; тугой жгут доворачивает на ходу
 export const acc = (a, base) => a.snap > 0 ? M.snap.acc : base;
 // Множитель тяги: газовые пузырьки занимают место — клетка плывёт чуть тяжелее.
 export const thrust = (w, a) => (has(w, 'gas') ? M.gas.drag : 1) * (a.snap > 0 ? M.snap.keep : 1) * tumbleKeep(w, a);
@@ -82,6 +87,7 @@ export function cell(w, a, dt, th) {
   }
   if (a.snap > 0) a.snap = Math.max(0, a.snap - dt);
   if (hungry(w)) starve(w, a, dt);
+  if (has(w, 'magnet')) magnet(w, a, dt);
   if (has(w, 'decoy') && !(a.spore > 0) && (a.ves = (a.ves || 0) + dt) > M.decoy.every) { // обманки: пузырёк отщипывается у кормы
     a.ves = 0; const r = 13 * Math.sqrt(a.m); a.m = Math.max(0.6, a.m - M.decoy.cost);
     (w.vesicles ||= []).push({ x: a.x - Math.cos(a.a) * r, y: a.y - Math.sin(a.a) * r, t: 0 });
@@ -109,6 +115,25 @@ function starve(w, a, dt) {
   if (has(w, 'store') && a.store > 0) { a.storeLeft = (a.storeLeft ?? S.grain) - burn; if (a.storeLeft <= 0) { a.store--; a.storeLeft = S.grain; w.stats.melted = (w.stats.melted || 0) + 1; } return; }
   a.m -= burn;
   if (a.m < G.die) { w.stats.starved = (w.stats.starved || 0) + 1; w.lose(a, a.x, a.y, 'me'); }
+}
+
+// Пищевой магнит (З1): ближняя еда сама плывёт к клетке изогнутым ручейком. Уровень — радиус, сколько крупинок разом и как быстро.
+// Съеденная так крупинка светится внутри (warm), серия поглощений звучит восходящими нотами (событие magnet с номером в серии).
+function magnet(w, a, dt) {
+  const Q = M.magnet, L = Q.lvl[lvl(w, 'magnet') - 1], r = 13 * Math.sqrt(a.m), R = L.r + r;
+  a.mag = lvl(w, 'magnet'); a.pulled ||= [];
+  for (const f of a.pulled) if (f.gone) { a.warm = Q.warm; a.series = (w.stats.time - (a.lastMag ?? -9) < Q.series ? a.series || 0 : 0) + 1; a.lastMag = w.stats.time;
+    w.stats.magnet = (w.stats.magnet || 0) + 1; w.events.push(['magnet', f.x, f.y, a.series]); }
+  a.pulled = a.pulled.filter(f => !f.gone && Math.hypot(f.x - a.x, f.y - a.y) < R * Q.let || (f.pull = null));
+  for (const f of w.food) { if (a.pulled.length >= L.n) break;
+    if (f.gone || (f.pull && f.pull !== a && w.me.includes(f.pull)) || a.pulled.includes(f) || Math.hypot(f.x - a.x, f.y - a.y) > R) continue;
+    f.pull = a; f.side = w.r() < 0.5 ? 1 : -1; a.pulled.push(f); }
+  if (a.pulled.length >= Q.cascade && !(a.casc > 0)) { a.casc = Q.hold; (w.waves ||= []).push({ x: a.x, y: a.y, r: R, t: 0 }); w.stats.cascade = (w.stats.cascade || 0) + 1; } // вся россыпь разом: волна по воде
+  for (const f of a.pulled) { const dx = a.x - f.x, dy = a.y - f.y, d = Math.hypot(dx, dy) || 1, c = Q.curl * Math.min(1, d / R) * f.side, v = L.v * dt; // ручеёк закручивается и выпрямляется у самой клетки
+    f.x += (dx - dy * c) / d * v; f.y += (dy + dx * c) / d * v; }
+  if (a.warm > 0) a.warm = Math.max(0, a.warm - dt);
+  if (a.casc > 0) a.casc = Math.max(0, a.casc - dt);
+  if (a === w.me[0] && w.waves) { for (const q of w.waves) q.t += dt; w.waves = w.waves.filter(q => q.t < Q.wave); }
 }
 
 // Голубые точки режима «Мутации»: держим их число вокруг семьи, дальние уходят. Никто, кроме клетки с геном, их не ест.
@@ -164,6 +189,14 @@ export function drawWorld({ w, scr, z, glow, ink }) {
     for (let k = 0; k < g.n; k++) { const u = (k / (g.n - 1 || 1) - 0.5) * L * 1.2, o = (k % 2 ? 1 : -1) * L * 0.18;
       const [x, y] = scr(g.x + ux * u - uy * o, g.y + uy * u + ux * o), r = 1.6 * z + 0.8;
       ink.put(x, y, r * 1.4, 0.2, 0.05, 0.12, 0.8 * f); glow.put(x, y, r * 0.7, 0.85, 0.35, 0.55, 0.45 * f); ink.put(x + ux * r * 1.8, y + uy * r * 1.8, r * 0.5, 0.2, 0.05, 0.12, 0.6 * f); } }
+  if (has(w, 'magnet')) for (const a of w.me) { const R = M.magnet.lvl[lvl(w, 'magnet') - 1].r + 13 * Math.sqrt(a.m), t0 = w.stats.time * 0.3; // магнит: тонкое золотое кольцо там, докуда он берёт — растёт с уровнем
+    for (let k = 0; k < 36; k++) { const t = t0 + k / 36 * 6.283, [x, y] = scr(a.x + Math.cos(t) * R, a.y + Math.sin(t) * R); glow.put(x, y, 1.1 * z + 0.6, 1, 0.72, 0.25, 0.4); }
+    for (const f of a.pulled || []) { const dx = a.x - f.x, dy = a.y - f.y, s = f.side * 0.35; // золотая нить от крупинки к телу, по ней бежит искра
+      for (let k = 0; k <= 8; k++) { const u = k / 8, b = s * u * (1 - u) * 4, [x, y] = scr(f.x + dx * u - dy * b, f.y + dy * u + dx * b), spark = Math.abs(((w.stats.time * 2.5 + u) % 1) - 0.5) < 0.08;
+        glow.put(x, y, (spark ? 1.8 : 0.9) * z + 0.5, 1, 0.75, 0.25, spark ? 0.95 : 0.6); }
+      const [x, y] = scr(f.x, f.y); glow.put(x, y, 2.6 * z + 1, 1, 0.82, 0.4, 0.6); } }
+  for (const q of w.waves || []) { const f = q.t / M.magnet.wave; // каскад: волна по воде сходится к клетке
+    for (let k = 0; k < 48; k++) { const t = k / 48 * 6.283, rr = q.r * (1.3 - f), [x, y] = scr(q.x + Math.cos(t) * rr, q.y + Math.sin(t) * rr); glow.put(x, y, 1.4 * z + 0.6, 1, 0.85, 0.5, 0.45 * (1 - f)); } }
   for (const v of w.vesicles || []) { const [x, y] = scr(v.x, v.y), f = 1 - v.t / M.decoy.life, r = 2.2 * z + 1;
     for (let k = 0; k < 8; k++) { const t = k / 8 * 6.283; glow.put(x + Math.cos(t) * r, y + Math.sin(t) * r, 0.8 * z + 0.4, 0.55, 0.8, 0.95, 0.35 * f); }
     ink.put(x, y, r * 0.8, 0.2, 0.3, 0.45, 0.25 * f); }
@@ -194,7 +227,7 @@ export const food = w => has(w, 'door') ? M.door.food : 1;
 
 // Что рисовать на теле (дополнение к look.js).
 export function mutLook(genes) {
-  return { ...(genes.snap ? { flagella: M.snap.look } : {}), snap: !!genes.snap, gas: genes.gas ? M.gas.n : 0, abort: !!genes.abort, door: !!genes.door, decoy: !!genes.decoy, flu: genes.flu ? M.flu.pins : 0, steady: genes.steady ? M.steady.look : 0, citrate: !!genes.citrate, store: !!genes.store, lean: !!genes.lean };
+  return { ...(genes.snap ? { flagella: M.snap.look } : {}), snap: !!genes.snap, gas: genes.gas ? M.gas.n : 0, abort: !!genes.abort, door: !!genes.door, decoy: !!genes.decoy, flu: genes.flu ? M.flu.pins : 0, steady: genes.steady ? M.steady.look : 0, citrate: !!genes.citrate, store: !!genes.store, lean: !!genes.lean, magnet: !!genes.magnet };
 }
 
 // Вид мутаций на теле плывущей клетки (зовёт vid.js skin()). Цвет — из палитры клетки, без чистого белого (урок L020).
@@ -224,5 +257,9 @@ export function mutSkin({ a, lk, ink, glow, at, w, L, time }) {
     const [px, py] = at((k / 5 - 0.5) * L * 1.3, (k % 2 ? 1 : -1) * w * 0.22); ink.put(px, py, w * 0.2, 0.1, 0.06, 0.04, 0.8); glow.put(px - w * 0.05, py - w * 0.05, w * 0.06, 0.9, 0.75, 0.45, 0.35); }
   if (lk.lean) for (let k = 0; k < 6; k++) { // дольше без еды: по бокам частые складки оболочки — ей есть куда сжаться
     const s = k % 2 ? 1 : -1, [px, py] = at(((k >> 1) / 2 - 0.5) * L * 1.1, s * w * 0.86); ink.put(px, py, w * 0.08, 0.1, 0.16, 0.26, 0.6); glow.put(px, py + s * w * 0.05, w * 0.05, 0.6, 0.85, 1, 0.3); }
+  if (lk.magnet) { const n = 4 + 2 * (a.mag || 1), go = (a.pulled || []).length ? time * 3 : null; // магнит: золотые искры-рецепторы по оболочке, их больше с уровнем; пока тянет — по оболочке бежит импульс света
+    for (let k = 0; k < n; k++) { const t = k / n * 6.283, u = Math.cos(t) * (L + w * 0.6), o = Math.sin(t) * w * 1.02, [px, py] = at(u, o), lit = go !== null && Math.abs(((go - k / n) % 1 + 1) % 1 - 0.5) > 0.42;
+      glow.put(px, py, w * (lit ? 0.24 : 0.13), 1, 0.72, 0.25, lit ? 0.9 : 0.65); }
+    if (a.warm > 0) { const [cx, cy] = at(0, 0); glow.put(cx, cy, w * 0.75, 1, 0.7, 0.35, 0.3 * a.warm / M.magnet.warm); } } // тёплое свечение внутри после еды
   if (lk.snap && a.snap > 0) { const [px, py] = at(-L - w, 0); glow.put(px, py, w * 0.6, 0.6, 0.8, 1, 0.15 * a.snap / M.snap.time); } // щелчок: вспышка у кормы, где подломился хвост
 }

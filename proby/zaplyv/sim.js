@@ -160,8 +160,8 @@ export class World {
   }
 
   inherit(genes) { for (const g of genes) if (this.cfg.genes[g]) { this.genes[g] = true; this.from[g] = 'kid'; } } // «Ночь рода»: заплыв начинается веткой рода
-  offer(g) { return !this.genes[g] && (this.posle[g] || []).every(k => this.met.has(k) || this.known.has(k)); } // умение дочке — только после встречи с тем, от кого оно (книга, поле posle)
-  pick(g) { this.genes[g] = true; this.from[g] = 'kid'; this.choice = []; }
+  offer(g) { return (!this.genes[g] || mut.more(this, g)) && (this.posle[g] || []).every(k => this.met.has(k) || this.known.has(k)); } // умение дочке — только после встречи с тем, от кого оно (книга, поле posle)
+  pick(g) { mut.up(this, g); this.genes[g] = true; this.from[g] = 'kid'; this.choice = []; }
 
   // Шаг мира. target — джойстик {dx, dy, p}, точка мира {x, y} или null, если палец отпущен.
   step(dt, target) {
