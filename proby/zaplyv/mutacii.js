@@ -85,6 +85,7 @@ export function cell(w, a, dt, th) {
   if (a === w.me[0] && on(w)) citrate(w);
   if (has(w, 'citrate') && w.cit) for (const q of w.cit) if (!q.gone && Math.hypot(q.x - a.x, q.y - a.y) < 13 * Math.sqrt(a.m) + M.citrate.r) { // голубую точку съедает только клетка с геном
     q.gone = true; w.grow(a, M.citrate.food); w.stats.citrate = (w.stats.citrate || 0) + 1; w.fed(q.x, q.y, 1); } // как обычная еда: счёт «съедено», звук
+  if (a === w.me[0] && w.refuse) { for (const g of w.refuse) g.t += dt; w.refuse = w.refuse.filter(g => g.t < M.door.flash); }
   if (a === w.me[0] && w.aborts) { for (const g of w.aborts) g.t += dt; w.aborts = w.aborts.filter(g => g.t < M.abort.show); }
   if (a === w.me[0] && w.vesicles) { for (const v of w.vesicles) v.t += dt; w.vesicles = w.vesicles.filter(v => v.t < M.decoy.life); }
   if (!has(w, 'gas')) return;
@@ -137,6 +138,9 @@ export function drawWorld({ w, scr, z, glow, ink }) {
   }
   for (const q of w.cit || []) { const [x, y] = scr(q.x, q.y), r = 3.4 * z + 1.5; // голубая точка: плотная, с тёмной кромкой — не похожа на пустые кольца пузырей фона
     ink.put(x, y, r * 1.3, 0.03, 0.08, 0.16, 0.7); glow.put(x, y, r, 0.3, 0.75, 1, 0.95); glow.put(x - r * 0.3, y - r * 0.3, r * 0.4, 0.75, 0.92, 1, 0.7); }
+  for (const g of w.refuse || []) { const f = 1 - g.t / M.door.flash, a = g.a; // отказ двери: дуга света на оболочке со стороны шарика
+    for (let k = -3; k <= 3; k++) { const t = Math.atan2(g.uy, g.ux) + k * 0.18, [x, y] = scr(a.x + Math.cos(t) * (g.r + 3), a.y + Math.sin(t) * (g.r + 3));
+      glow.put(x, y, (1.6 * z + 0.8) * (1 + 0.6 * (1 - f)), 0.75, 0.95, 0.85, 0.7 * f * (1 - Math.abs(k) / 4)); } }
   for (const g of w.aborts || []) { // тихая гибель: внутри погасшего тела видны запертые вирусы — тёмные головки с хвостиком, они тускнеют вместе с телом и не выходят
     const f = Math.max(0, 1 - g.t / M.abort.show), L = 13 * Math.sqrt(g.m), ux = Math.cos(g.ang), uy = Math.sin(g.ang);
     for (let k = 0; k < g.n; k++) { const u = (k / (g.n - 1 || 1) - 0.5) * L * 1.2, o = (k % 2 ? 1 : -1) * L * 0.18;
@@ -161,7 +165,12 @@ export function bite(w, m) {
   m.syt = M.flu.nibble; w.stats.nibble = (w.stats.nibble || 0) + 1; w.events.push(['bump', m.x, m.y]);
 }
 // Кокк щиплет ядом (sim.js). true — дверь закрыта: яд не вошёл.
-export const shut = w => has(w, 'door');
+export function shut(w, a, q) {
+  if (!has(w, 'door')) return false;
+  if (a && q) { const d = Math.hypot(q.x - a.x, q.y - a.y) || 1, r = 13 * Math.sqrt(a.m); // яд дошёл до оболочки и не вошёл: короткая светлая вспышка на боку, обращённом к шарику
+    (w.refuse ||= []).push({ a, ux: (q.x - a.x) / d, uy: (q.y - a.y) / d, r, t: 0 }); w.stats.refuse = (w.stats.refuse || 0) + 1; }
+  return true;
+}
 // Множитель еды: закрытая дверь пропускает меньше.
 export const food = w => has(w, 'door') ? M.door.food : 1;
 

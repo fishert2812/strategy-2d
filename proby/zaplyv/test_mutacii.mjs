@@ -55,6 +55,14 @@ check('[abort] видно разницу: без умения из сестры 
   if (a.pts < a.trapped * 2) return 'запертых вирусов не видно';
   if (!b.free) return 'без умения облака нет — сравнения нет';
 });
+check('[door] видно отказ: яд кокка доходит до оболочки и не входит — на боку к шарику вспыхивает свет', () => {
+  const w = mw(9, ['door']), a = w.me[0]; w.prey = [{ x: 18, y: 0, vx: 0, vy: 0, m: 1, a: 0, sick: -1, id: 77 }]; let seen = 0;
+  for (let t = 0; t < 4; t += 1 / 30) { w.prey[0].x = a.x + 18; w.prey[0].y = a.y; w.prey[0].vx = w.prey[0].vy = 0; w.step(1 / 30, null);
+    w.cit = []; const pts = []; const brush = { put: (...v) => pts.push(v) }; mut.drawWorld({ w, scr: (x, y) => [x, y], z: 1, glow: brush, ink: brush }); if (pts.length) seen++; }
+  console.log(`    паспорт: за 4 с у кокка отказов двери ${w.stats.refuse || 0}, кадров со вспышкой ${seen}, щипков ${a.pinch > 0 ? 1 : 0}`);
+  if (!w.stats.refuse) return 'отказа не было';
+  if (!seen) return 'вспышки не видно';
+});
 check('[gas] всплывает сама: убрал палец — клетка поднимается вверх, без умения стоит', () => {
   const lift = genes => { const w = mw(7, genes); const y0 = w.me[0].y; run(w, 4, null); return y0 - w.me[0].y; };
   const a = lift(['gas']), b = lift([]);

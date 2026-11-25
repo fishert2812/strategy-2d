@@ -34,7 +34,8 @@
   "n": 5
  },
  "door": {
-  "food": 0.85
+  "food": 0.85,
+  "flash": 0.45
  },
  "decoy": {
   "every": 0.4,
