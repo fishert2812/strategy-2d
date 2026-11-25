@@ -923,6 +923,18 @@ check('test_food_smell: с хемотаксисом клетку ведёт к �
   console.log(`    паспорт: с хемотаксисом первым съеден ${a}, без него ${b}`);
   if (a !== 'lysate') return 'с хемотаксисом первым съеден не сок: ' + a;
 });
+// Урок L041 (Роман 25.11 по кадрам 0.61: «фиолетовый пузырёк, и у него красные штучки. Он похож на вирус. Я к ним подплываю, никакого взаимодействия»).
+check('test_L041: кокк отвечает на касание: клетка упирается и отодвигает его, а не проходит насквозь; вплотную дольше секунды — щипок; короткие касания не копятся', () => {
+  const lone = s => { const w = new World(cfg, s); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9; return w; };
+  const w = lone(137), a = w.me[0], q = { x: a.x + 4, y: a.y, vx: 0, vy: 0, m: 0.6, a: 0, id: 4 }; w.prey = [q];
+  for (let t = 0; t < 0.5; t += 1 / 30) { q.vx = q.vy = 0; w.step(1 / 30, null); }
+  const gap = Math.hypot(q.x - a.x, q.y - a.y), want = radius(a.m) + radius(q.m) * 0.6;
+  let n = 0; const w2 = lone(138), b = w2.me[0], q2 = { x: b.x + 6, y: b.y, vx: 0, vy: 0, m: 0.6, a: 0, id: 5 }; w2.prey = [q2];
+  for (let t = 0; t < 12; t += 1 / 30) { const close = (t % 1.5) < 0.6; if (close) { q2.x = b.x + 6; q2.y = b.y; } else { q2.x = b.x + 400; q2.y = b.y; } w2.step(1 / 30, null); n += w2.events.filter(e => e[0] === 'pinch').length; w2.events.length = 0; }
+  console.log('    паспорт: кокк отодвинут на', Math.round(gap), '(край клетки и кокка', Math.round(want) + ') | короткие касания 0,6 с за 12 с — щипков', n);
+  if (gap < want * 0.8) return 'клетка проходит сквозь кокка: между центрами ' + Math.round(gap) + ', а край у ' + Math.round(want);
+  if (n) return 'короткие касания накопились в щипок: ' + n;
+});
 
 check('test_L054 (Роман 25.11 на 0.78: «запятые… уменьшить кол-во… Просто на постоянке! Можно им тоже какой то ареал обитания»): запятые живут гнёздами у слизистой плёнки, нападают волной с передышкой, выводок не плодит рой', () => {
   const N = cfg.bdello_nest;
