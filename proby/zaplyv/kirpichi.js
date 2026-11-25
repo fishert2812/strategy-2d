@@ -221,7 +221,7 @@ export class Kirpichi {
     for (const e of this.list) if (e.zapis === zapis) for (const [si, s] of e.N.shagi.entries()) { if (s.k !== 'vyrost' || e.t < s.ot || e.t > s.do) continue;
       const P = { ...this.K.kirpichi.vyrost, ...s }, Z = kuski(zapis, s.zona || 'obolochka'), vt = (e.vt ??= {});
       for (const { j, g, q } of mestaVyrosta(P, (e.t - s.ot) / (s.do - s.ot), Z, e.seed)) { const sd = e.seed + j * 7, key = si + ':' + j;
-        const v = vt[key] ??= { t: q.t, dlina: P.dlina * (1 - P.razbros + 2 * P.razbros * rnd(sd + 2)), r: [P.r_v[0], P.r_v[1]], izgib: P.izgib_v * (rnd(sd + 5) - 0.5), ugol: (rnd(e.seed + j * 3 + 1) - 0.5) * P.naklon, rost: 0 };
+        const v = vt[key] ??= { t: q.t, dlina: P.dlina * (1 - P.razbros + 2 * P.razbros * rnd(sd + 2)), r: [P.r_v[0], P.r_v[1]], izgib: P.izgib_v * (rnd(sd + 5) - 0.5), ugol: (rnd(e.seed + j * 3 + 1) - 0.5) * P.naklon, konus: true, rost: 0 };
         v.rost = g; V.push(v); } }
     return V; }
   step(dt) { for (const e of this.list) { e.t += dt; if (e.hold != null && e.to && e.to.gone === false && e.t > e.hold) e.t = e.hold; } // derzhat: нити держат цель, пока она не исчезла (to.gone)
