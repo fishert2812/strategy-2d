@@ -250,7 +250,7 @@ export class World {
     this.life(dt);
     this.eat(dt);
     zhizn(this, dt, radius);
-    rost.step(this, dt, radius); evo.step(this);
+    rost.step(this, dt, radius); evo.step(this, dt, radius);
     this.hunters(dt);
     this.hold(dt);
     this.rush = Math.max(0, this.rush - (this.stats.time - this.lastEat > c.rush_gap ? c.rush_fall * dt : 0));
