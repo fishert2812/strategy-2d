@@ -83,7 +83,11 @@ const RIS = {
       const vp = (P.vypuklosti || []).map(v => { const e = F.O.kray(v.t); return { x: e.x, y: e.y, nx: Math.cos(e.n), ny: Math.sin(e.n), sh: v.shirina || 0.5, h: (v.vysota || 0) / 2 }; });
       const kol = vp.length ? O.kolca().map(q => { let x = q.x, y = q.y, r = q.r; for (const v of vp) { const d = Math.hypot(q.x - (v.x - v.nx * q.r), q.y - (v.y - v.ny * q.r)) / v.sh, k = v.h * Math.exp(-d * d); x += v.nx * k; y += v.ny * k; r += k; } return { ...q, x, y, r }; }) : O.kolca();
       if (vp.length) for (let i = 1; i < kol.length - 1; i++) if (Math.abs(kol[i].dr) < 100) kol[i] = { ...kol[i], dr: (kol[i + 1].r - kol[i - 1].r) / ((kol[i + 1].a - kol[i - 1].a) || 1) }; // наклон стенки для света заново: бугор освещается как бугор
-      B.loft(kol.map(q => ({ x: P.x + (q.x * ux - q.y * uy) * w, y: P.y + (q.x * uy + q.y * ux) * w, tx: q.tx * ux - q.ty * uy, ty: q.tx * uy + q.ty * ux, r: q.r * w, dr: q.dr, a: q.a })), !!s.plotno, s.cvet, s.kromka || sv(s.cvet), P.id, s.a ?? 1); }); },
+      B.loft(kol.map(q => ({ x: P.x + (q.x * ux - q.y * uy) * w, y: P.y + (q.x * uy + q.y * ux) * w, tx: q.tx * ux - q.ty * uy, ty: q.tx * uy + q.ty * ux, r: q.r * w, dr: q.dr, a: q.a })), !!s.plotno, s.cvet, s.kromka || sv(s.cvet), P.id, s.a ?? 1);
+      // ветки тела (forma.vetki и P.vetki): отросток, ложноножка, ножка — то же тело со своей осевой линией, растёт из края наружу. Те же слои тем же материалом
+      // на той же высоте: плотные слои пересекаются по глубине как настоящий объём, поэтому линии тела поперёк основания ветки нет.
+      for (const v of F.vetki || []) { const Ov = os(v.tochki, 16, 0.12, Math.min(g, v.r_min * 0.6)), e = F.O.kray(v.t), an = e.n + (v.ugol || 0), cx = Math.cos(an), cy = Math.sin(an), bx = e.x + cx * v.sdvig, by = e.y + cy * v.sdvig;
+        B.loft(Ov.kolca(4).map(q => { const x = bx + q.x * cx - q.y * cy, y = by + q.x * cy + q.y * cx, tx = q.tx * cx - q.ty * cy, ty = q.tx * cy + q.ty * cx; return { x: P.x + (x * ux - y * uy) * w, y: P.y + (x * uy + y * ux) * w, tx: tx * ux - ty * uy, ty: tx * uy + ty * ux, r: q.r * w, dr: q.dr, a: q.a }; }), !!s.plotno, s.cvet, s.kromka || sv(s.cvet), P.id + 5, s.a ?? 1); } }); },
   // Нуклеоид: одна длинная нить ДНК, уложенная клубком в середине клетки; медленно шевелится.
   nukleoid(st, F, P, B, at) { if (P.tolshchina < (st.porog ?? 0)) return; B.vyshe = P.nad; const w = P.tolshchina, Hh = F.O ? F.O.H : P.dlina / 2 / w, p = Math.max(2, Math.round(st.petli)), vit = p * 4, N = Math.max(st.zvenya, vit * 22), T = P.time * st.temp, h = k => hash(P.id, k + 900) * 6.283; // porog — мельче этой толщины (точки экрана) нутро не рисуется: издали оно только шумит
     // нить идёт вдоль клетки туда и обратно и всё время вьётся круглыми петлями; петли круглые в настоящих размерах (не растянуты длиной тела), обратный ход ложится поверх прямого со сдвигом: клубок
@@ -120,15 +124,20 @@ const RIS = {
     for (let k = 0; k < st.n; k++) { const [px, py] = at((k % 2 ? 1 : -1) * (0.5 + 0.2 * hash(P.id, k + 300)) * (1 - w / (P.dlina / 2) * 0.35), (hash(P.id, k + 301) - 0.5) * 0.6); B.sphere(px, py, w * st.r * (0.8 + 0.4 * hash(P.id, k + 302)), st.cvet, st.kromka, P.id + k + 20, 0.9); } },
 };
 
+const VETKI = new WeakMap();
 export function sobrat(zapis, poza, B) {
   if (!B || !B.sphere) return 0;
   const forma = zapis.forma || { tip: 'palochka' }, tip = forma.tip, P = { ...poza, tip }, ux = Math.cos(P.a), uy = Math.sin(P.a), w = P.tolshchina; let F, at;
   if (tip === 'tuflya') { const hl = P.dlina / 2; F = FORMY.tuflya({ ...VC.formy.tuflya, ...forma, dl: P.dlina, tol: w }); at = (u, o) => [P.x + ux * u * hl - uy * o * w, P.y + uy * u * hl + ux * o * w]; }
   else { // тело свободной формы: осевая линия через опорные точки (telo_os.js); палочка и шар — её частные случаи. Части берут край, нормаль и нутро отсюда
     const tochki = forma.tochki || iz_formy(tip, P.dlina ? P.dlina / 2 / w : forma.dlina || 2.14, 1, (P.izgib || 0) / w), O = os(tochki); P.dlina = O.dlina * w; P.nad = O.poperechnik / 2 * w * 1.05; // нутро рисуется перед сердцевиной: выше самой толстой её точки
+    // ветка задаётся коротко: { t — где на обводе, dlina, r: [у основания, у кончика], izgib, ugol, rost 0…1 }; её точки считаются один раз на запись ветки и ступень роста
+    const vetki = [...(forma.vetki || []), ...(P.vetki || [])].map(v => { const k = Math.round(Math.max(0, Math.min(1, v.rost ?? 1)) * 12) / 12; if (k <= 0) return null; let m = VETKI.get(v); if (!m) VETKI.set(v, m = {}); if (m[k]) return m[k];
+      const L = v.dlina * k, [r0, r1] = v.r || [0.4, 0.3], T = [[0, 0, r0], [L * 0.5, (v.izgib || 0) * L, (r0 + r1) / 2], [L, 0, r1]]; return m[k] = { t: v.t, ugol: v.ugol, tochki: T, r_min: Math.min(r0, r1), r0, sdvig: os(T, 16, 0.12).dlina / 2 - r0 * 1.6 }; }).filter(Boolean);
+    if (vetki.length) P.vypuklosti = [...(P.vypuklosti || []), ...vetki.map(v => ({ t: v.t, shirina: v.r0 * 1.5, vysota: v.r0 * 0.7 }))]; // у основания ветки тело само подаётся навстречу: плавный переход вместо острого угла
     // выпуклости позы (см. obolochka): край тела в этом месте тоже выходит наружу, поэтому ворс, жгутики и всё, что сидит на краю, едет на бугре
     const vp = (P.vypuklosti || []).map(v => { const e = O.kray(v.t); return { x: e.x, y: e.y, nx: Math.cos(e.n), ny: Math.sin(e.n), sh: v.shirina || 0.5, h: (v.vysota || 0) / 2 }; });
-    F = { O, tochki, kray: t => { const k = O.kray(t); let o = k.o; for (const v of vp) { const d = Math.hypot(k.x - v.x, k.y - v.y) / v.sh; o += Math.sign(k.o || 1) * v.h * Math.exp(-d * d) * (1 + Math.cos(k.n) * v.nx + Math.sin(k.n) * v.ny); } return { u: k.u, o, n: k.n, g: 0 }; }, vnutri: (u, o) => [u * 0.7, o * 0.6] };
+    F = { O, tochki, vetki, kray: t => { const k = O.kray(t); let o = k.o; for (const v of vp) { const d = Math.hypot(k.x - v.x, k.y - v.y) / v.sh; o += Math.sign(k.o || 1) * v.h * Math.exp(-d * d) * (1 + Math.cos(k.n) * v.nx + Math.sin(k.n) * v.ny); } return { u: k.u, o, n: k.n, g: 0 }; }, vnutri: (u, o) => [u * 0.7, o * 0.6] };
     at = (u, o) => { const [x, y] = O.at(u, o); return [P.x + (x * ux - y * uy) * w, P.y + (x * uy + y * ux) * w]; }; }
   P.nad ??= w * 0.8; let n = 0;
   for (const [kl, svoi] of Object.entries(zapis.chasti || {})) { const r = RIS[kl]; if (!r) continue; r({ ...VC.chasti[kl], ...svoi }, F, P, B, at); B.vyshe = 0; n++; }
