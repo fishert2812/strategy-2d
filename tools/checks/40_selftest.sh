@@ -62,6 +62,10 @@ ONLY=L024 case_ "test_L024: умение без теста-обещания" 50_
 # L032: амёба снова ждёт у спящей — проснувшуюся съедает
 ONLY=L032 case_ "test_L032: спора просыпается у амёбы" 50_zaplyv.sh red "sed -i 's/if (a \&\& a.spore > 0) { const d/if (false) { const d/; s/if (!this.amoebas.some(m => dist(m, a) < radius(m.m) + c.spore_safe)/if (true/' $Z/sim.js"
 ONLY=L032 case_ "test_L032: спящую снова держат запятые и колокольчик" 50_zaplyv.sh red "sed -i 's/a.free = Math.max(a.free || 0, 1); //' $Z/sim.js"
+# L047: пунктирная нить, свой рендер образцом, навык в игре без приёмки — красное
+ONLY=L047 case_ "test_L047: нить снова пунктиром" 60_kirpichi.sh red "sed -i 's/\"shag\": 1.5,/\"shag\": 12,/' $Z/kirpichi.json"
+ONLY=L047 case_ "test_L047: образец — свой рендер" 60_kirpichi.sh red "sed -i 's/\"obrazec\": \"ref_21.jpg\"/\"obrazec\": \"niti_ryadom_s_obrazcom.png\"/' $Z/kirpichi.json"
+ONLY=L047 case_ "test_L047: навык в игре без приёмки" 60_kirpichi.sh red "sed -i '0,/\"v_igre\": false/s//\"v_igre\": true/' $Z/kirpichi.json"
 # L033: «Чует еду» без пальца снова стоит
 ONLY=L033 case_ "test_L033: без пальца клетка с умением стоит" 50_zaplyv.sh red "sed -i 's/} else if (this.genes.sense) {/} else if (false) {/' $Z/sim.js"
 case_ "test_L029: камера тянется к отставшим вдали" 52_zaplyv_tap.sh red "sed -i 's/const flock = live.filter(a => Math.hypot(a.x - lead.x, a.y - lead.y) < C.group)/const flock = world.me/' $Z/main.js"
