@@ -111,7 +111,10 @@ export class World {
       const at = pt(), R = 30 + r() * 50;
       for (let i = 0; i < c.patch_food; i++) { const t = r() * 6.283, d = R * Math.sqrt(r()); this.food.push({ x: at.x + Math.cos(t) * d, y: at.y + Math.sin(t) * d, vx: 0, vy: 0, s: c.grain[0] + (c.grain[1] - c.grain[0]) * (1 - d / R) * r() }); } // в середине пятна куски крупнее
     }
-    if (far > c.bdello_from && this.stats.gen > 0 && r() < c.bdello_chance[b] * (1 + far * c.danger_growth) * Math.min(2, this.me.length / 2)) /* хищник идёт на густую добычу: пока ты один, его нет */ this.bdellos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: r(), id: ++this.ids });
+    if (far > c.bdello_from && this.stats.gen > 0) { const N = c.bdello_nest; // запятые живут гнёздами в слизистой плёнке, где густо их добычи (бделловибрион — житель биоплёнок); вне гнезда — редкая бродяга
+      if (r() < N.chance[b]) { const at = pt(), home = { x: at.x, y: at.y, ph: r() * (N.hunt + N.calm) }; this.slime.push({ ...at, a: r() * 3.14, len: N.mat, w: N.mat * 0.4, nest: true, id: ++this.ids }); // плёнку видно издали — гнездо видно заранее
+        for (let i = 0, n = N.n[0] + Math.floor(r() * (N.n[1] - N.n[0] + 1)); i < n; i++) this.bdellos.push({ x: at.x + (r() - 0.5) * N.mat, y: at.y + (r() - 0.5) * N.mat * 0.4, vx: 0, vy: 0, a: r() * 6.283, t: r(), home, id: ++this.ids }); }
+      else if (r() < N.stray) this.bdellos.push({ ...pt(), vx: 0, vy: 0, a: r() * 6.283, t: r(), id: ++this.ids }); }
     if (far > c.slipper_from && r() < c.slipper_chance[b]) this.slippers.push({ ...pt(), a: r() * 6.283, back: 0, id: ++this.ids });
     if (far > c.donor_from && r() < c.donor_chance[b]) this.donors.push({ ...pt(), a: r() * 6.283, link: 0, gave: false, id: ++this.ids });
     dv.poyavlenie(this, b, far, safe, pt, (u, v) => ({ x: ox + u * C, y: oy + v * C })); // гарпунщица, серая соперница и их вариации: по записям vidy.json
@@ -475,14 +478,17 @@ export class World {
         if (h.held <= 0) { // жертва-шарик съедена изнутри: выходят новые хищники
           if (mine) this.lose(h, h.x, h.y, 'bdello'); else h.gone = true;
           b.on = null; b.t = 0;
-          for (let i = 0; i < c.bdello_brood; i++) this.bdellos.push({ x: h.x, y: h.y, vx: 0, vy: 0, a: r() * 6.283, t: 0.5, id: ++this.ids });
+          const near = this.bdellos.filter(q => Math.hypot(q.x - h.x, q.y - h.y) < c.bdello_nest.cap_r).length; // выводок не плодит рой: в округе не больше bdello_nest.cap
+          for (let i = 0; i < Math.min(c.bdello_brood, c.bdello_nest.cap - near); i++) this.bdellos.push({ x: h.x, y: h.y, vx: 0, vy: 0, a: r() * 6.283, t: 0.5, home: b.home, id: ++this.ids });
         }
         continue;
       }
       b.t -= dt;
       if (b.t <= 0) { // рывок окончен: пауза и новый курс — почти наугад, чуть к добыче, если она рядом
         const prey = this.rodNear(b, c.bdello_sense); b.aim = null;
-        if (prey && r() < 0.4 && this.me.includes(prey)) { b.aim = prey; b.aimT = c.zone.lead; b.rest = 0; b.t = c.zone.lead + c.bdello_dash; } // выбрала тебя: zone.lead секунд целится, светясь, потом бросок (признак заранее, L030)
+        const N = c.bdello_nest, calm = b.home && (this.stats.time + b.home.ph) % (N.hunt + N.calm) >= N.hunt; // гнездо охотится волной, потом передышка
+        if (prey && !calm && r() < 0.4 && this.me.includes(prey)) { b.aim = prey; b.aimT = c.zone.lead; b.rest = 0; b.t = c.zone.lead + c.bdello_dash; } // выбрала тебя: zone.lead секунд целится, светясь, потом бросок (признак заранее, L030)
+        else if (b.home && Math.hypot(b.x - b.home.x, b.y - b.home.y) > N.leash) { b.a = Math.atan2(b.home.y - b.y, b.home.x - b.x) + (r() - 0.5) * 0.6; b.rest = 0.3; b.t = 1.2; } // далеко от плёнки — назад к гнезду
         else { b.a = prey && r() < 0.4 ? Math.atan2(prey.y - b.y, prey.x - b.x) + (r() - 0.5) * 0.6 : r() * 6.283; b.rest = 0.3 + r() * 0.5; b.t = b.rest + 0.6 + r() * 0.8; }
       }
       if (b.aim && !this.me.includes(b.aim)) { b.aim = null; b.aimT = 0; } // цель пропала — бросок отменён
