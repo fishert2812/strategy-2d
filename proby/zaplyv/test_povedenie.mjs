@@ -1,5 +1,5 @@
 // Проверки поведения существ без игрока (povedenie.js, числа povedenie.json): node proby/zaplyv/test_povedenie.mjs. Провал — код 1.
-// POV_LOMAT=1 портит анкету (страх, охота, разъезд и нос без силы): доказательства test_pov_ubegaet, test_pov_ohota, test_pov_razezd и test_pov_nos обязаны покраснеть (самопроверка шага 65_povedenie).
+// POV_LOMAT=1 портит анкету (страх, охота, разъезд и нос без силы): доказательства test_pov_ubegaet, test_pov_ohota, test_pov_razezd и test_pov_nos обязаны покраснеть (самопроверка шага 66_povedenie).
 import { P, anketa, hochet, oshibki } from './povedenie.js';
 if (process.env.POV_LOMAT) { P.obshchee.vesa.strah = 0; P.obshchee.panika = 1e9; P.obshchee.vesa.ohota = 0; P.obshchee.vesa.razezd = 0; P.obshchee.vesa.nos = 0; for (const v of Object.values(P.vidy)) if (v.vesa) delete v.vesa.strah; }
 let bad = 0;
