@@ -76,7 +76,7 @@ ONLY=L047 case_ "test_L047: навык в игре без приёмки" 60_kir
 # L033: «Чует еду» без пальца снова стоит
 ONLY=L033 case_ "test_L033: без пальца клетка с умением стоит" 50_zaplyv.sh red "sed -i 's/} else if (this.genes.sense) {/} else if (false) {/' $Z/sim.js"
 # L052: еда снова кладётся один раз и колония выедает экран
-ONLY=L052 case_ "test_L052: еда вокруг колонии не прибывает" 50_zaplyv.sh red "sed -i 's/ vokrug.regrow(this, c1);//' $Z/sim.js"
+ONLY=L052 case_ "test_L052: еда вокруг колонии не прибывает" 61_eda_vokrug.sh red "sed -i 's/ vokrug.regrow(this, c1);//' $Z/sim.js"
 # L051: дочки снова складываются бок о бок
 ONLY=L051 case_ "test_L051: сёстры дрейфуют врозь" 50_zaplyv.sh red "sed -i 's/ kid.drift = c.drift;//' $Z/sim.js"
 # L049: колония снова застревает на четырёх
