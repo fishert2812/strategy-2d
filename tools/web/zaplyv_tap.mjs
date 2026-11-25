@@ -279,6 +279,14 @@ await p.reload(); await p.waitForFunction(() => window.zaplyvProbe && zaplyvProb
 if (await tap('#mscene [data-m=golod]', 'объект «Голод»')) say((await p.textContent('#mgo')) === 'Плыть в голод', 'касание «Голода» меняет подпись кнопки');
 if (await tap('#mgo', '«Плыть в голод»')) { const m0 = await p.evaluate(() => { const w = zaplyvWorld(); w.food.length = 0; return w.me[0].m; }); await p.waitForTimeout(1500);
   say(!(await on('menu')) && await p.evaluate(m0 => { const w = zaplyvWorld(); w.food.length = 0; return w.mode === 'golod' && w.me.length > 0 && w.me[0].m < m0; }, m0), '«Плыть в голод» начинает заплыв, и без еды клетка худеет'); }
+// Память о вирусах (Роман 25.11, кадр 0.83): с памятью вирус клетку не убьёт — совета «резко развернись» нет; без памяти он есть.
+await p.reload(); await p.waitForFunction(() => window.zaplyvProbe && zaplyvProbe.frames > 5, null, { timeout: 30000 }); await p.waitForTimeout(800);
+if (await tap('#mscene [data-m=mut]', 'объект «Мутации»') && await tap('#mgo', '«Плыть с мутациями»')) {
+  const land = id => p.evaluate(id => { const w = zaplyvWorld(), a = w.me[0]; w.choice = []; w.phages.length = 0; w.cfg.inject = 1e9; w.phages.push({ x: a.x + 8, y: a.y, vx: 0, vy: 0, d: Math.PI, t: 0, id, host: 'me', cool: 0 }); }, id);
+  const toast = () => p.evaluate(() => [...document.querySelectorAll('#toast.on')].map(e => e.textContent).join(''));
+  await p.evaluate(() => { const w = zaplyvWorld(); w.genes.memory = true; w.genes.crispr = true; }); await land(93); await p.waitForTimeout(1500); const t1 = await toast();
+  await p.evaluate(() => { const w = zaplyvWorld(); w.genes.memory = false; w.genes.crispr = false; }); await land(94); await p.waitForTimeout(1500); const t2 = await toast();
+  say(!/Сел вирус/.test(t1) && /Сел вирус/.test(t2), `с памятью о вирусах совета «Сел вирус! Резко развернись» нет, без памяти есть («${t1}» / «${t2}»)`); }
 say(!errs.length, 'ошибок страницы нет' + (errs.length ? ': ' + errs.join('; ') : ''));
 await b.close();
 console.log(bad ? `КАСАНИЯ: провалов ${bad}` : 'КАСАНИЯ: все кнопки отвечают пальцу');
