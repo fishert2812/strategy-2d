@@ -19,7 +19,7 @@ const c0 = W => Math.floor(W.f.m * 0.3) * W.f.n + Math.floor(W.f.n / 2);
 if (!process.env.CHISLO_LOMAT) {
 check('test_chislo_rost: племя в сытой клетке растёт с той скоростью, что дают закон питания и цена по Клайберу', () => {
   const W = pusto(), c = c0(W), p = W.P.nasha, S = 20; W.N.nasha[c] = 2; // мало особей: еды вдоволь, растёт по закону, а не упирается в сахар
-  const mel = (W.f.C / CH.etalon_kletka) ** 2, I = Z.eda * p.h.k_eda * p.rz * S * CH.massa_kuska / mel * Z.kpd, cena = Z.cena * p.cena1 * Math.pow(p.telo * m_sr, Z.stepen_ceny), r = (I - cena) / (p.telo * m_sr);
+  const mel = (W.f.C / C.MR.pole.kletka) ** 2, I = Z.eda * p.h.k_eda * p.rz * S * C.MR.pole.massa_kuska / mel * Z.kpd, cena = Z.cena * p.cena1 * Math.pow(p.telo * m_sr, Z.stepen_ceny), r = (I - cena) / (p.telo * m_sr);
   for (let i = 0; i < 60 / dt; i++) { W.f.S[c] = S; const n0 = W.N.nasha.reduce((a, b) => a + b, 0); C.shag(W, dt); const n1 = W.N.nasha.reduce((a, b) => a + b, 0); W.N.nasha.fill(0); W.N.nasha[c] = n1; if (!(n1 >= n0)) return 'в сытой клетке не растёт'; }
   const want = 2 * Math.pow(1 + r * dt, 60 / dt), got = W.N.nasha[c]; console.log(`    паспорт: за минуту ${got.toFixed(1)} особей, по закону ${want.toFixed(1)} (удвоение ${(Math.log(2) / r).toFixed(0)} с, шаг ${dt} с)`);
   if (Math.abs(got - want) > want * 0.05) return `рост ${got.toFixed(1)} вместо ${want.toFixed(1)}`;

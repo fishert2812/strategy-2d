@@ -44,43 +44,43 @@
   "vidy": {
     "nasha": {
       "_": "Наша клетка (кишечная палочка) целиком из частей: жгутики кругом, ворсинки, тело с цитоплазмой, слои оболочки, клубок ДНК, рибосомы, гранулы запаса.",
-      "forma": { "tip": "os", "tochki": [[-1.14, 0, 1], [1.14, 0, 1]] }, "zhizn": { "est": "pole", "razmer": 1 },
+      "forma": { "tip": "os", "tochki": [[-1.14, 0, 1], [1.14, 0, 1]] }, "zhizn": { "est": "pole", "razmer": 1, "lyubit": { "sahar": [0.03, 1], "kislorod": [0.3, 1] } },
       "chasti": { "zhgutiki": { "cvet": [1.3, 1.0, 1.2], "razmah": 0.36, "shag": 1.9, "zagib": 0.6, "nazad": 0.15, "tolsh": 0.024, "blik": [1.6, 1.5, 1.6] }, "vorsinki": { "n": 540, "dlina": 0.42, "tolsh": 0.007, "razbros": 0.75, "vraznoboy": 0.9, "izgib": 0.6, "volna": 0.5, "zvenya": 4, "na_tele": 0.65, "cvet": [1.35, 1.05, 1.25], "konchik": [2.1, 1.95, 2.1], "a": 0.9, "a_konec": 0.25 },
         "obolochka": { "stenka": 0.1, "sloi": [ { "r": 1.0, "cvet": [1.0, 0.6, 0.85], "kromka": [1.0, 0.55, 0.8], "a": 0.2 }, { "r": 0.97, "cvet": [0.6, 0.9, 1.0], "kromka": [0.5, 0.75, 0.9], "a": 0.5, "razrez": true }, { "r": 0.94, "cvet": [1.0, 0.25, 0.7], "plotno": true } ] }, "nukleoid": {}, "ribosomy": {}, "vklyucheniya": {} }
     },
     "seno": {
       "_": "Сенная палочка (грам-положительная): длинная матовая палочка без стеклянной оболочки, жгутики тонкие по всему телу. Образец: referensy/sennaya_palochka.",
-      "forma": { "tip": "os", "tochki": [[-1.9, 0.05, 1], [0, -0.05, 1], [1.9, 0.05, 1]] }, "zhizn": { "est": "pole", "razmer": 1.1 },
+      "forma": { "tip": "os", "tochki": [[-1.9, 0.05, 1], [0, -0.05, 1], [1.9, 0.05, 1]] }, "zhizn": { "est": "pole", "razmer": 1.1, "lyubit": { "kislorod": [0.5, 1] }, "pishcha": { "kuski": 1 } },
       "chasti": { "zhgutiki": { "n": 6, "dlina_tela": 1.2, "tolsh": 0.028, "razmah": 0.5, "cvet": [0.75, 0.6, 1.2], "a": 0.8 },
         "obolochka": { "stenka": 0.25, "sloi": [ { "r": 1.0, "cvet": [0.62, 0.42, 1.0], "plotno": true } ] } }
     },
     "sinegnoyka": {
       "_": "Синегнойная палочка: розовая, слегка изогнутая, жгутики на заднем полюсе, редкий длинный ворс. Образец: referensy/sinegnoyka.",
-      "forma": { "tip": "os", "tochki": [[-1.5, 0.3, 0.95], [0, -0.12, 1], [1.5, 0.3, 0.95]] }, "zhizn": { "est": "pole", "razmer": 0.9 },
+      "forma": { "tip": "os", "tochki": [[-1.5, 0.3, 0.95], [0, -0.12, 1], [1.5, 0.3, 0.95]] }, "zhizn": { "est": "pole", "razmer": 0.9, "lyubit": { "sahar": [0.01, 0.2], "kislorod": [0.2, 0.8] } },
       "chasti": { "zhgutiki": { "n": 2, "gde": "korma", "razlet": 0.25, "dlina_tela": 1.3, "tolsh": 0.03, "cvet": [1.3, 0.8, 1.1] },
         "vorsinki": { "n": 46, "dlina": 0.55, "tolsh": 0.012, "razbros": 0.8, "vraznoboy": 1.1, "izgib": 0.7, "volna": 0.5, "zvenya": 4, "cvet": [1.3, 0.85, 1.15], "a": 0.7, "a_konec": 0.2 },
         "obolochka": { "stenka": 0.1, "sloi": [ { "r": 1.0, "cvet": [1.0, 0.3, 0.72], "plotno": true } ] } }
     },
     "zapyataya": {
       "_": "Красная запятая (вибрион): тело запятой 2,7 к 1, один жгутик на заднем полюсе длиной с тело. Образец: referensy/krasnaya_zapyataya.",
-      "forma": { "tip": "os", "tochki": [[-1.25, 0.55, 0.9], [-0.6, 0.05, 1], [0, -0.15, 1.02], [0.6, 0.05, 1], [1.25, 0.55, 0.92]] }, "zhizn": { "est": "dobycha", "razmer": 0.75 }, "zony": { "udar": { "sila": 2 } },
+      "forma": { "tip": "os", "tochki": [[-1.25, 0.55, 0.9], [-0.6, 0.05, 1], [0, -0.15, 1.02], [0.6, 0.05, 1], [1.25, 0.55, 0.92]] }, "zhizn": { "est": "dobycha", "razmer": 0.75, "lyubit": { "sahar": [0.05, 1], "kislorod": [0.5, 1] } }, "zony": { "udar": { "sila": 2 } },
       "chasti": { "zhgutiki": { "n": 1, "gde": "korma", "moshch": 3, "dlina_tela": 1.0, "tolsh": 0.05, "suzh": 0.2, "razmah": 0.5, "shag": 1.6, "cvet": [1.2, 0.6, 1.25] },
         "obolochka": { "stenka": 0.1, "sloi": [ { "r": 1.0, "cvet": [1.05, 0.5, 1.05], "plotno": true } ] } }
     },
     "kokki": {
       "_": "Кокки гроздью (стафилококк): матовые шары слиплись гроздью, жгутиков и ворса нет. Образец: referensy/kokki_grozdyu.",
-      "forma": { "tip": "os", "tochki": [[0, 0, 1]] }, "gruppa": { "n": 14, "uklad": "grozd", "zazor": 0.92 }, "zhizn": { "est": "pole", "razmer": 0.8 },
+      "forma": { "tip": "os", "tochki": [[0, 0, 1]] }, "gruppa": { "n": 14, "uklad": "grozd", "zazor": 0.92 }, "zhizn": { "est": "pole", "razmer": 0.8, "lyubit": { "il": true, "kislorod": [0, 0.3] } },
       "chasti": { "obolochka": { "stenka": 0.25, "sloi": [ { "r": 1.0, "cvet": [0.5, 0.36, 1.0], "plotno": true } ] } }
     },
     "garpun": {
       "_": "Гарпунщица (ацинетобактер): короткая бугристая розовая палочка, жгутиков нет, короткий ворс. Образец: referensy/garpunshchica.",
-      "forma": { "tip": "os", "tochki": [[-0.42, 0.03, 0.95], [0, -0.03, 1.06], [0.42, 0.03, 0.93]] }, "gruppa": { "n": 3, "uklad": "cep", "zazor": 0.95 }, "zhizn": { "est": "pole", "razmer": 0.9 }, "zony": { "udar": { "mesto": "vsyo", "shirina": 1, "sila": 1.5 } },
+      "forma": { "tip": "os", "tochki": [[-0.42, 0.03, 0.95], [0, -0.03, 1.06], [0.42, 0.03, 0.93]] }, "gruppa": { "n": 3, "uklad": "cep", "zazor": 0.95 }, "zhizn": { "est": "pole", "razmer": 0.9, "lyubit": { "sahar": [0.01, 1], "kislorod": [0.2, 1] } }, "zony": { "udar": { "mesto": "vsyo", "shirina": 1, "sila": 1.5 } },
       "chasti": { "vorsinki": { "n": 60, "dlina": 0.16, "tolsh": 0.012, "razbros": 0.7, "vraznoboy": 0.9, "izgib": 0.4, "cvet": [1.3, 0.8, 1.0], "a": 0.6 },
         "obolochka": { "stenka": 0.1, "sloi": [ { "r": 1.0, "cvet": [1.0, 0.3, 0.6], "plotno": true } ] } }
     },
     "infuzoriya": {
       "_": "Хищная инфузория: большое грушевидное тело в ресничках, рот на носу, глотает бактерий целиком. Реснички гребут (grebut).",
-      "forma": { "tip": "os", "tochki": [[-1.6, 0, 0.75], [-0.5, 0.05, 1.15], [0.7, 0, 1.25], [1.5, -0.05, 0.95]] }, "zony": { "rot": { "shirina": 0.2, "do": 0.5 } }, "zhizn": { "est": "dobycha", "razmer": 2.4 },
+      "forma": { "tip": "os", "tochki": [[-1.6, 0, 0.75], [-0.5, 0.05, 1.15], [0.7, 0, 1.25], [1.5, -0.05, 0.95]] }, "zony": { "rot": { "shirina": 0.2, "do": 0.5 } }, "zhizn": { "est": "dobycha", "razmer": 2.4, "lyubit": { "kislorod": [0.6, 1] }, "pishcha": { "kuski": 0.5 } },
       "chasti": { "vorsinki": { "n": 150, "dlina": 0.22, "tolsh": 0.02, "razbros": 0.3, "vraznoboy": 0.5, "izgib": 0.5, "grebut": true, "cvet": [0.9, 1.1, 1.3], "a": 0.8 },
         "obolochka": { "sloi": [ { "r": 1.0, "cvet": [0.55, 0.85, 1.0], "a": 0.6 }, { "r": 0.93, "cvet": [0.25, 0.5, 0.85], "plotno": true } ] },
         "nukleoid": { "petli": 3, "cvet": [0.9, 0.7, 1.0] }, "vklyucheniya": { "n": 7, "r": 0.12, "cvet": [1.0, 0.8, 0.4] } }
