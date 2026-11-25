@@ -743,7 +743,8 @@ function tick(dt) {
       $('stats').innerHTML = pathText(world);
       ROD.deaths = (ROD.deaths || 0) + 1; ROD.genes = Object.keys(world.genes).filter(g => world.genes[g]); ROD.most = world.stats.most; ROD.seed = world.seed; // род для ночи и меню
       const kl = world.stats.killer || 'me'; ROD.killers = ROD.killers || {}; ROD.killers[kl] = (ROD.killers[kl] || 0) + 1; saveRod();
-      setTimeout(() => { $('end').classList.add('on'); $('end').scrollTop = 0; $('toast').classList.remove('on'); }, 700); // лист гибели всегда с начала: убийца сверху (L031) // подсказка заплыва не ложится на экран гибели
+      const E = vid.V.eaten[kk], endWait = Math.max(cfg.end_wait, E && E.cup ? E.touch + E.cup + E.hug + cfg.end_wait * 0.3 : 0); // съели — лист гибели ждёт, пока видно, как амёба обволокла (L058)
+      setTimeout(() => { $('end').classList.add('on'); $('end').scrollTop = 0; $('toast').classList.remove('on'); }, endWait * 1000); // лист гибели всегда с начала: убийца сверху (L031) // подсказка заплыва не ложится на экран гибели
     }
     return;
   }

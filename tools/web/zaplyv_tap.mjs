@@ -226,8 +226,12 @@ await p.evaluate(() => { const w = zaplyvWorld(), c = w.center(); w.events.push(
   const zf = await cam(() => { const w = zaplyvWorld(), a = w.me[0]; for (let i = 0; i < 3; i++) w.me.push({ ...a, id: 950 + i, x: a.x - 2000, y: a.y + i * 30, vx: 0, vy: 0, stun: 1e9 }); });
   const px = await p.evaluate(() => { const w = zaplyvWorld(); return 13 * Math.sqrt(w.me[0].m) * zaplyvProbe.z >= w.cfg.cam.min_px; });
   say(zs < z1 * 0.8 && zd > z1 * 0.9 && zf > z1 * 0.9 && px, `test_L029: камера отъехала к расползшейся колонии (${z1.toFixed(2)} → ${zs.toFixed(2)}), вернулась после гибели дальних (${zd.toFixed(2)}) и не уходит к застрявшим вдали (${zf.toFixed(2)})`); }
+// test_L058 (Роман и тред вида 25.11: «амёба в десять раз больше тебя», а гибель видна мельком): съела амёба — лист гибели ждёт,
+// пока она обволакивает клетку (касание, чаша, объятие из vid.json), и только потом закрывает сцену.
 await p.evaluate(() => { const w = zaplyvWorld(); w.genes.spore = false; w.stats.killer = 'amoeba'; w.me.length = 0; });
-await p.waitForTimeout(1200); await notBook(await p.evaluate(() => ['who', 'cname', 'ctext', 'cfact', 'ctip'].map(i => document.getElementById(i).textContent)), 'экран гибели');
+{ const early = await p.evaluate(async () => { await new Promise(q => setTimeout(q, 1200)); return document.getElementById('end').classList.contains('on'); });
+  await p.waitForTimeout(1800); const late = await p.evaluate(() => document.getElementById('end').classList.contains('on'));
+  say(!early && late, `test_L058: съела амёба — через 1,2 с ещё видно, как она обволакивает (лист ${early ? 'уже закрыл' : 'не закрыл'}), к 3 с лист гибели на экране (${late})`); } await notBook(await p.evaluate(() => ['who', 'cname', 'ctext', 'cfact', 'ctip'].map(i => document.getElementById(i).textContent)), 'экран гибели');
 say(await p.evaluate(async () => { const C = await (await fetch('cards.json')).json(), T = (await (await fetch('kniga/teksty_sushchestv.json')).json()).sushchestva, st = document.getElementById('stats').textContent;
   return Object.keys(C).every(k => !T[k] || T[k].imya === C[k].name || !st.includes(C[k].name)); }), 'test_L018: в строке «кто забрал» на экране гибели имена только из книги (прогон 0.44: «Сувойка» вместо «Колокольчик»)');
 await whole(['#again', '#tomenu', '#cab', '#eno'], 'экран гибели'); // до любых касаний: экран не прокручен
