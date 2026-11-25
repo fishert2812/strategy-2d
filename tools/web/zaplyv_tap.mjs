@@ -35,6 +35,8 @@ async function tap(sel, what) {
 const seen = sel => p.evaluate(s => { const e = document.querySelector(s); if (!e) return false; const r = e.getBoundingClientRect(), st = getComputedStyle(e);
   return r.width > 0 && r.bottom > 0 && r.top < innerHeight && +st.opacity > 0.5 && st.visibility !== 'hidden' && st.display !== 'none'; }, sel);
 const marks = () => p.evaluate(() => JSON.parse(localStorage.getItem('zaplyv.marks') || '[]').length);
+// флажок снимает кадр и пишет отметку не мгновенно (на медленной машине CI дольше 250 мс): ждём надпись и запись до 4 с, а не смотрим в первый миг
+const noted = m => p.waitForFunction(m => { const e = document.getElementById('note'), st = e && getComputedStyle(e); return !!e && +st.opacity > 0.5 && st.visibility !== 'hidden' && JSON.parse(localStorage.getItem('zaplyv.marks') || '[]').length === m + 1; }, m, { timeout: 4000 }).then(() => true, () => false);
 const on = id => p.evaluate(i => document.getElementById(i).classList.contains('on'), id);
 
 // test_L025 (Роман 24.11: «почему я не вижу этот режим?» — кнопка «Ночь рода» стояла ниже края экрана iPhone): каждая кнопка
@@ -105,7 +107,7 @@ await p.waitForTimeout(700); { const t = await p.evaluate(() => [...document.que
 await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.phages.length = 0; w.cfg.inject_was = w.cfg.inject; w.cfg.inject = 1e9; w.phages.push({ x: a.x + 8, y: a.y, vx: 0, vy: 0, d: Math.PI, t: 0, id: 91, host: 'me', cool: 0 }); }); // вирус садится, но не впрыскивает: шаги дальше идут живой клеткой (L045 — стряхнуть только сразу)
 await p.waitForTimeout(600); { const t = await p.evaluate(() => [...document.querySelectorAll('#toast.on')].map(e => e.textContent).join('')); say(/вирус/i.test(t) && /развернись/.test(t), 'test_L042: вирус сел на клетку — сразу надпись, что делать (' + (t || 'надписи нет') + ')'); }
 await p.evaluate(() => { const w = zaplyvWorld(); w.phages.length = 0; w.cfg.inject = w.cfg.inject_was; for (const a of w.me) a.sick = -1; });
-if (await tap('#flag', 'флажок в игре')) say(await seen('#note') && await marks() === m + 1, 'флажок в игре: отметка записана и надпись видна');
+if (await tap('#flag', 'флажок в игре')) say(await noted(m), 'флажок в игре: отметка записана и надпись видна');
 // test_L050 (Роман 25.11 на 0.70: «почему мы не починили блять деление клеток?»): плавное деление лежало в vid.js, но main.js его не звал —
 // дочка появлялась рывком. После деления несколько кадров рисуется рождение: дочки из одной клетки с перетяжкой расходятся.
 { const ok = await p.evaluate(async () => { const w = zaplyvWorld(); w.choice = []; w.cfg.auto_split = 1e9; const a = w.me[0]; a.m = w.split() + 0.01; a.held = 0; a.grab = null; a.sick = -1; a.spore = 0;
@@ -116,7 +118,7 @@ if (await tap('#pause', 'пауза')) say(await on('genome') && (await p.textCo
 if (await tap('#phub [data-t=genome]', 'строка «Геном» в паузе')) say(await seen('#ring'), 'строка «Геном» открывает кольцо');
 if (await tap('#ring .slot', 'ген на кольце')) say(await p.evaluate(() => !!document.querySelector('#gcard h2')), 'касание гена открывает карточку');
 m = await marks();
-if (await tap('#gflag', 'флажок в геноме')) say(await seen('#note') && await marks() === m + 1, 'флажок в геноме: отметка и надпись видна');
+if (await tap('#gflag', 'флажок в геноме')) say(await noted(m), 'флажок в геноме: отметка и надпись видна');
 if (await tap('#gback', '«‹ Пауза» из генома') && await tap('#phub [data-t=alm]', 'строка «Альманах»')) say(await on('cabinet'), 'Альманах открылся из паузы');
 // test_L019: у каждой карточки полки — снимок живой модели (картинка не пустая), разделы и карточка отвечают пальцу
 await p.waitForFunction(() => { const a = [...document.querySelectorAll('#shelf .kc img')]; return a.length && a.every(i => i.naturalWidth > 100 && i.src.length > 5000); }, null, { timeout: 6000 }).catch(() => {}); // снимки встают по одному: ждём их, а не время
@@ -228,7 +230,7 @@ say(await p.evaluate(async () => { const C = await (await fetch('cards.json')).j
 await whole(['#again', '#tomenu', '#cab', '#eno'], 'экран гибели'); // до любых касаний: экран не прокручен
 say(await p.evaluate(() => ['hud', 'scalebox', 'ver'].every(i => getComputedStyle(document.getElementById(i)).visibility === 'hidden') && getComputedStyle(document.getElementById('end')).backgroundColor.startsWith('rgb(')), 'test_L031: лист гибели непрозрачный, надписи игры под ним скрыты');
 m = await marks();
-if (await tap('#eno', '«Не так» на экране гибели')) say(await seen('#note') && await marks() === m + 1, '«Не так» на экране гибели: отметка и надпись видна');
+if (await tap('#eno', '«Не так» на экране гибели')) say(await noted(m), '«Не так» на экране гибели: отметка и надпись видна');
 // test_L034 (Роман 25.11: «Сбрось пожалуйста счетчик проблем! Там куча говна записана»): случайную отметку убирает «Убрать»,
 // в списке отметок одна уходит по ✕, все — «Стереть все» и второе касание. Счётчик на кнопке идёт за ними.
 if (await tap('#nundo', '«Убрать» случайную отметку')) say(await marks() === m, 'test_L034: «Убрать» под надписью снимает только что записанную отметку');
@@ -242,7 +244,7 @@ if (await tap('#esend', '«Отметки» на экране гибели')) {
 const toNight = async w => await tap('#tomenu', '«Меню режимов» ' + w) && await tap('#mscene [data-m=night]', 'режим «Ночь рода» ' + w) && await tap('#mgo', '«Начать ночь» ' + w);
 if (await toNight('с экрана гибели')) say(await on('night') && await seen('#ndanger'), '«Ночь рода» из меню открывает выбор опасности');
 m = await marks();
-if (await tap('#nflag', '«Не так» в ночи рода')) say(await seen('#note') && await marks() === m + 1, '«Не так» в ночи рода: отметка записана');
+if (await tap('#nflag', '«Не так» в ночи рода')) say(await noted(m), '«Не так» в ночи рода: отметка записана');
 if (await tap('#nback', '«Назад» из ночи')) say(!(await on('night')) && await on('menu'), '«Назад» из ночи возвращает в меню');
 if (await tap('#mscene [data-m=swim]', 'объект «Заплыв»') && await tap('#mgo', '«Плыть»')) { await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 0; }); await p.waitForTimeout(1200); }
 if (await toNight('снова') && await tap('#ndanger [data-d=phage]', 'опасность «Фаги»')) {
