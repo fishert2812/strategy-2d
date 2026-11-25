@@ -5,7 +5,9 @@ const url = new URL('./konstruktor.json', import.meta.url);
 export const K = url.protocol === 'file:' ? JSON.parse((await import('node:fs')).readFileSync(url, 'utf8')) : await (await fetch(url)).json();
 
 // Размеры тела в микрометрах: длина всей цепочки, толщина, радиус шара того же объёма (по нему вода разворачивает и кормит).
-export function razmery(f, k = K) { const L = f.dlina * f.cepochka * k.priroda.mkm, d = f.tolshchina * k.priroda.mkm; return { L, d, r: Math.cbrt(3 / 16 * d * d * L) }; }
+// Шар: длина клетки равна толщине. Гроздь: шары слиплись в ком, он обтекается как один шар того же объёма.
+export function razmery(f, k = K) { const d0 = f.tolshchina * k.priroda.mkm, grozd = f.forma === 'grozd', d = grozd ? d0 * Math.cbrt(f.cepochka) : d0;
+  const L = grozd ? d : (f.forma === 'shar' ? f.tolshchina : f.dlina) * f.cepochka * k.priroda.mkm; return { L, d, r: Math.cbrt(3 / 16 * d * d * L) }; }
 export const radius = (f, k = K) => razmery(f, k).r;
 // Поведение по форме, в настоящих единицах. Л2: v = F / R, R = 3πμd(0,8 + 0,2·L/d) — вытянутое тело вдоль оси.
 // Л3: время, за которое вода разворачивает тело, t = 8πμr³ / kT. Л6: приход еды J = 4πDrC ∝ r, на единицу тела ∝ 1/r².
@@ -20,7 +22,7 @@ export function fizika(f, cfg, k = K) {
 // Запись для движка существ: вариация серой соперницы с этой формой и посчитанным поведением.
 export function anketa(f, cfg, k = K) {
   const F = fizika(f, cfg, k);
-  return { ot: 'strain', telo: { dlina: f.dlina, tolshchina: f.tolshchina, cepochka: f.cepochka, zazor: 0.86, cvet: k.cvet, kromka: k.kromka.map(x => x * f.yarkost),
+  return { ot: 'strain', telo: { forma: f.forma, izgib: f.izgib, dlina: f.dlina, tolshchina: f.tolshchina, cepochka: f.cepochka, zazor: 0.86, cvet: k.cvet, kromka: k.kromka.map(x => x * f.yarkost),
       zhgutiki: f.zhgutiki === 1 ? { gde: 'korma', dlina: f.zh_dlina * 1.6, vitkov: 10, ...k.zhgutik } : { gde: 'krugom', n: f.zhgutiki, dlina: f.zh_dlina, ...k.zhgutik } },
     hod: { skorost: F.skorost, ryskanie: F.ryskanie }, eda: { r: F.eda_r }, rodnya: false, mir: { shans: [0, 0, 0], s_rosta: 0, zhrebiy: 'svoy' } };
 }

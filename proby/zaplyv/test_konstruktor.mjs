@@ -39,4 +39,11 @@ check('test_konstruktor_polzunki: любое положение ползунко
     const s = kn.stroki(f, cfg, K); if (s.length !== 3 || s.some(x => !/^Л\d+$/.test(x.zakon) || !x.imya || /[{}]|NaN|undefined/.test(x.tekst) || !(x.chislo > 0))) return 'строка закона без числа: ' + JSON.stringify(s); n++; }
   console.log('    паспорт: положений ползунков проверено', n);
 });
+check('test_konstruktor_formy: каждая форма тела даёт годную анкету и свой ход — шар плывёт иначе, чем палочка, гроздь из шести тяжелее одного шара', () => {
+  const put = {}; for (const forma of Object.keys(K.formy)) { if (!dv.FORMY.includes(forma)) return 'формы «' + forma + '» нет в рисунке движка'; put[forma] = zaplyv({ ...E, forma }); }
+  const odin = zaplyv({ ...E, forma: 'grozd', cepochka: 1 }), shest = zaplyv({ ...E, forma: 'grozd', cepochka: 6 });
+  console.log('    паспорт: путь за 20 с ·', Object.entries(put).map(([f, v]) => K.formy[f] + ' ' + Math.round(v)).join(' · '), '· гроздь из шести', Math.round(shest));
+  if (!(put.shar > put.palochka * 1.05)) return 'шар не быстрее палочки той же толщины: ' + Math.round(put.shar) + ' против ' + Math.round(put.palochka);
+  if (!(shest < odin * 0.8)) return 'гроздь из шести не медленнее одного шара: ' + Math.round(shest) + ' против ' + Math.round(odin);
+});
 process.exit(bad ? 1 : 0);

@@ -3,7 +3,7 @@
 	"mera": { "tolshchina": 7.5, "gusto_niti": 3 },
 	"vidy": {
 		"pseudo": {
-			"telo": { "dlina": 2.3, "tolshchina": 1, "cepochka": 1, "zazor": 1, "r": "pseudo_r", "cvet": [0.45, 0.95, 0.72], "kromka": [0.15, 0.55, 0.42], "kach": [4, 0.2],
+			"telo": { "forma": "palochka", "izgib": 0, "dlina": 2.3, "tolshchina": 1, "cepochka": 1, "zazor": 1, "r": "pseudo_r", "cvet": [0.45, 0.95, 0.72], "kromka": [0.15, 0.55, 0.42], "kach": [4, 0.2],
 				"zhgutiki": { "gde": "korma", "dlina": 7, "volna": 0.6, "vitkov": 10, "beg": 26, "tolshch": 0.6, "alpha": 0.42, "cvet": [0.6, 1, 0.8] } },
 			"hod": { "skorost": "pseudo_speed", "chuet": "pseudo_sense", "pauza": [0.25, 1.2], "otdyh": 0.25, "ryskanie": 3, "povorot": 6, "povorot_dlina": 2.4, "povorot_stepen": 1.5, "plavnost": 6, "tolchok": 120 },
 			"eda": { "r": 14 },
