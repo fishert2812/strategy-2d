@@ -45,7 +45,7 @@
       "_": "Наша клетка (кишечная палочка) целиком из частей: жгутики кругом, ворсинки, тело с цитоплазмой, слои оболочки, клубок ДНК, рибосомы, гранулы запаса.",
       "forma": { "tip": "os", "tochki": [[-1.14, 0, 1], [1.14, 0, 1]] }, "zhizn": { "est": "pole", "razmer": 1 },
       "chasti": { "zhgutiki": { "cvet": [1.3, 1.0, 1.2], "razmah": 0.36, "shag": 1.9, "zagib": 0.6, "nazad": 0.15, "tolsh": 0.024, "blik": [1.6, 1.5, 1.6] }, "vorsinki": { "n": 540, "dlina": 0.42, "tolsh": 0.007, "razbros": 0.75, "vraznoboy": 0.9, "izgib": 0.6, "volna": 0.5, "zvenya": 4, "na_tele": 0.65, "cvet": [1.35, 1.05, 1.25], "konchik": [2.1, 1.95, 2.1], "a": 0.9, "a_konec": 0.25 },
-        "obolochka": { "sloi": [ { "r": 1.0, "cvet": [1.0, 0.72, 0.88], "a": 0.55 }, { "r": 0.95, "cvet": [0.6, 0.9, 1.0], "kromka": [0.5, 0.75, 0.9], "a": 0.5, "razrez": true }, { "r": 0.9, "cvet": [1.0, 0.25, 0.7], "plotno": true } ] }, "nukleoid": {}, "ribosomy": {}, "vklyucheniya": {} }
+        "obolochka": { "stenka": 0.1, "sloi": [ { "r": 1.0, "cvet": [1.0, 0.6, 0.85], "kromka": [1.0, 0.55, 0.8], "a": 0.2 }, { "r": 0.97, "cvet": [0.6, 0.9, 1.0], "kromka": [0.5, 0.75, 0.9], "a": 0.5, "razrez": true }, { "r": 0.94, "cvet": [1.0, 0.25, 0.7], "plotno": true } ] }, "nukleoid": {}, "ribosomy": {}, "vklyucheniya": {} }
     },
     "seno": {
       "_": "Сенная палочка (грам-положительная): длинная матовая палочка без стеклянной оболочки, жгутики тонкие по всему телу. Образец: referensy/sennaya_palochka.",
@@ -63,8 +63,8 @@
     "zapyataya": {
       "_": "Красная запятая (вибрион): тело запятой 2,7 к 1, один жгутик на заднем полюсе длиной с тело. Образец: referensy/krasnaya_zapyataya.",
       "forma": { "tip": "os", "tochki": [[-1.25, 0.55, 0.9], [-0.6, 0.05, 1], [0, -0.15, 1.02], [0.6, 0.05, 1], [1.25, 0.55, 0.92]] }, "zhizn": { "est": "dobycha", "razmer": 0.75 }, "zony": { "udar": { "sila": 2 } },
-      "chasti": { "zhgutiki": { "n": 1, "gde": "korma", "moshch": 3, "dlina_tela": 1.0, "tolsh": 0.05, "suzh": 0.2, "razmah": 0.5, "shag": 1.6, "cvet": [0.95, 0.7, 1.1] },
-        "obolochka": { "stenka": 0.1, "sloi": [ { "r": 1.0, "cvet": [0.72, 0.42, 0.8], "plotno": true } ] } }
+      "chasti": { "zhgutiki": { "n": 1, "gde": "korma", "moshch": 3, "dlina_tela": 1.0, "tolsh": 0.05, "suzh": 0.2, "razmah": 0.5, "shag": 1.6, "cvet": [1.2, 0.6, 1.25] },
+        "obolochka": { "stenka": 0.1, "sloi": [ { "r": 1.0, "cvet": [1.05, 0.5, 1.05], "plotno": true } ] } }
     },
     "kokki": {
       "_": "Кокки гроздью (стафилококк): матовые шары слиплись гроздью, жгутиков и ворса нет. Образец: referensy/kokki_grozdyu.",

@@ -24,7 +24,7 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 // Нет записи — на экране «нет записи», window.sravnenie.oshibka; кадр с такой ошибкой — провал проверки, а не пустой кадр.
 import * as THREE from '../three.module.min.js';
 import { Bodies } from '../body3d.js';
-import { VC, sobrat } from '../vid_chasti.js';
+import { VC, sobrat, sobrat_gruppu } from '../vid_chasti.js';
 const q = new URLSearchParams(location.search), vid = q.get('vid') || 'nasha', Z = VC.vidy[vid];
 const O = await fetch('obrazcy.json').then(r => r.json()), M = O.vidy[vid], poza = M?.poza || { dlina: 3, tolshchina: 120, ugol: -1.5708 };
 const $ = id => document.getElementById(id), info = window.sravnenie = { vid, zapis: !!Z, obrazec: M ? M.papka + '/' + M.fail : null, chastey: 0, oshibka: !Z ? 'нет записи «' + vid + '» в vid_chasti.json' : !M ? 'нет образца для «' + vid + '» в stend/obrazcy.json' : '' };
@@ -41,7 +41,7 @@ const bg = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.ShaderMateria
 bg.position.set(W / 2, H / 2, 0); bg.scale.y = -1; back.add(bg);
 let time = 0;
 const kadr = dt => { time += dt; bodies.begin();
-  if (Z) info.chastey = sobrat(Z, { x: W / 2, y: H * 0.75, a: poza.ugol, dlina: poza.dlina * poza.tolshchina, tolshchina: poza.tolshchina, z: poza.tolshchina / 8.5, time, id: 7, beg: 0 }, bodies);
+  if (Z) info.chastey = (Z.gruppa ? sobrat_gruppu : sobrat)(Z, { x: W / 2, y: H * 0.75, a: poza.ugol, dlina: poza.dlina * poza.tolshchina, tolshchina: poza.tolshchina, z: poza.tolshchina / 8.5, time, id: 7, beg: 0 }, bodies);
   bodies.end(time); gl.clear(); gl.render(back, cam); gl.render(bodies.scene, bodies.cam); info.kadrov = (info.kadrov || 0) + 1; };
 let last = performance.now(); const go = now => { kadr(Math.min(0.05, (now - last) / 1000)); last = now; requestAnimationFrame(go); }; requestAnimationFrame(go);
 info.gotov = true;

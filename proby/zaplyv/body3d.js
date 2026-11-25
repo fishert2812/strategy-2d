@@ -84,6 +84,8 @@ export class Bodies {
     this.skin = kind(cap.clone(), 200, pinch, { bump: 0.25, alpha0: 0.22, order: 3, rimK: 1.6, vp: 'pe' });
     const ball = new THREE.IcosahedronGeometry(1, 3);
     this.ball = kind(ball.clone(), 2600, 'p += nn * 0.05 * sin(time * 2.0 + prm.y + p.x * 4.0);', { bump: 0.5, order: 1 });
+    // зерно: мелкий шарик (рибосомы, гранулы) — тот же материал, что у ball, но 80 треугольников вместо 1280: на экране он 1–4 точки, а таких на существо десятки
+    this.zerno = kind(new THREE.IcosahedronGeometry(1, 1), 9000, '', { bump: 0.5, order: 1 });
     this.knob = kind(new THREE.IcosahedronGeometry(1, 1), 1500, '', { bump: 0.2, order: 1 });
     this.amoeba = kind(new THREE.IcosahedronGeometry(1, 6), 12, // дробно: край гладкий, без граней (Роман: «не профессионально»)
       `vec3 dir = normalize(position);
@@ -108,7 +110,7 @@ export class Bodies {
     const head = new THREE.IcosahedronGeometry(1, 0).toNonIndexed(); head.computeVertexNormals();
     this.head = kind(head, 120, '', { bump: 0.0, order: 3, flat: true, rimK: 0.8, alpha0: 0.35 }); // голова фага — стекло: сквозь неё видна нить ДНК (fx.js), грани блестят ободком
     this.tail = kind(new THREE.CylinderGeometry(0.28, 0.28, 2, 8), 120, '', { bump: 0.1, order: 1 });
-    this.all = [this.rope, this.core, this.skin, this.ball, this.knob, this.amoeba, this.spines, this.slip, this.fringe, this.head, this.tail];
+    this.all = [this.rope, this.core, this.skin, this.ball, this.zerno, this.knob, this.amoeba, this.spines, this.slip, this.fringe, this.head, this.tail];
     globalThis.zaplyvBodies ??= this; // vid.js рисует амёбу этими телами, даже если main.js не передал их явно
     for (const m of this.all) this.scene.add(m);
     this.loftC = { m: [], n: 0 }; this.loftS = { m: [], n: 0 }; // тела свободной формы (loft): заводятся по мере надобности
@@ -165,7 +167,7 @@ export class Bodies {
     const glow = c => [c[0] * 0.5 + 0.5, c[1] * 0.5 + 0.5, c[2] * 0.5 + 0.5];
     this.put(this.skin, x, y, ang, w, half / 2, w, [skin[0], skin[1], skin[2], 1], glow(skin), [0, seed, bend / (4 * w), 0]);
   }
-  sphere(x, y, r, col, rim, seed, zs = 1) { this.put(this.ball, x, y, -Math.PI / 2, r, r, r * zs, [col[0], col[1], col[2], 1], rim, [0, seed, 0, 0]); }
+  sphere(x, y, r, col, rim, seed, zs = 1) { this.put(r < 4 ? this.zerno : this.ball, x, y, -Math.PI / 2, r, r, r * zs, [col[0], col[1], col[2], 1], rim, [0, seed, 0, 0]); }
   spike(x, y, r, col) { this.put(this.knob, x, y, -Math.PI / 2, r, r, r, [col[0], col[1], col[2], 1], [1, 1, 1], [0, 0, 0, 0]); }
   blobby(x, y, r, heading, moving, col, rim, seed, sx = 1, sy = 1, ang = -Math.PI / 2) { this.put(this.amoeba, x, y, ang, r * sx, r * sy, r * 0.5, [col[0], col[1], col[2], 1], rim, [moving, seed, -heading, 0]); }
   // Шип: от точки основания (x, y) наружу под углом ang, длина len, полуширина у основания w; bend — отход острия вбок (экранные единицы).
