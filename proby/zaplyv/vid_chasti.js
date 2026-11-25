@@ -61,11 +61,11 @@ const RIS = {
         const nx = x0 + ca * s - sa * o, ny = y0 + sa * s + ca * o; B.seg(lx, ly, nx, ny, w * st.tolsh * (1 - 0.4 * s / L), st.cvet, st.a); lx = nx; ly = ny; } } },
   // Слои оболочки (биолог: наружная мембрана, стенка, внутренняя мембрана): стеклянные оболочки одна в другой, каждая своей толщины и цвета.
   obolochka(st, F, P, B) { const w = P.tolshchina, sv = c => [c[0] * 0.5 + 0.5, c[1] * 0.5 + 0.5, c[2] * 0.5 + 0.5], ux = Math.cos(P.a), uy = Math.sin(P.a);
-    if (!B.loft || !F.O) return; const K = F.O.kolca(); // слои идут по одному контуру тела, каждый тоньше предыдущего на свою долю: ровно один в другом у любой формы
-    st.sloi.forEach(s => B.loft(K.map(q => ({ x: P.x + (q.x * ux - q.y * uy) * w, y: P.y + (q.x * uy + q.y * ux) * w, tx: q.tx * ux - q.ty * uy, ty: q.tx * uy + q.ty * ux, r: q.r * w * s.r, dr: q.dr * s.r, a: q.a })), !!s.plotno, s.cvet, s.kromka || sv(s.cvet), P.id, s.a ?? 1)); },
+    if (!B.loft || !F.O) return; const K = F.O.kolca(); // слои идут по одному контуру тела, каждый глубже предыдущего на одну и ту же толщину по всему обводу: ровно один в другом у любой формы
+    st.sloi.forEach(s => B.loft(K.map(q => ({ x: P.x + (q.x * ux - q.y * uy) * w, y: P.y + (q.x * uy + q.y * ux) * w, tx: q.tx * ux - q.ty * uy, ty: q.tx * uy + q.ty * ux, r: Math.max(0, q.r - (1 - s.r) * F.O.poperechnik / 2) * w, dr: q.r > (1 - s.r) * F.O.poperechnik / 2 ? q.dr : 0, a: q.a })), !!s.plotno, s.cvet, s.kromka || sv(s.cvet), P.id, s.a ?? 1)); },
   // Нуклеоид: одна длинная нить ДНК, уложенная клубком в середине клетки; медленно шевелится.
-  nukleoid(st, F, P, B, at) { B.vyshe = P.tolshchina * 0.8; const w = P.tolshchina, N = st.zvenya, T = P.time * st.temp; let lx, ly;
-    for (let i = 0; i <= N; i++) { const t = i / N * 6.283, h = k => hash(P.id, k + 900) * 6.283, u = st.dlina * (0.5 * Math.sin(t * st.petli + h(1)) + 0.3 * Math.sin(t * (st.petli * 2 + 1) + T + h(2)) + 0.2 * Math.sin(t * (st.petli * 4 - 1) + h(3))), o = st.shirina * (0.45 * Math.sin(t * (st.petli + 2) + T * 0.7 + h(4)) + 0.35 * Math.cos(t * (st.petli * 3 - 1) + h(5)) + 0.2 * Math.sin(t * (st.petli * 5 + 2) - T + h(6)));
+  nukleoid(st, F, P, B, at) { B.vyshe = P.tolshchina * 0.8; const w = P.tolshchina, p = Math.max(2, Math.round(st.petli)), N = Math.max(st.zvenya, p * 34), T = P.time * st.temp, h = k => hash(P.id, k + 900) * 6.283; let lx, ly;
+    for (let i = 0; i <= N; i++) { const t = i / N * 6.283, u = st.dlina * (0.6 * Math.sin(t * p + h(1)) + 0.4 * Math.sin(t * (2 * p + 1) + T + h(2))), o = st.shirina * (0.55 * Math.sin(t * (p + 1) + T * 0.7 + h(4)) + 0.45 * Math.cos(t * (3 * p + 2) + h(5))); // петли по длине и поперёк одной частоты: клубок, а не штриховка
       const [px, py] = at(u, o); if (i) B.seg(lx, ly, px, py, w * st.tolsh, st.cvet, st.a); lx = px; ly = py; } },
   // Рибосомы: мелкие зёрна по всей цитоплазме, дрожат (броуновское движение).
   ribosomy(st, F, P, B, at) { B.vyshe = P.tolshchina * 0.8; const w = P.tolshchina, hl = P.dlina / 2, kx = 1 - w / hl * 0.45;
@@ -77,12 +77,13 @@ const RIS = {
     const [kx, ky] = at(-1, 0), [k2x, k2y] = at(-0.9, 0), kl = Math.hypot(kx - k2x, ky - k2y) || 1, bx = (kx - k2x) / kl, by = (ky - k2y) / kl, hv = P.hvost || 0; // кончик кормы и куда она смотрит: там собирается пучок
     for (let f = 0; f < st.n; f++) { const t = (f + 0.5) / st.n * 6.283 + P.id, e = F.kray(t), [x0, y0] = at(e.u * 0.97, e.o * 0.97), na = P.a + e.n, nx0 = Math.cos(na), ny0 = Math.sin(na), L = w * st.dlina * (0.8 + 0.4 * hash(P.id, f + 61));
       let rx = nx0 * 0.75 + bx * 0.65, ry = ny0 * 0.75 + by * 0.65; const rl = Math.hypot(rx, ry) || 1, pv = (hash(P.id, f + 60) - 0.5) * 0.7, cp = Math.cos(pv), sp = Math.sin(pv); [rx, ry] = [(rx * cp - ry * sp) / rl, (rx * sp + ry * cp) / rl]; // покой: от оболочки наружу и назад
-      const slow = P.time * 0.6 + f * 1.7, faza = f / st.n * 6.283, D0 = Math.hypot(x0 - kx, y0 - ky) + hv, cx = (x0 + kx) / 2 + nx0 * w * 0.8, cy = (y0 + ky) / 2 + ny0 * w * 0.8; let lx, ly;
+      const slow = P.time * 0.6 + f * 1.7, faza = f / st.n * 6.283, tk = F.O ? F.O.korma_t : Math.PI, ob = (F.O ? F.O.obvod : 6.283) * w, tn = ((t % 6.283) + 6.283) % 6.283; let dt = tk - tn; if (dt > 3.1416) dt -= 6.283; if (dt < -3.1416) dt += 6.283; // до кончика кормы по обводу, короткой дорогой
+      const D0 = Math.abs(dt) / 6.283 * ob + hv; let lx, ly;
       for (let i = 0; i <= Z; i++) { const s = i / Z, d = s * L, grow = Math.min(1, s * 5);
         const wr = (Math.sin(d * 0.8 / (w * st.shag) * 6.283 - ph * 0.15 + f * 2.1) * 0.5 + Math.sin(s * 3 + slow) * 0.9) * w * st.razmah * grow, xr = x0 + rx * d * 0.8 - ry * wr, yr = y0 + ry * d * 0.8 + rx * wr;
-        // ход: нить огибает тело дугой до кормы, за кормой нити свиты в общий пучок-канат (у каждой своя фаза по кругу)
-        let xb, yb; if (d < D0) { const q = d / D0, a = (1 - q) * (1 - q), b = 2 * q * (1 - q), c = q * q; xb = a * x0 + b * cx + c * (kx + bx * hv); yb = a * y0 + b * cy + c * (ky + by * hv); }
-        else { const za = d - D0, k = sm(0, w * st.sbor, za), ob = k * w * (st.razmah * Math.sin(za / (w * st.shag) * 6.283 - ph) + st.puchok * Math.sin(za / (w * st.shag) * 3.1416 - ph * 0.5 + faza)) * (1 - 0.3 * s); xb = kx + bx * (hv + za) - by * ob; yb = ky + by * (hv + za) + bx * ob; }
+        // ход: нить ложится на оболочку и идёт по обводу тела к корме, за кормой нити свиты в общий пучок-канат (у каждой своя фаза по кругу)
+        let xb, yb; if (d < D0 - hv) { const e = F.kray(tn + dt * d / ((D0 - hv) || 1)), [ex, ey] = at(e.u, e.o), pod = w * 0.07 * Math.min(1, d / (w * 0.5)), en = P.a + e.n; xb = ex + Math.cos(en) * pod; yb = ey + Math.sin(en) * pod; }
+        else { const za = d - (D0 - hv), k = sm(0, w * st.sbor, za), obk = k * w * (st.razmah * Math.sin(za / (w * st.shag) * 6.283 - ph) + st.puchok * Math.sin(za / (w * st.shag) * 3.1416 - ph * 0.5 + faza)) * (1 - 0.3 * s); xb = kx + bx * za - by * obk; yb = ky + by * za + bx * obk; }
         const nx = xr + (xb - xr) * beg, ny = yr + (yb - yr) * beg;
         if (i) B.seg(lx, ly, nx, ny, w * st.tolsh * (1 - 0.75 * s), st.cvet, st.a * (1 - 0.5 * s)); lx = nx; ly = ny; } } },
   // Гранулы запаса (включения): несколько плотных шариков у полюсов, в стороне от клубка ДНК.

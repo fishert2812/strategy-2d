@@ -7,6 +7,7 @@ export function os(tochki, N = 28, r_min = 0.2) {
   const T = tochki.length > 1 ? tochki : [[tochki[0][0] - 0.01, tochki[0][1], tochki[0][2]], [tochki[0][0] + 0.01, tochki[0][1], tochki[0][2]]], K = T.length - 1, S = [];
   for (let i = 0; i <= N; i++) { const f = i / N * K, k = Math.min(K - 1, Math.floor(f)), t = f - k, p = j => T[Math.max(0, Math.min(K, k + j))];
     S.push({ x: cr(p(-1)[0], p(0)[0], p(1)[0], p(2)[0], t), y: cr(p(-1)[1], p(0)[1], p(1)[1], p(2)[1], t), r: Math.max(r_min, cr(p(-1)[2], p(0)[2], p(1)[2], p(2)[2], t)), s: 0 }); }
+  for (let k = 0; k < 2; k++) { const c = S.map(q => [q.x, q.y, q.r]); for (let i = 1; i < N; i++) { S[i].x = (c[i - 1][0] + 2 * c[i][0] + c[i + 1][0]) / 4; S[i].y = (c[i - 1][1] + 2 * c[i][1] + c[i + 1][1]) / 4; S[i].r = (c[i - 1][2] + 2 * c[i][2] + c[i + 1][2]) / 4; } } // сгладить: без изломов оси и ступенек толщины
   for (let i = 0; i <= N; i++) { const a = S[Math.max(0, i - 1)], b = S[Math.min(N, i + 1)], l = Math.hypot(b.x - a.x, b.y - a.y) || 1; S[i].tx = (b.x - a.x) / l; S[i].ty = (b.y - a.y) / l; if (i) S[i].s = S[i - 1].s + Math.hypot(S[i].x - S[i - 1].x, S[i].y - S[i - 1].y); }
   const dl = S[N].s, r0 = S[0].r, r1 = S[N].r, vsya = dl + r0 + r1, H = vsya / 2;
   // Сечение тела на расстоянии a от кончика кормы (0 … vsya): центр, касательная, полуширина. На торцах — круглые шапки.
@@ -29,7 +30,7 @@ export function os(tochki, N = 28, r_min = 0.2) {
   const kolca = (cap = 6) => { const A = []; for (let i = 0; i <= cap; i++) A.push(r0 * (1 - Math.cos(i / cap * Math.PI / 2))); for (let i = 1; i < N; i++) A.push(r0 + dl * i / N); for (let i = cap; i >= 0; i--) A.push(vsya - r1 * (1 - Math.cos(i / cap * Math.PI / 2)));
     return A.map((a, i) => { const q = sech(a), e = 0.02, dr = a < e ? 1e3 : a > vsya - e ? -1e3 : (sech(a + e).r - sech(a - e).r) / (2 * e); return { x: q.x - c0.x, y: q.y - c0.y, tx: q.tx, ty: q.ty, r: q.r, dr, a }; }); };
   let V = 2 / 3 * Math.PI * (r0 ** 3 + r1 ** 3), rmax = 0, pl = 2 * Math.PI * (r0 * r0 + r1 * r1); for (let i = 1; i <= N; i++) { const r = (S[i].r + S[i - 1].r) / 2, ds = S[i].s - S[i - 1].s; V += Math.PI * r * r * ds; pl += 2 * Math.PI * r * ds; } for (const q of S) rmax = Math.max(rmax, q.r);
-  return { H, dlina: vsya, obem: V, ploshchad: pl, poperechnik: 2 * rmax, obvod: per[ob.length], at, kray, kolca, sech, korma: [-S[0].tx, -S[0].ty] };
+  return { korma_t: (1 - Math.PI * r0 / 2 / per[ob.length]) * 6.283185, H, dlina: vsya, obem: V, ploshchad: pl, poperechnik: 2 * rmax, obvod: per[ob.length], at, kray, kolca, sech, korma: [-S[0].tx, -S[0].ty] };
 }
 // Готовые положения точек из старых чисел формы: палочка (длина и толщина), шар, запятая (изгиб дугой).
 export const iz_formy = (forma, dlina, tolshchina, izgib = 0) => { const r = tolshchina, L = Math.max(0, dlina - tolshchina);
