@@ -9,6 +9,7 @@ import { mark, message } from './feedback.js';
 import { entries, shelf, page, links } from './almanah.js';
 import * as karta from './karta.js';
 import { readFileSync } from 'node:fs';
+import * as dv from './dvizhok.js';
 import { night } from './night.js';
 import { M } from './mutacii.js';
 const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
@@ -616,7 +617,7 @@ check('простой игрок живёт дольше минуты и дох�
 // Альманах (урок L019, Роман: «Кабинет… 12 из 13 что это значит… где сами изображения… где образовательный контент, где структура»; «Альманах… он так должен называться»).
 check('test_L019: Альманах — разделы, счёт словами, у каждой записи модель и тексты книги', () => {
   const J = f => JSON.parse(readFileSync(new URL(f, import.meta.url)));
-  const K = J('./almanah.json'), cards = J('./cards.json'), T = J('./kniga/teksty_sushchestv.json').sushchestva, G = J('./kniga/teksty_genov.json'), E = entries(K, G);
+  const K = J('./almanah.json'), cards = J('./cards.json'), T = J('./kniga/teksty_sushchestv.json').sushchestva, G = J('./kniga/teksty_genov.json'); dv.vitrina(K, {}, T); /* виды из анкет движка встают на полку сами */ const E = entries(K, G);
   for (const k of Object.keys(cards).filter(k => k !== '_')) { const it = E[k]; if (!it) return `«${k}» нет в Альманахе`;
     if (!K.colors[it.group]) return `у «${k}» раздел без цвета`; if (!(it.span > 0)) return `у «${k}» нет размера снимка модели`;
     if (!T[k] || !T[k].kto || !T[k].priroda) return `у «${k}» нет текста книги «кто это» и «в природе»`; }

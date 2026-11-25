@@ -70,7 +70,7 @@ await p.waitForTimeout(700); { const t = await p.evaluate(() => [...document.que
   say(d.dpr >= 3 && d.d0 === 3 && (d.avg > d.slow ? d.drop && d.d === 2.5 : d.d === 3), `test_L052: кадр в полную плотность 3, на тяжёлом кадре откат до 2,5 (было ${d.d0}, сейчас ${d.d}, откат на кадре ${d.drop || '—'}, средний кадр ${Math.round(d.avg)} мс)`); }
 // test_L046 (Роман 25.11 на 0.68: «Почему какая то мутнота стала? Какой то фильтр мутно стоит?»): тяж слизи — прозрачный гель с тонкой
 // кромкой, а не светлая пелена во всю ширину. Внутри тяжа вода почти той же яркости, что рядом, кромка видна.
-{ await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.slime.length = 0; w.slime.push({ x: a.x + 70, y: a.y, a: Math.PI / 2, len: 380, w: 40, id: 77 }); });
+{ await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.slime.length = 0; w.pseudos.length = 0; /* меряем воду и тяж: светлая соседка в полосе замера даёт ложную «пелену» */ w.slime.push({ x: a.x + 70, y: a.y, a: Math.PI / 2, len: 380, w: 40, id: 77 }); });
   await p.waitForTimeout(400);
   const lum = async clip => p.evaluate(async b64 => { const im = new Image(); im.src = 'data:image/png;base64,' + b64; await im.decode(); const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
     const x = c.getContext('2d'); x.drawImage(im, 0, 0); const d = x.getImageData(0, 0, c.width, c.height).data; let s = 0; for (let i = 0; i < d.length; i += 4) s += d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11; return s / (d.length / 4); },

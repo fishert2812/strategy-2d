@@ -26,7 +26,7 @@
 				"zhgutiki": { "n": 8, "dlina": 4, "cvet": [0.95, 0.9, 0.7] } },
 			"hod": { "skorost": 120 },
 			"rodnya": false, "virus": false,
-			"edyat": ["amoeba", "slipper"],
+			"edyat": ["amoeba", "slipper"], "almanah": { "hint": "У дна и возле бурых комков" },
 			"mir": { "shans": [0.02, 0.06, 0.3], "s_rosta": 2.5, "zhrebiy": "svoy" }
 		}
 	}
