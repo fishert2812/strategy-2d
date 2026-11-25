@@ -1,0 +1,275 @@
+{
+	"_": "Каталог частей бактерий для движка (договор design/dlya_dvizhka/dogovor.md, раздел 1; кусок А). Одна запись — одна строка таблицы биолога, части 1–7 (kniga/chasti.md, сверенная 25.11): 63 части. Слов для игрока здесь нет: ist — код строки таблицы, по нему книга. sloy — группа. parametry: число — ot/do (единицы в ed: длины в мкм, время в с, углы в радианах), obychno — обычное значение из таблицы; net_chisla — в таблице числа нет (не выдумываем); slovami — так сказано в таблице, когда граница не числом; otkuda — работа, откуда число; ocenka — в таблице «оценка», «не сверено» или «не удалось открыть»: в Альманахе как науку не показывать. iz — выбор из слов. daet — как часть меняет характеристики (закрытый список договора): chto, zakon (Ф-1…Ф-6 биолога, Л1…Л14 книги «Физика» или «таблица» — только направление из столбца «На что влияет»), znak + или −, kak — формула из таблицы или книги, chislo — итог в природе. pravilo — правило взаимодействия (pravila_mira), через которое часть действует, если её влияние не характеристика. pochemu_net — почему влияния нет. mesto — сколько мест на коже (закон П0.2; числа наши, как в pravila.json песочницы, ждут сверки биолога), 0 — внутри или слой оболочки. nelzya_s — с какой частью нельзя и номер правила биолога (biolog_pravila.md). vid — ключ части вида (vid_chasti.json, хозяин тред вида), null — рисунка пока нет. Ключи частей как в черновике «Эволюции» (chernovik_evo_g1_g23_g51_g56.json).",
+	"harakteristiki": ["tyaga", "soprotivlenie", "snos", "zahvat_edy", "rost", "prochnost", "zashchita_virus", "zashchita_yad", "scepka", "zametnost", "cena_edy", "plavuchest", "prityazhenie_edy", "povorot", "golod", "zapas", "zashchita_kislota"],
+	"chasti": {
+		"palochka": { "sloy": "forma", "ist": "Ф1",
+			"parametry": { "dlina": { "ot": 2, "do": 6, "obychno": 2, "ed": "мкм" }, "tolshchina": { "ot": 0.5, "do": 1, "obychno": 0.8, "ed": "мкм" }, "krivizna_koncov": { "ed": "доля", "net_chisla": true } },
+			"daet": [
+				{ "chto": "soprotivlenie", "zakon": "Ф-1", "znak": "+", "kak": "2π·μ·L / (ln(2L/d) − 0,5)" },
+				{ "chto": "zahvat_edy", "zakon": "Ф-3", "znak": "+", "kak": "4π·D·r·C на объём ∝ 1/r²" },
+				{ "chto": "snos", "zakon": "Ф-4", "znak": "−", "kak": "время потери курса ∝ r³" }
+			], "mesto": 0, "vid": { "chast": "telo" } },
+		"shar": { "sloy": "forma", "ist": "Ф2",
+			"parametry": { "radius": { "ot": 0.5, "do": 2, "ed": "мкм" } },
+			"daet": [
+				{ "chto": "soprotivlenie", "zakon": "Ф-1", "znak": "+", "kak": "6π·μ·r" },
+				{ "chto": "prochnost", "zakon": "таблица", "znak": "+" },
+				{ "chto": "zahvat_edy", "zakon": "Ф-3", "znak": "+", "kak": "4π·D·r·C на объём ∝ 1/r²" },
+				{ "chto": "snos", "zakon": "Ф-4", "znak": "−", "kak": "время потери курса ∝ r³" }
+			], "mesto": 0, "vid": { "chast": "telo" } },
+		"zapyataya": { "sloy": "forma", "ist": "Ф3",
+			"parametry": { "dlina": { "ot": 1, "do": 3, "ed": "мкм" }, "izgib": { "ot": 0.25, "do": 0.5, "ed": "доля круга" } },
+			"daet": [
+				{ "chto": "soprotivlenie", "zakon": "Ф-1", "znak": "+", "kak": "2π·μ·L / (ln(2L/d) − 0,5)" },
+				{ "chto": "tyaga", "zakon": "таблица", "znak": "+" },
+				{ "chto": "povorot", "zakon": "таблица", "znak": "+" }
+			], "mesto": 0, "vid": { "chast": "telo" } },
+		"spiral": { "sloy": "forma", "ist": "Ф4",
+			"parametry": { "dlina": { "ot": 5, "do": 50, "ed": "мкм" }, "shag": { "ot": 1, "do": 5, "ed": "мкм" }, "diametr_vitka": { "ed": "мкм", "net_chisla": true }, "vitkov": { "ed": "шт", "net_chisla": true } },
+			"daet": [
+				{ "chto": "soprotivlenie", "zakon": "Ф-1", "znak": "+", "kak": "2π·μ·L / (ln(2L/d) − 0,5)" },
+				{ "chto": "tyaga", "zakon": "таблица", "znak": "+" }
+			], "mesto": 0, "vid": { "chast": "telo" } },
+		"nit": { "sloy": "forma", "ist": "Ф5",
+			"parametry": { "dlina": { "ot": 10, "do": 30000, "ed": "мкм", "slovami": "от десятков микрон до 1–3 см (кабельные бактерии)" }, "kletok": { "ed": "шт", "net_chisla": true }, "tolshchina": { "ed": "мкм", "net_chisla": true }, "gibkost": { "ed": "доля", "net_chisla": true } },
+			"daet": [
+				{ "chto": "prochnost", "zakon": "таблица", "znak": "+" },
+				{ "chto": "soprotivlenie", "zakon": "Ф-1", "znak": "+", "kak": "2π·μ·L / (ln(2L/d) − 0,5)" }
+			], "mesto": 0, "vid": { "chast": "telo" } },
+		"cepochka": { "sloy": "forma", "ist": "Ф6",
+			"parametry": { "kletok": { "ot": 2, "do": 20, "ed": "шт" }, "zazor": { "ed": "мкм", "net_chisla": true }, "ugol": { "ed": "рад", "net_chisla": true } },
+			"daet": [
+				{ "chto": "prochnost", "zakon": "таблица", "znak": "+" },
+				{ "chto": "soprotivlenie", "zakon": "Ф-1", "znak": "+", "kak": "2π·μ·L / (ln(2L/d) − 0,5)" }
+			], "mesto": 0, "vid": { "chast": "telo" } },
+		"grozd": { "sloy": "forma", "ist": "Ф7",
+			"parametry": { "kletok": { "ot": 3, "do": 20, "ed": "шт" }, "razmer_kletki": { "ot": 1, "do": 1, "ed": "мкм" }, "razmer_komka": { "ot": 3, "do": 8, "ed": "мкм" }, "plotnost": { "ed": "доля", "net_chisla": true } },
+			"daet": [
+				{ "chto": "prochnost", "zakon": "таблица", "znak": "+" },
+				{ "chto": "soprotivlenie", "zakon": "Ф-1", "znak": "+", "kak": "6π·μ·r" }
+			], "mesto": 0, "vid": { "chast": "telo" } },
+		"paket": { "sloy": "forma", "ist": "Ф8",
+			"parametry": { "kletok": { "ot": 8, "do": 16, "ed": "шт", "slovami": "пакеты по 8 и 16 клеток" }, "sloev": { "ed": "шт", "net_chisla": true } },
+			"daet": [], "pochemu_net": "в таблице влияние не названо: «редкая форма, годится как чужой вид»", "mesto": 0, "vid": { "chast": "telo" } },
+
+		"sliz": { "sloy": "pokrov", "ist": "О1",
+			"parametry": { "tolshchina": { "ot": 0.1, "do": 1, "ed": "мкм" }, "prozrachnost": { "ed": "доля", "net_chisla": true }, "lipkost": { "ed": "доля", "net_chisla": true } },
+			"daet": [
+				{ "chto": "scepka", "zakon": "таблица", "znak": "−", "kak": "хватка хищника не смыкается" },
+				{ "chto": "zahvat_edy", "zakon": "таблица", "znak": "−", "kak": "чуть замедляет приход еды" },
+				{ "chto": "zametnost", "zakon": "таблица", "znak": "+", "kak": "слизь блестит" }
+			], "mesto": 2, "nelzya_s": { "fimbrii": "Н3", "zastezhka": "Н3", "prisoska": "Н3", "proglotit": "Н4" }, "vid": { "chast": "kromka" } },
+		"kapsula": { "sloy": "pokrov", "ist": "О2",
+			"parametry": { "tolshchina": { "ot": 0.1, "do": 2, "ed": "мкм", "slovami": "0,1–0,5 мкм, у клебсиеллы до 1–2" }, "plotnost": { "ed": "доля", "net_chisla": true }, "prozrachnost": { "ed": "доля", "net_chisla": true } },
+			"daet": [
+				{ "chto": "prochnost", "zakon": "таблица", "znak": "+", "kak": "защита от проглатывания" },
+				{ "chto": "zashchita_virus", "zakon": "таблица", "znak": "+" },
+				{ "chto": "cena_edy", "zakon": "таблица", "znak": "+", "kak": "сахара, прямой вычет из роста (В10)" },
+				{ "chto": "povorot", "zakon": "таблица", "znak": "−", "kak": "сопротивление вращению растёт" }
+			], "mesto": 2, "nelzya_s": { "fimbrii": "Н3", "zastezhka": "Н3", "prisoska": "Н3", "proglotit": "Н4" }, "vid": { "chast": "kromka" } },
+		"s_sloy": { "sloy": "pokrov", "ist": "О3",
+			"parametry": { "tolshchina": { "ot": 0.005, "do": 0.025, "ed": "мкм" }, "risunok": { "iz": ["shestiugolnik"] } },
+			"daet": [ { "chto": "prochnost", "zakon": "таблица", "znak": "+", "kak": "жёсткость, защита от уколов; еде не мешает" } ], "mesto": 0, "vid": null },
+		"naruzhnaya_obolochka": { "sloy": "pokrov", "ist": "О4",
+			"parametry": { "tolshchina": { "ot": 0.007, "do": 0.008, "ed": "мкм" } },
+			"daet": [ { "chto": "zashchita_yad", "zakon": "таблица", "znak": "+", "kak": "главная защита от чужих ядов (Б20)" } ], "mesto": 0, "vid": null },
+		"pory": { "sloy": "pokrov", "ist": "О5",
+			"parametry": { "n": { "ot": 60000, "do": 200000, "ed": "шт", "slovami": "каналов около 60 000, с белком OmpA 100 000–200 000", "otkuda": "bionumbers 100081, 105859; Nikaido 1996" }, "prosvet": { "ot": 0.001, "do": 0.001, "ed": "мкм" }, "zamok": { "iz": ["svoy", "drugoy"] } },
+			"daet": [
+				{ "chto": "zahvat_edy", "zakon": "Л6", "znak": "+", "kak": "J = 4π·D·a·c" },
+				{ "chto": "zashchita_yad", "zakon": "таблица", "znak": "−", "kak": "одна дыра и для еды, и для яда (Г30)" }
+			], "mesto": 1, "vid": null },
+		"stenka_tonkaya": { "sloy": "pokrov", "ist": "О6",
+			"parametry": { "tolshchina": { "ot": 0.002, "do": 0.008, "ed": "мкм", "otkuda": "bionumbers 105383, 104946" }, "sloev": { "ot": 1, "do": 2, "ed": "шт" } },
+			"daet": [ { "chto": "prochnost", "zakon": "Л14", "znak": "+", "kak": "σ = P·R" } ], "mesto": 0, "vid": null },
+		"stenka_tolstaya": { "sloy": "pokrov", "ist": "О7",
+			"parametry": { "tolshchina": { "ot": 0.02, "do": 0.08, "ed": "мкм", "ocenka": true } },
+			"daet": [
+				{ "chto": "prochnost", "zakon": "Л14", "znak": "+", "kak": "σ = P·R" },
+				{ "chto": "zashchita_yad", "zakon": "таблица", "znak": "+", "kak": "защита от иглы и многих ядов (Н17 — оценка)" }
+			], "mesto": 0, "vid": null },
+		"membrana": { "sloy": "pokrov", "ist": "О8",
+			"parametry": { "tolshchina": { "ot": 0.006, "do": 0.006, "ed": "мкм", "otkuda": "bionumbers 114122" }, "tekuchest": { "ed": "доля", "net_chisla": true } },
+			"daet": [ { "chto": "prochnost", "zakon": "таблица", "znak": "+", "kak": "разрыв = гибель" } ], "mesto": 0, "vid": null },
+		"promezhutok": { "sloy": "pokrov", "ist": "О9",
+			"parametry": { "shirina": { "ot": 0.01, "do": 0.025, "ed": "мкм", "otkuda": "bionumbers 114122" } },
+			"daet": [ { "chto": "zapas", "zakon": "таблица", "znak": "+", "kak": "там копится то, что вошло" } ], "mesto": 0, "vid": null },
+
+		"nukleoid": { "sloy": "nutro", "ist": "Н1",
+			"parametry": { "bukv": { "ot": 4600000, "do": 4600000, "ed": "букв" }, "dlina_niti": { "ot": 1600, "do": 1600, "ed": "мкм" }, "dolya_obyoma": { "ot": 0.25, "do": 0.25, "ed": "доля" }, "kopiy": { "ed": "шт", "net_chisla": true } },
+			"daet": [ { "chto": "rost", "zakon": "Л11", "znak": "+", "kak": "удваивается перед делением: видимый счётчик деления" } ], "mesto": 0, "vid": null },
+		"plazmida": { "sloy": "nutro", "ist": "Н2",
+			"parametry": { "bukv": { "ot": 2000, "do": 100000, "ed": "букв" }, "kopiy": { "ot": 1, "do": null, "ed": "шт", "slovami": "до нескольких сотен" }, "kolec": { "ed": "шт", "net_chisla": true } },
+			"daet": [], "pochemu_net": "сама ничего не меняет: носит умения (трубочку, противоядие, устойчивость) и переносится целиком", "mesto": 0, "vid": null },
+		"ribosomy": { "sloy": "nutro", "ist": "Н3",
+			"parametry": { "n": { "ot": 6800, "do": 72000, "ed": "шт", "otkuda": "bionumbers 101441; Bremer, Dennis 1996" }, "razmer": { "ot": 0.02, "do": 0.02, "ed": "мкм" }, "dolya_vesa": { "ot": null, "do": 0.3, "ed": "доля", "slovami": "до трети сухого веса в быстром росте", "otkuda": "bionumbers 112365" } },
+			"daet": [
+				{ "chto": "rost", "zakon": "Ф-6", "znak": "+", "kak": "доля рибосом = доля_минимум + скорость роста × κ" },
+				{ "chto": "golod", "zakon": "таблица", "znak": "+", "kak": "занимают место и едят запас" }
+			], "mesto": 0, "vid": { "chast": "zerna" } },
+		"zapas_zhira": { "sloy": "nutro", "ist": "Н4",
+			"parametry": { "n": { "ed": "шт", "net_chisla": true }, "razmer": { "ot": 0.2, "do": 0.5, "ed": "мкм" }, "yarkost": { "ed": "доля", "net_chisla": true } },
+			"daet": [
+				{ "chto": "zapas", "zakon": "таблица", "znak": "+" },
+				{ "chto": "golod", "zakon": "таблица", "znak": "−", "kak": "живёт без еды дольше" },
+				{ "chto": "plavuchest", "zakon": "Л8", "znak": "−", "kak": "тело тяжелее: v = 2·Δρ·g·a² / (9μ)" }
+			], "mesto": 0, "vid": { "chast": "zerna" } },
+		"zapas_sahara": { "sloy": "nutro", "ist": "Н5",
+			"parametry": { "obyom": { "ed": "доля", "net_chisla": true }, "plotnost": { "ed": "доля", "net_chisla": true } },
+			"daet": [ { "chto": "zapas", "zakon": "таблица", "znak": "+", "kak": "короткий запас на минуты-часы" } ], "mesto": 0, "vid": { "chast": "zerna" } },
+		"zapas_fosfora": { "sloy": "nutro", "ist": "Н6",
+			"parametry": { "n": { "ed": "шт", "net_chisla": true }, "razmer": { "ot": 0.2, "do": 1, "ed": "мкм" } },
+			"daet": [ { "chto": "zapas", "zakon": "таблица", "znak": "+", "kak": "запас на рост в бедной воде" } ], "mesto": 0, "vid": { "chast": "zerna" } },
+		"zerna_sery": { "sloy": "nutro", "ist": "Н7",
+			"parametry": { "n": { "ed": "шт", "net_chisla": true }, "razmer": { "ot": 0.5, "do": 1, "ed": "мкм" }, "yarkost": { "ed": "доля", "net_chisla": true } },
+			"daet": [
+				{ "chto": "zapas", "zakon": "таблица", "znak": "+", "kak": "топливо для дыхания без кислорода" },
+				{ "chto": "zametnost", "zakon": "таблица", "znak": "+", "kak": "самая заметная внутренность под микроскопом" }
+			], "mesto": 0, "vid": { "chast": "zerna" } },
+		"gazovye_puzyrki": { "sloy": "nutro", "ist": "Н8",
+			"parametry": { "tolshchina": { "ot": 0.045, "do": 0.12, "ed": "мкм" }, "dlina": { "ot": 0.1, "do": 1.4, "ed": "мкм" }, "n": { "ot": 10, "do": null, "ed": "шт", "slovami": "десятки и сотни" }, "davlenie_polomki": { "ot": 2, "do": 15, "ed": "атм", "ocenka": true } },
+			"daet": [ { "chto": "plavuchest", "zakon": "Л8", "znak": "+", "kak": "v = 2·Δρ·g·a² / (9μ), Δρ < 0; ломаются на глубине (Н13)" } ], "mesto": 0, "vid": null },
+		"puzyr_zapas": { "sloy": "nutro", "ist": "Н9",
+			"parametry": { "dolya": { "ot": 0.8, "do": 0.98, "ed": "доля" }, "razmer_kletki": { "ot": 100, "do": 750, "ed": "мкм", "slovami": "клетка 100–300 мкм, до 750" } },
+			"daet": [ { "chto": "zapas", "zakon": "таблица", "znak": "+", "kak": "жизнь в мёртвой воде (Г54); только у крупного тела (В11)" } ], "mesto": 0, "vid": null },
+		"magnitnaya_cepochka": { "sloy": "nutro", "ist": "Н10",
+			"parametry": { "kristall": { "ot": 0.035, "do": 0.12, "ed": "мкм" }, "n": { "ot": 10, "do": 30, "ed": "шт" } },
+			"daet": [ { "chto": "snos", "zakon": "таблица", "znak": "−", "kak": "держит курс по магнитному полю (В13)" } ], "mesto": 0, "vid": null },
+		"skladki_sveta": { "sloy": "nutro", "ist": "Н11",
+			"parametry": { "ploshchad": { "ed": "доля", "net_chisla": true, "slovami": "заметная доля тела" }, "plotnost": { "ed": "доля", "net_chisla": true } },
+			"daet": [ { "chto": "golod", "zakon": "таблица", "znak": "−", "kak": "фотосинтез без отдельного органа (Н15, В3)" } ], "mesto": 0, "vid": null },
+		"karboksisomy": { "sloy": "nutro", "ist": "Н12",
+			"parametry": { "n": { "ed": "шт", "net_chisla": true }, "razmer": { "ot": 0.1, "do": 0.2, "ed": "мкм" } },
+			"daet": [ { "chto": "rost", "zakon": "таблица", "znak": "+", "kak": "ускоряют сборку из воздуха" } ], "mesto": 0, "vid": null },
+		"spora": { "sloy": "nutro", "ist": "Н13",
+			"parametry": { "n": { "ot": 1, "do": 1, "ed": "шт" }, "razmer": { "ot": 0.8, "do": 1.5, "ed": "мкм" }, "srok": { "ed": "с", "net_chisla": true, "slovami": "десятилетия" } },
+			"daet": [ { "chto": "prochnost", "zakon": "таблица", "znak": "+", "kak": "переносит кипяток и десятилетия; полный покой (Н8)" } ], "mesto": 0, "vid": null },
+
+		"zhgutik": { "sloy": "dvizhenie", "ist": "Д1",
+			"parametry": { "n": { "ot": 1, "do": 6, "obychno": [3, 4], "ed": "шт", "otkuda": "Turner, Ryu, Berg 2000" }, "dlina": { "ot": 3, "do": 10, "obychno": [6, 7], "ed": "мкм", "otkuda": "bionumbers 101472" }, "tolshchina": { "ot": 0.02, "do": 0.02, "ed": "мкм" }, "shag_vitka": { "ed": "мкм", "net_chisla": true }, "oborotov": { "ot": 100, "do": 100, "ed": "об/с" }, "gde": { "iz": ["krugom"] } },
+			"daet": [ { "chto": "tyaga", "zakon": "Л2", "znak": "+", "kak": "F = 6π·μ·a·v", "chislo": { "ot": 20, "do": 30, "ed": "мкм/с", "slovami": "10–15 длин тела в секунду (Тёрнер: 30 ± 12)" } } ], "mesto": 1, "vid": { "chast": "zhgutik_vint" } },
+		"zhgutik_polyarnyy": { "sloy": "dvizhenie", "ist": "Д2",
+			"parametry": { "n": { "ot": 1, "do": 1, "ed": "шт" }, "dlina": { "ot": 5, "do": 10, "ed": "мкм" }, "oborotov": { "ed": "об/с", "net_chisla": true }, "gde": { "iz": ["korma"] } },
+			"daet": [
+				{ "chto": "tyaga", "zakon": "Л2", "znak": "+", "kak": "F = 6π·μ·a·v", "chislo": { "ot": 60, "do": 100, "ed": "мкм/с", "slovami": "до 60–100" } },
+				{ "chto": "povorot", "zakon": "таблица", "znak": "+", "kak": "подламывание при развороте, только в жидкой воде" }
+			], "mesto": 1, "vid": { "chast": "zhgutik_vint" } },
+		"zhgutik_tolstyy": { "sloy": "dvizhenie", "ist": "Д3",
+			"parametry": { "tolshchina": { "ed": "мкм", "net_chisla": true, "slovami": "толще обычного" }, "oborotov": { "ed": "об/с", "net_chisla": true }, "gde": { "iz": ["korma"] } },
+			"daet": [ { "chto": "tyaga", "zakon": "Л2", "znak": "+", "kak": "F = 6π·μ·a·v", "chislo": { "ot": 35, "do": 160, "ed": "мкм/с", "slovami": "до 160 у штамма HD100, у других от 35; около ста длин тела в секунду", "otkuda": "bionumbers 101969" } } ], "mesto": 1, "vid": { "chast": "zhgutik_vint" } },
+		"motor_zhgutika": { "sloy": "dvizhenie", "ist": "Д4",
+			"parametry": { "razmer": { "ot": 0.045, "do": 0.045, "ed": "мкм" }, "kolec": { "ed": "шт", "net_chisla": true }, "napravlenie": { "iz": ["vpered", "nazad"] }, "pereklyuchenie": { "ot": 0.001, "do": 0.001, "ed": "с" } },
+			"daet": [ { "chto": "povorot", "zakon": "Л9", "znak": "+", "kak": "вперёд — пучок сплетён, идёт; назад — расплетается, кувырок" } ], "mesto": 0, "vid": null },
+		"kuvyrok": { "sloy": "dvizhenie", "ist": "Д5",
+			"parametry": { "probezhka": { "ot": 0.86, "do": 1, "ed": "с", "otkuda": "Saragosti 2012; Berg 1988" }, "kuvyrok": { "ot": 0.1, "do": 0.14, "ed": "с" }, "ugol": { "ot": 1.187, "do": 1.204, "ed": "рад", "slovami": "68–69°", "otkuda": "Berg, Brown 1972; Saragosti 2012" }, "pamyat_napravleniya": { "ed": "доля", "net_chisla": true, "slovami": "немного помнится" } },
+			"daet": [
+				{ "chto": "povorot", "zakon": "Л9", "znak": "+", "kak": "t_пробег = −τ · ln(1 − случ.)" },
+				{ "chto": "snos", "zakon": "Л9", "znak": "+", "kak": "реже кувыркается — идёт прямее" }
+			], "mesto": 0, "vid": null },
+		"pili_polzuchie": { "sloy": "dvizhenie", "ist": "Д6",
+			"parametry": { "tolshchina": { "ot": 0.005, "do": 0.008, "ed": "мкм" }, "dlina": { "ed": "мкм", "net_chisla": true, "slovami": "несколько мкм" }, "sila": { "ot": 110, "do": 149, "ed": "пН", "otkuda": "Maier 2002; Clausen 2009" }, "skorost_vtyagivaniya": { "ot": 0.25, "do": 1.6, "ed": "мкм/с" } },
+			"daet": [
+				{ "chto": "tyaga", "zakon": "таблица", "znak": "+", "kak": "только по опоре: выбросил, прилип, подтянулся" },
+				{ "chto": "scepka", "zakon": "таблица", "znak": "+" }
+			], "mesto": 1, "vid": { "chast": "vorsinki" } },
+		"skolzhenie": { "sloy": "dvizhenie", "ist": "Д7",
+			"parametry": { "skorost": { "ot": 0.05, "do": 0.08, "ed": "мкм/с", "slovami": "у миксококка 2–5 мкм в минуту; у флавобактерии около 2 мкм/с", "otkuda": "bionumbers 106811" }, "sled": { "ed": "мкм", "net_chisla": true } },
+			"daet": [ { "chto": "tyaga", "zakon": "таблица", "znak": "+", "kak": "только по дну, в открытой воде не работает (Г52)" } ], "mesto": 0, "vid": null },
+		"steblyok": { "sloy": "dvizhenie", "ist": "Д8",
+			"parametry": { "dlina": { "ot": 1, "do": 10, "ed": "мкм" }, "tolshchina": { "ed": "мкм", "net_chisla": true }, "lipuchka": { "iz": ["est", "net"] } },
+			"daet": [ { "chto": "scepka", "zakon": "таблица", "znak": "+", "kak": "прирастает к опоре навсегда" } ], "mesto": 1, "vid": null },
+
+		"fimbrii": { "sloy": "scepka", "ist": "П1",
+			"parametry": { "n": { "ot": 100, "do": 500, "ed": "шт" }, "tolshchina": { "ot": 0.007, "do": 0.007, "ed": "мкм" }, "dlina": { "ot": 0.2, "do": 2, "ed": "мкм" }, "kryuchok": { "iz": ["est", "net"] } },
+			"daet": [ { "chto": "scepka", "zakon": "Л10", "znak": "+", "kak": "τ(F) = 1 / (k₁·e^(−F·x₁/kT) + k₂·e^(F·x₂/kT))" } ], "mesto": 1, "nelzya_s": { "sliz": "Н3", "kapsula": "Н3" }, "vid": { "chast": "vorsinki" } },
+		"trubochka_obmena": { "sloy": "scepka", "ist": "П2",
+			"parametry": { "n": { "ot": 1, "do": 3, "ed": "шт", "slovami": "до 20 у «распахнутых» плазмид" }, "tolshchina": { "ot": 0.0085, "do": 0.0085, "ed": "мкм", "otkuda": "Hu, Khara, Christie, PNAS 2019" }, "dlina": { "ot": 1, "do": 20, "ed": "мкм", "ocenka": true }, "srok_peredachi": { "ot": 120, "do": 300, "ed": "с", "ocenka": true } },
+			"daet": [ { "chto": "scepka", "zakon": "таблица", "znak": "+", "kak": "держит соседку на время передачи кольца" } ], "pravilo": "obmen_genami", "mesto": 1, "vid": { "chast": "vorsinki" } },
+		"zastezhka": { "sloy": "scepka", "ist": "П3",
+			"parametry": { "plotnost": { "ed": "доля", "net_chisla": true }, "vklyuchena": { "iz": ["da", "net"], "slovami": "включается сама и наугад" } },
+			"daet": [ { "chto": "scepka", "zakon": "таблица", "znak": "+", "kak": "сёстры слипаются бок о бок (Г24)" } ], "mesto": 1, "nelzya_s": { "sliz": "Н3", "kapsula": "Н3" }, "vid": null },
+		"kurli": { "sloy": "scepka", "ist": "П4",
+			"parametry": { "tolshchina": { "ot": 0.004, "do": 0.004, "ed": "мкм" }, "gustota": { "ed": "доля", "net_chisla": true } },
+			"daet": [ { "chto": "scepka", "zakon": "таблица", "znak": "+", "kak": "держит плёнку на опоре" } ], "mesto": 1, "vid": { "chast": "vorsinki" } },
+		"prisoska": { "sloy": "scepka", "ist": "П5",
+			"parametry": { "ploshchad": { "ed": "мкм²", "net_chisla": true }, "srok": { "ed": "с", "net_chisla": true } },
+			"daet": [
+				{ "chto": "scepka", "zakon": "таблица", "znak": "+", "kak": "один определённый хозяин (В9)" },
+				{ "chto": "tyaga", "zakon": "таблица", "znak": "−", "kak": "сам неподвижен" }
+			], "pravilo": "prisoska", "mesto": 1, "nelzya_s": { "sliz": "Н3", "kapsula": "Н3" }, "vid": null },
+
+		"nit_igla_cdi": { "sloy": "oruzhie", "ist": "Р1",
+			"parametry": { "dlina": { "ot": 0.03, "do": 0.05, "ed": "мкм", "ocenka": true, "slovami": "«нить в несколько нанометров» по Википедии, по прежним данным 30–50 нм" }, "n": { "ed": "шт", "net_chisla": true, "slovami": "число на клетку никто не мерил" } },
+			"daet": [], "pravilo": "ukol_cdi", "mesto": 1, "vid": null },
+		"shprits": { "sloy": "oruzhie", "ist": "Р2",
+			"parametry": { "dlina": { "ot": 0.7, "do": 1, "ed": "мкм", "otkuda": "Basler и соавт., Nature 2012" }, "chehol": { "ot": 0.03, "do": 0.03, "ed": "мкм", "ocenka": true, "slovami": "у Баслера 11,6–14,6 нм — вероятно, другая мерка" }, "igla": { "ot": 0.008, "do": 0.012, "ed": "мкм" }, "n": { "ot": 1, "do": 6, "ed": "шт" }, "vystrel": { "ot": null, "do": 0.005, "ed": "с", "slovami": "сжимается вдвое за 5 мс или быстрее" } },
+			"daet": [], "pravilo": "igla", "mesto": 1, "vid": null },
+		"shipy_t3": { "sloy": "oruzhie", "ist": "Р3",
+			"parametry": { "n": { "ot": 10, "do": null, "ed": "шт", "slovami": "десятки на клетку" }, "dlina": { "ed": "мкм", "net_chisla": true } },
+			"daet": [], "pochemu_net": "бьют не бактерий, а пасти амёб и инфузорий (В15); правила в pravila_mira ещё нет", "mesto": 1, "vid": null },
+		"yad_oblako": { "sloy": "oruzhie", "ist": "Р4",
+			"parametry": { "molekul": { "ot": 10000, "do": 1000000, "ed": "шт", "ocenka": true, "slovami": "десятки тысяч — миллионы (не сверено)" }, "radius": { "ed": "мкм", "net_chisla": true, "slovami": "чистый круг в несколько миллиметров" }, "zamok": { "iz": ["svoy"] } },
+			"daet": [], "pravilo": "yad_oblako", "mesto": 0, "vid": null },
+		"kislota_othod": { "sloy": "oruzhie", "ist": "Р5",
+			"parametry": { "skorost": { "ed": "доля", "net_chisla": true }, "radius": { "ed": "мкм", "net_chisla": true } },
+			"daet": [], "pravilo": "kislota", "mesto": 0, "vid": null },
+		"nasos_kislota": { "sloy": "oruzhie", "ist": "Р6",
+			"parametry": { "moshchnost": { "ed": "доля", "net_chisla": true } },
+			"daet": [
+				{ "chto": "zashchita_kislota", "zakon": "таблица", "znak": "+" },
+				{ "chto": "rost", "zakon": "таблица", "znak": "−", "kak": "насос работает не даром" }
+			], "mesto": 0, "vid": null },
+		"pamyat_o_virusah": { "sloy": "oruzhie", "ist": "Р7",
+			"parametry": { "zarubok": { "ed": "шт", "net_chisla": true, "slovami": "чем дольше род среди вирусов, тем список длиннее" } },
+			"daet": [ { "chto": "zashchita_virus", "zakon": "таблица", "znak": "+", "kak": "только после встречи с этим вирусом (В14)" } ], "mesto": 0, "vid": null },
+		"nozhnicy_restrikcii": { "sloy": "oruzhie", "ist": "Р8",
+			"parametry": { "vidov": { "ed": "шт", "net_chisla": true } },
+			"daet": [ { "chto": "zashchita_virus", "zakon": "таблица", "znak": "+" } ], "mesto": 0, "vid": null },
+		"samovyklyuchenie": { "sloy": "oruzhie", "ist": "Р9",
+			"parametry": { "srok": { "ed": "с", "net_chisla": true } },
+			"daet": [], "pochemu_net": "спасает род, не себя: заражённая гибнет целой — это исход правила заражения", "mesto": 0, "vid": null },
+		"puzyrki_obmanki": { "sloy": "oruzhie", "ist": "Р10",
+			"parametry": { "v_sekundu": { "ed": "шт/с", "net_chisla": true }, "razmer": { "ed": "мкм", "net_chisla": true } },
+			"daet": [
+				{ "chto": "zashchita_virus", "zakon": "таблица", "znak": "+" },
+				{ "chto": "cena_edy", "zakon": "таблица", "znak": "+", "kak": "плата — кусочек своей оболочки" }
+			], "mesto": 1, "vid": null },
+		"smena_zamka": { "sloy": "oruzhie", "ist": "Р11",
+			"parametry": { "ubran": { "iz": ["dver_edy"] } },
+			"daet": [
+				{ "chto": "zashchita_virus", "zakon": "таблица", "znak": "+" },
+				{ "chto": "zahvat_edy", "zakon": "таблица", "znak": "−", "kak": "тот же белок был дверью для еды" }
+			], "mesto": 1, "vid": null },
+		"spyachka": { "sloy": "oruzhie", "ist": "Р12",
+			"parametry": { "dolya": { "ed": "доля", "net_chisla": true, "slovami": "единицы на тысячи клеток (Г15)" }, "srok": { "ed": "с", "net_chisla": true } },
+			"daet": [
+				{ "chto": "zashchita_yad", "zakon": "таблица", "znak": "+", "kak": "приходит само, заранее и наугад" },
+				{ "chto": "rost", "zakon": "таблица", "znak": "−", "kak": "спящий не делает ничего (Н8)" }
+			], "mesto": 0, "vid": null },
+
+		"priyom_kozhey": { "sloy": "pitanie", "ist": "Е1",
+			"parametry": { "radius": { "ed": "мкм", "net_chisla": true, "slovami": "берётся из формы тела" }, "ploshchad": { "ed": "мкм²", "net_chisla": true, "slovami": "берётся из формы тела" } },
+			"daet": [ { "chto": "zahvat_edy", "zakon": "Ф-3", "znak": "+", "kak": "поток ≈ 4π·D·r·C; на единицу тела ∝ 1/r²" } ], "mesto": 0, "vid": null },
+		"dveri_sahar": { "sloy": "pitanie", "ist": "Е2",
+			"parametry": { "n": { "ed": "шт", "net_chisla": true }, "sahar": { "iz": ["glyukoza", "citrat"], "slovami": "какой сахар; дверь на цитрат была и молчала (Г35)" } },
+			"daet": [ { "chto": "zahvat_edy", "zakon": "Л6", "znak": "+", "kak": "J = 4π·D·a·c" } ], "mesto": 1, "vid": null },
+		"chutyo": { "sloy": "pitanie", "ist": "Е3",
+			"parametry": { "chuvstvitelnost": { "ed": "доля", "net_chisla": true }, "porog": { "ed": "доля", "net_chisla": true }, "privykanie": { "ed": "с", "net_chisla": true } },
+			"daet": [ { "chto": "prityazhenie_edy", "zakon": "Л9", "znak": "+", "kak": "v_дрейф ≈ ½·v·(τ_к − τ_от)/(τ_к + τ_от); никакого «правит туда» (Н18)" } ], "mesto": 1, "vid": null },
+		"kryuchki_zhelezo": { "sloy": "pitanie", "ist": "Е4",
+			"parametry": { "skorost": { "ed": "доля", "net_chisla": true } },
+			"daet": [ { "chto": "zahvat_edy", "zakon": "таблица", "znak": "+", "kak": "железо, которого в воде почти нет; сосед может украсть" } ], "mesto": 1, "vid": null },
+		"svetovoy_nasos": { "sloy": "pitanie", "ist": "Е5",
+			"parametry": { "ploshchad": { "ed": "доля", "net_chisla": true }, "yarkost_sveta": { "ed": "доля", "net_chisla": true } },
+			"daet": [ { "chto": "golod", "zakon": "таблица", "znak": "−", "kak": "подкормка, не полная еда" } ], "mesto": 0, "vid": null },
+		"dyhanie_bez_kisloroda": { "sloy": "pitanie", "ist": "Е6",
+			"parametry": { "chem": { "iz": ["nitrat", "sera"] }, "zapas": { "ed": "доля", "net_chisla": true } },
+			"daet": [ { "chto": "golod", "zakon": "таблица", "znak": "−", "kak": "жизнь в мёртвой воде (Н12)" } ], "mesto": 0, "vid": null },
+		"rastvorit_snaruzhi": { "sloy": "pitanie", "ist": "Е7",
+			"parametry": { "radius": { "ed": "мкм", "net_chisla": true }, "vremya": { "ed": "с", "net_chisla": true } },
+			"daet": [], "pravilo": "soki", "mesto": 0, "vid": null },
+		"proglotit": { "sloy": "pitanie", "ist": "Е8",
+			"parametry": { "radius_hvatki": { "ed": "мкм", "net_chisla": true }, "perevarivanie": { "ed": "с", "net_chisla": true, "slovami": "обед длится часы" } },
+			"daet": [], "pravilo": "gulp", "mesto": 0, "nelzya_s": { "sliz": "Н4", "kapsula": "Н4" }, "vid": null }
+	}
+}
