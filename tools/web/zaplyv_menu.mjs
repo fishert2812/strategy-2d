@@ -13,6 +13,7 @@ const SCREENS = [
   { name: 'Пауза', level: 1, title: 'Пауза', primary: '#gon', exit: 'game', nav: { '#phub [data-t=genome]': 'Геном', '#phub [data-t=alm]': 'Альманах', '#phub [data-t=map]': 'Карта' }, actions: ['#pnew', '#gmenu'], service: ['#psound', '#gflag'] },
   { name: 'Геном', level: 2, title: 'Геном', primary: '#gon', back: '#gback', to: 'Пауза', service: ['#gflag'] },
   { name: 'Альманах', level: 2, title: 'Альманах', primary: '#gon', back: '#gback', to: 'Пауза', service: ['#gflag'] },
+  { name: 'Режимы', level: 2, tsel: '#mtop h1', title: 'Заплыв', primary: '#mgo', back: '#mback', to: 'Пауза', nav: { '#malm': 'Альманах' }, actions: ['#mnew'], service: ['#mquiet'] },
   { name: 'Карта', level: 2, title: 'Карта', primary: '#gon', back: '#gback', to: 'Пауза', service: ['#gflag'] },
 ];
 // Нарочно сломанные меню для самопроверки: каждое обязано дать красное.
@@ -22,6 +23,7 @@ const BROKEN = {
   'главное сверху': '#gbar { order: -1; margin-top: 0 !important; }',
   'нет заголовка': '#gtitle { display: none !important; }',
   'связи не строками': '.kl { width: 120px !important; }',
+  'Альманах в режимах чипом': '#malm { width: 120px !important; min-height: 44px !important; border-radius: 22px !important; }',
 };
 async function walk(css) {
   const p = await (await b.newContext({ ...pw.devices['iPhone 13'] })).newPage();
@@ -37,7 +39,7 @@ async function walk(css) {
   const title = async () => (await box('#gtitle'))?.text || '';
   const pill = r => r.h < 52 && r.rad >= r.h / 2 - 1 && r.w < r.W * 0.6; // чип: низкая скруглённая кнопка не во всю ширину
   async function check(S) {
-    const t = await box('#gtitle');
+    const t = await box(S.tsel || '#gtitle');
     say(t && t.text === S.title && t.y + t.h < t.H * 0.2 && t.font >= 22, `test_L037: «${S.name}» — заголовок «${S.title}» крупно сверху` + (t ? '' : ': заголовка не видно'));
     const pr = await box(S.primary);
     say(pr && pr.y + pr.h / 2 > pr.H * 0.8 && pr.h >= 52 && pr.w >= pr.W * 0.5, `test_L037: «${S.name}» — главное действие «${pr?.text || S.primary}» внизу под большим пальцем, крупное`);
@@ -49,8 +51,8 @@ async function walk(css) {
     if (pr) { const low = all.filter(r => r.y > pr.y + 1); say(!low.length, `test_L037: «${S.name}» — ниже главного действия ничего нет` + (low.length ? ': ' + low.map(r => r.id).join(', ') : '')); }
     if (S.back) { const bk = await box(S.back); say(bk && bk.y + bk.h / 2 > bk.H * 0.75 && /‹|назад/i.test(bk.text) && bk.text.includes(S.to), `test_L037: «${S.name}» — «‹ ${S.to}» внизу под пальцем, подпись говорит, куда ведёт`); }
     const navR = []; for (const s of Object.keys(S.nav || {})) { const r = await box(s); navR.push(r); say(r && !pill(r) && r.w >= r.W * 0.8 && r.h >= 56, `test_L037: «${S.name}» — раздел «${S.nav[s]}» строкой во всю ширину, не чипом`); }
-    for (const s of S.actions || []) { const r = await box(s); say(r && navR.every(n => n && r.y > n.y + n.h), `test_L037: «${S.name}» — действие «${r?.text || s}» отделено от справочника и ниже его, у главного`); }
-    for (const s of S.service || []) { const r = await box(s); say(r && r.h < pr.h && (s === '#gflag' || navR.every(n => n && r.y > n.y)), `test_L037: «${S.name}» — служебное «${r?.text || s}» мельче главного и не среди разделов`); }
+    for (const s of S.actions || []) { const r = await box(s); say(r && navR.every(n => n && r.y > n.y + n.h) && r.y < pr.y, `test_L037: «${S.name}» — действие «${r?.text || s}» отделено от справочника и ниже его, у главного`); }
+    for (const s of S.service || []) { const r = await box(s); say(r && r.h < pr.h && (s === '#gflag' || !navR.length || r.y + r.h <= Math.min(...navR.map(n => n.y)) || r.y >= Math.max(...navR.map(n => n.y + n.h))), `test_L037: «${S.name}» — служебное «${r?.text || s}» мельче главного и не среди разделов`); }
     const chips = all.filter(r => r.h < 52 && r.w < r.W * 0.6 && r.id !== 'gflag');
     say(chips.length < 3, `test_L037: «${S.name}» — экран не из одних чипов (мелких кнопок ${chips.length})`);
   }
@@ -74,6 +76,10 @@ async function walk(css) {
       }
       say((await tap(S.back)) && await title() === 'Пауза', `test_L037: из «${name}» «‹ Пауза» возвращает на первый уровень`);
     }
+    // «Режимы» из паузы: тот же режим — «Продолжить», рядом «Новый заплыв»; «‹ Пауза» возвращает в паузу
+    if (await tap('#gmenu')) { await p.waitForTimeout(400); const S = SCREENS.find(x => x.name === 'Режимы'); await check(S);
+      say((await box('#mgo'))?.text === 'Продолжить', 'test_L037: в меню режимов из паузы главная — «Продолжить» тот же заплыв');
+      say((await tap('#mback')) && await title() === 'Пауза', 'test_L037: из «Режимов» «‹ Пауза» возвращает в паузу'); }
     await tap('#phub [data-t=genome]'); const t0 = await p.evaluate(() => zaplyvWorld().stats.time);
     say((await tap('#gon')) && !(await p.evaluate(() => document.getElementById('genome').classList.contains('on'))), 'test_L037: «Продолжить» из раздела — сразу в игру, одним касанием');
     await p.waitForTimeout(400); say(await p.evaluate(t => zaplyvWorld().stats.time > t, t0), 'test_L037: после «Продолжить» тот же заплыв идёт дальше');
