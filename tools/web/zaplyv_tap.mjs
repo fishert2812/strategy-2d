@@ -111,8 +111,9 @@ await p.waitForTimeout(700); { const t = await p.evaluate(() => [...document.que
   say(hi > 50 && lo < hi - 20 && lo > 5 && notch > 4 && /мкм/.test(cnt) && await seen('#growbar'), 'test_L040: полоса роста ' + hi.toFixed(0) + '% → ' + lo.toFixed(0) + '% назад, засечка заражения ' + notch.toFixed(0) + ' px, «' + cnt + '»'); }
 // test_L042 (прогоны 0.61 и 0.63, О44: «вирус молчит в момент посадки… совет только на экране гибели»): вирус сел на клетку —
 // в ту же секунду надпись, что случилось и что делать пальцем.
+await p.evaluate(() => { window.__toasts = []; new MutationObserver(() => window.__toasts.push(document.getElementById('toast').textContent)).observe(document.getElementById('toast'), { childList: true, characterData: true, subtree: true }); }); // все надписи подряд: знакомство с вирусом может сразу перекрыть совет
 await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.phages.length = 0; w.cfg.inject_was = w.cfg.inject; w.cfg.inject = 1e9; w.phages.push({ x: a.x + 8, y: a.y, vx: 0, vy: 0, d: Math.PI, t: 0, id: 91, host: 'me', cool: 0 }); }); // вирус садится, но не впрыскивает: шаги дальше идут живой клеткой (L045 — стряхнуть только сразу)
-await p.waitForTimeout(600); { const t = await p.evaluate(() => [...document.querySelectorAll('#toast.on')].map(e => e.textContent).join('')); say(/вирус/i.test(t) && /развернись/.test(t), 'test_L042: вирус сел на клетку — сразу надпись, что делать (' + (t || 'надписи нет') + ')'); }
+await p.waitForTimeout(600); { const t = await p.evaluate(() => (window.__toasts || []).concat([...document.querySelectorAll('#toast.on')].map(e => e.textContent)).join(' | ')); say(/Сел вирус![^|]*развернись/.test(t) && /развернись/.test(t), 'test_L042: вирус сел на клетку — сразу надпись, что делать (' + (t || 'надписи нет') + ')'); }
 await p.evaluate(() => { const w = zaplyvWorld(); w.phages.length = 0; w.cfg.inject = w.cfg.inject_was; for (const a of w.me) a.sick = -1; });
 if (await tap('#flag', 'флажок в игре')) say(await noted(m), 'флажок в игре: отметка записана и надпись видна');
 // test_L050 (Роман 25.11 на 0.70: «почему мы не починили блять деление клеток?»): плавное деление лежало в vid.js, но main.js его не звал —
@@ -200,17 +201,26 @@ if (await p.evaluate(() => { const w = zaplyvWorld(); w.choice = []; }) === unde
 await p.evaluate(() => { const w = zaplyvWorld(), all = Object.keys(w.cfg.genes).filter(g => !w.genes[g]); w.choice = all.slice(0, 2); });
 await p.waitForTimeout(600);
 { const r = await p.evaluate(async () => { const w = zaplyvWorld(), t0 = w.stats.time; await new Promise(q => setTimeout(q, 500)); const b = document.getElementById('offer').getBoundingClientRect();
-    return { go: w.stats.time - t0, top: b.top, h: innerHeight, pause: getComputedStyle(document.getElementById('pause')).display !== 'none' }; });
-  say(r.go > 0.3 && r.top > r.h * 0.6 && r.pause, `test_L053: при выборе навыка мир плывёт (${r.go.toFixed(2)} с за 0,5 с), полоса у нижнего края (верх ${Math.round(r.top)} из ${r.h}), пауза на месте`); }
+    return { go: w.stats.time - t0, top: b.top, hh: b.height, h: innerHeight, pause: getComputedStyle(document.getElementById('pause')).display !== 'none' }; });
+  say(r.go > 0.3 && r.top > r.h * 0.6 && r.pause, `test_L053: при выборе навыка мир плывёт (${r.go.toFixed(2)} с за 0,5 с), полоса у нижнего края (верх ${Math.round(r.top)} из ${r.h}), пауза на месте`);
+  say(r.hh < r.h * 0.16, `test_L053 (прогон 0.84, О86: «полоса закрывает нижнюю четверть экрана»): полоса низкая — ${Math.round(r.hh)} из ${r.h} (${Math.round(r.hh / r.h * 100)}%)`); }
+// test_L053 (О86: «свайп, начатый на полосе, выделяет навык вместо плавания»): палец лёг на вариант и повёл — это плавание, вариант не выбран
+{ const bb = await p.evaluate(() => { const r = document.querySelector('#obtns button').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; });
+  await p.mouse.move(bb[0], bb[1]); await p.mouse.down(); for (let i = 1; i <= 6; i++) { await p.mouse.move(bb[0] - i * 12, bb[1] - i * 14); await p.waitForTimeout(30); }
+  const steer = await p.evaluate(() => zaplyvProbe.finger || null); await p.mouse.up(); await p.waitForTimeout(150);
+  const r = await p.evaluate(() => ({ sel: document.querySelectorAll('#obtns button.sel').length, open: document.getElementById('offer').classList.contains('on'), left: zaplyvWorld().choice.length }));
+  say(r.sel === 0 && r.open && r.left === 2 && steer, 'test_L053: свайп с полосы ведёт клетку (палец ' + JSON.stringify(steer) + '), вариант не выбран (выбрано ' + r.sel + '), полоса на месте'); }
 // test_L021 (Роман: «в меню генома нет ни одного значка»): у вариантов выбора — значок гена, снимок клетки, не пустой.
 say(await p.evaluate(() => [...document.querySelectorAll('#obtns .gicon')].length === 2 && [...document.querySelectorAll('#obtns .gicon')].every(i => i.naturalWidth >= 64 && i.src.length > 3000)), 'test_L021: у вариантов выбора — значки генов');
 await notBook(await p.evaluate(() => [...document.querySelectorAll('#obtns button span, #obtns button small')].map(e => e.textContent)), 'выбор навыка');
+// свайп и сверки выше идут дольше offer_fold (6 с), и полоса успевала свернуться в значок до касания: новый выбор — полоса снова раскрыта
+await p.evaluate(() => { const w = zaplyvWorld(); w.choice = [...w.choice].reverse(); }); await p.waitForFunction(() => document.getElementById('offer').classList.contains('on'), null, { timeout: 3000 }).catch(() => {});
 const g1 = await p.evaluate(() => zaplyvWorld().choice[1]);
-if (await tap('#obtns button:nth-child(2)', 'второй вариант')) say(await p.evaluate(g => !zaplyvWorld().genes[g] && document.querySelector('#obtns button:nth-child(2)').classList.contains('sel'), g1), 'test_L053: первое касание только выбирает вариант (случайный тап большим пальцем навык не берёт)');
+if (await tap('#obtns button:nth-child(2)', 'второй вариант')) say(await p.evaluate(g => !zaplyvWorld().genes[g] && document.querySelector('#obtns button:nth-child(2)').classList.contains('sel') && document.getElementById('odesc').textContent.length > 10, g1), 'test_L053: первое касание только выбирает вариант и показывает над ним, что он даёт («' + await p.textContent('#odesc') + '»)');
 if (await tap('#obtns button:nth-child(2)', 'второй вариант ещё раз')) say(await p.evaluate(g => zaplyvWorld().genes[g] && !document.getElementById('offer').classList.contains('on') && document.getElementById('toast').textContent.startsWith('Взято'), g1), 'второе касание даёт ген, убирает полосу и пишет «Взято: …»');
 await p.evaluate(() => { const w = zaplyvWorld(), all = Object.keys(w.cfg.genes).filter(g => !w.genes[g]); w.choice = all.slice(0, 2); w.cfg.offer_fold = 0.5; });
 await p.waitForTimeout(1200);
-say(await seen('#odot') && !(await seen('#offer')), 'test_L053: не выбрал — полоса свернулась в значок у края');
+await p.waitForTimeout(1500); say(await seen('#odot') && !(await seen('#offer')) && await p.evaluate(() => zaplyvWorld().choice.length === 2), 'test_L053: не выбрал — полоса свернулась в значок у края и ждёт, навык сам не взялся (О86: «Чует еду взялся сам»)');
 const g0 = await p.evaluate(() => zaplyvWorld().choice[0]);
 await p.evaluate(() => { zaplyvWorld().cfg.offer_fold = 6; });
 if (await tap('#odot', 'значок выбора') && await tap('#obtns button', 'вариант после раскрытия') && await tap('#obtns button', 'вариант ещё раз')) say(await p.evaluate(g => zaplyvWorld().genes[g], g0), 'значок раскрывает полосу, вариант даёт ген');
