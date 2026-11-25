@@ -25,7 +25,7 @@ const genomeData = await (await fetch('genome.json')).json();
 const W = 720; // ширина экрана в единицах игры
 const canvas = document.getElementById('c');
 const gl = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' });
-gl.setPixelRatio(Math.min(devicePixelRatio, 2));
+gl.setPixelRatio(Math.min(devicePixelRatio, cfg.dpr_max)); // на iPhone плотность 3: кадр в 2,5 (полная тяжелее в полтора раза), иначе клетки и еда мягкие (Роман 25.11: «бактерия стала чуть-чуть размытая», урок L038)
 let H = W;
 const cam = new THREE.OrthographicCamera(0, W, 0, W, -1, 1);
 const back = new THREE.Scene(); // фон и дальнее
@@ -327,7 +327,15 @@ function studio(k, it) {
   w[LISTS[k]].push(e);
   return w;
 }
+// Снимки (Альманах, значки, меню) считаются в двойной плотности, как раньше: в тройной полка открывалась вдвое дольше.
+// Плотность кадра возвращается перед следующим кадром игры, так что подряд идущие снимки делят одну перестройку холста.
+let shotLow = false;
+function shotDensity() {
+  if (shotLow || gl.getPixelRatio() <= 2) return; shotLow = true; gl.setPixelRatio(2); resize();
+  requestAnimationFrame(() => { shotLow = false; gl.setPixelRatio(Math.min(devicePixelRatio, cfg.dpr_max)); resize(); });
+}
 function snap(k, it) {
+  shotDensity();
   if (it.gene) return geneShot(it.gene, 480, 300); // ген в Альманахе — тот же снимок, что значок: часть, которую он даёт, подсвечена
   const fxs = fx.save(), keep = [world, view, kids, down, moved, puffs, paint.t]; // все анимации эффектов целиком (fx.save), а не только кольца и разряды
   const out = document.createElement('canvas'); out.width = 480; out.height = 300;
@@ -345,6 +353,7 @@ function snap(k, it) {
 // той же студией, что Альманах, и оставляем ярким только то, что изменилось: сам ген на теле. Кеш — снимаем один раз.
 const icons = new Map();
 function geneShot(g, NW, NH, crop = 0) {
+  shotDensity();
   const grab = genes => {
     const fxs = fx.save(), keep = [world, view, kids, down, moved, puffs, paint.t], c = document.createElement('canvas'); c.width = NW; c.height = NH;
     try {
@@ -386,7 +395,7 @@ const geneBook = g => Object.values(GENY.geny || {}).find(q => q.klyuch === g) |
 genomeData.book = GENY.geny || {};
 GENY.gruppa = Object.fromEntries([...genomeData.arcs.flatMap(a => a.slots.map(x => [x.id, a.name])), ...genomeData.plasmids.map(x => [x.id, 'Чужие'])].filter(x => x[0])); // группа гена — дуга кольца
 const kab = almanahScreen({ K: KAB, cards, T: TEKSTY, G: GENY, met, snap, onSwim: () => { if (ended || $('menu').classList.contains('on')) start(); else if (paused) genome.close(); } });
-const cabLabel = () => { $('cab').textContent = $('gcab').textContent = kab.label(); };
+const cabLabel = () => { $('cab').textContent = kab.label(); };
 cabLabel();
 const knowGenes = () => { let add = false; for (const g in world.genes) if (!met.has('gene:' + g)) { met.add('gene:' + g); add = true; } if (add) { saveMet(); cabLabel(); } }; // ген, который у тебя был, — запись в Альманахе
 $('cab').onclick = () => { knowGenes(); kab.open(); };
@@ -396,10 +405,10 @@ let paused = false;
 const genome = genomeScreen({ G: genomeData, cfg, world: () => world, icon: g => icon(g),
   onOpen: () => { paused = true; document.body.classList.add('paused'); pad.end(0); down = null; finger = null; openTab(); },
   onClose: () => { paused = false; document.body.classList.remove('paused'); leaveTabs(); },
-  onCabinet: () => tab('alm'), onSend: () => openMarks(), onDraw: () => showMarks() });
+  onSend: () => openMarks(), onDraw: () => showMarks() });
 
-// Пауза с вкладками (книга, Э17): Геном · Карта · Альманах, внизу одна «Плыть». Открывается та, с которой ушёл;
-// в самый первый раз — Геном (карта ещё пуста), после первой гибели — Карта.
+// Пауза — игровое меню (урок L037): уровень 1 «Пауза» (tab 'hub'): «Продолжить», «Новый заплыв», «Режимы», справочник строками.
+// Уровень 2 — раздел (Геном, Альманах, Карта): заголовок раздела, внизу «‹ Пауза» и «Продолжить». Пауза всегда открывается первым уровнем.
 let KARTA = { seen: [], marks: [] };
 try { KARTA = { ...KARTA, ...JSON.parse(localStorage.getItem('zaplyv.karta') || '{}') }; } catch (_) {}
 const saveKarta = () => { try { localStorage.setItem('zaplyv.karta', JSON.stringify(KARTA)); } catch (_) {} };
@@ -408,25 +417,34 @@ const addMark = m => { KARTA.marks.push({ ...m, run: world.seed }); KARTA.marks 
 let curTab = null, mapT = 0, mapHit = null, mapOpenedAt = 0;
 const mapIcons = {};
 const iconOf = who => { if (!mapIcons[who]) { const im = new Image(); im.src = who.startsWith('gene:') ? icon(who.slice(5)) : KAB.items[who] ? snap(who, KAB.items[who]) : ''; mapIcons[who] = im; } return mapIcons[who]; };
+const PNAME = { hub: 'Пауза', genome: 'Геном', map: 'Карта', alm: 'Альманах' };
 function tab(t) {
-  curTab = t; try { localStorage.setItem('zaplyv.tab', t); } catch (_) {}
-  const G = $('genome'), C = $('cabinet');
-  G.classList.toggle('tab-map', t === 'map'); G.classList.toggle('tab-alm', t === 'alm');
-  for (const b of $('ptabs').children) { b.classList.toggle('on', b.dataset.t === t); b.setAttribute('aria-selected', b.dataset.t === t); }
-  $('map').hidden = t !== 'map'; $('mcard').hidden = true;
-  if (t === 'alm') { knowGenes(); kab.open(); C.classList.add('inpause'); const top = $('ptabs').getBoundingClientRect().bottom + 6, bot = innerHeight - $('gon').getBoundingClientRect().top + 8;
-    C.style.top = top + 'px'; C.style.bottom = bot + 'px'; } else if (C.classList.contains('inpause')) { kab.close(); C.classList.remove('inpause'); C.style.top = C.style.bottom = ''; }
+  curTab = t; const G = $('genome'), C = $('cabinet');
+  for (const k in PNAME) G.classList.toggle('tab-' + k, t === k);
+  $('gtitle').textContent = PNAME[t]; $('map').hidden = t !== 'map'; $('mcard').hidden = true;
+  if (t === 'hub') hubFill();
+  if (t === 'alm') { knowGenes(); kab.open(); kab.back = () => tab('hub'); C.classList.add('inpause'); const top = $('ghead').getBoundingClientRect().bottom + 6, bot = innerHeight - $('gbar').getBoundingClientRect().top + 8;
+    C.style.top = top + 'px'; C.style.bottom = bot + 'px'; } else if (C.classList.contains('inpause')) { kab.close(); kab.back = null; C.classList.remove('inpause'); C.style.top = C.style.bottom = ''; }
   if (t === 'map') { keepSeen(); mapOpenedAt = performance.now(); }
 }
-function openTab() { let t = null; try { t = localStorage.getItem('zaplyv.tab'); } catch (_) {} tab(t || (KARTA.marks.some(m => m.kind === 'death') ? 'map' : 'genome')); }
-function leaveTabs() { const C = $('cabinet'); if (C.classList.contains('inpause')) { kab.close(); C.classList.remove('inpause'); C.style.top = C.style.bottom = ''; } curTab = null; }
-for (const b of $('ptabs').children) b.onclick = () => tab(b.dataset.t);
-{ let sx = null; // смахивание влево-вправо — соседняя вкладка, вниз от шапки — «Плыть»
-  const order = ['genome', 'map', 'alm'];
-  $('genome').addEventListener('touchstart', e => { const t = e.touches[0]; sx = t.clientX > 28 ? [t.clientX, t.clientY, $('ptabs').getBoundingClientRect().bottom > t.clientY] : null; }, { passive: true });
-  $('genome').addEventListener('touchend', e => { if (!sx) return; const t = e.changedTouches[0], dx = t.clientX - sx[0], dy = t.clientY - sx[1];
-    if (Math.abs(dx) > 70 && Math.abs(dy) < 50) tab(order[(order.indexOf(curTab) + (dx < 0 ? 1 : 2)) % 3]);
-    else if (sx[2] && dy > 90 && Math.abs(dx) < 60) genome.close(); sx = null; }, { passive: true }); }
+function hubFill() { // первый уровень паузы: что в каждом разделе — одной строкой, служебное — мелко
+  const own = genomeData.arcs.flatMap(a => a.slots), deaths = KARTA.marks.filter(m => m.kind === 'death').length;
+  $('pstate').textContent = ($(`mscene`).querySelector(`.mo[data-m=${world.mode}] b`)?.textContent || 'Заплыв') + ' · поколение ' + world.stats.gen + ' · клеток ' + world.me.length;
+  $('pg').textContent = `включено ${own.filter(x => x.id && world.genes[x.id]).length} из ${own.length}`;
+  $('pa').textContent = kab.label().replace(/^Альманах · /, '');
+  keepSeen(); $('pm').textContent = karta.count(cfg.pond, new Set(KARTA.seen)).replace(/^Ты в/, 'В') + (deaths ? ` · гибелей ${deaths}` : '');
+  $('psound').textContent = ROD.quiet ? 'Звук выключен' : 'Звук включён';
+  const n = $('pnew'); n.sure = false; n.classList.remove('sure'); n.textContent = 'Новый заплыв';
+}
+function openTab() { tab('hub'); }
+function leaveTabs() { const C = $('cabinet'); if (C.classList.contains('inpause')) { kab.close(); kab.back = null; C.classList.remove('inpause'); C.style.top = C.style.bottom = ''; } curTab = null; }
+for (const b of $('phub').querySelectorAll('.prow')) b.onclick = () => tab(b.dataset.t);
+$('gback').onclick = () => tab('hub');
+$('psound').onclick = () => { ROD.quiet = !ROD.quiet; saveRod(); hubFill(); };
+$('pnew').onclick = () => { const n = $('pnew'); if (!n.sure) { n.sure = true; n.classList.add('sure'); n.textContent = 'Точно заново?'; return; } genome.close(); start(null, world.mode); }; // второе касание: текущий заплыв пропадёт
+{ let sx = null; // смахивание от левого края вправо — назад на «Паузу», как в приложениях iPhone
+  $('genome').addEventListener('touchstart', e => { const t = e.touches[0]; sx = t.clientX < 28 ? [t.clientX, t.clientY] : null; }, { passive: true });
+  $('genome').addEventListener('touchend', e => { if (!sx) return; const t = e.changedTouches[0]; if (t.clientX - sx[0] > 70 && Math.abs(t.clientY - sx[1]) < 60 && curTab !== 'hub') tab('hub'); sx = null; }, { passive: true }); }
 // Метка-цель в заплыве: тонкая стрелка у края экрана в её сторону и расстояние; доплыл — гаснет сама.
 window.zaplyvKarta = { data: () => KARTA, hits: () => mapHit }; // для обхода касаниями (tools/web/zaplyv_tap.mjs)
 function goalArrow() {
@@ -558,7 +576,7 @@ $('fsave').onclick = () => {
 };
 const fclose = () => { $('fsheet').classList.remove('on'); frozen = false; };
 $('fcancel').onclick = fclose;
-$('gflag').onclick = $('gno').onclick = e => flag('геном', e.currentTarget);
+$('gflag').onclick = e => flag('геном', e.currentTarget);
 $('eno').onclick = e => flag('экран гибели', e.currentTarget);
 $('esend').onclick = openMarks;
 showMarks();

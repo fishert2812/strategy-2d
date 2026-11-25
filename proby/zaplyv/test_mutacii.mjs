@@ -6,7 +6,10 @@ import * as vid from './vid.js';
 import { readFileSync } from 'node:fs';
 const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
 let bad = 0;
+// PART=a|b делит проверки на две половины, шаг 54 гоняет их параллельно: самый долгий бот-замер (b) идёт рядом со всем остальным (a).
+const PART = process.env.PART, heavy = name => name.startsWith('бот в режиме');
 const check = (name, fn) => {
+  if (PART && (PART === 'b') !== heavy(name)) return;
   try { const r = fn(); if (r) { bad++; console.log('  ПРОВАЛ', name + ':', r); } else console.log('  ок   ', name); }
   catch (e) { bad++; console.log('  ПРОВАЛ', name + ':', e.stack); }
 };
