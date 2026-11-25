@@ -617,7 +617,7 @@
   "kod": [
    "gene:magnet"
   ],
-  "versiya": "0.70"
+  "versiya": "0.75"
  },
  {
   "id": "Г48",
@@ -652,7 +652,7 @@
   "kod": [
    "gene:shield"
   ],
-  "versiya": "0.70"
+  "versiya": "0.75"
  },
  {
   "id": "Г49",
@@ -687,7 +687,7 @@
   "kod": [
    "gene:tail"
   ],
-  "versiya": "0.70"
+  "versiya": "0.75"
  },
  {
   "id": "Г50",
@@ -722,6 +722,6 @@
   "kod": [
    "gene:memory"
   ],
-  "versiya": "0.70"
+  "versiya": "0.75"
  }
 ]
