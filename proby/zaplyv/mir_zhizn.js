@@ -48,7 +48,7 @@ const chuet_edu = (M, q) => { const p = pasport(q.zapis); return ((p.pishcha.sah
 export const massa = q => pasport(q.zapis).telo * q.m;
 export const tolshchina = (M, q) => M.K.zhizn.tolshchina * pasport(q.zapis).rz * Math.cbrt(q.m);
 
-export function shag(M, dt) { const Z = M.K.zhizn, S = M.sv, kl = 120, G = new Map(), klyuch = (x, y) => Math.floor(x / kl) + Math.floor(y / kl) * 4096; M.t += dt; M.sobytiya.length = 0;
+export function shag(M, dt) { M.n = (M.n || 0) + 1; const Z = M.K.zhizn, S = M.sv, kl = 120, G = new Map(), klyuch = (x, y) => Math.floor(x / kl) + Math.floor(y / kl) * 4096; M.t += dt; M.sobytiya.length = 0;
   for (const q of S) { const k = klyuch(q.x, q.y); (G.get(k) || G.set(k, []).get(k)).push(q); }
   const ryadom = (q, R, f) => { const n = Math.ceil(R / kl), cx = Math.floor(q.x / kl), cy = Math.floor(q.y / kl); for (let j = -n; j <= n; j++) for (let i = -n; i <= n; i++) { const L = G.get(cx + i + (cy + j) * 4096); if (L) for (const o of L) if (o !== q && !o.mertv) f(o); } };
   for (const q of S) { if (q.mertv) continue; const p = pasport(q.zapis), w = tolshchina(M, q), B = massa(q), v = Z.v0 * p.h.k_skorost;
@@ -68,7 +68,8 @@ export function shag(M, dt) { const Z = M.K.zhizn, S = M.sv, kl = 120, G = new M
     q.m += (prihod - Z.cena * p.cena1 * Math.pow(B, Z.stepen_ceny) * dt) / p.telo; // крупное тело тратит на единицу веса меньше (закон Клайбера)
     // теснота: тела расталкиваются
     // чужие расходятся по настоящим обводам (stolknovenie.js: оболочка ↔ оболочка, лёгкий уходит дальше); круг — только грубый отбор пар
-    ryadom(q, w * (p.L + 2), o => { if (o.id < q.id) return; const wo = tolshchina(M, o), po = pasport(o.zapis); if (!blizko(q, p, w, o, po, wo)) return;
+    // каждое тело расталкивается раз в razvodit_cherez шагов (тела движутся медленно против шага, а расчёт обводов самый дорогой)
+    if ((q.id + M.n) % (Z.razvodit_cherez || 1) === 0) ryadom(q, w * (p.L + 2), o => { if (o.id < q.id) return; const wo = tolshchina(M, o), po = pasport(o.zapis); if (!blizko(q, p, w, o, po, wo)) return;
       const r = razvesti(q.zapis, { x: q.x, y: q.y, a: q.a, tolshchina: w }, o.zapis, { x: o.x, y: o.y, a: o.a, tolshchina: wo }, M.SK); if (!r.pary) return; q.x += r.A.dx; q.y += r.A.dy; q.a += r.A.da; o.x += r.B.dx; o.y += r.B.dy; o.a += r.B.da; });
     // встречи: у кого есть рот или удар, тот проверяет касание зон с соседями другого вида
     if (p.oruzhie.length && !q.syt) ryadom(q, w * (p.L + 1) + kl * 0.5, o => { if (q.mertv || o.mertv || o.vid === q.vid) return; const wo = tolshchina(M, o), po = pasport(o.zapis); if (Math.hypot(q.x - o.x, q.y - o.y) > w * (p.L / 2 + 1) + wo * (po.L / 2 + 1)) return;
