@@ -47,11 +47,11 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 .layer h1 { margin: 0 0 8px; font-size: 32px; font-weight: 600; }
 .layer p { margin: 0 0 12px; font-size: 18px; opacity: 0.8; text-align: center; line-height: 1.5; }
 body:has(.layer.on) #hud, body:has(.layer.on) #scalebox, body:has(.layer.on) #ver, body:has(.layer.on) #toast { visibility: hidden; } /* лист поверх игры: надписи игры под ним не видны (L031) */
-#end { background: #040e12; justify-content: flex-start; overflow-y: auto; padding: calc(env(safe-area-inset-top) + 28px) 20px calc(env(safe-area-inset-bottom) + 24px); gap: 10px; }
+#end { background: #040e12; justify-content: flex-start; overflow-y: auto; padding: calc(env(safe-area-inset-top) + 12px) 20px calc(env(safe-area-inset-bottom) + 24px); gap: 10px; }
 #menu { justify-content: flex-start; gap: 8px; padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 8px); background: linear-gradient(#06131b, #0a2a33 40%, #071a20 70%, #120f0a); }
 #mtop { width: 100%; text-align: left; } #mtop h1 { margin: 0; font-size: 28px; } #menu #mtop p { margin: 2px 0 0; font-size: 13px; text-align: left; opacity: 0.75; }
 #mscene { flex: 1; min-height: 0; width: 100%; overflow-y: auto; position: relative; -webkit-overflow-scrolling: touch; }
-.mband { position: relative; height: 520px; } .mband.past { height: 400px; background: linear-gradient(rgba(60, 45, 20, 0), rgba(60, 45, 20, 0.35)); }
+.mband { position: relative; height: 620px; } /* режимы не налезают друг на друга (прогон 0.76: «Рост» и «Голод» в одной точке) */ .mband.past { height: 400px; background: linear-gradient(rgba(60, 45, 20, 0), rgba(60, 45, 20, 0.35)); }
 .mfilm { position: absolute; left: 0; right: 0; top: 178px; height: 2px; background: rgba(200, 235, 240, 0.55); }
 .mo { position: absolute; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; min-width: 96px; min-height: 96px; padding: 4px; transition: transform 0.2s, opacity 0.2s, filter 0.2s; cursor: pointer; }
 .mo img { width: 96px; height: 96px; object-fit: cover; border-radius: 50%; -webkit-mask-image: radial-gradient(circle, #000 55%, transparent 71%); mask-image: radial-gradient(circle, #000 55%, transparent 71%); }
@@ -97,8 +97,8 @@ body:has(.layer.on) #hud, body:has(.layer.on) #scalebox, body:has(.layer.on) #ve
 #card h2 { margin: 2px 0 6px; font-size: 23px; font-weight: 600; }
 #path h3 { margin: 0 0 6px; font-size: 17px; font-weight: 600; opacity: 0.8; }
 #card p, #path p { margin: 0 0 6px; font-size: 15px; line-height: 1.35; text-align: left; opacity: 0.85; }
-#cfact::before { content: "В природе: "; font-weight: 600; }
-#ckill { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 14px; margin: 0 0 8px; border: 1.5px solid rgba(255, 140, 100, 0.5); } /* кто убил — его модель из игры */
+#cfact::before { content: "В природе: "; font-weight: 600; } #end #cfact { display: none; } /* «В природе» — в Альманахе по «Кто это»; на гибели «Твой путь» виден над кнопками (прогон 0.76) */
+#ckill { display: block; width: 100%; aspect-ratio: 5 / 2; object-fit: cover; border-radius: 14px; margin: 0 0 8px; border: 1.5px solid rgba(255, 140, 100, 0.5); } /* кто убил — его модель из игры */
 #ctip { color: #9ff5d8; }
 /* Альманах (макет design/zaplyv_almanah_maket.png): полка с разделами и страница по касанию */
 #cabinet { z-index: 30; background: radial-gradient(120% 80% at 50% 0%, #0a2832, #02040a 60%); justify-content: flex-start; align-items: stretch; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y;
@@ -223,7 +223,7 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
 .prow span { flex: 1; } .pico { width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0; object-fit: cover; background: #061018; margin-left: -6px; } /* снимок раздела: твоё кольцо ДНК, последний встреченный, разрез пруда */ .prow b { display: block; font-size: 20px; font-weight: 600; } .prow small { font-size: 14px; margin-top: 2px; } .prow > i { font-style: normal; font-size: 28px; opacity: 0.5; }
 #pserv { display: flex; gap: 10px; margin-top: auto; } #pserv button { flex: 1; width: auto; min-height: 44px; font-size: 15px; border-color: rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.8); }
 #gbar { display: flex; gap: 10px; width: 100%; max-width: 420px; flex-shrink: 0; z-index: 1; margin-top: auto; } #gbar #gback, #kbot #back { flex: 0 0 38%; width: auto; min-width: 0; min-height: 56px; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 12px; } /* «‹ куда» одной строкой */
-#gbar #gon { flex: 1; width: auto; } #genome.tab-hub #gbar { margin-top: 0; } #pnew.sure { border-color: #ff8a6a; color: #ffb4a0; }
+#gbar #gon { flex: 1; width: auto; } #genome.tab-hub #gbar { margin-top: 0; } #pnew.sure, #mnew.sure { border-color: #ff8a6a; color: #ffb4a0; }
 #gflag { width: 48px; min-height: 48px; height: 48px; padding: 0; border-radius: 50%; flex-shrink: 0; } .gsp { width: 48px; flex-shrink: 0; }
 #genome.tab-map, #genome.tab-alm { background: radial-gradient(120% 80% at 50% 0%, #0a2832, #02040a 60%); }
 #genome.tab-map #gsub, #genome.tab-map #ring, #genome.tab-map #gchips, #genome.tab-map #gcard, #genome.tab-map #grow,
@@ -274,11 +274,11 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
     <div class="mband now"><div class="mo" data-m="night" style="left: 50%; top: 24px;"><div class="art bars"><i></i><i></i><i></i></div><b>Ночь рода</b><small>тысяча поколений</small></div>
       <div class="mfilm"></div>
       <div class="mo" data-m="swim" style="left: 50%; top: 200px;"><img data-k="me" alt=""><b>Заплыв</b></div>
-      <div class="mo" data-m="rost" style="left: 20%; top: 110px;"><img data-k="me" alt=""><b>Рост</b><small>расти без деления</small></div>
-      <div class="mo" data-m="mut" style="left: 80%; top: 110px;"><img data-k="me" alt=""><b>Мутации</b><small>новые умения</small></div>
-      <div class="mo" data-m="golod" style="left: 20%; top: 110px;"><img data-k="me" alt=""><b>Голод</b><small>еда кончается</small></div>
-      <div class="mo lock" data-m="sel" style="left: 24%; top: 400px;"><div class="art stack"><i></i><i></i><i></i></div><b><span class="lk">🔒</span> Селекция</b><small>твои породы</small></div>
-      <div class="mo lock" data-m="hunt" style="left: 76%; top: 400px;"><img data-k="bdello" alt=""><b><span class="lk">🔒</span> Охота</b></div></div>
+      <div class="mo" data-m="rost" style="left: 18%; top: 90px;"><img data-k="me" alt=""><b>Рост</b><small>расти без деления</small></div>
+      <div class="mo" data-m="mut" style="left: 82%; top: 90px;"><img data-k="me" alt=""><b>Мутации</b><small>новые умения</small></div>
+      <div class="mo" data-m="golod" style="left: 20%; top: 290px;"><img data-k="me" alt=""><b>Голод</b><small>еда кончается</small></div>
+      <div class="mo lock" data-m="sel" style="left: 24%; top: 470px;"><div class="art stack"><i></i><i></i><i></i></div><b><span class="lk">🔒</span> Селекция</b><small>твои породы</small></div>
+      <div class="mo lock" data-m="hunt" style="left: 76%; top: 470px;"><img data-k="bdello" alt=""><b><span class="lk">🔒</span> Охота</b></div></div>
     <div class="mband past"><div class="mo lock" data-m="deep" style="left: 30%; top: 90px;"><div class="art rock"><i></i><i></i><i></i><i></i></div><b><span class="lk">🔒</span> Глубокое время</b></div>
       <div class="mo lock" data-m="dry" style="left: 70%; top: 260px;"><div class="art crack"></div><b><span class="lk">🔒</span> Засуха</b></div></div>
   </div>

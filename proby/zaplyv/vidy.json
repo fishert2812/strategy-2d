@@ -1,0 +1,24 @@
+{
+	"_": "Анкеты существ (движок dvizhok.js; план design/zaplyv_dvizhok_plan.md). Одна запись — одно существо: тело, ход, еда, оружие, кто его ест, где появляется. Движок по записи создаёт существо, ведёт его, рисует, отдаёт паспорт движку жизни (zhizn.js) и собирает карточку Альманаха. Вариация — запись с ot (родитель) и только отличиями. Число строкой — ключ data.json (там число уже живёт, второй раз не пишем). telo: dlina и tolshchina — доли толщины палочки; cepochka — сколько клеток сцеплено концами, zazor — шаг между ними в длинах клетки; kach — частота и размах покачивания; zhgutiki: gde — korma (один сзади) или krugom (n штук по бокам), dlina — в толщинах палочки, volna — размах, vitkov — сколько волн на нити, beg — как быстро волна бежит, tolshch и alpha — толщина и плотность нити (нить рисуется сплошной). mera.tolshchina — толщина палочки в единицах экрана. hod: skorost, chuet — как далеко чует еду, pauza — [основа, разброс] секунд между рывками, otdyh — стоит в начале рывка, ryskanie — разброс курса без еды, plavnost — как быстро набирает ход. eda.r — с какого зазора съедает кусок. garpun — оружие в ответ на таран (ключи data.json). rodnya — родня кишечной палочки: её берёт «Ядовитое касание». edyat — кто его ест. virus — садится ли наш вирус. mir: shans — шанс на квадрат [чистая, сладкая, ил], s_rosta — с какого удаления от старта. almanah — группа и строки полки (слова — как в almanah.json; имя и тексты — только книга).",
+	"mera": { "tolshchina": 7.5 },
+	"vidy": {
+		"pseudo": {
+			"telo": { "dlina": 2.3, "tolshchina": 1, "cepochka": 1, "zazor": 1, "r": "pseudo_r", "cvet": [0.45, 0.95, 0.72], "kromka": [0.15, 0.55, 0.42], "kach": [4, 0.2],
+				"zhgutiki": { "gde": "korma", "dlina": 7, "volna": 0.6, "vitkov": 10, "beg": 26, "tolshch": 0.6, "alpha": 0.42, "cvet": [0.6, 1, 0.8] } },
+			"hod": { "skorost": "pseudo_speed", "chuet": "pseudo_sense", "pauza": [0.25, 1.2], "otdyh": 0.25, "ryskanie": 3, "plavnost": 6, "tolchok": 120 },
+			"eda": { "r": 14 },
+			"garpun": { "otkat": "pseudo_cool", "oglushenie": "pseudo_stun", "udar": "pseudo_hit", "predel": "pseudo_min" },
+			"rodnya": false, "virus": false, "gibel": "lysate",
+			"edyat": ["slipper", "bell", "roti", "amoeba", "bdello"],
+			"mir": { "shans": "pseudo_chance", "s_rosta": "pseudo_from" }
+		},
+		"strain": {
+			"ot": "pseudo",
+			"telo": { "dlina": 2.4, "tolshchina": 1.05, "cvet": [0.66, 0.7, 0.76], "kromka": [0.32, 0.36, 0.44], "kach": [3, 0.15],
+				"zhgutiki": { "gde": "krugom", "n": 4, "dlina": 4.3, "vitkov": 9, "beg": 22, "tolshch": 0.55, "alpha": 0.34, "cvet": [0.75, 0.8, 0.9] } },
+			"hod": { "skorost": "strain_speed" },
+			"garpun": null, "rodnya": true, "virus": true, "delitsya": { "ot": "food" },
+			"mir": { "shans": "strain_chance", "s_rosta": "strain_from" }
+		}
+	}
+}

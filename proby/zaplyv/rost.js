@@ -16,6 +16,10 @@ export const cap = w => on(w) ? Infinity : w.cfg.max_m; // потолка мас
 export const kusok = (w, a) => on(w) ? R.sytost * a.m ** R.kusok : 1; // крупная клетка всасывает больше от того же куска
 export const hod = (w, a) => a.m ** (on(w) ? R.hod : 0.2); // на что делится скорость
 export const vid = w => on(w) ? R.vid : 0.3; // толщина тела по массе: в «Росте» видно, что растёшь
+// Плавный рост (Роман 25.11: «рост должен быть по чуть чуть. Без рывков! Растет по чуть чуть с каждой едой. В зависимости от ценности»):
+// съеденное копится в a.zhd и за vsasyv секунд втекает в массу — тело растёт, пока кусок всасывается, а не скачком;
+// быстрее vsasyv_max доли массы в секунду не растёт, поэтому крупная добыча тает несколько секунд.
+export const vsos = (w, a, dv) => on(w) ? (a.zhd = (a.zhd || 0) + dv, true) : false;
 // Рот мал для выросшей: пасть тянет и выпускает (событие spit — у пасти видно, что не взяла).
 export function tooBig(w, a, who) {
   if (!on(w) || !(a.m >= (R.rot[who] ?? Infinity))) return false;
@@ -29,6 +33,7 @@ export const gryzt = (w, a, base, dt) => on(w) ? R.gryzt * Math.sqrt(a.m) * dt :
 export function step(w, dt, radius) {
   if (!on(w)) return;
   for (const a of w.me) {
+    if (a.zhd > 0) { const d = Math.min(a.zhd, a.zhd * Math.min(1, dt / R.vsasyv) + 1e-4, a.m * R.vsasyv_max * dt); a.zhd -= d; a.m += d; } // крупная добыча тает несколько секунд
     a.spit = Math.max(0, (a.spit || 0) - dt);
     const n = level(a.m);
     if (n > (w.rost || 0)) { w.rost = n; w.events.push(['rost', a.x, a.y, n]); }

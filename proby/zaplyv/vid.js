@@ -1,7 +1,7 @@
 // Как выглядит и движется твоя клетка с умениями: оболочка, капсула, CRISPR, токсин, фимбрии, сон, рецепторы, рибосомы, жгутики.
 // Файл слоя «вид и анимации» (свой строитель). main.js только зовёт skin() и sleeper() и даёт кисти; числа — в vid.json и data.json.
 import { whip } from './whip.js';
-import { mutSkin } from './mutacii.js';
+import { mutSkin, useBody } from './mutacii.js';
 
 const flags = new Map(); // состояние жгутиков каждой клетки между кадрами (whip.js)
 export function whips(a, run, dt, beat, cfg, alive) {
@@ -35,6 +35,7 @@ const keep = (a, alive) => { let m = mem.get(a.id); if (!m) { m = { smell: 0, be
   if (mem.size > 64) for (const k of mem.keys()) if (!alive.some(c => c.id === k)) mem.delete(k); return m; };
 // Где и какой формы клетка была в последнем кадре (мир): по ней fx.js рисует пустую оболочку-призрак после лопания.
 export function seen(x, y, R = 80, alive = null) { let best = null, bd = R; for (const m of mem.values()) { if (alive && alive.some(c => c.id === m.id)) continue; const d = Math.hypot(m.x - x, m.y - y); if (d < bd) { bd = d; best = m; } } return best; } // alive — живые клетки: их не путать с погибшей
+useBody(id => mem.get(id)); // застёжки сцепки (mutacii.js) тянутся от оболочки до оболочки нарисованных тел
 const mix = (p, q, k) => [p[0] + (q[0] - p[0]) * k, p[1] + (q[1] - p[1]) * k, p[2] + (q[2] - p[2]) * k];
 
 // Спящая клетка (сон-персистер, биолог: design/zaplyv_vid_i_fizika.md, «Сон»). Не светится и не бледнеет: темнеет и плотнеет по краю,
@@ -74,7 +75,7 @@ export function skin(c) {
   const { a, lk, x, y, ang, ax, ay, half, w, z, along, arc, body, scr, time, pdt, run, phageNear, foodNear, spacers, plasmid, cfg, alive, glow, ink } = c;
   const fc = cfg.flag.color, L = half - w, m = keep(a, alive);
   const at = (u, o) => along(u, o + arc(u / z));
-  Object.assign(m, { id: a.id, x: a.x, y: a.y, ang, L: L / z, w: w / z, sx: x, sy: y }); // sx, sy — где тело нарисовано на экране (мягкое тело отстаёт от a.x на рывке)
+  Object.assign(m, { id: a.id, x: a.x, y: a.y, ang, L: L / z, w: w / z, sx: x, sy: y, scr }); // sx, sy — где тело нарисовано на экране (мягкое тело отстаёт от a.x на рывке); scr — чьим экраном (снимок Альманаха рисует ту же клетку на своём)
   const pu = pulses.get(a.id); if (pu) { const P = V.pulse, k = pu.t / P.life, head = pu.from * (L + w) * (1 - 2 * k), bw = P.band * w; // от того конца, где сработало, к другому
     for (let i = 0; i < P.dots; i++) { const [u, o] = rim(i / P.dots, L, w), d = Math.abs(u - head); if (d > bw) continue; const [px, py] = at(u, o); glow.put(px, py, P.r * z + 1, ...P.color, 0.95 * (1 - d / bw) * Math.sin(Math.PI * k)); }
     for (let i = -2; i <= 2; i++) { const u = head + i * bw * 0.3; if (Math.abs(u) > L + w * 0.5) continue; const [px, py] = at(u, 0); glow.put(px, py, w * 0.5, ...P.color, 0.35 * Math.sin(Math.PI * k)); } } // свет идёт и внутри: стекло тела
