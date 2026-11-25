@@ -21,7 +21,7 @@
 	"meet": 260,
 	"safe_chunks": 1.5,
 	"food_per_chunk": [6, 14, 4],
-	"eda_vokrug": { "r": 220, "baza": 10, "na_kletku": 1.2, "temp": 8, "kolco": [0.6, 1.1], "kol": [0.6, 1.2], "krupnee": 0.05, "krupnee_max": 1.6 }, "food_patches": [1, 2, 1],
+	"eda_vokrug": { "r": 220, "baza": 10, "na_kletku": 1.2, "temp": 8, "kolco": [0.6, 1.1], "kol": [0.6, 1.2], "krupnee": 0.05, "krupnee_max": 1.6, "ubrat": 3 }, "food_patches": [1, 2, 1],
 	"patch_food": 11,
 	"spill": 8,
 	"plant_chance": 0.3,
