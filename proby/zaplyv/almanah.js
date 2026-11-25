@@ -118,6 +118,6 @@ export function almanahScreen({ K, cards, T, G, S, met, snap, onSwim, onNav = ()
   $('cabinet').addEventListener('touchstart', e => { const t = e.touches[0]; sx = t.clientX < 28 ? [t.clientX, t.clientY] : null; }, { passive: true });
   $('cabinet').addEventListener('touchend', e => { const t = e.changedTouches[0]; if (sx && t.clientX - sx[0] > 70 && Math.abs(t.clientY - sx[1]) < 60) goBack(); sx = null; }, { passive: true });
   const api = { back: null, from: '', open, close, openCard, goBack, where, entries: E, shot,
-    label: () => { const n = keys.filter(k => E[k].sec !== 'gene' && E[k].group !== 'me'); return `Альманах · знаешь ${n.filter(k => met.has(k)).length} из ${n.length}`; } };
+    label: () => { const n = s => keys.filter(k => E[k].sec === s && E[k].group !== 'me'), m = s => n(s).filter(k => met.has(k)).length; return `Альманах · обитатели ${m('life')} из ${n('life').length} · еда ${m('food')} из ${n('food').length}`; } }; // тот же счёт, что на полке (прогон 0.68, О52: «6 из 12» снаружи спорил с «4 из 10 + 2 еды» внутри)
   return api;
 }

@@ -402,7 +402,7 @@ const kab = almanahScreen({ K: KAB, cards, T: TEKSTY, G: GENY, S: SVYAZI, met, s
 const cabLabel = () => { $('cab').textContent = kab.label(); };
 cabLabel();
 const knowGenes = () => { let add = false; for (const g in world.genes) if (!met.has('gene:' + g)) { met.add('gene:' + g); add = true; } if (add) { saveMet(); cabLabel(); } }; // ген, который у тебя был, — запись в Альманахе
-$('cab').onclick = () => { knowGenes(); kab.open(); };
+$('cab').onclick = () => { knowGenes(); kab.open(); const kk = world.stats.killer; if (ended && kk && KAB.items[kk] && kk !== 'me') { met.add(kk); kab.openCard(kk); } }; // с гибели — сразу карточка того, кто съел; «‹ Альманах» внизу ведёт на полку
 let toastT = 0;
 // Пауза с геномом: мир замирает, твоя клетка крупно в середине кольца ДНК.
 let paused = false;
@@ -712,6 +712,7 @@ function tick(dt) {
       if (world.stats.where && kk) addMark({ kind: 'death', x: world.stats.where[0], y: world.stats.where[1], who: kk }); keepSeen(); // отметка на карте: где погиб и кто убил (Э19)
       $('who').textContent = t.ubil || k.who; $('cname').textContent = t.imya || k.name; $('ctext').textContent = t.kto || k.text;
       $('cfact').textContent = t.priroda || k.fact; $('ctip').textContent = t.sovet || k.tip || '';
+      if (kk && KAB.items[kk] && kk !== 'me') $('cab').textContent = 'Кто это · ' + (t.imya || k.name) + ' в Альманахе'; else cabLabel(); // прогон 0.68: «Альманах» с гибели вёл в общий список, а не к убийце
       $('ckill').src = KAB.items[kk] ? snap(kk, KAB.items[kk]) : ''; $('ckill').hidden = !KAB.items[kk];
       $('stats').innerHTML = pathText(world);
       ROD.deaths = (ROD.deaths || 0) + 1; ROD.genes = Object.keys(world.genes).filter(g => world.genes[g]); ROD.most = world.stats.most; ROD.seed = world.seed; // род для ночи и меню
