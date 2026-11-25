@@ -10,7 +10,10 @@ const b = await pw[kind].launch(opts);
 const p = await (await b.newContext({ ...pw.devices['iPhone 13'] })).newPage();
 await p.addInitScript(() => { if (!localStorage.getItem('zaplyv.met')) localStorage.setItem('zaplyv.met', JSON.stringify(['me', 'phage', 'amoeba', 'plant'])); }); // Альманах: есть что листать
 const errs = []; p.on('pageerror', e => errs.push(e.message));
-let bad = 0; const say = (ok, t) => { console.log((ok ? '  ок   ' : '  ПРОВАЛ ') + t); if (!ok) bad++; };
+let bad = 0; const say = (ok, t) => { console.log((ok ? '  ок   ' : '  ПРОВАЛ ') + t); if (!ok) bad++; only(ok, t); };
+// ONLY=Lxxx (самопроверка ломает защиту урока и ждёт красного): как только проверка этого урока покраснела, обход сразу выходит с провалом —
+// не гонять весь обход ради одного случая. Зелёный исход по-прежнему только после всего обхода, так что сторож не слабеет.
+function only(ok, t) { if (ok || !process.env.ONLY || !new RegExp('test_' + process.env.ONLY + '\\b').test(t)) return; console.log(`КАСАНИЯ: провалов ${bad} (покраснел ${process.env.ONLY}, дальше не идём)`); process.exit(1); }
 // test_L018 (расширен 24.11, Роман: «описание талантов писал… имбицил»): на каждом экране, где игра говорит про умение или существо,
 // каждая строка — из файлов книги. Раньше сверка смотрела только Альманах, а выбор дочки и «Ген от сородича» брали черновые строки из data.json.
 const BOOK = async () => p.evaluate(async () => { const out = [], walk = o => { if (typeof o === 'string') out.push(o.trim()); else if (o && typeof o === 'object') Object.values(o).forEach(walk); };
@@ -35,6 +38,8 @@ async function tap(sel, what) {
 const seen = sel => p.evaluate(s => { const e = document.querySelector(s); if (!e) return false; const r = e.getBoundingClientRect(), st = getComputedStyle(e);
   return r.width > 0 && r.bottom > 0 && r.top < innerHeight && +st.opacity > 0.5 && st.visibility !== 'hidden' && st.display !== 'none'; }, sel);
 const marks = () => p.evaluate(() => JSON.parse(localStorage.getItem('zaplyv.marks') || '[]').length);
+// флажок снимает кадр и пишет отметку не мгновенно (на медленной машине CI дольше 250 мс): ждём надпись и запись до 4 с, а не смотрим в первый миг
+const noted = m => p.waitForFunction(m => { const e = document.getElementById('note'), st = e && getComputedStyle(e); return !!e && +st.opacity > 0.5 && st.visibility !== 'hidden' && JSON.parse(localStorage.getItem('zaplyv.marks') || '[]').length === m + 1; }, m, { timeout: 4000 }).then(() => true, () => false);
 const on = id => p.evaluate(i => document.getElementById(i).classList.contains('on'), id);
 
 // test_L025 (Роман 24.11: «почему я не вижу этот режим?» — кнопка «Ночь рода» стояла ниже края экрана iPhone): каждая кнопка
@@ -105,7 +110,7 @@ await p.waitForTimeout(700); { const t = await p.evaluate(() => [...document.que
 await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.phages.length = 0; w.cfg.inject_was = w.cfg.inject; w.cfg.inject = 1e9; w.phages.push({ x: a.x + 8, y: a.y, vx: 0, vy: 0, d: Math.PI, t: 0, id: 91, host: 'me', cool: 0 }); }); // вирус садится, но не впрыскивает: шаги дальше идут живой клеткой (L045 — стряхнуть только сразу)
 await p.waitForTimeout(600); { const t = await p.evaluate(() => [...document.querySelectorAll('#toast.on')].map(e => e.textContent).join('')); say(/вирус/i.test(t) && /развернись/.test(t), 'test_L042: вирус сел на клетку — сразу надпись, что делать (' + (t || 'надписи нет') + ')'); }
 await p.evaluate(() => { const w = zaplyvWorld(); w.phages.length = 0; w.cfg.inject = w.cfg.inject_was; for (const a of w.me) a.sick = -1; });
-if (await tap('#flag', 'флажок в игре')) say(await seen('#note') && await marks() === m + 1, 'флажок в игре: отметка записана и надпись видна');
+if (await tap('#flag', 'флажок в игре')) say(await noted(m), 'флажок в игре: отметка записана и надпись видна');
 // test_L050 (Роман 25.11 на 0.70: «почему мы не починили блять деление клеток?»): плавное деление лежало в vid.js, но main.js его не звал —
 // дочка появлялась рывком. После деления несколько кадров рисуется рождение: дочки из одной клетки с перетяжкой расходятся.
 { const ok = await p.evaluate(async () => { const w = zaplyvWorld(); w.choice = []; w.cfg.auto_split = 1e9; const a = w.me[0]; a.m = w.split() + 0.01; a.held = 0; a.grab = null; a.sick = -1; a.spore = 0;
@@ -116,7 +121,7 @@ if (await tap('#pause', 'пауза')) say(await on('genome') && (await p.textCo
 if (await tap('#phub [data-t=genome]', 'строка «Геном» в паузе')) say(await seen('#ring'), 'строка «Геном» открывает кольцо');
 if (await tap('#ring .slot', 'ген на кольце')) say(await p.evaluate(() => !!document.querySelector('#gcard h2')), 'касание гена открывает карточку');
 m = await marks();
-if (await tap('#gflag', 'флажок в геноме')) say(await seen('#note') && await marks() === m + 1, 'флажок в геноме: отметка и надпись видна');
+if (await tap('#gflag', 'флажок в геноме')) say(await noted(m), 'флажок в геноме: отметка и надпись видна');
 if (await tap('#gback', '«‹ Пауза» из генома') && await tap('#phub [data-t=alm]', 'строка «Альманах»')) say(await on('cabinet'), 'Альманах открылся из паузы');
 // test_L019: у каждой карточки полки — снимок живой модели (картинка не пустая), разделы и карточка отвечают пальцу
 await p.waitForFunction(() => { const a = [...document.querySelectorAll('#shelf .kc img')]; return a.length && a.every(i => i.naturalWidth > 100 && i.src.length > 5000); }, null, { timeout: 6000 }).catch(() => {}); // снимки встают по одному: ждём их, а не время
@@ -228,7 +233,7 @@ say(await p.evaluate(async () => { const C = await (await fetch('cards.json')).j
 await whole(['#again', '#tomenu', '#cab', '#eno'], 'экран гибели'); // до любых касаний: экран не прокручен
 say(await p.evaluate(() => ['hud', 'scalebox', 'ver'].every(i => getComputedStyle(document.getElementById(i)).visibility === 'hidden') && getComputedStyle(document.getElementById('end')).backgroundColor.startsWith('rgb(')), 'test_L031: лист гибели непрозрачный, надписи игры под ним скрыты');
 m = await marks();
-if (await tap('#eno', '«Не так» на экране гибели')) say(await seen('#note') && await marks() === m + 1, '«Не так» на экране гибели: отметка и надпись видна');
+if (await tap('#eno', '«Не так» на экране гибели')) say(await noted(m), '«Не так» на экране гибели: отметка и надпись видна');
 // test_L034 (Роман 25.11: «Сбрось пожалуйста счетчик проблем! Там куча говна записана»): случайную отметку убирает «Убрать»,
 // в списке отметок одна уходит по ✕, все — «Стереть все» и второе касание. Счётчик на кнопке идёт за ними.
 if (await tap('#nundo', '«Убрать» случайную отметку')) say(await marks() === m, 'test_L034: «Убрать» под надписью снимает только что записанную отметку');
@@ -242,7 +247,7 @@ if (await tap('#esend', '«Отметки» на экране гибели')) {
 const toNight = async w => await tap('#tomenu', '«Меню режимов» ' + w) && await tap('#mscene [data-m=night]', 'режим «Ночь рода» ' + w) && await tap('#mgo', '«Начать ночь» ' + w);
 if (await toNight('с экрана гибели')) say(await on('night') && await seen('#ndanger'), '«Ночь рода» из меню открывает выбор опасности');
 m = await marks();
-if (await tap('#nflag', '«Не так» в ночи рода')) say(await seen('#note') && await marks() === m + 1, '«Не так» в ночи рода: отметка записана');
+if (await tap('#nflag', '«Не так» в ночи рода')) say(await noted(m), '«Не так» в ночи рода: отметка записана');
 if (await tap('#nback', '«Назад» из ночи')) say(!(await on('night')) && await on('menu'), '«Назад» из ночи возвращает в меню');
 if (await tap('#mscene [data-m=swim]', 'объект «Заплыв»') && await tap('#mgo', '«Плыть»')) { await p.evaluate(() => { const w = zaplyvWorld(); w.me.length = 0; }); await p.waitForTimeout(1200); }
 if (await toNight('снова') && await tap('#ndanger [data-d=phage]', 'опасность «Фаги»')) {
@@ -288,6 +293,14 @@ await p.reload(); await p.waitForFunction(() => window.zaplyvProbe && zaplyvProb
 if (await tap('#mscene [data-m=golod]', 'объект «Голод»')) say((await p.textContent('#mgo')) === 'Плыть в голод', 'касание «Голода» меняет подпись кнопки');
 if (await tap('#mgo', '«Плыть в голод»')) { const m0 = await p.evaluate(() => { const w = zaplyvWorld(); w.food.length = 0; return w.me[0].m; }); await p.waitForTimeout(1500);
   say(!(await on('menu')) && await p.evaluate(m0 => { const w = zaplyvWorld(); w.food.length = 0; return w.mode === 'golod' && w.me.length > 0 && w.me[0].m < m0; }, m0), '«Плыть в голод» начинает заплыв, и без еды клетка худеет'); }
+// Память о вирусах (Роман 25.11, кадр 0.83): с памятью вирус клетку не убьёт — совета «резко развернись» нет; без памяти он есть.
+await p.reload(); await p.waitForFunction(() => window.zaplyvProbe && zaplyvProbe.frames > 5, null, { timeout: 30000 }); await p.waitForTimeout(800);
+if (await tap('#mscene [data-m=mut]', 'объект «Мутации»') && await tap('#mgo', '«Плыть с мутациями»')) {
+  const land = id => p.evaluate(id => { const w = zaplyvWorld(), a = w.me[0]; w.choice = []; w.phages.length = 0; w.cfg.inject = 1e9; w.phages.push({ x: a.x + 8, y: a.y, vx: 0, vy: 0, d: Math.PI, t: 0, id, host: 'me', cool: 0 }); }, id);
+  const toast = () => p.evaluate(() => [...document.querySelectorAll('#toast.on')].map(e => e.textContent).join(''));
+  await p.evaluate(() => { const w = zaplyvWorld(); w.genes.memory = true; w.genes.crispr = true; }); await land(93); await p.waitForTimeout(1500); const t1 = await toast();
+  await p.evaluate(() => { const w = zaplyvWorld(); w.genes.memory = false; w.genes.crispr = false; }); await land(94); await p.waitForTimeout(1500); const t2 = await toast();
+  say(!/Сел вирус/.test(t1) && /Сел вирус/.test(t2), `с памятью о вирусах совета «Сел вирус! Резко развернись» нет, без памяти есть («${t1}» / «${t2}»)`); }
 say(!errs.length, 'ошибок страницы нет' + (errs.length ? ': ' + errs.join('; ') : ''));
 await b.close();
 console.log(bad ? `КАСАНИЯ: провалов ${bad}` : 'КАСАНИЯ: все кнопки отвечают пальцу');
