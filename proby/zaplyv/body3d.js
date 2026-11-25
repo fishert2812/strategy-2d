@@ -59,7 +59,7 @@ function kind(geo, max, vertexBody, opts = {}) {
 const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), V = new THREE.Vector3(), S = new THREE.Vector3(), Z = new THREE.Vector3(0, 0, 1);
 
 // Капсула для палочки. Готовая CapsuleGeometry кладёт на прямую часть только два кольца, у концов: перетяжка в середине
-// (pinch) сжимала пустое место, и клетка перед делением и в делении выглядела ровной (урок L048).
+// (pinch) сжимала пустое место, и клетка перед делением и в делении выглядела ровной (урок L050).
 function capsule(caps = 6, mid = 20, round = 16) {
   const pts = [], P = (x, y) => pts.push(new THREE.Vector2(Math.max(x, 1e-4), y));
   for (let i = 0; i <= caps; i++) { const a = -Math.PI / 2 + i / caps * Math.PI / 2; P(Math.cos(a), -1 + Math.sin(a)); }

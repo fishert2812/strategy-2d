@@ -6,7 +6,7 @@
 	"max_m": 9,
 	"food": 0.14, "food_kinds": { "bits": { "gain": 1, "core": [1, 0.93, 0.65], "halo": [1, 0.8, 0.35], "size": 0.8, "halo_r": 1, "twinkle": 0 }, "glucose": { "gain": 1.5, "core": [0.9, 1, 0.82], "halo": [0.55, 1, 0.5], "size": 1, "halo_r": 1.5, "twinkle": 1 }, "lysate": { "gain": 3, "core": [1, 0.62, 0.72], "halo": [1, 0.45, 0.6], "size": 1.7, "halo_r": 1.8, "twinkle": 0 } }, "sense_like": { "bits": 1, "glucose": 1.3, "lysate": 3 }, "danger": { "phage": [0.92, 0.9, 1.0], "bdello": [1.0, 0.38, 0.15] }, "genome_zoom": 0.7, "pond": { "w": 24000, "h": 36000, "x0": 0.3, "y0": 0.3, "film": 0.05, "oxy": 0.62, "silt": 0.74, "shore": 0.88, "grid": [12, 18] }, "icon_span": 34, "icon_dim": 0.4, "fim_reach": 8, "flag": { "color": [0.74, 0.87, 1.0], "alpha": 0.32, "bundle": 2.5, "unbundle": 1.2, "fan_out": 12, "fan_in": 3, "spin": 4, "rest_spin": 3, "tumble_b": 0.85 }, "crispr_cost": 0.6, "flag_r": 500, "flag_cut": 0.667, "flag_pin_r": 160,
   "close_up": 0.85, "cam": { "group": 700, "min_px": 9 }, "zone": { "lead": 1.5, "amoeba": 1.6, "step": 3, "ticks": 12, "tick": 0.14, "far": 0.12, "near": 0.3, "warn": 0.55, "streak": 5, "color": [0.92, 0.32, 0.18] }, "grain": [0.6, 2.4], "rush_gap": 1.5, "rush_step": 0.12, "rush_max": 1, "rush_fall": 0.3,
-	"grab": 1.3, "free": 1.0, "torn": 0.75, "bdello_loose": 1.2, "split_apart": 2.9, "auto_split": 3, "auto_max": 4, "me_max": 10, "away_speed": 120, "away_time": 2.5,
+	"grab": 1.3, "free": 1.0, "torn": 0.75, "bdello_loose": 1.2, "split_apart": 2.9, "auto_split": 3, "auto_max": 10, "me_max": 10, "away_speed": 120, "away_time": 2.5,
 	"amoeba": 64,
 	"amoeba_open": 0.15,
 	"bdello_speed": 390,

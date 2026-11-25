@@ -29,7 +29,7 @@ export function names(cfg, GENY) {
   for (const c of Object.values((GENY && GENY.geny) || {})) if (c.klyuch in M.genes) cfg.genes[c.klyuch] = [c.imya, c.daet];
 }
 // Мутации живут только в режиме «Мутации» (Роман 24.11: «Мы тестируем разные режимы!»); обычный заплыв как был.
-const on = w => w.mode === 'mut';
+const on = w => w.mode === 'mut' || w.mode === 'evo'; // в «Эволюции» (evo.js) все умения тоже живут
 const has = (w, g) => (on(w) || everywhere(g)) && !!w.genes[g];
 const fresh = (w, list) => list.filter(g => !w.genes[g]);
 // Из чего выбирают дочки при делении. В режиме — сначала новые мутации (кроме чужих), потом прежние гены.

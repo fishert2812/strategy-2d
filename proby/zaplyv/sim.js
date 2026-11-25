@@ -9,6 +9,7 @@
 import * as mut from './mutacii.js'; // новые мутации: свой файл, здесь только узкие крюки
 import { zhizn } from './zhizn.js'; // соседи живут сами: движок по паспорту существ (zhizn.json)
 import * as rost from './rost.js'; // режим «Рост»: клетка не делится, а растёт (rost.json)
+import * as evo from './evo.js'; // режим «Эволюция»: рост «Роста» и выбор способности на каждом росте (evo.json)
 
 export const radius = m => 13 * Math.sqrt(m);
 
@@ -249,7 +250,7 @@ export class World {
     this.life(dt);
     this.eat(dt);
     zhizn(this, dt, radius);
-    rost.step(this, dt, radius);
+    rost.step(this, dt, radius); evo.step(this);
     this.hunters(dt);
     this.hold(dt);
     this.rush = Math.max(0, this.rush - (this.stats.time - this.lastEat > c.rush_gap ? c.rush_fall * dt : 0));

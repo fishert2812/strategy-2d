@@ -818,6 +818,12 @@ check('test_L032 (прогон 0.54, О22 повтор): уснула среди
     if (t > cfg.spore + cfg.spore_max + 1) return 'спала ' + t.toFixed(0) + ' с — дольше обещанного'; }
   console.log('    паспорт: спала среди охотников, с —', out.join(' '));
 });
+check('test_L049 (прогон игроками, круг 6: «после полутора минут роста нет, всегда четыре клетки»): сытая колония сама делится дальше четырёх, до me_max', () => {
+  const w = new World(cfg, 601); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = [];
+  let t = 0; while (t < 40 && w.me.length < cfg.me_max) { if (w.choice.length) w.pick(w.choice[0]); for (const a of w.me) a.m = Math.max(a.m, w.split()); w.step(1 / 30, null); t += 1 / 30; }
+  console.log('    паспорт: сытая колония за', t.toFixed(0), 'с — клеток', w.me.length, 'из', cfg.me_max, '| уплыли', w.away.length);
+  if (w.me.length < cfg.me_max) return `колония застряла на ${w.me.length} клетках: само-деление отправляет дочек прочь раньше me_max`;
+});
 check('test_L051 (проверка кадров деления 25.11: «дочки складываются бок о бок, как две таблетки, а не цепочкой»): после деления дочки лежат торец к торцу вдоль оси матери', () => {
   const w = new World(cfg, 602); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = [];
   const a = w.me[0]; for (let t = 0; t < 1; t += 1 / 30) w.step(1 / 30, null); // мать постояла без пальца: дрейф и поворот уже идут
