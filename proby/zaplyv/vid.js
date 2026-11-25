@@ -168,8 +168,9 @@ export function skin(c) {
     const [sx0, sy0] = along(-half + w * 0.3, (f - mid) * w * 0.22 * sp5 + arc(half / z)), spread = (f - mid) * 0.6 * sp5;
     const fdx = -Math.cos(ang + spread), fdy = -Math.sin(ang + spread), curl = P * (f % 3 === 1 ? 1 : 0.25); // в кувырке нить меняет форму спирали
     const ph = F.ph + f * 0.5, slow = F.t * 0.6 + f * 1.7;
-    for (let k = 1; k <= V.whip.n; k++) { // нить сплошная: точки гуще своего размера, не бусы (L047)
-      const s = k / V.whip.n, grow = Math.min(1, s * 3);
+    const nW = Math.min(V.whip.max, Math.max(V.whip.n, Math.ceil(w * V.whip.len / (V.whip.step * (0.8 * Math.max(z, 0.7) + 0.3) * 0.55)))); // точек столько, чтобы шаг был меньше самой тонкой точки и вблизи: не бусы (L047)
+    for (let k = 1; k <= nW; k++) { // нить сплошная: точки гуще своего размера, не бусы (L047)
+      const s = k / nW, grow = Math.min(1, s * 3);
       // покой: от бока наружу, медленная волна + броуновская дрожь
       let xr = 0, yr = 0, xt = 0, yt = 0;
       if (B < 0.995) { const Lr = s * w * 5.2, wr = (Math.sin(s * 7 - ph * 0.3) * 0.3 + Math.sin(s * 3 + slow) * 0.35 + Math.sin(s * 11 - slow * 2.3) * 0.08) * w * grow;
@@ -184,7 +185,7 @@ export function skin(c) {
       const bs = s * w * 5.8, wf = Math.sin(s * (10 + 10 * curl) - ph) * w * (0.42 - 0.21 * curl) * grow;
       const xf = sx0 + fdx * bs - fdy * wf, yf = sy0 + fdy * bs + fdx * wf;
       xt = xb + (xf - xb) * P; yt = yb + (yf - yb) * P; }
-      glow.put(xr + (xt - xr) * B, yr + (yt - yr) * B, (0.8 * Math.max(z, 0.7) + 0.3) * (1 - s * 0.45), fc[0], fc[1], fc[2], cfg.flag.alpha * V.whip.a * (1 - s * 0.6)); // нить в цвете оболочки: светло-голубая, тоньше и прозрачнее к концу
+      glow.put(xr + (xt - xr) * B, yr + (yt - yr) * B, (0.8 * Math.max(z, 0.7) + 0.3) * (1 - s * 0.45), fc[0], fc[1], fc[2], cfg.flag.alpha * V.whip.a * Math.sqrt(V.whip.n / nW) * (1 - s * 0.6)); // нить в цвете оболочки: светло-голубая, тоньше и прозрачнее к концу
     }
   }
 }
