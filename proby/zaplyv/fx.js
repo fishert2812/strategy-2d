@@ -1,27 +1,28 @@
 // Анимации взаимодействий: что видно, когда мир сообщает событие (съела, поделилась, схватили, лопнула, прилип фаг…).
 // Файл слоя «вид и анимации» (свой строитель). main.js зовёт fx.on() на каждое событие мира, fx.draw() в кадре, fx.step(dt).
 // Звук и подписи остаются в main.js. Список событий — sim.js, world.events: [вид, x, y, size, y2].
-import { poke, stepVid, seen, rim, V } from './vid.js';
+import { poke, stepVid, seen, rim, V, splitAt, pulse, shellOf } from './vid.js';
 export class Fx {
   constructor(cfg, CELL) { this.cfg = cfg; this.CELL = CELL; this.reset(); }
   save() { const s = {}; for (const k of Object.keys(this)) if (Array.isArray(this[k])) s[k] = this[k]; return s; } // снимок значка зовёт reset — без этого гасли все идущие анимации
   load(s) { Object.assign(this, s); }
-  reset() { this.rings = []; this.zaps = []; this.drops = []; this.ghosts = []; this.melts = []; this.dead = []; this.eats = []; this.flicks = []; this.genes = []; this.naps = []; }
-  busy() { return this.rings.length + this.zaps.length + this.drops.length + this.ghosts.length + this.melts.length + this.dead.length + this.eats.length + this.flicks.length + this.genes.length + this.naps.length; }
+  reset() { this.rings = []; this.zaps = []; this.drops = []; this.ghosts = []; this.melts = []; this.dead = []; this.eats = []; this.flicks = []; this.genes = []; this.naps = []; this.cuts = []; }
+  busy() { return this.rings.length + this.zaps.length + this.drops.length + this.ghosts.length + this.melts.length + this.dead.length + this.eats.length + this.flicks.length + this.genes.length + this.naps.length + this.cuts.length; }
   ring(x, y, side, r) { this.rings.push({ x, y, side, r, t: 0 }); }
   on(k, x, y, size = 1, y2) {
     const R = (s, r) => this.ring(x, y, s, r);
+    if (V.pulse.on.includes(k)) this.pulse(x, y);
     if (k === 'spore' || k === 'sprout') this.naps.push({ x, y, wake: k === 'sprout', t: 0 }); // засыпание — тихая волна сходится к клетке, пробуждение — расходится
     if (k === 'gene') { const n = this.near(x, y); this.genes.push({ x, y, to: n ? n.a : null, t: 0 }); } // конъюгация: колечко ДНК бежит по мостику в клетку
     if (k === 'zap') this.zaps.push({ x, y, x2: size, y2, t: 0 }); // выстрел гарпуна синегнойки
     if (k === 'grab') R(1, 40);
     if (k === 'eat') this.melts.push({ x, y, s: size, t: 0 }); // зерно не летит в рот: тает на месте (биолог, «Всасывание еды»)
-    if (k === 'split') { R(0, 30); for (const s of [-1, 1]) this.drops.push({ x, y, vx: s * 90, vy: 0, t: 0.6, r: 0.5, c: 0 }); } // перехват лопнул: дочки отскочили рывком, рывок гаснет вязко
+    if (k === 'split') { splitAt(x, y); R(0, 30); for (const s of [-1, 1]) this.drops.push({ x, y, vx: s * 90, vy: 0, t: 0.6, r: 0.5, c: 0 }); } // перехват лопнул: дочки отскочили рывком, рывок гаснет вязко
     if (k === 'leave') R(0, 50);
     if (k === 'stick') R(1, 22); // прилип фаг
     if (k === 'shake') this.shake(x, y);
-    if (k === 'cut') R(2, 26);
-    if (k === 'learn') R(2, 80);
+    if (k === 'cut') this.cuts.push({ x, y, ang: Math.random() * Math.PI, t: 0 }); // CRISPR или обманка: вирус разрезан — светлый разрез поперёк, две половинки расходятся и гаснут
+    if (k === 'learn') { const n = this.near(x, y), c = n ? n.a : { x, y }; this.naps.push({ x: c.x, y: c.y, wake: false, t: 0, col: V.gcol.crispr, a: V.learn.alpha }); this.flick(x, y, 0); } // первый вирус: переболела и запомнила — светлая волна сходится в клетку, вирус отброшен
     if (k === 'sit') R(0, 46); // коловратка присела на ногу
     if (k === 'snap') R(0, 60); // сувойка сжалась пружиной
     if (k === 'bump') { R(0, 24); poke(x, y); } // капсула: хищник отскочил, плёнка прогнулась
@@ -37,8 +38,11 @@ export class Fx {
     if (k === 'shrug') this.flick(x, y, 0); // новая дверь: вирус отброшен
     if (k === 'eaten') this.swallow(x, y, size);
     if (k === 'burst') this.lyse(x, y, seen(x, y));
+    if (k === 'poisoned') { const N = V.sosed[size] || V.sosed.strain; this.dead.push({ x, y, ang: typeof y2 === 'number' ? y2 : Math.random() * 6.283, L: N.L, w: N.w, t: 0, P: V.poison, col: N.col }); } // от яда (CDI) не лопается: замирает целой, бледнеет и тонет (биолог, круг 13)
     if (k === 'abort') { const g = seen(x, y); this.dead.push({ x, y, ang: g ? g.ang : size, L: g ? g.L : 8, w: g ? g.w : 6, t: 0 }); } // умерла за своих: целая, без прорыва
   }
+  // Навык сработал: по телу своей клетки за полсекунды пробегает золотой импульс (эстетика, «Вид 6»). Тёплый цвет — только у сигнала и еды.
+  pulse(x, y) { const n = this.near(x, y); if (n && n.d < V.pulse.reach) pulse(n.a.id, Math.sign((x - n.a.x) * Math.cos(n.a.a || 0) + (y - n.a.y) * Math.sin(n.a.a || 0)) || 1); } // рисует vid.skin по живому телу
   near(x, y) { let b = null, bd = 1e9; for (const a of (this.world && this.world.me) || []) { const d = Math.hypot(a.x - x, a.y - y); if (d < bd) { bd = d; b = a; } } return b ? { a: b, d: bd } : null; }
   // Отбилась (биолог, «Защиты»): у борта, где ткнулся враг, вспыхивает дуга — видно, что сработала оболочка; враг уходит кувырком, за ним черта.
   flick(x, y, kind) { const n = this.near(x, y), dx = n ? x - n.a.x : 1, dy = n ? y - n.a.y : 0, l = Math.hypot(dx, dy) || 1, F = V.flick;
@@ -91,11 +95,12 @@ export class Fx {
       ink.put(x2, y2, 1.6 * z + 0.5, 0.15, 0.1, 0.2, 0.7 * (1 - p.t / 0.35)); // прокол
     }
     for (const g of this.dead) { // тихая гибель сестры (абортивная инфекция): тело темнеет и замирает целым, не вспухает, без брызг, гаснет
-      const D = V.abort, f = g.t / D.fade, e = Math.min(1, g.t / D.dark), ca = Math.cos(g.ang), sa = Math.sin(g.ang);
-      for (let k = 0; k < D.fill; k++) { const t = k * 2.39996, r = Math.sqrt((k + 0.5) / D.fill), u = Math.cos(t) * r * (g.L + g.w * 0.6), o = Math.sin(t) * r * g.w * 0.75;
-        const [sx, sy] = scr(g.x + ca * u - sa * o, g.y + sa * u + ca * o); ink.put(sx, sy, g.w * z * 0.45, D.color[0], D.color[1], D.color[2], D.alpha * e * (1 - f)); }
-      const n = 36, st = (4 * g.L + 2 * Math.PI * g.w) * z / n;
-      for (let k = 0; k < n; k++) { const [u, o] = rim(k / n, g.L, g.w), [sx, sy] = scr(g.x + ca * u - sa * o, g.y + sa * u + ca * o); glow.put(sx, sy, st * 1.3, 0.45, 0.55, 0.7, 0.12 * (1 - f)); }
+      const D = g.P || V.abort, f = g.t / D.fade, e = Math.min(1, g.t / D.dark), ca = Math.cos(g.ang), sa = Math.sin(g.ang), sk = 1 - (D.sink || 0) * f, L = g.L * sk, w = g.w * sk; // отравленная тонет: меньше и тусклее
+      const col = g.col ? g.col.map((c, i) => c + (D.color[i] - c) * e) : D.color; // нутро бледнеет из своего цвета
+      for (let k = 0; k < D.fill; k++) { const t = k * 2.39996, r = Math.sqrt((k + 0.5) / D.fill), u = Math.cos(t) * r * (L + w * 0.6), o = Math.sin(t) * r * w * 0.75;
+        const [sx, sy] = scr(g.x + ca * u - sa * o, g.y + sa * u + ca * o); ink.put(sx, sy, w * z * 0.45, col[0], col[1], col[2], D.alpha * (g.col ? 1 : e) * (1 - f)); }
+      const n = 36, st = (4 * L + 2 * Math.PI * w) * z / n;
+      for (let k = 0; k < n; k++) { const [u, o] = rim(k / n, L, w), [sx, sy] = scr(g.x + ca * u - sa * o, g.y + sa * u + ca * o); glow.put(sx, sy, st * 1.3, 0.55, 0.65, 0.8, (D.rim || 0.12) * (1 - f)); } // светлый контур: целое тело видно на тёмной воде
     }
     const P = V.lysis;
     for (const g of this.ghosts) { // призрак: пустая обвисшая оболочка с дырой на месте прорыва, мнётся и тает
@@ -128,12 +133,30 @@ export class Fx {
       else bod(0, 0, L, w, al);
     }
     for (const q of this.flicks) { const F = V.flick, f = q.t / F.life, px = -q.dy, py = q.dx, c = q.kind ? F.shake : F.lock; // дуга на борту и черта отлёта
+      if (!q.kind && q.t < F.flash) { const [x, y] = scr(q.x, q.y); glow.put(x, y, F.flash_r * z * (1 + q.t / F.flash), 0.95, 1, 1, 0.9 * (1 - q.t / F.flash)); } // вирус не сел: светлая вспышка в точке касания
       if (!q.kind) for (let i = 0; i < F.arc; i++) { const s = (i / (F.arc - 1) - 0.5) * F.span, [x, y] = scr(q.x + px * s - q.dx * s * s * 0.04, q.y + py * s - q.dy * s * s * 0.04); glow.put(x, y, 2.4 * z, c[0], c[1], c[2], 0.85 * (1 - f)); }
       for (const a of q.kind ? [-0.5, 0, 0.5] : [0]) { const cx = Math.cos(a), sx = Math.sin(a), ux = q.dx * cx - q.dy * sx, uy = q.dy * cx + q.dx * sx; // новая дверь — один след отлёта; стряхнула — веер из трёх
         for (let i = 0; i < F.streak; i++) { const d = F.gap + F.len * (0.15 + f) * (0.3 + i / F.streak), [x, y] = scr(q.x + ux * d, q.y + uy * d); glow.put(x, y, 2 * z, c[0], c[1], c[2], 0.75 * (1 - f) * (1 - 0.6 * i / F.streak)); } } }
+    for (const q of this.cuts) { const C = V.cut, f = q.t / C.life, ca = Math.cos(q.ang), sa = Math.sin(q.ang), s = C.size; // разрез — светлая черта, не красная: красный только за опасностью
+      if (q.t < C.flash) { const k = q.t / C.flash; for (let i = 0; i < C.dots; i++) { const u = (i / (C.dots - 1) - 0.5) * s * 2 * Math.min(1, k * 3), [x, y] = scr(q.x + ca * u, q.y + sa * u); glow.put(x, y, 3.4 * z, ...C.color, 0.95 * (1 - k)); } const [cx, cy] = scr(q.x, q.y); glow.put(cx, cy, s * 2.2 * z, ...C.color, 0.45 * (1 - k)); }
+      const d = C.part * Math.min(1, q.t / C.flash) + C.drift * q.t; // половинки разъезжаются поперёк разреза
+      for (const sg of [-1, 1]) { const hx = q.x - sa * d * sg, hy = q.y + ca * d * sg;
+        for (let i = 0; i < 4; i++) { const u = (i / 3 - 0.5) * s, [x, y] = scr(hx + ca * u * 0.9, hy + sa * u * 0.9); glow.put(x, y, s * 0.5 * z, ...C.shell, 0.8 * (1 - f)); glow.put(x, y, s * 0.22 * z, ...C.color, 0.7 * (1 - f)); } } }
+    for (const a of (this.world && this.world.me) || []) { if (!(a.spore > 0)) continue; const sh = shellOf(a.id); if (!sh || !sh.e) continue; // хищник пробует взять спящую: по скорлупе бегут трещины с его стороны
+      const K = V.shell; let m = null, bd = K.sniff; for (const o of (this.world.amoebas || []).concat(this.world.bdellos || [])) { const d = Math.hypot(o.x - a.x, o.y - a.y); if (d < bd) { bd = d; m = o; } }
+      this.crk = this.crk || new Map(); const was = Math.max(0, (this.crk.get(a.id) || 0) - K.heal * (this.dt || 0)), f = Math.max(was, m ? (1 - bd / K.sniff) * sh.e : 0); this.crk.set(a.id, f); if (!m || f < 0.02) continue; // трещина держится, пока хищник рядом, и затягивается за 1/K.heal с
+      const ca = Math.cos(sh.ang), sa = Math.sin(sh.ang), dx = m.x - sh.x, dy = m.y - sh.y, lu = dx * ca + dy * sa, lo = -dx * sa + dy * ca;
+      let best = 0, bv = -1e9; for (let i = 0; i < 48; i++) { const [u, o] = rim(i / 48, sh.L, sh.R), v = u * lu + o * lo; if (v > bv) { bv = v; best = i / 48; } } // точка скорлупы, ближняя к хищнику
+      for (let c = -1; c <= 1; c++) { let p = best, off = 0; for (let k = 0; k < K.crack; k++) { p += c * K.step + (c ? 0 : K.step * 0.5 * Math.sin(k * 3.1)); off = (k % 2 ? 1 : -1) * K.zig * sh.R;
+        const [u, o, nu, no] = rim(p, sh.L, sh.R), [x, y] = scr(sh.x + ca * (u + nu * off) - sa * (o + no * off), sh.y + sa * (u + nu * off) + ca * (o + no * off)); ink.put(x, y, 1.6 * z + 0.5, 0.05, 0.05, 0.1, 0.85 * f); glow.put(x, y, 1.5 * z + 0.5, 1, 1, 1, Math.min(1, 1.6 * f) * (1 - 0.5 * k / K.crack)); } } }
     for (const p of this.drops) { const [x, y] = scr(p.x, p.y), f = p.t / V.lysis.life, c = p.c === 0 ? [0.75, 0.93, 1] : [0.95, 0.35, 0.7]; glow.put(x, y, (2.2 * p.r * (1 - f * 0.5)) * z + 0.5, c[0], c[1], c[2], 0.75 * (1 - f)); } // брызги сока (розовые) и искры рывка деления (голубые)
     for (const m of this.melts) { const [x, y] = scr(m.x, m.y), f = m.t / V.eat.melt, k = Math.sqrt(m.s || 1) * (1 - f) * (1 - f); // зерно тает на месте: меньше и тусклее, ореол растекается
       glow.put(x, y, 4 * z * k + 0.5, 1, 0.93, 0.65, 0.95 * (1 - f)); glow.put(x, y, 10 * z * Math.sqrt(m.s || 1) * (1 + 1.5 * f), 1, 0.8, 0.35, 0.22 * (1 - f)); }
+    for (const g of (this.world && this.world.phages) || []) { // вирус (эстетика, «Вид 7»): в гранёной голове (body3d) светится свёрнутая золотая нить ДНК
+      const H = V.virus, s = 6 + 1 / z, ca = Math.cos(g.d), sa = Math.sin(g.d), hx = g.x - ca * 2.1 * s, hy = g.y - sa * 2.1 * s, P = (u, o) => scr(hx + ca * u - sa * o, hy + sa * u + ca * o);
+      const left = g.on && g.on.m ? Math.min(1, Math.max(0, g.t / (this.cfg.inject || 2))) : 1; // впрыснул — нить ушла в клетку, голова пустеет
+      const n = Math.round(H.coil * left); for (let i = 0; i < n; i++) { const u = (i / H.coil - 0.5) * 2 * s * H.len, ph = i * H.turn + (this.tt || 0) * 2, [x, y] = P(u, Math.sin(ph) * s * H.wid);
+        ink.put(x, y, H.dot * z + 0.3, ...H.gold, 0.95); glow.put(x, y, H.dot * 1.5 * z + 0.3, ...H.gold, 0.3); } }
     for (const g of (this.world && this.world.phages) || []) { if (!g.on || !g.on.m) continue; // посадка фага: из головки по хвосту в клетку тянется нить ДНК, головка пустеет
       const I = V.inject, p = Math.min(1, Math.max(0, 1 - g.t / (this.cfg.inject || 2))), s = 6 + 1 / z, hx = g.x - Math.cos(g.d) * 2.1 * s, hy = g.y - Math.sin(g.d) * 2.1 * s;
       const ex = g.on.x + (g.x - g.on.x) * 0.35, ey = g.on.y + (g.y - g.on.y) * 0.35;
@@ -144,14 +167,14 @@ export class Fx {
     for (const q of this.genes) { const G = V.gene, f = q.t / G.life, run = Math.min(1, q.t / G.run), tx = q.to ? q.to.x : q.x, ty = q.to ? q.to.y : q.y; // колечко бежит, внутри раскрывается
       const cx = q.x + (tx - q.x) * run, cy = q.y + (ty - q.y) * run, R = G.r * (1 + (run >= 1 ? 1.5 * (q.t - G.run) / (G.life - G.run) : 0)), a = run < 1 ? 0.9 : 0.9 * (1 - f);
       for (let i = 0; i < 12; i++) { const t = i / 12 * 6.283 + q.t * 3, [x, y] = scr(cx + Math.cos(t) * R, cy + Math.sin(t) * R); glow.put(x, y, 2 * z, ...(q.col || G.color), a); } }
-    for (const q of this.naps) { const N = V.nap, f = q.t / N.life, k = q.wake ? f : 1 - f, R = N.r * (0.6 + 1.6 * k), c = q.wake ? N.wake : N.sleep, [x, y] = scr(q.x, q.y); // мягко, без вспышки
-      for (let i = 0; i < 36; i++) { const t = i / 36 * 6.283; glow.put(x + Math.cos(t) * R * z, y + Math.sin(t) * R * z, 2.4 * z, ...c, 0.35 * Math.sin(f * Math.PI)); } }
+    for (const q of this.naps) { const N = V.nap, f = q.t / N.life, k = q.wake ? f : 1 - f, R = N.r * (0.6 + 1.6 * k), c = q.col || (q.wake ? N.wake : N.sleep), [x, y] = scr(q.x, q.y); // мягко, без вспышки
+      for (let i = 0; i < 36; i++) { const t = i / 36 * 6.283; glow.put(x + Math.cos(t) * R * z, y + Math.sin(t) * R * z, 2.4 * z, ...c, (q.a || 0.35) * Math.sin(f * Math.PI)); } }
     for (const r of this.rings) { // вспышка-кольцо
       const k = r.t / 0.6, [x, y] = scr(r.x, r.y), R = r.r * z * (0.3 + k), c = CELL[r.side];
       for (let i = 0; i < 28; i++) { const t = i * 0.2244; glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 4 * (1 - k) + 1.2, c.r, c.g, c.b, 0.6 * (1 - k)); }
     }
   }
-  step(dt) { stepVid(dt);
+  step(dt) { stepVid(dt); this.dt = dt;
     const P = V.lysis, k = Math.exp(-P.drag * dt);
     for (const p of this.drops) { p.vx *= k; p.vy *= k; p.x += p.vx * dt; p.y += p.vy * dt; p.t += dt; }
     this.drops = this.drops.filter(p => p.t < P.life);
@@ -159,8 +182,9 @@ export class Fx {
     for (const g of this.ghosts) { g.vx += (Math.random() - 0.5) * 20 * dt; g.vy += (Math.random() - 0.5) * 20 * dt; g.vx *= 0.98; g.vy *= 0.98; g.x += g.vx * dt; g.y += g.vy * dt; g.ang += (Math.random() - 0.5) * 0.6 * dt; g.t += dt; } // дрейф и дрожь воды
     this.ghosts = this.ghosts.filter(g => g.t < P.ghost);
     this.tt = (this.tt || 0) + dt; for (const q of this.genes) q.t += dt; this.genes = this.genes.filter(q => q.t < V.gene.life); for (const q of this.naps) q.t += dt; this.naps = this.naps.filter(q => q.t < V.nap.life);
+    for (const q of this.cuts) q.t += dt; this.cuts = this.cuts.filter(q => q.t < V.cut.life);
     for (const q of this.flicks) q.t += dt; this.flicks = this.flicks.filter(q => q.t < V.flick.life);
     for (const e of this.eats) e.t += dt; this.eats = this.eats.filter(e => e.t < e.S.life);
-    for (const g of this.dead) g.t += dt; this.dead = this.dead.filter(g => g.t < V.abort.fade); // целую не носит: замерла
+    for (const g of this.dead) g.t += dt; this.dead = this.dead.filter(g => g.t < (g.P || V.abort).fade); // целую не носит: замерла
     for (const r of this.rings) r.t += dt; this.rings = this.rings.filter(r => r.t < 0.6); }
 }

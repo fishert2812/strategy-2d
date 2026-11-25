@@ -27,7 +27,9 @@ export function rim(p, L, R) {
 // Вмятины капсулы: хищник ткнулся — плёнка прогнулась и пружинит обратно (событие bump, fx.js зовёт poke).
 const dents = [];
 export function poke(x, y) { dents.push({ x, y, t: 0 }); if (dents.length > 8) dents.shift(); }
-export function stepVid(dt) { for (const d of dents) d.t += dt; while (dents.length && dents[0].t > V.capsule.dent_t) dents.shift(); }
+const pulses = new Map(); // навык сработал: золотой импульс бежит по телу (эстетика, «Вид 6»); fx.js зовёт pulse()
+export function pulse(id, from) { pulses.set(id, { t: 0, from }); }
+export function stepVid(dt) { for (const [id, p] of pulses) if ((p.t += dt) > V.pulse.life) pulses.delete(id); for (const d of dents) d.t += dt; while (dents.length && dents[0].t > V.capsule.dent_t) dents.shift(); }
 const mem = new Map(); // плавные состояния каждой клетки: нюх разгорается, новая бусина памяти растёт; где была и какой формы — для призрака
 const keep = (a, alive) => { let m = mem.get(a.id); if (!m) { m = { smell: 0, beads: -1, grow: 1, tl: 0 }; mem.set(a.id, m); }
   if (mem.size > 64) for (const k of mem.keys()) if (!alive.some(c => c.id === k)) mem.delete(k); return m; };
@@ -38,8 +40,10 @@ const mix = (p, q, k) => [p[0] + (q[0] - p[0]) * k, p[1] + (q[1] - p[1]) * k, p[
 // Спящая клетка (сон-персистер, биолог: design/zaplyv_vid_i_fizika.md, «Сон»). Не светится и не бледнеет: темнеет и плотнеет по краю,
 // жгут сложен вдоль тела и не крутится, крупинки внутри замерли. Засыпает за V.sleep.fall с, просыпается дольше — V.sleep.wake с.
 // c: a, x, y (экран), z, time, cfg, bodies, glow, ink.
+const shells = new Map(); // где скорлупа спящей: по ней fx.js рисует трещину, когда хищник пробует взять
+export const shellOf = id => shells.get(id);
 export function sleeper(c) {
-  const { a, x, y, z, time, cfg, bodies, ink } = c, S = V.sleep;
+  const { a, x, y, z, time, cfg, bodies, glow, ink } = c, S = V.sleep;
   const w = 8.5 * Math.pow(a.m, 0.3) * z, half = w * 2.1, ux = Math.cos(a.a), uy = Math.sin(a.a);
   const k = Math.max(0, Math.min(1, (cfg.spore - a.spore) / S.fall, a.spore / S.wake)), e = k * k * (3 - 2 * k); // 0 — бодрая, 1 — спит
   const along = (u, o) => [x + ux * u - uy * o, y + uy * u + ux * o];
@@ -48,6 +52,10 @@ export function sleeper(c) {
   bodies.rod(x, y, a.a, H, W, 0, mix(S.awake, S.skin, e), mix(S.awake_core, S.core, e), a.id, 0);
   for (let i = 0; i < S.dense; i++) { const t = i * 2.39996, r = Math.sqrt((i + 0.5) / S.dense), [px, py] = along(Math.cos(t) * r * (H - W * 0.5), Math.sin(t) * r * W * 0.55); ink.put(px, py, 1.1 * z + 0.4, 0.14, 0.08, 0.18, 0.45 * e); } // густое тёмное нутро
   for (let i = 0; i < S.edge; i++) { const [u, o] = rim(i / S.edge, H - W, W * 0.94), [px, py] = along(u, o); ink.put(px, py, 1.3 * z + 0.3, 0.08, 0.1, 0.2, 0.55 * e); } // плотный край
+  const Sh = V.shell, sL = Math.max(0, H - W), sR = W * Sh.gap; // скорлупа (дизайнер, «пока скорлупа цела, клетку не съедят»): тонкая твёрдая оболочка с бликами
+  shells.set(a.id, { x: a.x, y: a.y, ang: a.a, L: sL / z, R: sR / z, e, t: time });
+  if (glow) for (let i = 0; i < Sh.n; i++) { const p = i / Sh.n, [u, o] = rim(p, sL, sR), [px, py] = along(u, o), gl = Math.max(0, Math.cos((p - 0.15) * 6.283 * 2)) ** 6; // два блика на твёрдом
+    ink.put(px, py, Sh.w * z + 0.5, ...Sh.dark, 0.5 * e); glow.put(px, py, Sh.w * 0.7 * z + 0.4, ...Sh.color, (Sh.alpha + 0.4 * gl) * e); }
   const live = 1 - e; // крупинки замирают вместе со сном
   for (let i = 0; i < 4; i++) { const t = (time * live + i * 2.1) * (0.5 + i * 0.17) + a.id, [px, py] = along(Math.sin(t) * (H - W * 0.6), Math.cos(t * 1.3) * W * 0.4); ink.put(px, py, 0.9 * z + 0.7, 0.75, 0.85, 0.9, 0.35 + 0.15 * live); }
   for (let j = 0; j < 4; j++) for (let i = 1; i <= 10; i++) { // жгутики: на бодрой торчат вбок, у спящей сложены вдоль тела к корме
@@ -67,6 +75,9 @@ export function skin(c) {
   const fc = cfg.flag.color, L = half - w, m = keep(a, alive);
   const at = (u, o) => along(u, o + arc(u / z));
   Object.assign(m, { id: a.id, x: a.x, y: a.y, ang, L: L / z, w: w / z });
+  const pu = pulses.get(a.id); if (pu) { const P = V.pulse, k = pu.t / P.life, head = pu.from * (L + w) * (1 - 2 * k), bw = P.band * w; // от того конца, где сработало, к другому
+    for (let i = 0; i < P.dots; i++) { const [u, o] = rim(i / P.dots, L, w), d = Math.abs(u - head); if (d > bw) continue; const [px, py] = at(u, o); glow.put(px, py, P.r * z + 1, ...P.color, 0.95 * (1 - d / bw) * Math.sin(Math.PI * k)); }
+    for (let i = -2; i <= 2; i++) { const u = head + i * bw * 0.3; if (Math.abs(u) > L + w * 0.5) continue; const [px, py] = at(u, 0); glow.put(px, py, w * 0.5, ...P.color, 0.35 * Math.sin(Math.PI * k)); } } // свет идёт и внутри: стекло тела
   // Заражена фагом (биолог: «Вирус: впрыск», «Дальше»): снаружи плывёт как обычно, но тело мутнеет от середины,
   // крупинки замирают, жгутик сбивается с ритма; в последнюю четверть стенка натягивается — клетка вспухает перед прорывом.
   const ill = a.sick >= 0 ? Math.min(1, 1 - a.sick / cfg.sick) : 0, I = V.ill;
@@ -184,4 +195,21 @@ export function marks(q, d) {
   if (g.capsule) for (let i = 0; i < 28; i++) { const [u, o] = rim(i / 28, L, w * V.capsule.r), [x, y] = P(u, o); glow.put(x, y, 2 * z, 0.6, 0.9, 1, 0.3); }
   if (g.toxin) for (let f = 0; f < 4; f++) { const [u0, o0, nu, no] = rim(f / 4 + 0.12, L, w); for (let k = 1; k <= 5; k++) { const s = k / 5 * w * V.toxin.len, [x, y] = P(u0 + nu * s, o0 + no * s); ink.put(x, y, (k === 5 ? 1.4 : 0.8) * z, 0.95, 0.5, 0.3, 0.8); } }
   if (g.crispr) for (let i = 0; i < 3; i++) { const [x, y] = P(-L * 0.6 + i * w * 0.35, 0); ink.put(x, y, 1.3 * z, 0.7, 1, 0.6, 0.8); }
+}
+
+// Деление (Роман 25.11: «расширялась и делилась, разъезжалась»). sim.js ставит мать и дочку на новые места мгновенно;
+// здесь обе сначала рисуются в точке деления — одна вытянутая клетка с перетяжкой — и за V.split.slide с вязко разъезжаются.
+// fx.on('split') зовёт splitAt; main.js добавляет birth(a, time).d к центру тела и birth(...).pinch к перетяжке.
+const splits = []; const born = new Map();
+export function splitAt(x, y) { splits.push({ x, y, t: null }); if (splits.length > 8) splits.shift(); }
+export function birth(a, time, all) {
+  const P = V.split;
+  for (const s of splits) if (s.t === null) { // первый кадр после деления: пара — две ближайшие к точке, общая середина
+    s.t = time; const two = (all || [a]).map(c => [Math.hypot(c.x - s.x, c.y - s.y), c]).sort((p, q) => p[0] - q[0]).slice(0, 2).map(p => p[1]);
+    if (two.length === 2) { const mx = (two[0].x + two[1].x) / 2, my = (two[0].y + two[1].y) / 2; for (const c of two) born.set(c.id, { t: time, dx: mx - c.x, dy: my - c.y }); } }
+  while (splits.length && splits[0].t !== null && time - splits[0].t > P.slide) splits.shift();
+  const b = born.get(a.id); if (!b) return { d: [0, 0], pinch: 0 };
+  const k = (time - b.t) / P.slide; if (k >= 1 || k < 0) { born.delete(a.id); return { d: [0, 0], pinch: 0 }; }
+  const e = 1 - (1 - k) * (1 - k) * (1 - k); // вязко: быстро в начале, мягко в конце, без отскока
+  return { d: [b.dx * (1 - e), b.dy * (1 - e)], pinch: P.pinch * (1 - e) };
 }

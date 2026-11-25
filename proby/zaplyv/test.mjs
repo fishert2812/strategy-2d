@@ -836,6 +836,15 @@ check('test_L032 (прогон 0.54, О22 повтор): уснула среди
     if (t > cfg.spore + cfg.spore_max + 1) return 'спала ' + t.toFixed(0) + ' с — дольше обещанного'; }
   console.log('    паспорт: спала среди охотников, с —', out.join(' '));
 });
+check('test_L033 (прогон 0.54, О33: «Убери палец, и клетка сама поплывёт к ближайшей еде» — стояли 11 с): с «Чует еду» без пальца клетка сама доплывает до куска', () => {
+  const go = sense => { const w = new World(cfg, 600); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9;
+    const a = w.me[0]; w.genes.sense = sense; w.food = [{ x: a.x + 110, y: a.y - 60, vx: 0, vy: 0, s: 1 }]; const e0 = w.stats.eaten; let t = 0;
+    while (w.stats.eaten === e0 && t < 8) { w.step(1 / 30, null); t += 1 / 30; } return w.stats.eaten > e0 ? t : null; };
+  const yes = go(true), no = go(false);
+  console.log('    паспорт: без пальца до куска в 125 — с умением', yes === null ? 'не доплыла' : yes.toFixed(1) + ' с', '| без умения', no === null ? 'стоит' : no.toFixed(1) + ' с');
+  if (yes === null) return 'с «Чует еду» клетка без пальца не доплыла до еды за 8 с';
+  if (no !== null) return 'без умения клетка сама доплыла — умение ничего не меняет';
+});
 
 check('test_L024: умение не приходит дочке раньше встречи с тем, о ком оно (поле «после встречи с» в книге), а после встречи приходит', () => {
   const posle = Object.fromEntries(Object.keys(cfg.genes).map(k => [k, byKey(k).posle || []])), bad = [], got = new Set();
