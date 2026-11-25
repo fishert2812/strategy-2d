@@ -57,6 +57,12 @@ await p.waitForTimeout(700); { const t = await p.evaluate(() => [...document.que
 { const n = await p.evaluate(async () => { const w = zaplyvWorld(), a = w.me[0], T = document.getElementById('toast'); w.amoebas.length = 0; let k = 0;
     for (let i = 0; i < 2; i++) { T.classList.remove('on'); T.textContent = ''; w.events.push(['grab', a.x, a.y]); await new Promise(r => setTimeout(r, 300)); if (T.classList.contains('on') && /развернись/.test(T.textContent)) k++; } return k; });
   say(n === 2, `test_L043: схватили второй раз — совет «развернись» снова на экране (показан ${n} из 2)`); }
+// test_L047 (Роман 25.11: «мутнота», ночью «расплывчатое»): на экране плотности 3 кадр начинается в полную плотность; на тяжёлом кадре
+// (здесь — программная видеокарта) один раз откатывается до cfg.dpr_max и дальше не скачет.
+{ await p.waitForFunction(() => zaplyvProbe.frames > 90 + 2 * 60 + 10, null, { timeout: 30000 }).catch(() => {});
+  await p.evaluate(() => { const w = zaplyvWorld(); w.choice.length = 0; w.me.length = 1; w.me[0].m = 1; }); // пока ждали, клетка могла вырасти до выбора дочки — он прячет кнопки
+  const d = await p.evaluate(() => ({ slow: zaplyvWorld().cfg.dpr_slow, d0: zaplyvProbe.dpr0, d: zaplyvProbe.dpr, drop: zaplyvProbe.dprDrop, avg: zaplyvProbe.avg, dpr: devicePixelRatio }));
+  say(d.dpr >= 3 && d.d0 === 3 && (d.avg > d.slow ? d.drop && d.d === 2.5 : d.d === 3), `test_L047: кадр в полную плотность 3, на тяжёлом кадре откат до 2,5 (было ${d.d0}, сейчас ${d.d}, откат на кадре ${d.drop || '—'}, средний кадр ${Math.round(d.avg)} мс)`); }
 if (await tap('#flag', 'флажок в игре')) say(await seen('#note') && await marks() === m + 1, 'флажок в игре: отметка записана и надпись видна');
 if (await tap('#pause', 'пауза')) say(await on('genome') && (await p.textContent('#gtitle')) === 'Пауза', 'пауза открывает меню «Пауза»');
 if (await tap('#phub [data-t=genome]', 'строка «Геном» в паузе')) say(await seen('#ring'), 'строка «Геном» открывает кольцо');
