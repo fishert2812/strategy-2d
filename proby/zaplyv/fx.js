@@ -1,7 +1,12 @@
 // Анимации взаимодействий: что видно, когда мир сообщает событие (съела, поделилась, схватили, лопнула, прилип фаг…).
 // Файл слоя «вид и анимации» (свой строитель). main.js зовёт fx.on() на каждое событие мира, fx.draw() в кадре, fx.step(dt).
 // Звук и подписи остаются в main.js. Список событий — sim.js, world.events: [вид, x, y, size, y2].
-import { poke, stepVid, seen, rim, V } from './vid.js';
+import { poke, stepVid, seen, rim, eating, V } from './vid.js';
+// Обратно к rim: где на контуре капсулы (доля обхода 0..1) ближайшая точка к (u, o) в осях добычи.
+function rimAt(u, o, L, R) { const per = 4 * L + 2 * Math.PI * R, T = 2 * Math.PI;
+  if (Math.abs(u) <= L) return (o >= 0 ? u + L : 2 * L + Math.PI * R + (L - u)) / per;
+  if (u > L) return (2 * L + (((Math.PI / 2 - Math.atan2(o, u - L)) % T + T) % T) * R) / per;
+  return (4 * L + Math.PI * R + (((-Math.PI / 2 - Math.atan2(o, u + L)) % T + T) % T) * R) / per; }
 export class Fx {
   constructor(cfg, CELL) { this.cfg = cfg; this.CELL = CELL; this.reset(); }
   save() { const s = {}; for (const k of Object.keys(this)) if (Array.isArray(this[k])) s[k] = this[k]; return s; } // снимок значка зовёт reset — без этого гасли все идущие анимации
@@ -109,30 +114,38 @@ export class Fx {
       const [cx, cy] = scr(g.x, g.y); glow.put(cx, cy, (g.L + g.w) * z, 0.6, 0.7, 0.8, 0.05 * (1 - f)); // внутри пусто: лишь бледная муть
     }
   }
-  // Амёба ест как в жизни (Роман: «оболочка вытягивается, хватает и поглощает внутрь, и внутри уже растворяется»; физика п.10, Ф12):
-  // два языка тела обходят добычу с боков и смыкаются чашей (S.cup с), чаша становится стеклянным пузырём, он уходит в глубь тела;
-  // внутри добыча ещё бьётся, пузырь кислеет и желтеет, добыча тает и рассыпается тёплыми крупинками, они расходятся по телу и гаснут.
+  // Амёба ест как в жизни (Роман: «оболочка вытягивается, хватает и поглощает внутрь, и внутри уже растворяется»; «плавное реалистичное»;
+  // физика п.10): амёба не хватает пальцами, она надевает себя на добычу, как рукав. Касание S.touch с — край у точки касания вспухает;
+  // потом круглый валик толщиной S.th ползёт по самой поверхности добычи (зазор S.gap) в обе стороны с постоянной скоростью,
+  // тело поднимается к нему мягкой мантией; края сходятся позади за S.cup с, шов тает S.seam с. Пузырёк обжимает добычу (S.hug с)
+  // и за S.sink с уходит в глубь тела на S.down длины добычи. Внутри добыча дёргается всё слабее (S.fight с), с S.warm с пузырёк
+  // теплеет, контур расплывается и сжимается до тёмной крупинки. Шипики у края, которым амёба обтекает, втянуты (vid.eating).
   engulf(e, d) {
     const { scr, z, glow, ink } = d, S = e.S, A = V.amoeba, t = e.t, ax = e.by ? e.by.x : e.x - e.ox, ay = e.by ? e.by.y : e.y - e.oy;
-    const cf = Math.min(1, t / S.cup), shut = cf * cf * (3 - 2 * cf), tin = Math.max(0, t - S.cup), k = Math.max(0, 1 - tin / S.pull), deep = S.deep + (1 - S.deep) * k;
-    const dig = Math.max(0, Math.min(1, (t - S.fight) / (S.life - S.fight))), fr = t < S.fight ? 1 - t / S.fight : 0, sz = e.L + e.w, R = sz * S.vac * (1 - 0.4 * dig);
-    const cx = ax + e.ox * deep, cy = ay + e.oy * deep, th = Math.atan2(-e.oy, -e.ox), end = Math.min(1, (S.life - t) / 0.6), h = i => { const v = Math.sin(i * 12.9898 + e.seed * 78.233) * 43758.5; return v - Math.floor(v); };
-    { const D = Math.hypot(e.ox, e.oy) * deep, ux = -Math.cos(th), uy = -Math.sin(th), d0 = Math.max(0, D - sz * S.reach * Math.min(1, t / 0.4)); // мост: тело вытекает к добыче толстой ложноножкой
-      for (let i = 0; i <= 10; i++) { const f = i / 10, dd = d0 + (D - R - d0) * f, [px, py] = scr(ax + ux * dd, ay + uy * dd), w = sz * (0.7 - 0.25 * f) * z + 0.5; ink.put(px, py, w, ...A.body, 0.16 * end); glow.put(px, py, w * 0.3, ...A.edge, 0.2 * end); } }
-    if (cf < 1 || tin < S.seam) { const fade = cf < 1 ? 1 : 1 - tin / S.seam; // языки: от тела амёбы вокруг добычи, кончики сходятся за ней
-      for (const s of [-1, 1]) for (let i = 0; i <= S.tongue; i++) { const f = i / S.tongue, a = th + s * Math.PI * (0.12 + 0.88 * shut) * f, rr = R * (1.08 + 0.12 * Math.sin(f * 5 + t * 7) * (1 - shut)) + sz * 0.25 * (1 - f) * (1 - shut);
-        const [px, py] = scr(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr), w = sz * S.tw * (1 - 0.6 * f) * z + 0.5;
-        ink.put(px, py, w, ...A.body, 0.22 * fade); glow.put(px, py, w * 0.45, ...A.edge, 0.5 * fade * (0.6 + 0.4 * f)); } }
-    if (shut > 0.6) { const wa = Math.min(1, (shut - 0.6) / 0.4) * end; // стенка пузыря-вакуоли: тонкая светлая плёнка, внутри кислеет и желтеет
-      const [qx, qy] = scr(cx, cy); ink.put(qx, qy, R * z * 1.9, ...S.acid, S.acid_a * dig * wa);
-      for (let i = 0; i < S.wall; i++) { const a = i / S.wall * 6.283, r = R * (1 + 0.05 * fr * Math.sin(a * 3 + t * 14)), [px, py] = scr(cx + Math.cos(a) * r, cy + Math.sin(a) * r); glow.put(px, py, 1.3 * z + 0.3, ...A.edge, 0.55 * wa); }
-      glow.put(qx - R * z * 0.4, qy - R * z * 0.4, R * z * 0.3, 1, 1, 1, 0.3 * wa); } // блик стекла
-    const ang = e.ang + Math.sin(t * 9) * 0.35 * fr, sc = 1 - S.shrink * dig, L = e.L * sc, w = e.w * sc, jx = Math.sin(t * 13) * w * 0.3 * fr, jy = Math.cos(t * 11) * w * 0.25 * fr; // добыча бьётся внутри
-    const ca = Math.cos(ang), sa = Math.sin(ang), P = (u, o) => scr(cx + jx + ca * u - sa * o, cy + jy + sa * u + ca * o), c = e.col || S.prey, al = 1 - dig;
-    for (let i = 0; i < 18; i++) { const [u, o] = rim(i / 18, L, w), [px, py] = P(u, o); glow.put(px, py, w * z * 0.3, 0.55, 0.85, 1, 0.4 * al); }
-    for (let i = 0; i < 5; i++) { const [px, py] = P((i - 2) * L * 0.3, 0); ink.put(px, py, w * z * 0.5, c[0] + (S.acid[0] - c[0]) * dig, c[1] + (S.acid[1] - c[1]) * dig, c[2] + (S.acid[2] - c[2]) * dig, 0.8 * al); }
-    if (dig > 0) for (let i = 0; i < S.gran; i++) { const a = h(i) * 6.283, r = R * (0.2 + 0.6 * h(i + 20)) * (1 + S.spread * dig * dig), [px, py] = scr(cx + Math.cos(a) * r, cy + Math.sin(a) * r); // тает: тёплые крупинки еды расходятся по телу
-      glow.put(px, py, (1 + h(i + 40)) * z + 0.4, ...S.gran_col, 0.9 * Math.sin(Math.PI * dig)); }
+    const sm = v => { v = Math.max(0, Math.min(1, v)); return v * v * (3 - 2 * v); }, D0 = Math.hypot(e.ox, e.oy) || 1, ux = e.ox / D0, uy = e.oy / D0;
+    const cf = Math.max(0, Math.min(1, (t - S.touch) / S.cup)), tin = Math.max(0, t - S.touch - S.cup), L0 = Math.max(e.L, e.w); // cf линейно: край ползёт ровно
+    const down = Math.min(D0 * (1 - S.deep), L0 * 2 * S.down) * sm(tin / S.sink), cx0 = ax + e.ox - ux * down, cy0 = ay + e.oy - uy * down;
+    const fr = Math.max(0, 1 - t / S.fight) ** 1.5, dig = sm((t - S.warm) / (S.life - S.warm - 0.8)), end = Math.min(1, (S.life - t) / 0.8);
+    const sc = 1 - S.shrink * dig, L = e.L * sc, w = e.w * sc, ang = e.ang + Math.sin(t * 4) * 0.25 * fr, ca = Math.cos(ang), sa = Math.sin(ang);
+    const jx = Math.sin(t * 5) * w * 0.25 * fr, jy = Math.cos(t * 4.3) * w * 0.2 * fr, cx = cx0 + jx, cy = cy0 + jy; // добыча ворочается — вязко
+    const W = (u, o) => [cx + ca * u - sa * o, cy + sa * u + ca * o], h = i => { const v = Math.sin(i * 12.9898 + e.seed * 78.233) * 43758.5; return v - Math.floor(v); };
+    if (e.pc === undefined) { const c0 = Math.cos(e.ang), s0 = Math.sin(e.ang); e.pc = rimAt(-(c0 * e.ox + s0 * e.oy), s0 * e.ox - c0 * e.oy, e.L, e.w); } // точка касания — ближе всех к амёбе, дальше держится за добычу
+    const pc = e.pc;
+    const mant = (1 - sm(tin / S.seam)) * end, th = S.th, off = S.gap + th / 2;
+    if (e.by && e.by.id !== undefined) eating(e.by.id, Math.atan2(uy, ux), Math.max(mant, 1 - sm(tin / S.sink)) * end);
+    if (mant > 0.01) {
+      const swell = sm(t / S.touch), reach = 0.03 * swell + 0.47 * cf, n = S.rim; // касание: край вспухает у точки касания
+      const per = 4 * e.L + 2 * Math.PI * e.w, nb = Math.max(1, Math.round(reach * per / (th * 1.3))); // мантия редкими крупными точками: не густеет в сплошной жёлтый
+      for (const sd of [-1, 1]) { for (let i = 0; i <= nb; i++) { const f = i / nb, [u, o, nu, no] = rim(pc + sd * reach * f, e.L, e.w), [mx, my] = scr(...W(u + nu * off, o + no * off)); ink.put(mx, my, th * 1.3 * z, ...A.body, A.fill_a * 2.2 * mant); } // мантия-рукав облегает добычу
+        for (let i = 0; i <= n; i++) { const f = i / n, [u, o, nu, no] = rim(pc + sd * reach * f, e.L, e.w), [ex, ey] = scr(...W(u + nu * (off + th * 0.5), o + no * (off + th * 0.5))); glow.put(ex, ey, 0.8 * z + 0.3, ...A.edge, A.rim_a * 1.1 * mant); } } // светлый край валика
+      if (cf < 1) for (const sd of [-1, 1]) { const [u, o, nu, no] = rim(pc + sd * reach, e.L, e.w), [px, py] = scr(...W(u + nu * off, o + no * off)); glow.put(px, py, th * 0.6 * z + 0.4, ...A.edge, 0.35 * mant * swell); } // круглая губа
+    }
+    const wa = sm((cf - 0.85) / 0.15) * end, hug = 1 - sm(tin / S.hug), wo = S.gap + th * 0.7 * hug; // пузырёк: плёнка обжимает добычу
+    if (wa > 0) { for (let i = 0; i < S.wall; i++) { const [u, o, nu, no] = rim(i / S.wall, L, w), [px, py] = scr(...W(u + nu * wo, o + no * wo)); glow.put(px, py, 0.8 * z + 0.3, ...A.edge, 0.45 * wa); }
+      if (dig > 0) for (let i = 0; i < 5; i++) { const [px, py] = scr(...W((i - 2) * L * 0.35, 0)); ink.put(px, py, (w + wo) * z * 1.3, ...S.acid, S.acid_a * dig * wa); } } // теплеет оттенком
+    const c = e.col || S.prey, k = dig, blur = 1 + k * 1.5; // контур расплывается, нутро темнеет и сжимается в крупинку
+    for (let i = 0; i < 18; i++) { const [u, o] = rim(i / 18, L, w), [px, py] = scr(...W(u, o)); glow.put(px, py, w * z * 0.3 * blur, 0.55, 0.85, 1, 0.4 * (1 - k) * end); }
+    for (let i = 0; i < 5; i++) { const [px, py] = scr(...W((i - 2) * L * 0.3 * (1 - k * 0.8), 0)); ink.put(px, py, w * z * 0.5 * (1 - 0.4 * k), c[0] + (S.dark[0] - c[0]) * k, c[1] + (S.dark[1] - c[1]) * k, c[2] + (S.dark[2] - c[2]) * k, 0.8 * end); }
   }
   drawOver(d) {
     const { scr, z, glow, ink } = d, CELL = this.CELL;

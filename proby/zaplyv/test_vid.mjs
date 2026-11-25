@@ -133,23 +133,26 @@ check('test_vid_lizis_oblako: лопнула — сок встаёт за 0,1 с
   if (m4 / m1 < 3 || m4 / m1 > 5) return 'оболочка уплывает, а не топчется: за вчетверо дольше уходит в ' + Math.sqrt(m4 / m1).toFixed(1) + ' раза дальше вместо 2';
   return '';
 });
-check('test_vid_ameba_est: амёба ест как в жизни — тело тянется к добыче, два языка обходят её и смыкаются чашей, пузырь уходит в тело, добыча тает тёплыми крупинками', () => {
-  const C = { r: 1, g: 1, b: 1 }, M = { x: 0, y: 0 }, fx = new Fx({}, [C, C, C]), S = vid.V.eaten.amoeba, A = vid.V.amoeba; fx.reset(); fx.world = { amoebas: [M], me: [] }; fx.swallow(40, 0, 'amoeba', 'strain');
+check('test_vid_ameba_est: амёба ест как в жизни — надевает себя на добычу рукавом: валик ползёт по самой добыче с обеих сторон ровно, края сходятся позади, пузырёк уходит в тело, добыча темнеет в крупинку; шипики с этого края втянуты', () => {
+  const C = { r: 1, g: 1, b: 1 }, M = { x: 0, y: 0, id: 5 }, fx = new Fx({}, [C, C, C]), S = vid.V.eaten.amoeba, A = vid.V.amoeba; fx.reset(); fx.world = { amoebas: [M], me: [] };
+  fx.swallow(40, 0, 'amoeba', 'strain'); const e = fx.eats[0]; e.ang = Math.PI / 2; // добыча лежит поперёк, касается амёбы боком
   const look = () => { const pts = []; const b = { put: (x, y, r, cr, cg, cb, a) => pts.push({ x, y, r, c: [cr, cg, cb], a }) }; fx.drawOver({ scr: (x, y) => [x, y], z: 1, time: 0, glow: b, ink: b }); return pts; };
-  const run = s => { for (let i = 0; i < Math.round(s * 60); i++) fx.step(1 / 60); };
-  const same = (p, c) => p.c[0] === c[0] && p.c[1] === c[1] && p.c[2] === c[2];
-  const tongue = ps => ps.filter(p => same(p, A.body) && p.x > 25), behind = ps => tongue(ps).some(p => p.x > 40 + 3); // за добычей, с дальней от амёбы стороны
-  const p0 = look(); if (!p0.some(p => same(p, A.body) && p.x > 5 && p.x < 30)) return 'тело не тянется к добыче';
-  if (behind(p0)) return 'чаша сомкнулась сразу, без хвата';
-  run(S.cup * 0.5); const half = look(); run(S.cup * 0.5 + 0.02); const shut = look();
-  if (!behind(shut)) return 'языки не обошли добычу и не сомкнулись за ней';
-  const prey = ps => { const q = ps.filter(p => same(p, S.prey) || (p.c[0] > 0.8 && p.c[1] < 0.5)); return q.length ? q.reduce((s, p) => s + p.x, 0) / q.length : null; };
-  const x0 = prey(shut); run(S.pull); const x1 = prey(look()); if (!(x1 < x0 - 10)) return 'пузырь с добычей не ушёл в глубь тела: ' + x0 + ' → ' + x1;
-  const wall = look().filter(p => same(p, A.edge)).length; if (wall < S.wall) return 'нет стеклянной стенки пузыря';
-  run(Math.max(0, (S.fight + S.life) / 2 - fx.eats[0].t)); const mid = look();
-  if (mid.filter(p => same(p, S.gran_col) && p.a > 0.3).length < S.gran) return 'добыча не тает тёплыми крупинками';
-  run(S.life); if (fx.eats.length) return 'пузырь не исчез, когда добыча растворилась';
-  return half.some(p => same(p, A.body)) ? '' : 'на середине хвата языков не видно';
+  const at = s => { e.t = s; return look(); }, same = (p, c) => p.c[0] === c[0] && p.c[1] === c[1] && p.c[2] === c[2], body = ps => ps.filter(p => same(p, A.body));
+  const sd = ps => { const b = body(ps); return [b.filter(p => p.y < -1).length, b.filter(p => p.y > 1).length]; };
+  const n = [0.25, 0.5, 0.75].map(f => body(at(S.touch + S.cup * f)).length); if (!(n[0] < n[1] && n[1] < n[2])) return 'валик не ползёт: ' + n;
+  if (Math.abs((n[2] - n[1]) - (n[1] - n[0])) > 2) return 'край ползёт неровно, рывками: ' + n;
+  const [l, r] = sd(at(S.touch + S.cup * 0.5)); if (Math.abs(l - r) > 2 || l < 2) return 'валик не идёт с обеих сторон сразу: ' + l + '/' + r;
+  const far = at(S.touch + S.cup * 0.5).filter(p => same(p, A.body)).map(p => { const dx = p.x - e.x, dy = Math.max(0, Math.abs(p.y - e.y) - e.L); return Math.hypot(dx, dy) - e.w; });
+  if (Math.max(...far) > S.gap + S.th) return 'рукав не облегает добычу, отстаёт на ' + Math.max(...far).toFixed(1);
+  if (body(at(S.touch * 0.5)).some(p => p.x > e.x + 1)) return 'при касании край сразу полез за добычу';
+  const shut = at(S.touch + S.cup); if (!body(shut).some(p => p.x > e.x + e.w)) return 'края не сошлись позади добычи';
+  const prey = ps => { const q = ps.filter(p => p.c[0] > 0.8 && p.c[1] < 0.5 && p.a > 0.1); return q.reduce((s, p) => s + p.x, 0) / q.length; };
+  const x0 = prey(shut), x1 = prey(at(S.touch + S.cup + S.sink)); if (!(x1 < x0 - e.L)) return 'пузырёк не ушёл в глубь тела: ' + x0.toFixed(0) + ' → ' + x1.toFixed(0);
+  if (body(at(S.touch + S.cup + S.seam + 0.05)).length) return 'шов не растаял';
+  const late = at(S.life - 0.9).filter(p => p.c.every((v, i) => Math.abs(v - S.dark[i]) < 0.05)); if (!late.length) return 'добыча не стала тёмной крупинкой';
+  const reachOut = eat => { if (eat) vid.eating(9, 0, 1); let mx = 0; const b = { put: (x, y) => { if (Math.abs(y) < 8) mx = Math.max(mx, x); } }; vid.amoeba({ m: { id: 9 }, x: 0, y: 0, r: 30, head: Math.PI, sp: 0, time: 1, z: 1, glow: b, ink: b }); return mx; };
+  if (!(reachOut(true) < reachOut(false) - 3)) return 'шипики с края, которым обтекает, не втянуты';
+  return '';
 });
 check('test_vid_capsule_dent: капсула прогибается от удара хищника и пружинит обратно', () => {
   vid.stepVid(5); const was = paint({ capsule: true }).join('|'); vid.poke(-15, 13); const hit = paint({ capsule: true }).join('|');
