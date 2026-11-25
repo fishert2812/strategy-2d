@@ -30,7 +30,7 @@ export class Proigryvatel {
     this.kp.draw({ scr: (x, y) => [x, y], z: 1, glow: this.glow, ink: this.ink, tube: this.tube, soft: this.soft, bodies });
     this.glow.done(); this.ink.done(); this.soft.done(); this.tube.done(); }
   // Живой мир (stend/mir.html): существо у середины экрана (или первое вида za), пока оно живо и видно.
-  vMire(dt, M, oblik, x0, y0, z, W, H, bodies, za) { let s = M.sv.find(q => q.id === this.cel);
+  vMire(dt, M, oblik, x0, y0, z, W, H, bodies, za) { let s = za ? M.sv.find(q => q.vid === za) : M.sv.find(q => q.id === this.cel); // za — то же существо, за которым идёт камера
     const scr = q => [(q.x - x0) * z, (q.y - y0) * z], vidno = q => { const [x, y] = scr(q); return x > 0 && x < W && y > 0 && y < H; };
     if (!s || !vidno(s)) { let bd = 1e18; s = null; for (const q of M.sv) { if (za && q.vid !== za) continue; const [x, y] = scr(q), d = (x - W / 2) ** 2 + (y - H / 2) ** 2; if (d < bd) { bd = d; s = q; } } this.cel = s?.id; }
     if (!s) return; const ob = oblik(M, s), [x, y] = scr(s); this.kadr(dt, [{ zapis: ob.zapis, poza: { x, y, a: s.a, tolshchina: ob.tolshchina * z } }], bodies); }

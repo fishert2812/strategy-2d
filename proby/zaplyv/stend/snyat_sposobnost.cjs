@@ -12,9 +12,9 @@ if (!key || !out) { console.error('нужно: snyat_sposobnost.cjs <ключ с
   try {
     const ctx = await b.newContext({ ...pw.devices[process.env.TELEFON || 'iPhone 16'], deviceScaleFactor: 2 }), p = await ctx.newPage(), errs = [];
     p.on('pageerror', e => errs.push(e.message));
-    const dop = stend === 'mir' ? '&z=' + (process.env.Z || 4) : '&n=' + (process.env.N || 6) + '&stolb=2&z=' + (process.env.Z || 2.4);
+    const dop = stend === 'mir' ? '&z=' + (process.env.Z || 4) + (process.env.VID ? '&vid=' + process.env.VID : '') : '&n=' + (process.env.N || 6) + '&stolb=2&z=' + (process.env.Z || 2.4);
     await p.goto(`http://127.0.0.1:${port}/zaplyv/stend/${stend}.html?sposobnost=${key}&zapis=1${dop}`); await p.waitForFunction(() => window.stendReady, null, { timeout: 30000 });
-    const nf = +nfArg || 150, mid = Math.round(nf * 0.4);
+    const nf = +nfArg || 150, mid = Math.round(nf * 0.4); for (let i = 0; i < +(process.env.WARM || 0); i++) await p.evaluate(() => window.stend(1 / 30)); // WARM — кадров без съёмки: камера успевает подойти к существу
     for (let i = 0; i < nf; i++) { await p.evaluate(() => window.stend(1 / 30)); await p.screenshot({ path: `${tmp}/f${String(i).padStart(4, '0')}.png` }); }
     if (errs.length) throw new Error('ошибки на стенде: ' + errs.join('; '));
     const imya = path.join(out, key + '_' + stend);

@@ -89,6 +89,10 @@ ONLY=L047 case_ "test_L047: струя выброса цепочкой точе�
 ONLY=L047 case_ "test_kirpichi_vybros: облако выброса не расплывается" 60_kirpichi.sh red "sed -i 's/\"puffs\": 16, \"r0\": 0.35, \"D\": 0.3,/\"puffs\": 16, \"r0\": 0.35, \"D\": 0,/' $Z/kirpichi.json"
 ONLY=L047 case_ "test_L047: вспышка оболочки бегущими точками" 60_kirpichi.sh red "sed -i 's/        if (pts.length > 2) tube.put(pts, ws, col, core, env \\* (1 - sm/        if (pts.length > 2) pts.forEach((q, i) => i % 3 || c.glow.put(...q, ws[i], ...col, 0.9)); if (0) tube.put(pts, ws, col, core, env * (1 - sm/' $Z/kirpichi.js"
 ONLY=L047 case_ "test_kirpichi_vspyshka: свет ушёл с оболочки" 60_kirpichi.sh red "sed -i 's/\"otstup\": 0.02/\"otstup\": 0.9/' $Z/kirpichi.json"
+ONLY=L047 case_ "test_L047: нить цепочкой точек" 60_kirpichi.sh red "sed -i 's/        tube.put(pts, ws, col, core, P.a, P.halo); } } },/        pts.forEach((q, m) => m % 3 || c.glow.put(...q, ws[m], ...col, 0.9)); } } },/' $Z/kirpichi.js"
+ONLY=L047 case_ "test_kirpichi_nit: нити растут внутрь тела" 60_kirpichi.sh red "sed -i 's/nx = Math.cos(an), ny = Math.sin(an), L = P.dlina/nx = -Math.cos(an), ny = -Math.sin(an), L = P.dlina/' $Z/kirpichi.js"
+ONLY=L047 case_ "test_kirpichi_naliv_zona: налив вылез из тела" 60_kirpichi.sh red "sed -i 's/const vnutr = (q, d) => \\[q.x - Math.cos(q.n) \\* d, q.y - Math.sin(q.n) \\* d\\];/const vnutr = (q, d) => [q.x + Math.cos(q.n) * d, q.y + Math.sin(q.n) * d];/' $Z/kirpichi.js"
+ONLY=L047 case_ "test_kirpichi_oblako_zona: облако не расплывается" 60_kirpichi.sh red "sed -i 's/\"r0\": 0.5, \"D\": 0.35,/\"r0\": 0.5, \"D\": 0,/' $Z/kirpichi.json"
 # L033: «Чует еду» без пальца снова стоит
 ONLY=L033 case_ "test_L033: без пальца клетка с умением стоит" 50_zaplyv.sh red "sed -i 's/} else if (this.genes.sense) {/} else if (false) {/' $Z/sim.js"
 # L054: запятые снова плодят рой и нападают без передышки

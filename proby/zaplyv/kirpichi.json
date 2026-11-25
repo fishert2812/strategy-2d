@@ -21,6 +21,7 @@
    "skin2": [0.7, 0.65, 1]
   },
   "rastvorenie": {
+   "nz": {"_": "растворение на зоне: чужое зерно внутри тела темнеет, вздрагивает, тянется слезой к середине, расплывается и гаснет", "glub": 0.3, "r": 0.22, "rasplyv": 3.2, "tyanut": 0.3, "dark": 0.5, "proyav": 0.15, "k_seredine": 0.5, "hod": 0.1, "vdol": 0.7, "from": [0.65, 1, 0.45], "to": [0.3, 0.6, 0.2], "light": [0.6, 1, 0.5], "pyatno": [0.45, 0.8, 0.3]},
    "_": "цель-капля темнеет, сжимается, вытягивается слезой к клетке и гаснет, войдя в оболочку",
    "dark": 0.35,
    "shrink": 0.4,
@@ -30,6 +31,7 @@
    "light": [1, 0.85, 0.45]
   },
   "naliv": {
+   "nz": {"_": "налив на зоне: тёплый свет внутри тела у зоны, фронт от полюса к полюсу, держится и гаснет", "srezov": 18, "sloi": [[0.7, 0.26], [0.95, 0.08]], "front": 0.42, "myagko": 0.2, "derzhat": 0.75, "cvet": [1, 0.82, 0.42]},
    "_": "клетка наливается светом: золотая волна от места входа по телу, ореол и мягкие вспышки",
    "fill": 20,
    "halo": 1.6,
@@ -44,13 +46,15 @@
   "vybros": {
    "_": "выброс способности: сплошная струя бьёт из зоны тела по нормали, отрывается и расплывается облаком по диффузии; размеры в толщинах тела W",
    "dlina": 1.7, "shir": 0.5, "koren": 0.2, "a": 0.75, "razbros": 0.2, "naklon": 0.6, "gustota": 0.75, "volna": 0.04, "vylet": 0.45, "otryv": 0.4, "oblako": 0.45,
-   "puffs": 16, "r0": 0.35, "D": 0.3, "dreif": 0.3, "halo": 0, "cvet": [0.62, 1, 0.55]
+   "puffs": 16, "r0": 0.35, "D": 0.3, "dreif": 0.3, "v_vode": 0.4, "halo": 0, "cvet": [0.62, 1, 0.55]
   },
   "vspyshka": {
    "_": "вспышка оболочки: по зоне тела бежит волна света с мягким хвостом, за ней светится вся зона и гаснет; размеры в толщинах тела W",
    "shir": 0.16, "otstup": 0.02, "beg": 0.55, "hvost": 0.3, "lob": 0.06, "fon": 0.45, "halo": 2.2
   },
+  "nit": {"_": "нить на зоне тела: тонкие гибкие ленты растут не разом, колышутся и втягиваются от кончика; размеры в толщинах тела W", "n": 6, "dlina": 1.1, "th": 0.07, "koren": 0.08, "belee": 0.3, "razbros": 0.25, "rost": 0.3, "uhod": 0.7, "naklon": 0.7, "volna": 0.25, "izgib": 0.9, "temp": 3, "a": 0.6, "halo": 1.2},
   "oblako": {
+   "nz": {"_": "облако с зоны: слой вещества на оболочке, клубы внахлёст уходят в воду и расплываются по диффузии", "puffs": 70, "r0": 0.5, "D": 0.35, "dreif": 0.1, "razbros": 0.5, "gustota": 0.3, "sloy": 0.18, "cvet": [0.62, 1, 0.55]}, "v_vode": 0,
    "_": "облако соков расплывается по формуле диффузии: радиус √(r0² + 4·D·t), яркость падает как r0²/r²",
    "puffs": 14,
    "D": 120,
@@ -59,6 +63,10 @@
   }
  },
  "navyki": {
+  "nit": {"nazvanie": "Нить (заготовка способности)", "dlit": 2.4, "obrazec": "ref_24.jpg", "shagi": [{"k": "nit", "zona": "scepka", "ot": 0, "do": 2.4}, {"k": "nit", "zona": "rot", "ot": 0.2, "do": 2.4}], "v_igre": false, "priemka": {"verdikt": "принято", "rolik": "design/kadry/kirpichi/zagotovki2/nit_ryadom_v2.mp4", "otzyv": "design/kadry/kirpichi/zagotovki2/nit_priemka_2.md", "data": "2026-11-25"}},
+  "naliv_z": {"nazvanie": "Налив внутри тела (заготовка способности)", "dlit": 3.5, "obrazec": "ref_17.jpg", "shagi": [{"k": "naliv", "zona": "obolochka", "ot": 0, "do": 3.5}], "v_igre": false, "priemka": {"verdikt": "принято", "rolik": "design/kadry/kirpichi/zagotovki2/naliv_z_ryadom_v5.mp4", "otzyv": "design/kadry/kirpichi/zagotovki2/naliv_priemka_5.md", "data": "2026-11-25"}},
+  "rastvorenie_z": {"nazvanie": "Растворение внутри тела (заготовка способности)", "dlit": 3.2, "obrazec": "ref_24.jpg", "shagi": [{"k": "rastvorenie", "zona": "obolochka", "ot": 0, "do": 3.2}], "v_igre": false, "priemka": null},
+  "oblako_z": {"nazvanie": "Облако с тела (заготовка способности)", "dlit": 4, "obrazec": "ref_17.jpg", "shagi": [{"k": "oblako", "zona": "obolochka", "ot": 0, "do": 4}], "v_igre": false, "priemka": {"verdikt": "принято", "rolik": "design/kadry/kirpichi/zagotovki2/oblako_z_ryadom_v2.mp4", "otzyv": "design/kadry/kirpichi/zagotovki2/oblako_priemka_2.md", "data": "2026-11-25"}},
   "glotat": {
    "nazvanie": "Глотать (Х1)",
    "dlit": 3.0,

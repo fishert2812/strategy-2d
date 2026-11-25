@@ -108,6 +108,44 @@ check('test_kirpichi_vypuklost: пока растёт вырост, тело в�
   if (v0) return 'бугор до начала выроста'; if (v.length !== 2 || v.some(b => !(b.vysota > 0) || !Zt.includes(b.t))) return 'бугры не на зоне: ' + JSON.stringify(v);
   return kp.vypuklosti(zap).length ? 'бугор остался после выроста' : '';
 });
+// Кадр заготовки на зоне существа n (тело в начале координат, толщина 10): мазки каждой кисти отдельно.
+const naZoneKadr = (k, zn, n, t, dl = 2) => { const zap = sushchestvo(n), poza = { x: 0, y: 0, a: 0, tolshchina: 10 }, R = obvod_zon(zap, poza), kp = new Kirpichi(), m = { st: [], soft: [], ink: [] };
+  kp.play({ shagi: [{ k, zona: zn, ot: 0, do: dl }] }, { zapis: zap, poza, seed: n }); kp.step(t);
+  kp.draw({ scr: (x, y) => [x, y], z: 1, glow: { put: (x, y, r, a, b, c, al) => al > 0.02 && m.soft.push([x, y, r, al]) }, ink: { put: (x, y, r, a, b, c, al) => al > 0.02 && m.ink.push([x, y, r, al]) }, soft: { put: (x, y, r, a, b, c, al) => al > 0.02 && m.soft.push([x, y, r, al]) }, tube: { put: (pts, ws) => m.st.push({ pts, ws }) } });
+  return { ...m, O: R.O, R, zap }; };
+const ZN = ['rot', 'posadka', 'udar', 'scepka', 'obolochka'];
+check('test_kirpichi_nit: нити растут из своей зоны наружу сплошными лентами, к кончику тоньше, потом втягиваются', () => { const P = K.kirpichi.nit, why = [];
+  const niti = o => ({ ...o, st: o.st.filter(({ pts }) => pts.some(([x, y]) => Math.abs(o.O.glubina(x / 10, y / 10)) > 0.05)) }); // полоса корней по обводу — не нить
+  for (let n = 1; n <= 12; n++) for (const zn of ZN) { const a = niti(naZoneKadr('nit', zn, n, 1.2)), e = niti(naZoneKadr('nit', zn, n, 1.98));
+    if (!a.st.length) { why.push(`существо ${n}, ${zn}: нитей нет`); continue; }
+    for (const { pts, ws } of a.st) { const [bx, by] = pts[0], [tx, ty] = pts[pts.length - 1], bl = a.R.T.reduce((m, q) => { const d = Math.hypot(q.x - bx, q.y - by); return d < m.d ? { d, q } : m; }, { d: 1e9 }).q;
+      if (!bl.zony.includes(zn)) why.push(`существо ${n}, ${zn}: нить растёт из зоны ${bl.zony.join('+')}`);
+      if (!(a.O.glubina(tx / 10, ty / 10) < 0)) why.push(`существо ${n}, ${zn}: кончик нити внутри тела`);
+      if (pts.length < 12) why.push(`существо ${n}, ${zn}: нить из ${pts.length} точек — не лента`);
+      if (!(ws[ws.length - 1] < ws[0] * 0.3)) why.push(`существо ${n}, ${zn}: кончик не тоньше корня`);
+      if (Math.hypot(tx - bx, ty - by) / 10 > P.dlina * 1.6) why.push(`существо ${n}, ${zn}: нить длиннее ${P.dlina * 1.6} толщины`); }
+    const dl = o => o.st.reduce((m, { pts }) => m + Math.hypot(pts[pts.length - 1][0] - pts[0][0], pts[pts.length - 1][1] - pts[0][1]), 0);
+    if (!(dl(e) < dl(a) * 0.5)) why.push(`существо ${n}, ${zn}: нити не втягиваются`); }
+  return why.slice(0, 3).join('; '); });
+check('test_kirpichi_naliv_zona: налив на зоне — свет внутри тела у своей зоны, разгорается и гаснет к концу', () => { const why = [];
+  for (let n = 1; n <= 12; n++) for (const zn of ZN) { const a = naZoneKadr('naliv', zn, n, 1.2), e = naZoneKadr('naliv', zn, n, 1.99), b = naZoneKadr('naliv', zn, n, 0.05);
+    if (!a.soft.length) { why.push(`существо ${n}, ${zn}: света нет`); continue; }
+    if (a.soft.some(([x, y]) => !(a.O.glubina(x / 10, y / 10) > 0))) why.push(`существо ${n}, ${zn}: свет вне тела`);
+    const sum = o => o.soft.reduce((m, q) => m + q[3], 0); if (!(sum(e) < sum(a) * 0.15 && sum(b) < sum(a) * 0.5)) why.push(`существо ${n}, ${zn}: свет не разгорается и не гаснет`); }
+  return why.slice(0, 3).join('; '); });
+check('test_kirpichi_rastvorenie_zona: зерно внутри тела у своей зоны расплывается и гаснет без следа', () => { const why = [];
+  for (let n = 1; n <= 12; n++) for (const zn of ZN) { const a = naZoneKadr('rastvorenie', zn, n, 0.4), c = naZoneKadr('rastvorenie', zn, n, 1.6), e = naZoneKadr('rastvorenie', zn, n, 1.99);
+    if (!a.ink.length) { why.push(`существо ${n}, ${zn}: зерна нет`); continue; }
+    if (a.ink.some(([x, y]) => !(a.O.glubina(x / 10, y / 10) > 0))) why.push(`существо ${n}, ${zn}: зерно вне тела`);
+    const r = o => Math.max(...o.ink.map(q => q[2])); if (!(r(c) > r(a) * 1.3)) why.push(`существо ${n}, ${zn}: зерно не расплывается`);
+    if (e.ink.length + e.soft.length) why.push(`существо ${n}, ${zn}: к концу зерно не погасло`); }
+  return why.slice(0, 3).join('; '); });
+check('test_kirpichi_oblako_zona: облако выходит из зоны в воду и расплывается по диффузии', () => { const why = [];
+  for (let n = 1; n <= 12; n++) for (const zn of ZN) { const b = naZoneKadr('oblako', zn, n, 0.6), c = naZoneKadr('oblako', zn, n, 1.4);
+    if (!b.soft.length) { why.push(`существо ${n}, ${zn}: облака нет`); continue; }
+    const sr = o => o.soft.reduce((m, q) => m + q[2], 0) / o.soft.length; if (!(sr(c) > sr(b) * 1.15)) why.push(`существо ${n}, ${zn}: облако не расплывается`);
+    if (c.soft.some(([x, y]) => c.O.glubina(x / 10, y / 10) > 0.3)) why.push(`существо ${n}, ${zn}: клуб облака глубоко внутри тела`); }
+  return why.slice(0, 3).join('; '); });
 check('test_L047: анимации навыков без пунктира и точечных цепочек, образец — картинка Романа, в игру только с приёмкой', () => {
   const why = [];
   for (const nm of Object.keys(K.navyki)) { const N = K.navyki[nm];

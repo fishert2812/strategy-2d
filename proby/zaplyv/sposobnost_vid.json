@@ -23,7 +23,7 @@
   "har:golod": "vnutri", "har:zapas": "vnutri", "har:cena_edy": "vnutri", "har:rost": "vnutri", "har:prityazhenie_edy": "dvizhenie", "har:zametnost": "dvizhenie", "har:zahvat_edy": "eda",
   "pravilo:yad_oblako": "vybros", "pravilo:ukol_cdi": "igla", "pravilo:zarazhenie": "obolochka", "pravilo:otskok": "obolochka",
   "zhest:zamert": "obolochka", "zhest:rezkiy_povorot": "dvizhenie", "zhest:otpustit_palec": "dvizhenie",
-  "sled:koridor": "vybros", "semya": "semya", "eda": "eda"
+  "sled:koridor": "vybros", "sled:puzyrki": "vybros", "sled:ostatki": "vybros", "sled:mut": "vybros", "semya": "semya", "eda": "eda"
  },
  "zona_chasti": { "zhgutik": "posadka", "fimbrii": "obolochka", "kurli": "obolochka", "zastyozhka": "scepka", "trubochka_obmena": "scepka", "chutyo": "rot", "retseptor_tar": "rot" },
  "shag": 0.7

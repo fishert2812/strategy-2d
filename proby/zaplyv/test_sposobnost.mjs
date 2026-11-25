@@ -1,9 +1,9 @@
 // Проверки проигрывателя способностей (sposobnost.js, sposobnost_vid.json): каждая из 46 способностей sposobnosti.json получает вид
 // по общим правилам признаков (без кода на способность), проигрывается только принятыми заготовками и садится на любое существо.
-// Самопроверка (SPOSOB_LOMAT=1): «налив» объявлен принятым — test_sposobnost_tolko_prinyatye обязан покраснеть.
+// Самопроверка (SPOSOB_LOMAT=1): «вырост» объявлен принятым — test_sposobnost_tolko_prinyatye обязан покраснеть.
 import { K, Kirpichi } from './kirpichi.js';
 import { sluchaynaya, VC } from './vid_chasti.js';
-if (process.env.SPOSOB_LOMAT) K.navyki.est = { ...K.navyki.est, priemka: { verdikt: 'принято' } };
+if (process.env.SPOSOB_LOMAT) K.navyki.vyrost = { ...K.navyki.vyrost, priemka: { verdikt: 'принято' } };
 const { SP, vidno, svodka, naSushchestvo } = await import('./sposobnost.js');
 let bad = 0;
 const check = (name, f) => { let r; try { r = f(); } catch (e) { r = 'ошибка скрипта: ' + e.message; } if (r) bad++; console.log((r ? '  ПРОВАЛ ' : '  ок    ') + name + (r ? ' — ' + r : '')); };
