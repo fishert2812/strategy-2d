@@ -60,7 +60,8 @@
   "pins": 6,
   "pack": 1.0,
   "align": 4,
-  "sep": 2.3
+  "sep": 2.3,
+  "reach": 300
  },
  "steady": {
   "angle": 1.45,
