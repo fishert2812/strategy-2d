@@ -132,7 +132,9 @@ export function sobrat(zapis, poza, B) {
   else { // тело свободной формы: осевая линия через опорные точки (telo_os.js); палочка и шар — её частные случаи. Части берут край, нормаль и нутро отсюда
     const tochki = forma.tochki || iz_formy(tip, P.dlina ? P.dlina / 2 / w : forma.dlina || 2.14, 1, (P.izgib || 0) / w), O = os(tochki); P.dlina = O.dlina * w; P.nad = O.poperechnik / 2 * w * 1.05; // нутро рисуется перед сердцевиной: выше самой толстой её точки
     // ветка задаётся коротко: { t — где на обводе, dlina, r: [у основания, у кончика], izgib, ugol, rost 0…1 }; её точки считаются один раз на запись ветки и ступень роста
-    const vetki = [...(forma.vetki || []), ...(P.vetki || [])].map(v => { const k = Math.round(Math.max(0, Math.min(1, v.rost ?? 1)) * 12) / 12; if (k <= 0) return null; let m = VETKI.get(v); if (!m) VETKI.set(v, m = {}); if (m[k]) return m[k];
+    // volna — ветка сама медленно вытягивается и втягивается (ложноножка)
+    const vetki = [...(forma.vetki || []), ...(P.vetki || [])].map(v => { const k = Math.round(Math.max(0, Math.min(1, v.rost ?? (v.volna ? 0.6 + 0.4 * Math.sin((P.time || 0) * v.volna + v.t * 3 + (P.id || 0)) : 1))) * 12) / 12;
+      if (k <= 0) return null; let m = VETKI.get(v); if (!m) VETKI.set(v, m = {}); if (m[k]) return m[k];
       const L = v.dlina * k, [r0, r1] = v.r || [0.4, 0.3], T = [[0, 0, r0], [L * 0.5, (v.izgib || 0) * L, (r0 + r1) / 2], [L, 0, r1]]; return m[k] = { t: v.t, ugol: v.ugol, tochki: T, r_min: Math.min(r0, r1), r0, sdvig: os(T, 16, 0.12).dlina / 2 - r0 * 1.6 }; }).filter(Boolean);
     if (vetki.length) P.vypuklosti = [...(P.vypuklosti || []), ...vetki.map(v => ({ t: v.t, shirina: v.r0 * 1.5, vysota: v.r0 * 0.7 }))]; // у основания ветки тело само подаётся навстречу: плавный переход вместо острого угла
     // выпуклости позы (см. obolochka): край тела в этом месте тоже выходит наружу, поэтому ворс, жгутики и всё, что сидит на краю, едет на бугре
