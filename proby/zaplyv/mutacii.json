@@ -112,6 +112,7 @@
   "curl": 0.9,
   "warm": 0.8,
   "series": 1.5,
+  "gold": [1, 0.78, 0.32],
   "cascade": 5,
    "hold": 1.2,
   "wave": 0.9,

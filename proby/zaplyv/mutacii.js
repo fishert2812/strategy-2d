@@ -189,14 +189,14 @@ export function drawWorld({ w, scr, z, glow, ink }) {
     for (let k = 0; k < g.n; k++) { const u = (k / (g.n - 1 || 1) - 0.5) * L * 1.2, o = (k % 2 ? 1 : -1) * L * 0.18;
       const [x, y] = scr(g.x + ux * u - uy * o, g.y + uy * u + ux * o), r = 1.6 * z + 0.8;
       ink.put(x, y, r * 1.4, 0.2, 0.05, 0.12, 0.8 * f); glow.put(x, y, r * 0.7, 0.85, 0.35, 0.55, 0.45 * f); ink.put(x + ux * r * 1.8, y + uy * r * 1.8, r * 0.5, 0.2, 0.05, 0.12, 0.6 * f); } }
-  if (has(w, 'magnet')) for (const a of w.me) { const R = M.magnet.lvl[lvl(w, 'magnet') - 1].r + 13 * Math.sqrt(a.m), t0 = w.stats.time * 0.3; // магнит: тонкое золотое кольцо там, докуда он берёт — растёт с уровнем
-    for (let k = 0; k < 36; k++) { const t = t0 + k / 36 * 6.283, [x, y] = scr(a.x + Math.cos(t) * R, a.y + Math.sin(t) * R); glow.put(x, y, 1.1 * z + 0.6, 1, 0.72, 0.25, 0.4); }
-    for (const f of a.pulled || []) { const dx = a.x - f.x, dy = a.y - f.y, s = f.side * 0.35; // золотая нить от крупинки к телу, по ней бежит искра
-      for (let k = 0; k <= 8; k++) { const u = k / 8, b = s * u * (1 - u) * 4, [x, y] = scr(f.x + dx * u - dy * b, f.y + dy * u + dx * b), spark = Math.abs(((w.stats.time * 2.5 + u) % 1) - 0.5) < 0.08;
-        glow.put(x, y, (spark ? 1.8 : 0.9) * z + 0.5, 1, 0.75, 0.25, spark ? 0.95 : 0.6); }
-      const [x, y] = scr(f.x, f.y); glow.put(x, y, 2.6 * z + 1, 1, 0.82, 0.4, 0.6); } }
-  for (const q of w.waves || []) { const f = q.t / M.magnet.wave; // каскад: волна по воде сходится к клетке
-    for (let k = 0; k < 48; k++) { const t = k / 48 * 6.283, rr = q.r * (1.3 - f), [x, y] = scr(q.x + Math.cos(t) * rr, q.y + Math.sin(t) * rr); glow.put(x, y, 1.4 * z + 0.6, 1, 0.85, 0.5, 0.45 * (1 - f)); } }
+  if (has(w, 'magnet')) for (const a of w.me) { const [r, g, b] = M.magnet.gold, R = M.magnet.lvl[lvl(w, 'magnet') - 1].r + 13 * Math.sqrt(a.m), t0 = w.stats.time * 0.3; // магнит (сверено с ref_17, ref_23, Вид 3 и 6): золото только у еды и сигнала
+    for (let k = 0; k < 40; k++) { const t = t0 + k / 40 * 6.283, [x, y] = scr(a.x + Math.cos(t) * R, a.y + Math.sin(t) * R); glow.put(x, y, 0.8 * z + 0.4, r, g, b, k % 2 ? 0.18 : 0.38); } // мелкие золотые бусины там, докуда магнит берёт: кольцо растёт с уровнем
+    for (const f of a.pulled || []) { const dx = a.x - f.x, dy = a.y - f.y, s = f.side * 0.35, run = (w.stats.time * 1.8 + (f.side > 0 ? 0 : 0.5)) % 1; // ref_17: тонкая сплошная нить от крупинки к телу, по ней бежит одна капля света
+      for (let k = 0; k <= 16; k++) { const u = k / 16, q = s * u * (1 - u) * 4, [x, y] = scr(f.x + dx * u - dy * q, f.y + dy * u + dx * q), hot = Math.abs(u - run) < 0.07;
+        glow.put(x, y, (hot ? 1.7 : 0.55) * z + 0.4, r, g, b, hot ? 0.95 : 0.45); }
+      const [x, y] = scr(f.x, f.y); glow.put(x, y, 3.2 * z + 1, r, g, b, 0.3); glow.put(x, y, 1.4 * z + 0.6, 1, 0.92, 0.7, 0.9); } } // крупинка — яркая капля с ореолом
+  for (const q of w.waves || []) { const f = q.t / M.magnet.wave, [r, g, b] = M.magnet.gold; // каскад: волна по воде сходится к клетке
+    for (let k = 0; k < 64; k++) { const t = k / 64 * 6.283, rr = q.r * (1.3 - f), [x, y] = scr(q.x + Math.cos(t) * rr, q.y + Math.sin(t) * rr); glow.put(x, y, 1.2 * z + 0.6, r, g, b, 0.5 * (1 - f)); } }
   for (const v of w.vesicles || []) { const [x, y] = scr(v.x, v.y), f = 1 - v.t / M.decoy.life, r = 2.2 * z + 1;
     for (let k = 0; k < 8; k++) { const t = k / 8 * 6.283; glow.put(x + Math.cos(t) * r, y + Math.sin(t) * r, 0.8 * z + 0.4, 0.55, 0.8, 0.95, 0.35 * f); }
     ink.put(x, y, r * 0.8, 0.2, 0.3, 0.45, 0.25 * f); }
@@ -257,9 +257,10 @@ export function mutSkin({ a, lk, ink, glow, at, w, L, time }) {
     const [px, py] = at((k / 5 - 0.5) * L * 1.3, (k % 2 ? 1 : -1) * w * 0.22); ink.put(px, py, w * 0.2, 0.1, 0.06, 0.04, 0.8); glow.put(px - w * 0.05, py - w * 0.05, w * 0.06, 0.9, 0.75, 0.45, 0.35); }
   if (lk.lean) for (let k = 0; k < 6; k++) { // дольше без еды: по бокам частые складки оболочки — ей есть куда сжаться
     const s = k % 2 ? 1 : -1, [px, py] = at(((k >> 1) / 2 - 0.5) * L * 1.1, s * w * 0.86); ink.put(px, py, w * 0.08, 0.1, 0.16, 0.26, 0.6); glow.put(px, py + s * w * 0.05, w * 0.05, 0.6, 0.85, 1, 0.3); }
-  if (lk.magnet) { const n = 4 + 2 * (a.mag || 1), go = (a.pulled || []).length ? time * 3 : null; // магнит: золотые искры-рецепторы по оболочке, их больше с уровнем; пока тянет — по оболочке бежит импульс света
-    for (let k = 0; k < n; k++) { const t = k / n * 6.283, u = Math.cos(t) * (L + w * 0.6), o = Math.sin(t) * w * 1.02, [px, py] = at(u, o), lit = go !== null && Math.abs(((go - k / n) % 1 + 1) % 1 - 0.5) > 0.42;
-      glow.put(px, py, w * (lit ? 0.24 : 0.13), 1, 0.72, 0.25, lit ? 0.9 : 0.65); }
-    if (a.warm > 0) { const [cx, cy] = at(0, 0); glow.put(cx, cy, w * 0.75, 1, 0.7, 0.35, 0.3 * a.warm / M.magnet.warm); } } // тёплое свечение внутри после еды
+  if (lk.magnet) { const n = 2 + 2 * (a.mag || 1), go = (a.pulled || []).length ? (time * 2) % 1 : null, [r, g, b] = M.magnet.gold; // магнит (ref_17, Вид 4): на носу тонкие волоски-рецепторы с золотыми каплями на концах, их больше с уровнем
+    for (let k = 0; k < n; k++) { const o = (k / (n - 1) - 0.5) * w * 1.5, lit = go !== null && Math.abs(go - k / (n - 1)) < 0.25; // пока еда плывёт, свет бежит по каплям от края к краю (Вид 6)
+      for (let j = 1; j <= 4; j++) { const [px, py] = at(L + w * (0.2 + j * 0.14) - Math.abs(o) * 0.5, o * (1 + j * 0.12)); ink.put(px, py, w * 0.035, 0.1, 0.18, 0.26, 0.5); }
+      const [px, py] = at(L + w * 0.9 - Math.abs(o) * 0.5, o * 1.6); glow.put(px, py, w * (lit ? 0.2 : 0.11), r, g, b, lit ? 0.95 : 0.7); }
+    if (a.warm > 0) for (let k = -2; k <= 2; k++) { const [cx, cy] = at(k * L * 0.25, 0); glow.put(cx, cy, w * (0.5 - Math.abs(k) * 0.08), 1, 0.6, 0.18, 0.35 * a.warm / M.magnet.warm); } } // ref_21: съеденное тепло светится вдоль ядра
   if (lk.snap && a.snap > 0) { const [px, py] = at(-L - w, 0); glow.put(px, py, w * 0.6, 0.6, 0.8, 1, 0.15 * a.snap / M.snap.time); } // щелчок: вспышка у кормы, где подломился хвост
 }
