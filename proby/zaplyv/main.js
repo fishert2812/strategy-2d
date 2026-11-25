@@ -950,7 +950,7 @@ function paint(time) {
     const body = follow(a, half / z, tailW);
     const wm = w * Math.pow(2, rost.vid(world)); // мать: вдвое тяжелее, полудлина как у созревшей (см. half)
     const bo = vid.birth(a, time, world.me, body.ang, half / z, w / z, body.cx, body.cy, wm * 2.6 / z, wm / z); // деление: мать стягивается, дочки расходятся торец к торцу (vid.json split)
-    if (bo) { probe.birth = time; if (bo.hide) continue; } // обход пальцем (test_L048) видит, что рождение рисуется; вторая дочка ещё часть матери
+    if (bo) { probe.birth = time; if (bo.hide) continue; } // обход пальцем (test_L050) видит, что рождение рисуется; вторая дочка ещё часть матери
     const [x0, y0] = scr(bo ? bo.x : body.cx, bo ? bo.y : body.cy), sag = body.sag * z * (bo ? bo.sag : 1), hl = bo ? half * bo.fl : half, wl = bo ? w * bo.fw : w;
     const ang = (bo ? bo.ang : body.ang) + Math.sin(time * 18.8 + a.id) * wob, ax = Math.cos(ang), ay = Math.sin(ang);
     const x = x0 - ay * sag * 0.675, y = y0 + ax * sag * 0.675; // центр модели так, чтобы концы легли на хорду
