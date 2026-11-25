@@ -55,7 +55,7 @@ check('test_evo_semya: умения семьи одной клетке не пр
 check('test_evo_glotat: «Глотает целиком» — ест живых мельче себя, крупнее не трогает, выросшая ест того, кто ел её', () => {
   const empty = (m, genes) => { const w = new World(cfg, 21); w.mode = MODE;
     for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'crumbs', 'bdellos', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = [];
-    w.tidy = 1e9; Object.assign(w.me[0], { m, x: 0, y: 0, vx: 0, vy: 0 }); for (const g of genes) w.genes[g] = true; return w; };
+    w.tidy = 1e9; w.tiho = 1; Object.assign(w.me[0], { m, x: 0, y: 0, vx: 0, vy: 0 }); for (const g of genes) w.genes[g] = true; return w; };
   const run = w => { for (let i = 0; i < 60 && w.me.length; i++) { w.step(1 / 30, null); w.events.length = 0; if (w.choice.length) w.choice = []; } return w; };
   const res = {};
   for (const [name, m, genes, prey] of [['мелкий кокк', 6, ['gulp'], { prey: { m: 1 } }], ['кокк без умения', 6, [], { prey: { m: 1 } }],
@@ -82,7 +82,7 @@ check('test_evo_glotat_vybor: «Глотает целиком» приходит
 check('test_evo_igla: «Нить-игла» — укол носом в упор убивает соперницу, она растекается едой; кокка не берёт', () => {
   const go = (genes, fast) => { const w = new World(cfg, 31); w.mode = MODE;
     for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'crumbs', 'bdellos', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = [];
-    w.tidy = 1e9; const a = w.me[0]; Object.assign(a, { m: 2, x: 0, y: 0, a: 0, vx: fast ? 200 : 0, vy: 0 }); for (const g of genes) w.genes[g] = true;
+    w.tidy = 1e9; w.tiho = 1; const a = w.me[0]; Object.assign(a, { m: 2, x: 0, y: 0, a: 0, vx: fast ? 200 : 0, vy: 0 }); for (const g of genes) w.genes[g] = true;
     w.pseudos.push({ x: 40, y: 0, vx: 0, vy: 0, a: Math.PI, t: 5, rest: 0.25, cool: 5, strain: true, id: 88 }); w.prey.push({ x: -22, y: 0, vx: 0, vy: 0, m: 1, a: 0, id: 89 });
     let stab = 0, juice = 0;
     for (let i = 0; i < 75 && w.me.length; i++) { w.step(1 / 30, fast ? { x: 600, y: 0 } : null); stab += w.events.filter(e => e[0] === 'igla').length; w.events.length = 0; if (w.choice.length) w.choice = []; }

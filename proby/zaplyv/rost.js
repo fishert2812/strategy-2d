@@ -32,6 +32,7 @@ export const gryzt = (w, a, base, dt) => on(w) ? R.gryzt * Math.sqrt(a.m) * dt :
 // Шаг режима: рост, укус-струйки, толчки соседок, отсчёт «пасть выпустила».
 export function step(w, dt, radius) {
   if (!on(w)) return;
+  if (!w.tiho) { w.tiho = 1; const c = w.center(); for (const k of ['amoebas', 'bells', 'slippers', 'rotis', 'pseudos', 'bdellos', 'phages']) w[k] = w[k].filter(q => Math.hypot(q.x - c.x, q.y - c.y) > R.tiho); } // старт в тихой воде: клетка тут растёт медленно и долго
   for (const a of w.me) {
     if (a.zhd > 0) { const d = Math.min(a.zhd, a.zhd * Math.min(1, dt / R.vsasyv) + 1e-4, a.m * R.vsasyv_max * dt); a.zhd -= d; a.m += d; } // крупная добыча тает несколько секунд
     a.spit = Math.max(0, (a.spit || 0) - dt);
