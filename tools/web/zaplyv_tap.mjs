@@ -337,6 +337,29 @@ if (await tap('#mscene [data-m=mut]', 'объект «Мутации»') && awai
     const l0 = zaplyvProbe.lost || 0, f0 = zaplyvProbe.frames; await new Promise(r => { const k = () => zaplyvProbe.frames >= f0 + 20 ? r() : requestAnimationFrame(k); k(); });
     const l1 = zaplyvProbe.lost - l0; w.amoebas.length = 0; w.me.length = 1; return l1; });
   say(lost === 0, 'test_L047: людный кадр (10 клеток, 8 амёб с кольцами) — точек кисти выпало ' + lost); }
+// test_L062 (прогон 0.102, О112: «красные кольца затягивания сплошные, но в людном кадре и на зелёном фоне очень бледные, почти не видны»):
+// в людном кадре (10 клеток, 6 амёб, зелёные нити) кольцо зоны заметно меняет цвет кадра там, где оно лежит. Мир на замер стоит;
+// тот же кадр снимаем с кольцами и без колец и сравниваем точки на самом кольце.
+{ const geo = await p.evaluate(async () => { const w = zaplyvWorld(), a = w.me[0]; w.tidy = 1e9;
+    for (let i = 0; i < 9; i++) w.me.push({ ...a, id: 700 + i, x: a.x + (i % 3) * 30, y: a.y + Math.floor(i / 3) * 30, vx: 0, vy: 0 });
+    for (let i = 0; i < 6; i++) { const t = i / 6 * 6.283 + 0.5; w.amoebas.push({ x: a.x + Math.cos(t) * 150, y: a.y + Math.sin(t) * 190, m: 6, hunt: true, id: 900 + i, vx: 0, vy: 0, a: 0 }); }
+    for (let i = 0; i < 4; i++) w.plants.push({ x: a.x - 60 + i * 45, y: a.y + 120, m: 5, id: 950 + i }); // зелёные нити под кольцами: фон пестрее
+    const wait = n => { const f0 = zaplyvProbe.frames; return new Promise(r => { const k = () => zaplyvProbe.frames >= f0 + n ? r() : requestAnimationFrame(k); k(); }); };
+    await wait(6); w.stoit = w.step; w.step = () => {}; await wait(60); const out = []; // мир стоит, кадр рисуется; камера успевает доехать
+    for (const [x, y, R, who] of w.zones()) if (who === 'amoeba') { const c = zaplyvScr(x, y), e = zaplyvScr(x + R, y); out.push([c[0], c[1], Math.hypot(e[0] - c[0], e[1] - c[1])]); }
+    return out; });
+  const shot = async () => { const f = await p.evaluate(() => zaplyvProbe.frames); await p.waitForFunction(f => zaplyvProbe.frames > f + 2, f, { timeout: 5000 }).catch(() => {}); return (await p.screenshot()).toString('base64'); };
+  const s1 = await shot(); await p.evaluate(() => { const w = zaplyvWorld(); w.zony = w.zones; w.zones = () => []; }); const s0 = await shot();
+  const r = await p.evaluate(async ([b1, b0, geo]) => { const read = async b64 => { const im = new Image(); im.src = 'data:image/png;base64,' + b64; await im.decode(); const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
+      const x = c.getContext('2d'); x.drawImage(im, 0, 0); return { d: x.getImageData(0, 0, c.width, c.height).data, w: c.width, k: im.width / innerWidth }; };
+    const A = await read(b1), B = await read(b0), px = (I, u, v) => { const i = (Math.round(v * I.k) * I.w + Math.round(u * I.k)) * 4; return [I.d[i], I.d[i + 1], I.d[i + 2]]; }, all = [];
+    for (const [cx, cy, R] of geo) for (let i = 0; i < 24; i++) { const t = i / 24 * 6.283, u = cx + Math.cos(t) * R, v = cy + Math.sin(t) * R;
+      if (u < 6 || u > innerWidth - 6 || v < 70 || v > innerHeight - 50) continue; // за краем или под надписями
+      let best = 0; for (let s = -2; s <= 2; s += 0.5) { const uu = cx + Math.cos(t) * (R + s), vv = cy + Math.sin(t) * (R + s), a = px(A, uu, vv), b = px(B, uu, vv); best = Math.max(best, Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2])); }
+      all.push(best); }
+    all.sort((a, b) => a - b); return { n: all.length, med: all[Math.floor(all.length / 2)] || 0, low: all[Math.floor(all.length * 0.2)] || 0 }; }, [s1, s0, geo]);
+  await p.evaluate(() => { const w = zaplyvWorld(); w.zones = w.zony; w.step = w.stoit; w.amoebas.length = 0; w.plants = w.plants.filter(q => q.id < 950); w.me.length = 1; w.tidy = 0; });
+  say(r.n >= 30 && r.med >= 70 && r.low >= 45, `test_L062: в людном кадре кольцо зоны видно — на кольце цвет кадра меняется: медиана ${Math.round(r.med)}, нижняя пятая ${Math.round(r.low)} (нужно 70 и 45 из 441; точек ${r.n})`); }
 say(!errs.length, 'ошибок страницы нет' + (errs.length ? ': ' + errs.join('; ') : ''));
 await b.close();
 console.log(bad ? `КАСАНИЯ: провалов ${bad}` : 'КАСАНИЯ: все кнопки отвечают пальцу');
