@@ -206,6 +206,7 @@ function start(genes, mode) {
   view = { x: 0, y: 0, z: 2.2, tint: [...TINT[0]] };
   fx.reset(); fx.world = world; ended = false; // fx читает мир: сидящие вирусы, запятые, амёбы
   $('end').classList.remove('on');
+  const mn = world.mode !== 'swim' && MODES[world.mode]?.line; if (mn) setTimeout(() => say(($('mscene').querySelector(`.mo[data-m=${world.mode}] b`)?.textContent || '') + ': ' + MODES[world.mode].line, 5000), 700); // в начале режима одной строкой — о чём он (отметка Романа 11)
 }
 $('again').onclick = () => start(null, world.mode); // снова в том же режиме
 // Род между заплывами: гибели, последний род (для ночи), ветки и поколения ночей, «Тише». Память — в этом браузере.
@@ -219,7 +220,7 @@ const MODES = {
   sel: { lock: 'Пройди ночь рода — и сможешь растить свои породы' },
   rost: { go: 'Расти', line: 'Клетка не делится, а растёт. Чем крупнее, тем больше еды и тем меньше пастей' },
   evo: { go: 'Расти и меняйся', line: 'Растёшь без предела, на каждом росте новая способность' },
-  mut: { go: 'Плыть с мутациями', line: 'Та же капля, но дочки и соседки приносят новые мутации' },
+  mut: { go: 'Плыть с мутациями', line: 'При делении дочкам выпадают умения, которых нет в обычном заплыве. Выбирай, кем плыть дальше' }, // отметка Романа 11: «ну мутации и что?»
   golod: { go: 'Плыть в голод', line: 'Без еды клетка худеет и гибнет. Дочки учат копить запас и голодать дольше' },
   hunt: { lock: 'Погибни от красной запятой трижды — и сыграешь за неё' },
   deep: { lock: 'Доплыви до ила — и увидишь, что было в капле миллиард лет назад' },
@@ -604,19 +605,36 @@ function flagAt(cx, cy) { // вырезаем кусок кадра вокруг
   FLAG.img = c.toDataURL('image/jpeg', 0.8); FLAG.wp = wp;
   const a = document.createElement('canvas'); a.width = 720; a.height = Math.round(720 * innerHeight / innerWidth); a.getContext('2d').drawImage(canvas, 0, 0, a.width, a.height); FLAG.full = a.toDataURL('image/jpeg', 0.8); // и весь кадр — где это было; 720 в ширину, а не 360: мелкий кадр на телефоне мыльный (Роман 25.11: «Все стало расплывчатое»)
   $('fsheet').classList.toggle('top', cy > innerHeight / 2); // лист от дальнего края: место под флажком остаётся видно
+  FLAG.menu = null; $('fwhere').hidden = true; $('fimg').hidden = false;
   $('fimg').src = FLAG.img; $('ftext').value = ''; $('fsheet').classList.add('on');
 }
 const FLAG = {};
 $('fsave').onclick = () => {
   const words = $('ftext').value.trim(), now = new Date(), at = `${now.getDate()}.${String(now.getMonth() + 1).padStart(2, '0')} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
-  let text; try { text = mark(world, cards, $('ver').textContent.replace('Заплыв ', ''), 'флажок на месте', cfg.flag_pin_r, FLAG.wp); } catch (e) { text = $('ver').textContent + ' · флажок на месте'; }
-  marks.push({ at, text: (words ? '«' + words + '» · ' : '') + text, img: FLAG.img, full: FLAG.full });
+  const M = FLAG.menu, where = M ? M.screen : 'флажок на месте';
+  let text; try { text = mark(world, cards, $('ver').textContent.replace('Заплыв ', ''), where, cfg.flag_pin_r, FLAG.wp); } catch (e) { text = $('ver').textContent + ' · ' + where; }
+  if (M) text = `меню: ${M.screen} · место: «${M.what}» · ` + text; // флажок в меню: экран и то, чего коснулся (отметка Романа 8: «В меню не могу поставить флажок»)
+  marks.push({ at, text: (words ? '«' + words + '» · ' : '') + text, img: M ? '' : FLAG.img, full: M ? '' : FLAG.full }); FLAG.menu = null;
   try { localStorage.setItem('zaplyv.marks', JSON.stringify(marks)); } catch (_) { marks[marks.length - 1].img = marks[marks.length - 1].full = ''; try { localStorage.setItem('zaplyv.marks', JSON.stringify(marks)); } catch (_) {} } // место кончилось — оставим слова
   showMarks(); fclose(); const n = $('note'), q = marks.length; n.textContent = q > 1 ? `⚑ Записано · ${q} ${q % 10 >= 2 && q % 10 <= 4 && (q % 100 < 12 || q % 100 > 14) ? 'отметки ждут' : q % 10 === 1 && q % 100 !== 11 ? 'отметка ждёт' : 'отметок ждут'} отправки` : '⚑ Записано с картинкой · отправить — на паузе'; n.classList.add('on', 'ok'); clearTimeout(noteT); noteT = setTimeout(() => n.classList.remove('on'), 2200);
 };
 const fclose = () => { $('fsheet').classList.remove('on'); frozen = false; };
 $('fcancel').onclick = fclose;
-$('gflag').onclick = e => flag('геном', e.currentTarget);
+// Флажок в меню (пауза, её разделы, «Режимы»): касание ⚑, потом касание того, что не так, — экран и это место уходят в отметку.
+function armFlag(screen, btn) {
+  FLAG.arm = screen; document.body.classList.add('farm');
+  const n = $('note'); n.classList.remove('ok'); n.textContent = '⚑ Коснись того, что не так'; n.classList.add('on'); clearTimeout(noteT); noteT = setTimeout(() => { n.classList.remove('on'); FLAG.arm = null; document.body.classList.remove('farm'); }, 6000);
+  if (btn) { btn.classList.remove('hit'); void btn.offsetWidth; btn.classList.add('hit'); }
+}
+const eatTap = e => { if ((!FLAG.arm && !FLAG.eat) || e.target.closest('#gflag, #mflag, #fsheet')) return; e.preventDefault(); e.stopPropagation(); if (e.type === 'click') FLAG.eat = false; if (e.type !== 'pointerdown' || !FLAG.arm) return; // касание-указка не нажимает то, на что указало
+  FLAG.eat = true; setTimeout(() => { FLAG.eat = false; }, 700);
+  const el = e.target.closest('button, .prow, .mo, h1, h2, h3, p, li, img, canvas') || e.target;
+  FLAG.menu = { screen: FLAG.arm, what: ((el.innerText || el.alt || el.id || el.tagName) + '').replace(/\s+/g, ' ').trim().slice(0, 60) };
+  FLAG.arm = null; document.body.classList.remove('farm'); $('note').classList.remove('on'); FLAG.wp = undefined;
+  $('fimg').hidden = true; $('fwhere').hidden = false; $('fwhere').textContent = `${FLAG.menu.screen} · «${FLAG.menu.what}»`; $('ftext').value = ''; $('fsheet').classList.remove('top'); $('fsheet').classList.add('on'); };
+for (const t of ['pointerdown', 'pointerup', 'click', 'touchstart', 'touchend']) document.addEventListener(t, eatTap, { capture: true, passive: false });
+$('gflag').onclick = e => armFlag(PNAME[curTab] || 'Пауза', e.currentTarget);
+$('mflag').onclick = e => armFlag('Режимы', e.currentTarget);
 $('eno').onclick = e => flag('экран гибели', e.currentTarget);
 $('esend').onclick = openMarks;
 showMarks();
@@ -774,7 +792,6 @@ function tick(dt) {
 // облако нуклеоида и зёрна, у полюсов светлые шапочки; жгутики пучком на ходу и врозь на месте;
 // кокки — одиночки, пары, цепочки, грозди; амёба с ложноножками, током зёрен, ядром и вакуолью;
 // фаг T4 — вытянутая головка, хвост, пластинка и шесть ножек; вдали частицы в расфокусе кольцами.
-const SPIKES = [[1, 0.45, 0.75], [1, 0.6, 0.2], [0.45, 0.7, 1], [0.8, 0.5, 1]];
 const BALL = [null, [0.55, 0.48, 0.8], [0.55, 0.95, 0.3]], BRIM = [null, [0.85, 0.8, 1], [0.85, 1, 0.6]]; // не по зубам (сиреневые), съедобное
 const ball = (x, y, r, side, seed) => bodies.sphere(x, y, r, BALL[side], BRIM[side], seed);
 function paint(time) {
@@ -883,14 +900,11 @@ function paint(time) {
   for (const q of world.prey) { // кокки — соседи-соперники, сиреневые; с токсином зеленеют: касание их убьёт
     const [x, y] = scr(q.x, q.y); if (!on(x, y)) continue;
     const side = 1, r = radius(q.m) * z, kind = q.id % 4, a = q.a + time * 0.2;
+    if (q.touch > 0) { probe.poison = (probe.poison || 0) + 1; const k = Math.min(1, q.touch / cfg.pinch_t); // прижалась к кокку — вокруг него проступает его яд, к «щипку» облачко полное
+      for (let i = 0; i < 7; i++) { const f = (time * 0.7 + i / 7) % 1, t = i * 0.8976 + q.id + time * 0.3, d = r * (0.8 + f * (0.7 + 0.8 * k)); // яд сочится мягкими клубами наружу и тает, без точек по кругу (L047)
+        glow.put(x + Math.cos(t) * d, y + Math.sin(t) * d, r * (0.55 + 0.7 * f) + 2, 0.75, 0.95, 0.3, (0.1 + 0.3 * k) * (1 - f)); } }
     const ux = Math.cos(a), uy = Math.sin(a);
-    if (kind === 0) { // шар с шипами, у каждого свой цвет шипов
-      ball(x, y, r * 0.9, side, q.id);
-      const hue = SPIKES[q.id % SPIKES.length];
-      for (let k = 0; k < 14; k++) { const t = k * 0.4488 + a * 0.3, c = Math.cos(t), s = Math.sin(t);
-        ink.put(x + c * r * 1.02, y + s * r * 1.02, 1.1 * z + 0.4, hue[0], hue[1], hue[2], 0.8);
-        bodies.spike(x + c * r * 1.28, y + s * r * 1.28, 2.6 * z + 0.6, hue); }
-    }
+    if (kind === 0) ball(x, y, r * 0.9, side, q.id); // одиночный кокк: гладкий шарик, шипов у кокков нет (Роман 25.11: шипастый «похож на вирус»)
     else if (kind === 1) { ball(x + ux * r * 0.45, y + uy * r * 0.45, r * 0.6, side, q.id); ball(x - ux * r * 0.45, y - uy * r * 0.45, r * 0.6, side, q.id + 1); }
     else if (kind === 2) for (let k = -1.5; k <= 1.5; k++) { // цепочка
       const w = Math.sin(time * 1.5 + k + q.id) * r * 0.15;
