@@ -3,7 +3,10 @@
   "formy": {
     "tuflya": { "suzhenie": 0.45, "borozda": 1.0 },
     "palochka": {},
-    "shar": {}
+    "shar": {},
+    "ameba": {},
+    "spiral": { "vitki": 3, "razmah": 1.6, "zvenya": 48, "oboroty": 0.6 },
+    "nit": { "razmah": 1.5, "zvenya": 40 }
   },
   "chasti": {
     "telo": { "cvet": [0.55, 0.78, 0.66], "kromka": [0.55, 0.9, 0.6] },
@@ -12,10 +15,15 @@
     "zerna": { "n": 18, "r": 0.07, "cvet": [0.35, 0.8, 0.3], "kromka": [0.75, 0.85, 0.8] },
     "puzyri_edy": { "n": 6, "r": 0.13, "cvet": [0.95, 0.7, 0.4], "kromka": [1, 0.9, 0.7] },
     "sokr_puzyr": { "gde": [-0.55, 0.55], "period": 4, "r": 0.26, "kanal": 0.22, "kanaly": 7, "kanal_tolsh": 0.08, "cvet": [0.85, 0.97, 1] },
+    "otrostki": { "n": 24, "dlina": [0.3, 1.4], "tolsh": 0.19, "razvilki": 0.5, "lopasti": 6, "lop_dlina": [0.3, 0.65], "lop_tolsh": 0.6, "koren": 0.6, "izgib": 3.4, "volna": 1.2, "vetki": 0.6, "cvet": [0.85, 0.75, 0.25], "kromka": [1, 0.93, 0.7] },
     "vorsinki": { "n": 40, "dlina": 0.18, "tolsh": 0.025, "cvet": [0.8, 0.95, 0.9], "a": 0.8 },
     "zhgutik_vint": { "n": 1, "razlet": 0.25, "dlina": 3.5, "shag": 0.9, "razmah": 0.22, "oboroty": 1.5, "zvenya": 40, "tolsh": 0.06, "cvet": [0.75, 0.8, 0.9], "a": 1 }
   },
   "vidy": {
+    "ameba": {
+      "forma": { "tip": "ameba" },
+      "chasti": { "telo": { "cvet": [1.1, 1.0, 0.3], "kromka": [1, 0.93, 0.7] }, "zerna": { "n": 5, "r": 0.09, "cvet": [1, 0.62, 0.65], "kromka": [1, 0.95, 0.6] }, "yadro": { "gde": [-0.15, 0.1], "r": 0.46, "boby": 1, "povorot": 0, "cvet": [0.62, 0.72, 0.9], "kromka": [0.85, 0.95, 1.0] }, "puzyri_edy": { "n": 2, "r": 0.1, "cvet": [0.95, 0.62, 0.7], "kromka": [1, 1, 1] }, "otrostki": {} }
+    },
     "tuflya": {
       "forma": { "tip": "tuflya" },
       "chasti": { "telo": {}, "puzyri_edy": {}, "zerna": {}, "yadro": {}, "sokr_puzyr": {}, "resnichki": {} }

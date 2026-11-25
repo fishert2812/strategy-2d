@@ -263,22 +263,12 @@ export function amoeba(c) {
 }
 // Амёба телами со светом (body3d.js): стеклянное тело с кромкой и бликом, сквозь него ядро и пузырьки; шипы — стеклянные
 // сужающиеся конусы с кромкой, медленно гнутся. Точками рисуем только мягкую тень под телом. Числа — vid.json amoeba (b3d_*).
-function amoeba3d(c, B, R, body, edge, eat) {
-  const { m, x, y, r, head, sp, time, z, ink, col } = c, A = V.amoeba, D = A.b3d, bodyC = col ? col.map(v => v * D.lit) : D.col, spineC = col ? col.map(v => Math.min(1, v * 0.6 + 0.45)) : D.spine, id = m.id || 0, hx = Math.cos(head), hy = Math.sin(head), mov = sp > 3 ? 1 : 0;
+function amoeba3d(c, B, R, body, edge, eat) { // собрана из частей движка (vid_chasti.js, вид «ameba»): мягкое тело, лопасти и пальцы, ядро, зёрна, пузырьки
+  const { m, x, y, r, head, sp, time, z, ink, col } = c, D = V.amoeba.b3d, id = m.id || 0, zap = VC.vidy.ameba;
   ink.put(x + r * 0.08, y + r * 0.1, r * D.shade_r, 0, 0, 0, D.shade_a); // мягкая тень: тело отделено от воды
-  const phi = hash(id, 99) * 3.14, ea = r * D.body * (1 + D.stretch), eb = r * D.body * (1 - D.stretch * 0.5), Rb = t => { const c = Math.cos(t - phi), s = Math.sin(t - phi); return ea * eb / Math.hypot(eb * c, ea * s); }; // край тела — широкий плоский овал
-  B.blobby(x, y, r * D.body, head, mov, bodyC, D.rim, id * 0.37, 1 - D.stretch * 0.5, 1 + D.stretch, phi); // плоское вытянутое тело, как на образце // съедобная мелкая амёба — своим цветом (main.js col)
-  for (let k = 0; k < D.grains; k++) { const t = hash(id, k + 200) * 6.283, d = r * 0.7 * Math.sqrt(hash(id, k + 201)); B.sphere(x + Math.cos(t) * d, y + Math.sin(t) * d, r * D.grain_r * (0.6 + 0.8 * hash(id, k + 202)), D.grain, edge, id + k + 9, 0.8); } // зернистая цитоплазма, как на образцах
-  const nx = x - hx * r * 0.15 + hy * r * 0.1, ny = y - hy * r * 0.15 - hx * r * 0.1; // ядро и пузырьки — внутри, видны сквозь стекло тела
-  B.sphere(nx, ny, r * A.nucleus * D.nuc, D.nuc_col, A.nuc_rim, id + 0.5, 0.7); // ядро голубовато-серое, как на образце
-  for (let k = 0; k < A.vac; k++) { const t = hash(id, k + 90) * 6.283, d = r * (0.25 + 0.35 * hash(id, k + 91)); B.sphere(x + Math.cos(t) * d, y + Math.sin(t) * d, r * (0.05 + 0.04 * hash(id, k + 92)), A.vac_col, [1, 1, 1], id + k, 0.8); }
-  const NS = Math.round(A.spikes * D.count); for (let k = 0; k < NS; k++) { // пальцев гуще, чем шипов в точечном рисунке: на образце их десятки
-    const t = (k + 0.9 * hash(id, k)) / NS * 6.283, ahead = Math.max(0, Math.cos(t - head)); let L = r * (A.spike_min + (A.spike_max - A.spike_min) * hash(id, k + 40)) * (1 + 0.5 * mov * ahead) * (0.85 + 0.15 * Math.sin(time * 1.3 + k * 2.1));
-    if (eat) { const cc = Math.max(0, Math.cos(t - eat.ang)); L *= 1 - eat.k * cc ** 2; if (L < r * 0.05) continue; } // этим краем обтекает добычу — шипы втянуты
-    const base = Rb(t) * D.root, bx = x + Math.cos(t) * base, by = y + Math.sin(t) * base, w = r * A.spike_w * D.spike_w, bend = ((hash(id, k + 70) - 0.5) * A.bend * D.bend + 0.12 * Math.sin(time * 0.9 + k)) * L * 0.5; L *= D.len * (0.6 + 0.8 * hash(id, k + 300)); // длина вразнобой, как на образце
-    B.spine(bx, by, t, L + (Rb(t) - base), w, spineC, D.rim, id + k, bend, D.wave * (hash(id, k + 80) - 0.3));
-    if (hash(id, k + 55) < A.fork) { const f0 = 0.55, side = hash(id, k + 56) < 0.5 ? -1 : 1, d0 = base + L * f0, a2 = t + side * 0.55; // часть шипов ветвится
-      B.spine(x + Math.cos(t) * d0 - Math.sin(t) * bend * f0 * f0, y + Math.sin(t) * d0 + Math.cos(t) * bend * f0 * f0, a2, L * 0.4, w * 0.6, spineC, D.rim, id + k + 50, 0, D.wave * 0.5); } } // ветка растёт из точки на самом изогнутом шипе
+  const rec = col ? { ...zap, chasti: { ...zap.chasti, telo: { ...zap.chasti.telo, cvet: col.map(v => v * D.lit) }, otrostki: { cvet: col.map(v => Math.min(1, v * 0.6 + 0.45)) } } } : zap; // съедобная мелкая амёба — своим цветом
+  const phi = hash(id, 99) * 3.14, ea = r * D.body * (1 + D.stretch), eb = r * D.body * (1 - D.stretch * 0.5);
+  return sobrat(rec, { x, y, a: phi, dlina: 2 * ea, tolshchina: eb, z, time, id, hod: sp > 3 ? 1 : 0, kurs: head, est: eat }, B);
 }
 // Коловратка как в жизни (биолог, «Вид существ» №2): на голове венец — два мерцающих полукруга ресничек, по ним бежит волна, и кажется,
 // что колёса крутятся; по переднему краю панциря зубцы; сквозь прозрачное тело видны тёмная кишка и челюсти-мастакс, которые щёлкают.

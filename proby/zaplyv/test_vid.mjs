@@ -274,12 +274,15 @@ check('test_vid_ryvok: рывок — один знак на всю игру: в
   if (shot('snap', 0, 0).n0) return 'сувойка (щелчок без угла) даёт рывок клетке';
   return '';
 });
-check('test_vid_ameba_obyom: амёба в игре — объёмное тело со стеклянной оболочкой, шипы — сплошные стеклянные конусы, ядро и зёрна внутри; точек нет, кроме мягкой тени (Роман 25.11: «не объёмная… пятно из точек»)', () => {
-  const got = { blobby: 0, spine: 0, sphere: 0 }, dots = [], br = { put: (...q) => dots.push(q) };
-  const B = { spines: {}, blobby: () => got.blobby++, spine: (x, y, a, len, w) => { if (!(len > 0 && w > 0)) got.bad = 1; got.spine++; }, sphere: () => got.sphere++ };
-  vid.amoeba({ m: { id: 5, m: 6 }, x: 0, y: 0, r: 40, head: 0, sp: 0, side: 1, time: 1, z: 2, glow: br, ink: br, bubbles: br, bodies: B });
-  if (got.blobby !== 1) return 'нет объёмного тела'; if (got.spine < vid.V.amoeba.spikes) return 'шипов меньше, чем в образце: ' + got.spine; if (got.bad) return 'пустой шип';
-  if (got.sphere < 1 + vid.V.amoeba.vac) return 'внутри нет ядра и пузырьков'; if (dots.length > 1) return 'амёба всё ещё рисует точки: ' + dots.length;
+check('test_vid_ameba_obyom: амёба в игре — объёмное тело со стеклянной оболочкой, собрана из частей движка: широкие лопасти и пальцы (не «ёж» из одинаковых шипов), ядро и зёрна внутри; точек нет, кроме мягкой тени (Роман 25.11: «не объёмная… пятно из точек»)', () => {
+  const got = { body: 0, spine: 0, sphere: 0, nuc: 0 }, ws = [], dots = [], br = { put: (...q) => dots.push(q) };
+  const B = { spines: {}, amoeba: {}, ball: {}, put: m => { if (m === B.amoeba) got.body++; if (m === B.ball) got.nuc++; }, spine: (x, y, a, len, w) => { if (!(len > 0 && w > 0)) got.bad = 1; got.spine++; ws.push(w); }, sphere: () => got.sphere++ };
+  const n = vid.amoeba({ m: { id: 5, m: 6 }, x: 0, y: 0, r: 40, head: 0, sp: 0, side: 1, time: 1, z: 2, glow: br, ink: br, bubbles: br, bodies: B });
+  const O = { ...VC.chasti.otrostki, ...VC.vidy.ameba.chasti.otrostki };
+  if (n !== Object.keys(VC.vidy.ameba.chasti).length) return 'амёба собрана не из всех своих частей: ' + n;
+  if (got.body !== 1) return 'нет объёмного тела'; if (got.spine < O.n + O.lopasti) return 'отростков меньше, чем в данных: ' + got.spine; if (got.bad) return 'пустой отросток';
+  const med = [...ws].sort((a, b) => a - b)[ws.length >> 1], wide = ws.filter(w => w > med * 1.6).length; if (wide < O.lopasti || O.lop_tolsh < O.tolsh * 1.5) return 'нет широких лопастей — снова ёж из одинаковых шипов';
+  if (got.nuc < 1 || got.sphere < 2) return 'внутри нет ядра и пузырьков'; if (dots.length > 1) return 'амёба всё ещё рисует точки: ' + dots.length;
   return '';
 });
 check('test_vid_tufelka: туфелька — прозрачное тело-туфля с бороздкой, реснички — сплошные стеклянные волоски по всему краю, внутри ядро, пузырьки и сократительные пузырьки с каналами; точек нет', () => {
