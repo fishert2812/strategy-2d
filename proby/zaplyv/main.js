@@ -766,7 +766,7 @@ function tick(dt) {
   for (let i = 0; i < 3; i++) view.tint[i] += (t[i] - view.tint[i]) * Math.min(1, dt * 0.8);
   { const b = world.me.reduce((q, a) => a.m > q.m ? a : q, world.me[0] || { m: 1 }), sp = world.split(); // размер числом: длина палочки в микрометрах (260 единиц — 10 мкм)
     const um = 2 * 8.5 * Math.pow(b.m, 0.3) * (1.6 + Math.min(b.m, sp) / sp) / 26; $('count').textContent = 'клеток ' + world.me.length + ' · ' + um.toFixed(1).replace('.', ',') + ' мкм'; }
-  $('eaten').textContent = world.rush > 0.05 ? 'рост ×' + (1 + world.rush).toFixed(1) : 'съедено ' + world.stats.eaten; // серия кусков подряд — рост быстрее
+  $('eaten').textContent = world.rush > 0.05 && !rost.on(world) ? 'рост ×' + (1 + world.rush).toFixed(1) : 'съедено ' + world.stats.eaten; // серия кусков подряд — рост быстрее
   if (world.readyToSplit() && !world.choice.length && !world.me.some(a => a.grab || a.held > 0) && !$('toast').classList.contains('on')) tell('split', 'Выросла! Коснись — поделишься. Или подожди'); // подсказка ждёт, пока на экране весть: не затирает «Сестра погибла за краем…» (L039)
 }
 
@@ -821,15 +821,8 @@ function paint(time) {
   for (const p of world.slippers) { // туфелька: огромная клетка в ресничках, воронка-рот на боку, поток в рот виден
     const [x, y] = scr(p.x, p.y), L = cfg.slipper_len * z; if (!on(x, y, L)) continue;
     const ux = Math.cos(p.a), uy = Math.sin(p.a), w = L * 0.27;
-    bodies.rod(x, y, p.a, L / 2, w, 0, [0.72, 0.95, 0.85], [0.32, 0.6, 0.48], p.id, Math.sin(time * 1.3 + p.id) * w * 0.15);
-    for (let k = 0; k < 72; k++) { // реснички: волна бежит по краю
-      const t = k / 72 * 6.283, c = Math.cos(t), s = Math.sin(t), e = 1.12 + 0.06 * Math.sin(t * 8 - time * 9);
-      const px = x + ux * c * (L / 2) * e * 0.98 - uy * s * w * e, py = y + uy * c * (L / 2) * e * 0.98 + ux * s * w * e;
-      ink.put(px, py, 0.9 * z + 0.3, 0.8, 1, 0.9, 0.45);
-    }
-    for (let k = 0; k < 6; k++) { const t = k * 1.9 + p.id, px = x + ux * Math.sin(t + time * 0.2) * L * 0.3 - uy * Math.cos(t * 1.3) * w * 0.5, py = y + uy * Math.sin(t + time * 0.2) * L * 0.3 + ux * Math.cos(t * 1.3) * w * 0.5;
-      glow.put(px, py, w * 0.18, 1, 0.75, 0.4, 0.35); } // пищеварительные пузырьки
     const [mx, my] = scr(...world.mouth(p));
+    vid.slipper({ x, y, a: p.a, L, w, z, time, id: p.id, mx, my, bodies, glow, ink }); // туфля с бороздкой, реснички-волоски, ядро, пузырьки (vid.js)
     for (let k = 0; k < 24; k++) { // поток в воронку: крупинки по спирали к рту
       const f = (time * 0.6 + k / 24) % 1, R = cfg.funnel_r * z * (1 - f), t = k * 2.4 + f * 3;
       glow.put(mx + Math.cos(t) * R, my + Math.sin(t) * R, 1.2 * z + 0.4, 0.8, 0.95, 1, 0.35 * f);
@@ -916,7 +909,7 @@ function paint(time) {
   }
   for (const q of world.pseudos) { const [x, y] = scr(q.x, q.y); if (on(x, y)) dv.risuy(q, { x, y, z, time, bodies, glow }); } // палочки из анкет (vidy.json): тело, цепочка, цвет-метка, жгутики
   for (const e of world.events) if (e[0] === 'split') vid.splitAt(e[3], e[4]); // деление касанием случилось между шагами: рисуем его с первого же кадра, а не после шага
-  fx.drawUnder({ scr, z, time, glow, ink }); mut.drawWorld({ w: world, scr, z, glow, ink }); // пузырьки-обманки
+  fx.drawUnder({ scr, z, time, glow, ink }); mut.drawWorld({ w: world, scr, z, glow, ink, kids }); // пузырьки-обманки
   for (const b of world.bdellos) { // бделловибрион: запятая вдвое мельче тебя, один толстый жгутик; на рывке — след
     const [x, y] = scr(b.x, b.y); if (!on(x, y) && !b.aim) continue; // целится из-за кадра — линия прицела всё равно видна
     const w = 4.2 * z, sp = Math.hypot(b.vx, b.vy), ang = b.a, ux = Math.cos(ang), uy = Math.sin(ang);
@@ -981,7 +974,7 @@ function paint(time) {
     puffs.push({ x: a.x - ux * rr * 1.3 - uy * side * rr * 0.6, y: a.y - uy * rr * 1.3 + ux * side * rr * 0.6, vx: -uy * side * 18 - ux * 6, vy: ux * side * 18 - uy * 6, t: 0 });
   }
   puffs = puffs.filter(p => (p.t += 1 / 60) < 1.4);
-  for (const p of puffs) { p.x += p.vx / 60; p.y += p.vy / 60; p.vx *= 0.95; p.vy *= 0.95; const [x, y] = scr(p.x, p.y); wake.put(x, y, (1.1 + p.t) * z, 0.8, 0.92, 1, 0.3 * (1 - p.t / 1.4)); }
+  for (const p of puffs) { p.x += p.vx / 60; p.y += p.vy / 60; p.vx *= 0.95; p.vy *= 0.95; const [x, y] = scr(p.x, p.y); wake.put(x, y, (5 + 9 * p.t) * z, 0.8, 0.92, 1, 0.07 * (1 - p.t / 1.4)); } // мягкие широкие завихрения, а не цепочка бусин за кормой (отзыв 25.11: «пунктирные следы за клеткой»)
   for (const f of world.food) { // еда трёх видов (Е2, Е4): жёлтые крошки, белые искры глюкозы, розовый белковый сок
     const [x, y] = scr(f.x, f.y); if (!on(x, y, 20)) continue;
     const F = cfg.food_kinds[f.kind || 'bits'], k = Math.sqrt(f.s || 1) * F.size, tw = F.twinkle ? 0.75 + 0.25 * Math.sin(time * 7 + f.x * 0.3 + f.y) : 1;
