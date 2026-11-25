@@ -32,9 +32,9 @@ const mass = (q, who) => q.m || E.glotat.razmer[who] || 1;
 export function step(w, dt, radius) {
   if (!on(w)) return;
   gulp(w, dt, radius); igla(w, radius); krupneet(w);
-  for (const a of w.me) if (!(a.spore > 0)) a.m = Math.max(E.hudeet.min, a.m * (1 - E.hudeet.v * dt)); // тело тратит
+  for (const a of w.me) if (!(a.spore > 0) && a.m > E.hudeet.ot) a.m -= (a.m - E.hudeet.ot) * E.hudeet.v * dt; // большое тело тратит: худеет только то, что сверх ot (круг 0.84: малая клетка таяла быстрее, чем ела, и не росла вовсе)
   if (w.me.some(a => has(w, 'kislota'))) for (const q of w.prey) { // не боится кислоты: шарик рядом не жжёт (sim.js pinch_t), но насос тратит силы
-    for (const a of w.me) if (q.touch > 0) a.m = Math.max(E.hudeet.min, a.m * (1 - E.kislota.plata * dt));
+    for (const a of w.me) if (q.touch > 0) a.m = Math.max(1, a.m * (1 - E.kislota.plata * dt));
     q.touch = 0;
   }
   if (w.choice.length || !w.events.some(e => e[0] === 'rost')) return;

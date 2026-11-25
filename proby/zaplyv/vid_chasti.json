@@ -1,0 +1,24 @@
+{
+  "_": "Части вида (тред вида). chasti: умолчания каждой части; formy: умолчания формы тела; vidy: записи существ из частей. Доли: длина в половинах длины тела, толщина в толщинах тела. Цвета 0..1.",
+  "formy": {
+    "tuflya": { "suzhenie": 0.45, "borozda": 1.0 },
+    "palochka": {},
+    "shar": {}
+  },
+  "chasti": {
+    "telo": { "cvet": [0.55, 0.78, 0.66], "kromka": [0.55, 0.9, 0.6] },
+    "resnichki": { "n": 150, "dlina": 0.2, "tolsh": 0.025, "volny": 9, "temp": 6, "v_borozde": 1.6, "osnova": 1.04, "cvet": [0.85, 1, 0.95] },
+    "yadro": { "gde": [-0.08, -0.12], "r": 0.55, "boby": 0.62, "povorot": 0.3, "cvet": [0.45, 0.52, 0.5], "kromka": [0.75, 0.85, 0.8] },
+    "zerna": { "n": 18, "r": 0.07, "cvet": [0.35, 0.8, 0.3], "kromka": [0.75, 0.85, 0.8] },
+    "puzyri_edy": { "n": 6, "r": 0.13, "cvet": [0.95, 0.7, 0.4], "kromka": [1, 0.9, 0.7] },
+    "sokr_puzyr": { "gde": [-0.55, 0.55], "period": 4, "r": 0.26, "kanal": 0.22, "kanaly": 7, "kanal_tolsh": 0.08, "cvet": [0.85, 0.97, 1] },
+    "vorsinki": { "n": 40, "dlina": 0.18, "tolsh": 0.025, "cvet": [0.8, 0.95, 0.9], "a": 0.8 },
+    "zhgutik_vint": { "n": 1, "razlet": 0.25, "dlina": 3.5, "shag": 0.9, "razmah": 0.22, "oboroty": 1.5, "zvenya": 40, "tolsh": 0.06, "cvet": [0.75, 0.8, 0.9], "a": 1 }
+  },
+  "vidy": {
+    "tuflya": {
+      "forma": { "tip": "tuflya" },
+      "chasti": { "telo": {}, "puzyri_edy": {}, "zerna": {}, "yadro": {}, "sokr_puzyr": {}, "resnichki": {} }
+    }
+  }
+}
