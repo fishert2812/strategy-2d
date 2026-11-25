@@ -131,6 +131,16 @@ check('test_vid_virus: вирус — в гранёной голове свет�
   const [late] = gold({ x: 120, y: 0, d: 0, on: me, t: 0.1 }); if (!(late < free / 3)) return 'впрыснул, а голова полна: ' + late;
   return '';
 });
+check('test_vid_skorlupa: спящая в тонкой твёрдой скорлупе; хищник рядом — по скорлупе с его стороны бегут трещины, далеко — скорлупа цела', () => {
+  const a = { id: 77, x: 0, y: 0, m: 1.6, a: 0, spore: cfgD.spore - vid.V.sleep.fall - 0.3 }, pts = [], br = { put: (x, y, r, cr, cg, cb, al) => pts.push({ x, y, cr, al }) };
+  vid.sleeper({ a, x: 0, y: 0, z: 1, time: 0, cfg: cfgD, bodies: { rod() {} }, glow: br, ink: br });
+  const sh = vid.shellOf(77); if (!sh) return 'скорлупы нет';
+  const ring = pts.filter(p => p.cr > 0.8 && p.al > 0.3 && Math.hypot(p.x, p.y) > sh.R * 0.95); if (ring.length < 40) return 'скорлупа не видна: ' + ring.length;
+  const crack = (mx) => { const C = { r: 1, g: 1, b: 1 }, fx = new Fx({}, [C, C, C]); fx.reset(); fx.world = { me: [a], amoebas: [{ x: mx, y: 0 }] }; const q = []; const b = { put: (x, y, r, cr, cg, cb, al) => { if (cr === 1 && cg === 1 && al > 0.3) q.push(x); } }; fx.drawOver({ scr: (x, y) => [x, y], z: 1, time: 0, glow: b, ink: b }); return q; };
+  const near = crack(sh.R + 15); if (near.length < 6) return 'хищник у скорлупы, а трещин нет'; if (near.some(x => x < 0)) return 'трещина не с той стороны, где хищник';
+  if (crack(500).length) return 'трещины без хищника';
+  return '';
+});
 check('test_vid_capsule_dent: капсула прогибается от удара хищника и пружинит обратно', () => {
   vid.stepVid(5); const was = paint({ capsule: true }).join('|'); vid.poke(-15, 13); const hit = paint({ capsule: true }).join('|');
   vid.stepVid(5); const after = paint({ capsule: true }).join('|');

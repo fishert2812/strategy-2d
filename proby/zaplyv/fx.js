@@ -1,7 +1,7 @@
 // Анимации взаимодействий: что видно, когда мир сообщает событие (съела, поделилась, схватили, лопнула, прилип фаг…).
 // Файл слоя «вид и анимации» (свой строитель). main.js зовёт fx.on() на каждое событие мира, fx.draw() в кадре, fx.step(dt).
 // Звук и подписи остаются в main.js. Список событий — sim.js, world.events: [вид, x, y, size, y2].
-import { poke, stepVid, seen, rim, V, splitAt, pulse } from './vid.js';
+import { poke, stepVid, seen, rim, V, splitAt, pulse, shellOf } from './vid.js';
 export class Fx {
   constructor(cfg, CELL) { this.cfg = cfg; this.CELL = CELL; this.reset(); }
   save() { const s = {}; for (const k of Object.keys(this)) if (Array.isArray(this[k])) s[k] = this[k]; return s; } // снимок значка зовёт reset — без этого гасли все идущие анимации
@@ -142,6 +142,13 @@ export class Fx {
       const d = C.part * Math.min(1, q.t / C.flash) + C.drift * q.t; // половинки разъезжаются поперёк разреза
       for (const sg of [-1, 1]) { const hx = q.x - sa * d * sg, hy = q.y + ca * d * sg;
         for (let i = 0; i < 4; i++) { const u = (i / 3 - 0.5) * s, [x, y] = scr(hx + ca * u * 0.9, hy + sa * u * 0.9); glow.put(x, y, s * 0.5 * z, ...C.shell, 0.8 * (1 - f)); glow.put(x, y, s * 0.22 * z, ...C.color, 0.7 * (1 - f)); } } }
+    for (const a of (this.world && this.world.me) || []) { if (!(a.spore > 0)) continue; const sh = shellOf(a.id); if (!sh || !sh.e) continue; // хищник пробует взять спящую: по скорлупе бегут трещины с его стороны
+      const K = V.shell; let m = null, bd = K.sniff; for (const o of (this.world.amoebas || []).concat(this.world.bdellos || [])) { const d = Math.hypot(o.x - a.x, o.y - a.y); if (d < bd) { bd = d; m = o; } }
+      this.crk = this.crk || new Map(); const was = Math.max(0, (this.crk.get(a.id) || 0) - K.heal * (this.dt || 0)), f = Math.max(was, m ? (1 - bd / K.sniff) * sh.e : 0); this.crk.set(a.id, f); if (!m || f < 0.02) continue; // трещина держится, пока хищник рядом, и затягивается за 1/K.heal с
+      const ca = Math.cos(sh.ang), sa = Math.sin(sh.ang), dx = m.x - sh.x, dy = m.y - sh.y, lu = dx * ca + dy * sa, lo = -dx * sa + dy * ca;
+      let best = 0, bv = -1e9; for (let i = 0; i < 48; i++) { const [u, o] = rim(i / 48, sh.L, sh.R), v = u * lu + o * lo; if (v > bv) { bv = v; best = i / 48; } } // точка скорлупы, ближняя к хищнику
+      for (let c = -1; c <= 1; c++) { let p = best, off = 0; for (let k = 0; k < K.crack; k++) { p += c * K.step + (c ? 0 : K.step * 0.5 * Math.sin(k * 3.1)); off = (k % 2 ? 1 : -1) * K.zig * sh.R;
+        const [u, o, nu, no] = rim(p, sh.L, sh.R), [x, y] = scr(sh.x + ca * (u + nu * off) - sa * (o + no * off), sh.y + sa * (u + nu * off) + ca * (o + no * off)); ink.put(x, y, 1.6 * z + 0.5, 0.05, 0.05, 0.1, 0.85 * f); glow.put(x, y, 1.5 * z + 0.5, 1, 1, 1, Math.min(1, 1.6 * f) * (1 - 0.5 * k / K.crack)); } } }
     for (const p of this.drops) { const [x, y] = scr(p.x, p.y), f = p.t / V.lysis.life, c = p.c === 0 ? [0.75, 0.93, 1] : [0.95, 0.35, 0.7]; glow.put(x, y, (2.2 * p.r * (1 - f * 0.5)) * z + 0.5, c[0], c[1], c[2], 0.75 * (1 - f)); } // брызги сока (розовые) и искры рывка деления (голубые)
     for (const m of this.melts) { const [x, y] = scr(m.x, m.y), f = m.t / V.eat.melt, k = Math.sqrt(m.s || 1) * (1 - f) * (1 - f); // зерно тает на месте: меньше и тусклее, ореол растекается
       glow.put(x, y, 4 * z * k + 0.5, 1, 0.93, 0.65, 0.95 * (1 - f)); glow.put(x, y, 10 * z * Math.sqrt(m.s || 1) * (1 + 1.5 * f), 1, 0.8, 0.35, 0.22 * (1 - f)); }
@@ -167,7 +174,7 @@ export class Fx {
       for (let i = 0; i < 28; i++) { const t = i * 0.2244; glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 4 * (1 - k) + 1.2, c.r, c.g, c.b, 0.6 * (1 - k)); }
     }
   }
-  step(dt) { stepVid(dt);
+  step(dt) { stepVid(dt); this.dt = dt;
     const P = V.lysis, k = Math.exp(-P.drag * dt);
     for (const p of this.drops) { p.vx *= k; p.vy *= k; p.x += p.vx * dt; p.y += p.vy * dt; p.t += dt; }
     this.drops = this.drops.filter(p => p.t < P.life);

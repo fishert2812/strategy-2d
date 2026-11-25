@@ -35,5 +35,6 @@
  "learn": { "alpha": 0.85 },
  "pulse": { "life": 0.5, "reach": 70, "band": 0.9, "dots": 48, "r": 2.6, "color": [1.0, 0.78, 0.32], "on": ["shrug", "cut", "learn", "slip", "bump", "shake"] },
  "virus": { "len": 0.5, "wid": 0.38, "dot": 0.45, "coil": 18, "turn": 1.1, "gold": [1.0, 0.78, 0.3] },
+ "shell": { "gap": 1.22, "n": 120, "w": 1.1, "alpha": 0.5, "color": [0.85, 0.93, 1.0], "dark": [0.04, 0.06, 0.12], "sniff": 120, "crack": 12, "heal": 1, "step": 0.018, "zig": 0.14 },
  "split": { "slide": 0.7, "pinch": 0.85 }
 }
