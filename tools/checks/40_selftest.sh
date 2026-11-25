@@ -14,6 +14,10 @@ case_() {
   local name=$1 step=$2 want=$3; shift 3
   (cd "$WT" && git reset -q --hard HEAD && git clean -qfd && eval "$*" &&
    git -c user.name=selftest -c user.email=selftest@local commit -qam selftest --allow-empty >/dev/null)
+  # поломка, которая не изменила ни одного файла (код ушёл из-под sed), ничего не проверяет: это провал самопроверки, а не «зелёный сторож»
+  if [ "$want" = red ] && [ -z "$(cd "$WT" && git diff --name-only selftest-base HEAD)" ]; then
+    echo "  SELFTEST: $name — поломка не легла (sed не нашёл код), сторож не проверен"; fail=1
+    (cd "$WT" && git reset -q --hard selftest-base); return; fi
   (cd "$WT" && BASE_REF=selftest-base bash "$ROOT/tools/checks/$step" >/dev/null 2>&1); rc=$?
   (cd "$WT" && git reset -q --hard selftest-base 2>/dev/null || git reset -q --hard origin/selftest-base)
   got=green; [ $rc -ne 0 ] && got=red
@@ -41,7 +45,7 @@ ONLY=L030 case_ "test_L030: признак воронки в последний 
 ONLY=L012 case_ "test_L012: потолок мутаций" 50_zaplyv.sh red "sed -i 's/\"gene_every\": 5/\"gene_every\": 999/' $Z/data.json"
 ONLY=L013 case_ "test_L013: опасность у самого старта" 50_zaplyv.sh red "sed -i 's/const safe = far < c.safe_chunks;/const safe = false;/' $Z/sim.js"
 ONLY=L014 case_ "test_L014: запятая не рождается в мире" 50_zaplyv.sh red "sed -i 's/ this.bdellos.push({ ...pt()/ 0 \&\& this.bdellos.push({ ...pt()/' $Z/sim.js"
-ONLY=L016 case_ "test_L016: токсин снова бьёт не родню" 50_zaplyv.sh red "sed -i 's/if (q.strain \&\& !q.gone/if (!q.gone/' $Z/sim.js"
+ONLY=L016 case_ "test_L016: токсин снова бьёт не родню" 50_zaplyv.sh red "sed -i 's/dv.anketa(dv.klyuch(q)).rodnya \&\& !q.gone/!q.gone/' $Z/sim.js"
 ONLY=L019 case_ "test_L019: существо без места в Альманахе" 50_zaplyv.sh red "python3 -c \"import json;p='$Z/almanah.json';d=json.load(open(p));d['items'].pop('amoeba');json.dump(d,open(p,'w'))\""
 case_ "test_L017: невидимый слой поверх кнопок «Заплыва»" 52_zaplyv_tap.sh red "sed -i 's|<div id=\"note\"|<div style=\"position:fixed;inset:0;z-index:99\"></div>&|' proby/zaplyv/index.html"
 case_ "test_L017: флажок молчит после касания" 52_zaplyv_tap.sh red "sed -i 's|n.classList.add(.on.);|/* нет отклика */|' proby/zaplyv/main.js"
@@ -49,7 +53,7 @@ ONLY=L043 case_ "test_L043: опасный встречается молча" 52
 ONLY=L046 case_ "test_L046: слизь снова мутной пеленой" 52_zaplyv_tap.sh red "sed -i 's/\"core\": 0.55, \"core_a\": 0.02/\"core\": 1.2, \"core_a\": 0.06/' $Z/data.json"
 ONLY=L042 case_ "test_L042: вирус сел молча" 52_zaplyv_tap.sh red "sed -i \"s/tell('stick', 'Сел вирус! Резко развернись — стряхнёшь, пока не впрыснул');//\" $Z/main.js"
 ONLY=L044 case_ "test_L044: Альманах молчит, что цвета — метки" 52_zaplyv_tap.sh red "sed -i 's/\$(.knote.).hidden = !S.note;/\$(\"knote\").hidden = true;/' $Z/almanah.js"
-ONLY=L050 case_ "test_L050: деление снова рывком (vid.birth не вызван)" 52_zaplyv_tap.sh red "sed -i 's/vid.birth(a, time, world.me)/({ d: [0, 0], pinch: 0 })/' $Z/main.js"
+ONLY=L050 case_ "test_L050: деление снова рывком (vid.birth не вызван)" 52_zaplyv_tap.sh red "sed -i 's/vid.birth(a, time, world.me,/(() => ({ d: [0, 0], pinch: 0 }))(a, time, world.me,/' $Z/main.js"
 ONLY=L045 case_ "test_L045: вирус снова слетает от любого поворота" 50_zaplyv.sh red "sed -i 's/ \&\& c.inject - g.t < c.phage_shake//' $Z/sim.js"
 ONLY=L052 case_ "test_L052: кадр снова не в полную плотность" 52_zaplyv_tap.sh red "sed -i 's/\"dpr_full\": 3,/\"dpr_full\": 2.5,/' $Z/data.json"
 ONLY=L021 case_ "test_L021: значки генов пропали" 52_zaplyv_tap.sh red "sed -i 's/^function icon(g) {/function icon(g) { return String();/' $Z/main.js"
