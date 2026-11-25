@@ -818,6 +818,12 @@ check('test_L032 (прогон 0.54, О22 повтор): уснула среди
     if (t > cfg.spore + cfg.spore_max + 1) return 'спала ' + t.toFixed(0) + ' с — дольше обещанного'; }
   console.log('    паспорт: спала среди охотников, с —', out.join(' '));
 });
+check('test_L049 (прогон игроками, круг 6: «после полутора минут роста нет, всегда четыре клетки»): сытая колония сама делится дальше четырёх, до me_max', () => {
+  const w = new World(cfg, 601); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = [];
+  let t = 0; while (t < 40 && w.me.length < cfg.me_max) { if (w.choice.length) w.pick(w.choice[0]); for (const a of w.me) a.m = Math.max(a.m, w.split()); w.step(1 / 30, null); t += 1 / 30; }
+  console.log('    паспорт: сытая колония за', t.toFixed(0), 'с — клеток', w.me.length, 'из', cfg.me_max, '| уплыли', w.away.length);
+  if (w.me.length < cfg.me_max) return `колония застряла на ${w.me.length} клетках: само-деление отправляет дочек прочь раньше me_max`;
+});
 check('test_L033 (прогон 0.54, О33: «Убери палец, и клетка сама поплывёт к ближайшей еде» — стояли 11 с): с «Чует еду» без пальца клетка сама доплывает до куска', () => {
   const go = sense => { const w = new World(cfg, 600); for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'bdellos', 'crumbs', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = []; w.tidy = 1e9;
     const a = w.me[0]; w.genes.sense = sense; w.food = [{ x: a.x + 110, y: a.y - 60, vx: 0, vy: 0, s: 1 }]; const e0 = w.stats.eaten; let t = 0;
