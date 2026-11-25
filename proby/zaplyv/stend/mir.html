@@ -24,7 +24,7 @@ const tex = new THREE.DataTexture(new Uint8Array(P.nx * P.ny), P.nx, P.ny, THREE
 const U = { eda: { value: tex }, okno: { value: new THREE.Vector4() }, t: { value: 0 } };
 const bg = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.ShaderMaterial({ depthTest: false, side: THREE.DoubleSide, uniforms: U,
   vertexShader: 'varying vec2 v; void main(){ v = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-  fragmentShader: 'uniform sampler2D eda; uniform vec4 okno; uniform float t; varying vec2 v; void main(){ vec2 m = okno.xy + v * okno.zw; float e = texture2D(eda, m).r; float d = length(v - 0.5); vec3 c = mix(vec3(0.012, 0.05, 0.085), vec3(0.03, 0.13, 0.17), v.y) * (1.0 - 0.5 * smoothstep(0.3, 0.8, d)); c += vec3(0.20, 0.15, 0.05) * smoothstep(0.15, 1.0, e); gl_FragColor = vec4(c, 1.0); }' }));
+  fragmentShader: 'uniform sampler2D eda; uniform vec4 okno; uniform float t; varying vec2 v; void main(){ vec2 m = okno.xy + v * okno.zw; float e = texture2D(eda, m).r; float d = length(v - 0.5); vec3 c = mix(vec3(0.012, 0.05, 0.085), vec3(0.03, 0.13, 0.17), v.y) * (1.0 - 0.5 * smoothstep(0.3, 0.8, d)); c += vec3(0.20, 0.15, 0.05) * smoothstep(0.03, 0.5, e); gl_FragColor = vec4(c, 1.0); }' }));
 bg.position.set(W / 2, H / 2, 0); bg.scale.y = -1; back.add(bg);
 let cx = +(q.get('x') || M.W / 2), cy = +(q.get('y') || M.H / 2), time = 0, kadr = 0; const p = document.getElementById('p');
 window.mir = M; window.stendGL = gl; window.mirShag = (n, dt) => { for (let i = 0; i < n; i++) shag(M, dt); };
@@ -33,7 +33,7 @@ window.stend = dt => { time += dt; for (let i = 0; i < skor; i++) shag(M, dt);
   const vw = W / z, vh = H / z, x0 = Math.max(0, Math.min(M.W - vw, cx - vw / 2)), y0 = Math.max(0, Math.min(M.H - vh, cy - vh / 2)); let vidno = 0;
   bodies.begin();
   for (const s of M.sv) { const ob = oblik(M, s), w = ob.tolshchina * z, sx = (s.x - x0) * z, sy = (s.y - y0) * z, kr = w * 4; if (sx < -kr || sx > W + kr || sy < -kr || sy > H + kr) continue; vidno++;
-    sobrat(ob.zapis, { x: sx, y: sy, a: s.a, tolshchina: w, z, time, id: s.id, beg: (s.vb = (s.vb ?? s.plyvet) + (s.plyvet - (s.vb ?? s.plyvet)) * Math.min(1, dt * 4)) }, bodies); }
+    sobrat(ob.zapis, { x: sx, y: sy, a: s.a, tolshchina: w, z, time, id: s.id, vetki: PR ? PR.kp.vetki(ob.zapis) : undefined, beg: (s.vb = (s.vb ?? s.plyvet) + (s.plyvet - (s.vb ?? s.plyvet)) * Math.min(1, dt * 4)) }, bodies); }
   if (SPOSOB) (PR ??= new Proigryvatel(W, H, SPOSOB)).vMire(dt, M, oblik, x0, y0, z, W, H, bodies, za);
   bodies.end(time);
   if (kadr++ % 6 === 0) { const d = tex.image.data; for (let i = 0; i < d.length; i++) d[i] = Math.min(255, P.C[i] * 255); tex.needsUpdate = true; }

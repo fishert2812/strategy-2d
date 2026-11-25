@@ -103,6 +103,10 @@ ONLY=L056 case_ "test_L056: чутьё без детрита и водоросл
 ONLY=L047 case_ "test_L047: кисть без запаса" 52_zaplyv_tap.sh red "sed -i 's/\"kist\": { \"glow\": 20000, \"ink\": 20000 }/\"kist\": { \"glow\": 3000, \"ink\": 3000 }/' $Z/data.json"
 # L062: кольцо зоны снова бледное и без подложки — в людном кадре его не видно
 ONLY=L062 case_ "test_L062: кольцо зоны бледное" 52_zaplyv_tap.sh red "sed -i 's/\"far\": 0.45, \"near\": 0.6/\"far\": 0.12, \"near\": 0.3/; s/\"podlozhka_a\": 0.3/\"podlozhka_a\": 0/' $Z/data.json"
+# L063: круг за краем без стрелки; сжатый колокольчик теряет круг; венец снова бусами
+ONLY=L063 case_ "test_L063: круг за краем без стрелки" 52_zaplyv_tap.sh red "sed -i 's/if (!tiho \&\& gap < Zc.znak \* z)/if (false)/' $Z/main.js"
+ONLY=L063 case_ "test_L063: сжатый колокольчик без круга" 52_zaplyv_tap.sh red "sed -i 's/world.bells.filter(v => v.shut > 0).map/[].map/' $Z/main.js"
+ONLY=L063 case_ "test_L063: венец бусами" 52_zaplyv_tap.sh red "sed -i 's/if (bodies.seg) { probe.venec/if (false) { probe.venec/' $Z/main.js"
 # L047: след за клеткой снова бусами
 ONLY=L047 case_ "test_L047: след бусами" 53_zaplyv_vid.sh red "sed -i 's/wake.put(x, y, (5 + 9 \\* p.t)/wake.put(x, y, (1.1 + 9 * p.t)/' $Z/main.js"
 # L057: колония снова делится рывком, проходит сквозь себя и расплывается

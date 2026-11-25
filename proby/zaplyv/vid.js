@@ -310,8 +310,10 @@ export function roti(c) {
 export function bell(c) {
   const { x, y, dir, Ls, r, shut, time, id, z, ink } = c, B = V.bell, dx = Math.cos(dir), dy = Math.sin(dir);
   const coil = shut > 0 ? (shut > B.unfold ? 1 : shut / B.unfold) : 0, k = coil * coil * (3 - 2 * coil), len = Ls * (1 - (1 - B.short) * k); // плавно: быстрее в начале развёртки
+  const T = c.bodies || globalThis.zaplyvBodies; let lx = x, ly = y; // стебель — сплошная трубка звеньями встык (О115, L047), без кисти точек
   for (let i = 0; i <= B.dots; i++) { const f = i / B.dots, amp = r * B.amp * k + 2 * z * (1 - k), ph = f * B.turns * 6.283 * k + f * 5 + time * (1 - k), o = Math.sin(ph) * amp, u = len * f - Math.cos(ph) * amp * 0.35 * k; // спираль: виток на виток
-    ink.put(x + dx * u - dy * o, y + dy * u + dx * o, (0.9 + 0.5 * k) * z + 0.4, ...B.col, 0.6 + 0.3 * k); }
+    const px = x + dx * u - dy * o, py = y + dy * u + dx * o, rr = (0.9 + 0.5 * k) * z + 0.4;
+    if (T && i) T.seg(lx, ly, px, py, rr * 0.5, B.col.map(v => v * (0.6 + 0.3 * k)), 1); else if (!T) ink.put(px, py, rr, ...B.col, 0.6 + 0.3 * k); lx = px; ly = py; } // звенья непрозрачны: полупрозрачные концы внахлёст дают бусы
   return [x + dx * len, y + dy * len, 1 - k];
 }
 

@@ -93,14 +93,17 @@ export function syel(f, q) { const k = q.pole, list = f.vid.get(k); if (k === un
 // Взять растворённый сахар из клетки (едок поля: рот, всасывание оболочкой). Возвращает сколько дали.
 export function vzyat_sahar(f, x, y, m) { const k = kletka(f, x, y); if (k < 0) return 0; const s = Math.max(0, Math.min(m, f.S[k])); f.S[k] -= s; return s; }
 // Пролито в воду (сок лопнувшей клетки, разлитое): масса сразу в сахар клетки.
+export function vzyat_kuski(f, x, y, m) { const k = kletka(f, x, y); if (k < 0) return 0; const s = Math.max(0, Math.min(m, f.K[k])); f.K[k] -= s; return s; } // кто ест куски (сенная, инфузория), берёт их массу; видимые куски клетки сверяются с K
 export function prolit(f, x, y, s) { const k = kletka(f, x, y); if (k >= 0) f.S[k] = Math.min(f.p.sahar.max_, f.S[k] + s); }
 
 // Что в точке: всё в долях 0…1, кроме кусков (масса в клетке).
 export function tut(f, x, y, t = f.t) { const k = kletka(f, x, y); if (k < 0) return null; return { svet: svet(f, k, t), kislorod: f.O[k], sahar: f.S[k] / f.p.sahar.max_, teplo: teplo(f, x, t), vodorosli: f.A[k], kuski: f.K[k], il: !!f.il[k] }; }
 // Пригодность места для вида: «любит» из анкеты vidy.json — диапазоны { svet: [от, до], kislorod, sahar, teplo } в долях и il: true/false.
 // Внутри диапазона 1, снаружи спадает колоколом шириной lyubit_shirina. Произведение по всем условиям.
-export function prigodnost(f, x, y, lyubit, t = f.t) {
-  const v = tut(f, x, y, t); if (!v) return 0; const w = f.p.lyubit_shirina; let h = 1;
+export const prigodnost = (f, x, y, lyubit, t = f.t) => godnost(lyubit, tut(f, x, y, t), f.p.lyubit_shirina);
+// Пригодность по снятой пробе воды v = tut(...): одна функция на оба мира (сводный mir_chislo.js и поштучный mir_zhizn.js).
+export function godnost(lyubit, v, w = P.lyubit_shirina) {
+  if (!v || !lyubit) return v ? 1 : 0; let h = 1;
   for (const [key, r] of Object.entries(lyubit)) { if (key === 'il') continue; const [lo, hi] = r, d = v[key] < lo ? lo - v[key] : v[key] > hi ? v[key] - hi : 0; h *= Math.exp(-((d / w) ** 2)); }
   if (lyubit.il !== undefined && lyubit.il !== v.il) h *= 0.1;
   return h;

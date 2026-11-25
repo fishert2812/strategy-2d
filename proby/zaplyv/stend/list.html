@@ -44,7 +44,7 @@ const KOL = q.get('vidy') ? q.get('vidy').split(',').length : +(q.get('n') || 16
 let time = 0;
 const VETKI_STENDA = q.get('vetki') ? q.get('vetki').split(';').map(v => { const [t, dlina, r0, r1, izgib] = v.split(',').map(Number); return { t, dlina, r: [r0 || 0.4, r1 || 0.3], izgib: izgib || 0 }; }) : undefined; // ?vetki=t,dlina,r0,r1,izgib;…
 window.stend = dt => { time += dt; bodies.begin();
-  zap.forEach((zp, i) => sobrat_gruppu(zp, { x: W * (i % stolb + 0.55) / stolb, y: H * (Math.floor(i / stolb) + 0.5) / ryad, a: q.get('vidy') ? -0.35 : ugly[i] - 0.3, tolshchina: 8.5 * z, z, time, id: i + 3, vetki: VETKI_STENDA, vypuklosti: q.get('vyp') ? q.get('vyp').split(';').map(v => { const [t, shirina, vysota] = v.split(',').map(Number); return { t, shirina, vysota }; }) : undefined, beg: +(q.get('beg') ?? (i % 3 === 0 ? 1 : 0)) }, bodies));
+  zap.forEach((zp, i) => sobrat_gruppu(zp, { x: W * (i % stolb + 0.55) / stolb, y: H * (Math.floor(i / stolb) + 0.5) / ryad, a: q.get('vidy') ? -0.35 : ugly[i] - 0.3, tolshchina: 8.5 * z, z, time, id: i + 3, vetki: PR ? PR.kp.vetki(zp) : VETKI_STENDA, vypuklosti: q.get('vyp') ? q.get('vyp').split(';').map(v => { const [t, shirina, vysota] = v.split(',').map(Number); return { t, shirina, vysota }; }) : undefined, beg: +(q.get('beg') ?? (i % 3 === 0 ? 1 : 0)) }, bodies));
   if (SPOSOB) (PR ??= new Proigryvatel(W, H, SPOSOB)).kadr(dt, zap.map((zp, i) => ({ zapis: zp, poza: { x: W * (i % stolb + 0.55) / stolb, y: H * (Math.floor(i / stolb) + 0.5) / ryad, a: q.get('vidy') ? -0.35 : ugly[i] - 0.3, tolshchina: 8.5 * z } })), bodies);
   bodies.end(time); glow.done(); ink.done(); gl.clear(); gl.render(back, cam); gl.render(bodies.scene, bodies.cam); gl.render(scene, cam); if (PR) PR.render(gl); };
 window.zapisi = zap;
