@@ -21,6 +21,7 @@ const BROKEN = {
   'нет пути назад': '#gback { display: none !important; }',
   'главное сверху': '#gbar { order: -1; margin-top: 0 !important; }',
   'нет заголовка': '#gtitle { display: none !important; }',
+  'связи не строками': '.kl { width: 120px !important; }',
 };
 async function walk(css) {
   const p = await (await b.newContext({ ...pw.devices['iPhone 13'] })).newPage();
@@ -59,6 +60,18 @@ async function walk(css) {
     for (const [s, name] of Object.entries(hub.nav)) {
       if (!(await tap(s))) { say(false, `test_L037: раздела «${name}» не видно`); continue; } if (name === 'Альманах') await p.waitForTimeout(800);
       const S = SCREENS.find(x => x.name === name); await check(S);
+      if (name === 'Альманах') { // карточка → связь → назад по шагам: прошлая карточка, полка, пауза; подпись «‹ куда» говорит, куда
+        const lbl = async () => (await box('#gback'))?.text || '';
+        if (await tap('#shelf .kc[data-k=me]')) { say(await lbl() === '‹ Альманах', `test_L037: на карточке «назад» — «‹ Альманах» (${await lbl()})`); await check({ ...S, name: 'Карточка Альманаха', to: 'Альманах' });
+          const link = await p.evaluate(() => [...document.querySelectorAll('#klinks .kl')].map(e => ({ r: e.getBoundingClientRect(), no: e.classList.contains('no') })).find(e => !e.no && e.r.width > 0)); // связь — строкой во всю ширину
+          say(link && link.r.width >= 300 && link.r.height >= 56, 'test_L037: связи «кто ест / кого ест» на карточке — строками, по ним можно перейти');
+          if (link) { await p.evaluate(() => { const e = [...document.querySelectorAll('#klinks .kl')].find(e => !e.classList.contains('no')); e.scrollIntoView({ block: 'center' }); }); await p.waitForTimeout(200);
+            const lr = await p.evaluate(() => { const r = [...document.querySelectorAll('#klinks .kl')].find(e => !e.classList.contains('no')).getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; });
+            await p.touchscreen.tap(lr[0], lr[1]); await p.waitForTimeout(500);
+            say(/^‹ Ты/.test(await lbl()), `test_L037: после перехода по связи «назад» ведёт на прошлую карточку (${await lbl()})`);
+            await tap('#gback'); say(await p.evaluate(() => document.getElementById('kname').textContent.startsWith('Ты')), 'test_L037: «‹ Ты…» вернул на карточку, откуда пришёл'); }
+          await tap('#gback'); say(await p.evaluate(() => !document.getElementById('kshelf').hidden) && await lbl() === '‹ Пауза', 'test_L037: с карточки «‹ Альманах» — на полку, дальше «‹ Пауза»'); }
+      }
       say((await tap(S.back)) && await title() === 'Пауза', `test_L037: из «${name}» «‹ Пауза» возвращает на первый уровень`);
     }
     await tap('#phub [data-t=genome]'); const t0 = await p.evaluate(() => zaplyvWorld().stats.time);
