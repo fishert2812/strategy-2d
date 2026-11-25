@@ -13,7 +13,7 @@ const SCREENS = [
   { name: 'Пауза', level: 1, title: 'Пауза', primary: '#gon', exit: 'game', nav: { '#phub [data-t=genome]': 'Геном', '#phub [data-t=alm]': 'Альманах', '#phub [data-t=map]': 'Карта' }, actions: ['#pnew', '#gmenu'], service: ['#psound', '#gflag'] },
   { name: 'Геном', level: 2, title: 'Геном', primary: '#gon', back: '#gback', to: 'Пауза', service: ['#gflag'] },
   { name: 'Альманах', level: 2, title: 'Альманах', primary: '#gon', back: '#gback', to: 'Пауза', service: ['#gflag'] },
-  { name: 'Режимы', level: 2, tsel: '#mtop h1', title: 'Режимы', primary: '#mgo', back: '#mback', to: 'Пауза', nav: { '#malm': 'Альманах' }, actions: ['#mnew'], service: ['#mquiet'] },
+  { name: 'Режимы', level: 2, tsel: '#mtop h1', title: 'Режимы', primary: '#mgo', back: '#mback', to: 'Пауза', nav: { '#malm': 'Альманах' }, actions: ['#mnew'], service: ['#mquiet', '#mflag'] },
   { name: 'Карта', level: 2, title: 'Карта', primary: '#gon', back: '#gback', to: 'Пауза', service: ['#gflag'] },
 ];
 // Нарочно сломанные меню для самопроверки: каждое обязано дать красное.
@@ -54,8 +54,8 @@ async function walk(css) {
     if (S.back) { const bk = await box(S.back); say(bk && bk.y + bk.h / 2 > bk.H * 0.75 && /‹|назад/i.test(bk.text) && bk.text.includes(S.to), `test_L037: «${S.name}» — «‹ ${S.to}» внизу под пальцем, подпись говорит, куда ведёт`); }
     const navR = []; for (const s of Object.keys(S.nav || {})) { const r = await box(s); navR.push(r); say(r && !pill(r) && r.w >= r.W * 0.8 && r.h >= 56, `test_L037: «${S.name}» — раздел «${S.nav[s]}» строкой во всю ширину, не чипом`); }
     for (const s of S.actions || []) { const r = await box(s); say(r && navR.every(n => n && r.y > n.y + n.h) && r.y < pr.y, `test_L037: «${S.name}» — действие «${r?.text || s}» отделено от справочника и ниже его, у главного`); }
-    for (const s of S.service || []) { const r = await box(s); say(r && r.h < pr.h && (s === '#gflag' || !navR.length || r.y + r.h <= Math.min(...navR.map(n => n.y)) || r.y >= Math.max(...navR.map(n => n.y + n.h))), `test_L037: «${S.name}» — служебное «${r?.text || s}» мельче главного и не среди разделов`); }
-    const chips = all.filter(r => r.h < 52 && r.w < r.W * 0.6 && r.id !== 'gflag');
+    for (const s of S.service || []) { const r = await box(s); say(r && r.h < pr.h && (s === '#gflag' || s === '#mflag' || !navR.length || r.y + r.h <= Math.min(...navR.map(n => n.y)) || r.y >= Math.max(...navR.map(n => n.y + n.h))), `test_L037: «${S.name}» — служебное «${r?.text || s}» мельче главного и не среди разделов`); }
+    const chips = all.filter(r => r.h < 52 && r.w < r.W * 0.6 && r.id !== 'gflag' && r.id !== 'mflag');
     say(chips.length < 3, `test_L037: «${S.name}» — экран не из одних чипов (мелких кнопок ${chips.length})`);
   }
   // Из игры: пауза → каждый раздел → назад → продолжить. Глубина не больше двух касаний до игры.
@@ -98,9 +98,12 @@ async function walk(css) {
     await p.waitForTimeout(400); say(await p.evaluate(t => zaplyvWorld().stats.time > t, t0), 'test_L037: после «Продолжить» тот же заплыв идёт дальше');
   } else say(false, 'test_L037: кнопки паузы не видно');
   // С экрана гибели «Кто это · … в Альманахе» — сразу карточка убийцы, «‹ Альманах» внизу ведёт на полку (прогон 0.68: вела в общий список)
+  if (await tap('#pause') && await tap('#gmenu')) { // в начале режима одной строкой — о чём он (отметка Романа 11: «ну мутации и что?»)
+    await p.evaluate(() => document.querySelector('#mscene [data-m=mut]').scrollIntoView({ block: 'center' })); await tap('#mscene [data-m=mut] img'); await tap('#mgo'); await tap('#mgo'); await p.waitForTimeout(1200);
+    say(await p.evaluate(() => zaplyvWorld().mode === 'mut' && /^Мутации: .{20,}/.test(document.getElementById('toast').textContent)), 'test_L037: в начале «Мутаций» строка о том, чем режим отличается'); }
   await p.setViewportSize({ width: 393, height: 659 }); // видимая часть Safari на iPhone 16 (О80)
-  await p.evaluate(() => { const w = zaplyvWorld(); w.genes.spore = false; w.stats.killer = 'amoeba'; w.me.length = 0; }); await p.waitForTimeout(1500);
-  say(await p.evaluate(() => { const s = document.getElementById('path').getBoundingClientRect(), b = document.getElementById('ebtns').getBoundingClientRect(); return s.bottom <= b.top + 2; }), 'test_L037: на экране гибели «Твой путь» виден целиком над кнопками на 393×659, без прокрутки (прогоны 0.76, 0.81)');
+  await p.evaluate(() => { const w = zaplyvWorld(); for (const g of ['lock', 'shield', 'door', 'steady', 'tail', 'lean']) w.genes[g] = 1; w.genes.spore = false; Object.assign(w.stats.lost, { amoeba: 3, rotifer: 2, slipper: 1, phage: 4 }); w.stats.killer = 'amoeba'; w.me.length = 0; }); await p.waitForTimeout(1500); // длинный итог: шесть мутаций и четыре строки «Отняли» (П2)
+  say(await p.evaluate(() => { const s = document.getElementById('path').getBoundingClientRect(), b = document.getElementById('ebtns').getBoundingClientRect(); const a = document.getElementById('again').getBoundingClientRect(), st = document.getElementById('stats'); const last = st.getClientRects(); const lr = st.getBoundingClientRect(); const hit = document.elementFromPoint(lr.left + 20, lr.bottom - 6); return /Отняли/.test(st.textContent) && lr.bottom <= a.top && s.bottom <= innerHeight && hit && st.contains(hit); }), 'test_L037: на экране гибели «Твой путь» виден целиком над кнопками на 393×659, без прокрутки (прогоны 0.76, 0.81)');
   if (await tap('#cab')) { await p.waitForTimeout(500); say(await p.evaluate(() => !/Запись |в книге игры/.test(document.getElementById('kcard').textContent)), 'test_L037: на карточке Альманаха нет служебных меток книги («Запись С3 в книге игры», прогон 0.74)'); say(await p.evaluate(() => !document.getElementById('kcard').hidden && document.getElementById('kname').textContent === 'Амёба') && (await box('#back'))?.text === '‹ Альманах', 'test_L037: с экрана гибели Альманах открывает карточку того, кто съел, «‹ Альманах» — на полку'); }
   else say(false, 'test_L037: на экране гибели нет кнопки Альманаха');
   say(!errs.length, 'ошибок страницы нет' + (errs.length ? ': ' + errs.join('; ') : ''));

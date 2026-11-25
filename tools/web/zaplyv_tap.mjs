@@ -121,7 +121,10 @@ if (await tap('#pause', 'пауза')) say(await on('genome') && (await p.textCo
 if (await tap('#phub [data-t=genome]', 'строка «Геном» в паузе')) say(await seen('#ring'), 'строка «Геном» открывает кольцо');
 if (await tap('#ring .slot', 'ген на кольце')) say(await p.evaluate(() => !!document.querySelector('#gcard h2')), 'касание гена открывает карточку');
 m = await marks();
-if (await tap('#gflag', 'флажок в геноме')) say(await noted(m), 'флажок в геноме: отметка и надпись видна');
+if (await tap('#gflag', 'флажок в геноме')) { // флажок в меню ставится на место (отметка Романа 8, 25.11: «В меню не могу поставить флажок перенести на проблему меню!»)
+  await tap('#gback', 'место для флажка — кнопка «‹ Пауза»');
+  say(await on('fsheet') && await p.evaluate(() => /Геном · «‹ Пауза»/.test(document.getElementById('fwhere').textContent) && document.getElementById('gtitle').textContent === 'Геном') && await on('genome'), 'флажок в меню: касание места не нажимает его, лист «Что здесь не так?» называет экран и место');
+  await p.fill('#ftext', 'проба'); if (await tap('#fsave', '«Записать»')) say(await p.evaluate(m => { const a = JSON.parse(localStorage.getItem('zaplyv.marks') || '[]'); return a.length === m + 1 && /меню: Геном · место: «/.test(a[m].text); }, m), 'флажок в меню: отметка записана с экраном и местом'); }
 if (await tap('#gback', '«‹ Пауза» из генома') && await tap('#phub [data-t=alm]', 'строка «Альманах»')) say(await on('cabinet'), 'Альманах открылся из паузы');
 // test_L019: у каждой карточки полки — снимок живой модели (картинка не пустая), разделы и карточка отвечают пальцу
 await p.waitForFunction(() => { const a = [...document.querySelectorAll('#shelf .kc img')]; return a.length && a.every(i => i.naturalWidth > 100 && i.src.length > 5000); }, null, { timeout: 6000 }).catch(() => {}); // снимки встают по одному: ждём их, а не время
