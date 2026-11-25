@@ -347,6 +347,14 @@ check('test_vid_plavno: сторож движения — амёба от кад
     if (rods.length !== 1) return 'добыча не видна на ' + t.toFixed(2) + ' с'; if (last && Math.hypot(rods[0][0] - last[0], rods[0][1] - last[1]) > 3) return 'добыча прыгает за кадр на ' + t.toFixed(2) + ' с'; last = rods[0]; fx.step(1 / 30); }
   return '';
 });
+check('test_vid_kolovratka: венец коловратки — стеклянные реснички-волоски по краю двух лопастей, по ним бежит волна; зубцы и челюсти — конусы, кишка — трубка; точек нет, кроме мягких пятен диска (биолог О87: «колёса нарисованы точками»)', () => {
+  const sp = [], sg = [], dots = [], br = { put: (...q) => dots.push(q) }, B = { spine: (x, y, a, len, w) => { if (!(len > 0 && w > 0)) sp.bad = 1; sp.push([x, y, a, len]); }, seg: (...q) => sg.push(q) };
+  const run = time => { sp.length = 0; sg.length = 0; dots.length = 0; vid.roti({ tx: 0, ty: 0, vx: 1, vy: 0, L: 120, w: 20, pw: 1, time, id: 3, z: 1, glow: br, ink: br, bite: 0, bodies: B }); return sp.map(q => q[3]); };
+  const a = run(1), R = vid.V.roti; if (sp.bad) return 'пустая ресничка'; if (sp.length < 2 * R.cilia + 2 * R.teeth + 2) return 'ресничек, зубцов и челюстей меньше, чем в данных: ' + sp.length;
+  if (sg.length < R.gut - 1) return 'кишка не трубкой'; if (dots.length > 3) return 'венец всё ещё точками: ' + dots.length;
+  const b = run(1.05); if (!a.slice(0, R.cilia).some((v, i) => Math.abs(v - b[i]) > 0.3)) return 'по венцу не бежит волна';
+  return '';
+});
 check('test_vid_niti_trubki: в игре жгутики и ворсинки своей клетки — сплошные стеклянные трубки встык, без точек-бус (Роман: пунктир — халтура)', () => {
   const segs = [], B = { seg: (x0, y0, x1, y1, r) => segs.push([x0, y0, x1, y1, r]) }, fl = ',' + cfgD.flag.color.join() + ',';
   globalThis.zaplyvBodies = B; let pts; try { pts = []; const brush = { put: (...q) => pts.push(q.map(v => Math.round(v * 100) / 100).join()) };

@@ -274,6 +274,7 @@ function amoeba3d(c, B, R, body, edge, eat) { // собрана из часте�
 // что колёса крутятся; по переднему краю панциря зубцы; сквозь прозрачное тело видны тёмная кишка и челюсти-мастакс, которые щёлкают.
 export function roti(c) {
   const { tx, ty, vx, vy, L, w, pw, time, id, z, glow, ink, bite } = c, R = V.roti, P = (u, o) => [tx + vx * u - vy * o, ty + vy * u + vx * o];
+  const B = c.bodies || globalThis.zaplyvBodies; if (B && B.spine && B.seg) return roti3d(c, B, R, P); // объёмно: реснички венца — стеклянные волоски, зубцы и челюсти — конусы, кишка — трубка (биолог О87: «колёса точками»)
   for (let i = 0; i < R.gut; i++) { const f = i / (R.gut - 1), [x, y] = P(L * (0.1 - 0.3 * f), Math.sin(f * 7 + id) * w * 0.12); ink.put(x, y, w * 0.18, ...R.gut_col, 0.35); } // кишка
   const speed = R.beat * (1 + R.beat_pw * pw), hu = L * 0.22;
   for (const s of [-1, 1]) { const cu = hu, co = s * w * 0.55, Rr = w * R.lobe; // венец: полукруг вперёд-наружу, по ресничкам бежит волна
@@ -287,6 +288,22 @@ export function roti(c) {
   for (const s of [-1, 1]) for (let j = 0; j <= 6; j++) { const f = j / 6, ang = s * (0.25 + 0.6 * open) * (1 - f * 0.3), u = ju + Math.cos(ang) * w * 0.35 * f, o = Math.sin(ang) * w * 0.35 * f + s * w * 0.04 * f * f, [x, y] = P(u, o);
     ink.put(x, y, (1.6 - f * 0.8) * z + 0.4, ...R.jaw, 0.85); }
   if (open < 0.12) { const [x, y] = P(ju + w * 0.3, 0); glow.put(x, y, w * 0.35, 1, 0.95, 0.8, 0.5 * (1 - open / 0.12)); } // щелчок
+}
+function roti3d(c, B, R, P) {
+  const { L, w, pw, time, id, z, glow, bite } = c, ang = (a, b) => Math.atan2(b[1] - a[1], b[0] - a[0]);
+  let l = null; for (let i = 0; i < R.gut; i++) { const f = i / (R.gut - 1), q = P(L * (0.1 - 0.3 * f), Math.sin(f * 7 + id) * w * 0.12); if (l) B.seg(l[0], l[1], q[0], q[1], w * 0.08, R.gut_col, 0.85); l = q; } // кишка — тёмная трубка
+  const speed = R.beat * (1 + R.beat_pw * pw), hu = L * 0.22;
+  for (const s of [-1, 1]) { const cu = hu, co = s * w * 0.55, Rr = w * R.lobe, c0 = P(cu, co); // венец: по краю лопасти стоят реснички, волна гибки бежит по кругу — кажется, что колесо крутится
+    glow.put(c0[0], c0[1], Rr * 2.2, ...R.cil_col, R.disc * (0.6 + 0.4 * pw)); // мутный диск лопасти — одно мягкое пятно
+    for (let k = 0; k < R.cilia; k++) { const a = -Math.PI / 2 * s * 0.2 + (k / (R.cilia - 1) - 0.5) * Math.PI * 1.25, ca = Math.cos(a), sa = Math.sin(a) * s;
+      const wave = 0.5 + 0.5 * Math.sin(k * R.wave - s * time * speed), len = Rr * (R.len0 + R.len1 * wave), b0 = P(cu + ca * Rr, co + sa * Rr), b1 = P(cu + ca * (Rr + 1), co + sa * (Rr + 1));
+      B.spine(b0[0], b0[1], ang(b0, b1), len, Math.max(0.35 * z, Rr * 0.05), R.cil_col, [1, 1, 1], id * 31 + k + s * 100, (wave - 0.5) * len * 0.8 * s, 0); } }
+  for (const s of [-1, 1]) for (let k = 0; k < R.teeth; k++) { const o = s * w * (0.8 + 0.18 * k), b = P(hu - w * 0.2, o), t = P(hu + w * 0.25, o + s * w * 0.12); // зубцы панциря — стеклянные конусы
+    B.spine(b[0], b[1], ang(b, t), Math.hypot(t[0] - b[0], t[1] - b[1]), w * 0.09, R.shell, [1, 1, 1], id * 7 + k + s * 50); }
+  const open = bite > 0 ? Math.max(0, 1 - bite / R.snap) : 0.5 + 0.5 * Math.sin(time * (3 + 5 * pw) + id), ju = L * 0.1; // челюсти-мастакс: две тёмные клешни, щёлк
+  for (const s of [-1, 1]) { const an = s * (0.25 + 0.6 * open), b = P(ju, 0), t = P(ju + Math.cos(an) * w * 0.35, Math.sin(an) * w * 0.35);
+    B.spine(b[0], b[1], ang(b, t), Math.hypot(t[0] - b[0], t[1] - b[1]), w * 0.1, R.jaw, [0.6, 0.45, 0.3], id + s, s * w * 0.04, 0); }
+  if (open < 0.12) { const [x, y] = P(ju + w * 0.3, 0); glow.put(x, y, w * 0.35, 1, 0.95, 0.8, 0.5 * (1 - open / 0.12)); } // щелчок — одна мягкая вспышка
 }
 // Колокольчик (сувойка) как в жизни (биолог, «Вид существ» №3; физика, п.5): испугался — стебель за один кадр сжимается в тугую спираль
 // и подтягивает бокал к опоре, потом за V.bell.unfold плавно распрямляется. Пока он свёрнут, венец не работает (main.js, sim.js).
