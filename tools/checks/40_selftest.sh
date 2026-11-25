@@ -32,6 +32,7 @@ case_ "доказывает несуществующий тест" 26_meaning.sh
 case_ "исправная новая версия" 26_meaning.sh green "$BUMP"' && sed -i "0,/^- \*\*/s//- **$m** (проба, PR #0): проба. Зачем игроку: проба. Доказывает: \`test_selftest_probe\`.\n&/" CHANGELOG.md && printf "extends RefCounted\nfunc test_selftest_probe() -> String:\n\treturn \"\"\n" > tests/test_selftest_probe.gd && git add -A'
 # «Заплыв»: на каждый урок L008–L016 возвращаем ошибку в игру — проверка с этим номером обязана покраснеть (ONLY — только она).
 Z=proby/zaplyv
+case_ "test.mjs: проверка выпала из деления на части" 50_zaplyv.sh red "sed -i \"s/|| 'c';/|| 'x';/\" $Z/test.mjs"
 ONLY=L008 case_ "test_L008: фаг снова гонится" 50_zaplyv.sh red "sed -i 's/(fx - g.vx)/(fx + (this.me[0] ? Math.sign(this.me[0].x - g.x) * 300 : 0) - g.vx)/' $Z/sim.js"
 ONLY=L009 case_ "test_L009: деление только касанием" 50_zaplyv.sh red "sed -i 's/\"auto_split\": 3,/\"auto_split\": 999,/' $Z/data.json"
 ONLY=L010 case_ "test_L010: еда без размера" 50_zaplyv.sh red "sed -i 's/const z = f.s || 1;/const z = 1;/' $Z/sim.js"
