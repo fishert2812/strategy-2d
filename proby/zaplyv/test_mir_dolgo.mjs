@@ -12,15 +12,17 @@ function prozhit(K, sd) { const M = sozdat('kaplya', sd, K), V = Object.keys(K.m
   for (let i = 0, t = 0; t < D.sekund; i++, t += 0.1) { shag(M, 0.1); nmax = Math.max(nmax, M.sv.length);
     if (t > D.sekund - D.okno && i % 50 === 0) { z++; const m = {}, n = {}; let s = 0; for (const q of M.sv) { const b = massa(q); m[q.vid] = (m[q.vid] || 0) + b; n[q.vid] = (n[q.vid] || 0) + 1; s += b; } for (const k of V) { dolya[k] += (m[k] || 0) / s / 1; nmin[k] = Math.min(nmin[k], n[k] || 0); } } }
   for (const k of V) dolya[k] /= z; return { M, V, dolya, nmin, nmax, zanos: M.schet.zaneslo / Math.max(1, M.schet.rodilos) }; }
+// «жив» — особей вида всё время не меньше доли начального населения, но не меньше osobey_ne_menshe (у инфузории в начале 4, у нашей 40)
+const porog = k => Math.max(D.osobey_ne_menshe, Math.floor(D.osobey_ot_nachala * MR.miry.kaplya.naselenie[k]));
 const sudit = r => { const pl = r.V.map(k => k + ' ' + (r.dolya[k] * 100).toFixed(0) + '%/' + r.nmin[k]).join(', ');
   const mx = r.V.reduce((a, k) => r.dolya[k] > r.dolya[a] ? k : a); if (r.dolya[mx] > D.dolya_max) return `${mx} забрал ${(r.dolya[mx] * 100).toFixed(0)}% массы капли (${pl})`;
-  for (const k of r.V) { if (r.nmin[k] < D.osobey_min) return `${k}: в какой-то миг осталось ${r.nmin[k]} особей (${pl})`; }
+  for (const k of r.V) { const mn = porog(k); if (r.nmin[k] < mn) return `${k}: в какой-то миг осталось ${r.nmin[k]} особей, а нужно не меньше ${mn} (${pl})`; }
   if (r.nmax >= MR.zhizn.predel) return 'число существ упёрлось в защитный предел ' + MR.zhizn.predel + ': число держит заглушка, а не еда';
   if (r.zanos > D.zanos_max) return `мир держится на заносе: ${(r.zanos * 100).toFixed(1)}% от рождённых`; };
 // время шага на D.na_sushchestv существ (шаг растёт с числом существ почти линейно, поэтому меряем на той капле, что есть, и приводим)
 const vremya = K => { const M = sozdat('kaplya', 1, K); for (let t = 0; t < 120; t += 0.1) shag(M, 0.1); const t0 = performance.now(); let n = 0, sv = 0; for (let t = 0; t < 60; t += 0.1, n++) { shag(M, 0.1); sv += M.sv.length; } sv /= n; return { ms: (performance.now() - t0) / n * D.na_sushchestv / sv, sv: Math.round(sv) }; };
 if (!process.env.MIR_DOLGO_SAMO) {
-  check(`test_mir_dolgo: полчаса без игрока — ни один вид не забирает больше ${D.dolya_max * 100}% живой массы капли, у каждого всё время не меньше ${D.osobey_min} особей, без заноса`, () => {
+  check(`test_mir_dolgo: полчаса без игрока — ни один вид не забирает больше ${D.dolya_max * 100}% живой массы капли, у каждого всё время не меньше ${D.osobey_ot_nachala * 100}% начального населения (не меньше ${D.osobey_ne_menshe}), без заноса`, () => {
     for (const sd of D.zerna) { const r = prozhit(MR, sd); console.log(`    паспорт: зерно ${sd}, через ${D.sekund / 60} мин существ ${r.M.sv.length} (наибольшее ${r.nmax}), доли массы и наименьшее число: ` + r.V.map(k => k + ' ' + (r.dolya[k] * 100).toFixed(0) + '%/' + r.nmin[k]).join(', ') + `, занос ${(r.zanos * 100).toFixed(1)}%`);
       const e = sudit(r); if (e) return 'зерно ' + sd + ': ' + e; } });
   check(`test_mir_bystro: шаг мира не дольше ${D.shag_ms} мс на ${D.na_sushchestv} существ`, () => { const v = vremya(MR); console.log(`    паспорт: шаг ${v.ms.toFixed(2)} мс на ${D.na_sushchestv} существ (в капле ${v.sv})`); if (v.ms > D.shag_ms) return `шаг ${v.ms.toFixed(1)} мс`; });

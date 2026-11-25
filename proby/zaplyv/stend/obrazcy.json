@@ -10,7 +10,7 @@
 		"infuzoriya": { "papka": "tufelka", "fail": "flickr_21215821111_tufelka_temnoe_pole.jpg", "poza": { "dlina": 4.1, "tolshchina": 95, "ugol": -1.5708 } },
 		"tuflya": { "papka": "tufelka", "fail": "flickr_21215821111_tufelka_temnoe_pole.jpg", "poza": { "dlina": 3.0, "tolshchina": 130, "ugol": -1.5708 } },
 		"ameba": { "papka": "ameba", "fail": "wellcome_B0004773_ameba_est.jpg", "poza": { "dlina": 3.4, "tolshchina": 95, "ugol": 0.2 } },
-		"kolokolchik": { "papka": "kolokolchik", "fail": "flickr_10714440134_kolokolchik_dic.jpg", "poza": { "dlina": 2.2, "tolshchina": 88, "ugol": -1.5708 } },
+		"kolokolchik": { "papka": "kolokolchik", "fail": "flickr_4937868095_odin_na_steble.jpg", "poza": { "dlina": 2.2, "tolshchina": 80, "ugol": 0.45 } },
 		"kolovratka": { "papka": "kolovratka", "fail": "flickr_7185556283_bdelloida_temnoe_pole.jpg", "poza": { "dlina": 5.6, "tolshchina": 78, "ugol": 0 } },
 		"virus": { "papka": "virus_fag", "fail": "flickr_10085619254_fag_steklo_dnk.jpg", "poza": { "dlina": 4.0, "tolshchina": 54, "ugol": -1.5708 } }
 	}

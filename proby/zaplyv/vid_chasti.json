@@ -13,6 +13,7 @@
     "zerna": { "n": 18, "r": 0.07, "cvet": [0.35, 0.8, 0.3], "kromka": [0.75, 0.85, 0.8] },
     "puzyri_edy": { "n": 6, "r": 0.13, "cvet": [0.95, 0.7, 0.4], "kromka": [1, 0.9, 0.7] },
     "sokr_puzyr": { "gde": [-0.55, 0.55], "period": 4, "r": 0.26, "kanal": 0.22, "kanaly": 7, "kanal_tolsh": 0.08, "cvet": [0.85, 0.97, 1] },
+    "venec": { "_": "веер ресничек у рта: sektor по обводу вокруг носа, dlina и tolsh в толщинах тела, veer — насколько веер расходится (1 по нормали края), temp и shag — бегущая волна", "n": 22, "sektor": [-0.6, 0.6], "dlina": 1.0, "tolsh": 0.03, "razbros": 0.2, "veer": 1.0, "temp": 6, "shag": 0.3, "volna": 0.2, "zvenya": 5, "cvet": [1.5, 1.6, 1.55], "a": 0.9, "a_konec": 0.35 },
     "vorsinki": { "n": 40, "dlina": 0.18, "tolsh": 0.025, "cvet": [0.8, 0.95, 0.9], "a": 0.8, "a_konec": 0.75, "volna": 0.3, "zvenya": 4, "na_tele": 0.3, "meh_sloi": 0, "meh_dlina": 0.2, "meh_gustota": 2.4, "meh_a": 0.9, "porog_krupno": 30, "porog_melko": 18, "n_izdali": 28, "n_sred": 90 },
     "obolochka": { "porog_stekla": 30, "sloi": [ { "r": 1.0, "cvet": [0.35, 0.85, 1.0] }, { "r": 0.9, "cvet": [0.75, 0.95, 1.0] } ] },
     "nukleoid": { "porog": 18, "dlina": 0.6, "shirina": 0.42, "petli": 4, "zvenya": 170, "tolsh": 0.05, "temp": 0.25, "cvet": [1.0, 0.6, 0.25], "a": 1 },
@@ -44,13 +45,13 @@
   "vidy": {
     "nasha": {
       "_": "Наша клетка (кишечная палочка) целиком из частей: жгутики кругом, ворсинки, тело с цитоплазмой, слои оболочки, клубок ДНК, рибосомы, гранулы запаса.",
-      "forma": { "tip": "os", "tochki": [[-1.14, 0, 1], [1.14, 0, 1]] }, "zhizn": { "est": "pole", "povedenie": "palochka", "razmer": 1, "lyubit": { "sahar":  [0.03, 1], "kislorod":  [0.3, 1] } },
+      "forma": { "tip": "os", "tochki": [[-1.14, 0, 1], [1.14, 0, 1]] }, "zhizn": { "est":  "pole", "povedenie":  "palochka", "razmer":  1, "lyubit":  { "sahar":  [0, 1], "kislorod":  [0.3, 1] } },
       "chasti": { "zhgutiki": { "cvet": [1.3, 1.0, 1.2], "razmah": 0.36, "shag": 1.9, "zagib": 0.6, "nazad": 0.15, "tolsh": 0.024, "blik": [1.6, 1.5, 1.6] }, "vorsinki": { "n": 540, "dlina": 0.42, "tolsh": 0.007, "razbros": 0.75, "vraznoboy": 0.9, "izgib": 0.6, "volna": 0.5, "zvenya": 4, "na_tele": 0.65, "cvet": [1.35, 1.05, 1.25], "konchik": [2.1, 1.95, 2.1], "a": 0.9, "a_konec": 0.25 },
         "obolochka": { "stenka": 0.1, "sloi": [ { "r": 1.0, "cvet": [1.0, 0.6, 0.85], "kromka": [1.0, 0.55, 0.8], "a": 0.2 }, { "r": 0.97, "cvet": [0.6, 0.9, 1.0], "kromka": [0.5, 0.75, 0.9], "a": 0.5, "razrez": true }, { "r": 0.94, "cvet": [1.0, 0.25, 0.7], "plotno": true } ] }, "nukleoid": {}, "ribosomy": {}, "vklyucheniya": {} }
     },
     "seno": {
       "_": "Сенная палочка (грам-положительная): длинная матовая палочка без стеклянной оболочки, жгутики тонкие по всему телу. Образец: referensy/sennaya_palochka.",
-      "forma": { "tip": "os", "tochki": [[-3.0, 0.22, 1], [0, -0.14, 1], [3.0, 0.22, 1]] }, "zhizn": { "est": "pole", "povedenie": "palochka", "razmer": 1.1, "lyubit": { "kislorod":  [0.5, 1] }, "pishcha": { "kuski":  1 } },
+      "forma": { "tip": "os", "tochki": [[-3.0, 0.22, 1], [0, -0.14, 1], [3.0, 0.22, 1]] }, "zhizn": { "est":  "pole", "povedenie":  "palochka", "razmer":  1.1, "lyubit":  { "kislorod":  [0.5, 1] }, "pishcha":  { "kuski":  2, "sahar":  0.3 } },
       "chasti": { "zhgutiki": { "n": 9, "dlina_tela": 1.0, "tolsh": 0.018, "razmah": 0.4, "cvet": [0.95, 0.85, 1.3], "a": 0.8 },
         "obolochka": { "stenka": 0.25, "sloi": [ { "r": 1.0, "cvet": [0.7, 0.52, 1.0], "plotno": true, "bugry": 0.4, "blik": 0.25 } ] } }
     },
@@ -63,7 +64,7 @@
     },
     "zapyataya": {
       "_": "Красная запятая (вибрион): тело запятой 2,7 к 1, один жгутик на заднем полюсе длиной с тело. Образец: referensy/krasnaya_zapyataya.",
-      "forma": { "tip": "os", "tochki": [[-1.45, 0.4, 0.86], [-0.7, 0.03, 0.95], [0, -0.1, 0.97], [0.7, 0.03, 0.95], [1.45, 0.4, 0.88]] }, "zhizn": { "est": "dobycha", "povedenie": "zapyataya", "razmer": 0.75, "lyubit": { "sahar":  [0.05, 1], "kislorod":  [0.5, 1] }, "pishcha": { "sahar":  0.1 } }, "zony": { "udar": { "sila": 2 } },
+      "forma": { "tip": "os", "tochki": [[-1.45, 0.4, 0.86], [-0.7, 0.03, 0.95], [0, -0.1, 0.97], [0.7, 0.03, 0.95], [1.45, 0.4, 0.88]] }, "zhizn": { "est":  "dobycha", "povedenie":  "zapyataya", "razmer":  0.75, "lyubit":  { "sahar":  [0.05, 1], "kislorod":  [0.5, 1] }, "pishcha":  { "sahar":  0.15 } }, "zony": { "udar": { "sila": 2 } },
       "chasti": { "zhgutiki": { "n": 1, "gde": "korma", "moshch": 3, "dlina_tela": 1.0, "tolsh": 0.05, "suzh": 0.2, "razmah": 0.5, "shag": 1.6, "cvet": [1.2, 0.6, 1.25] },
         "obolochka": { "stenka": 0.1, "sloi": [ { "r": 1.0, "cvet": [0.9, 0.42, 0.95], "plotno": true, "bugry": 0.4, "blik": 0.25 } ] } }
     },
@@ -74,12 +75,12 @@
     },
     "garpun": {
       "_": "Гарпунщица (ацинетобактер): короткие матовые розовые бочонки рыхлой кучкой, жгутиков и ворса нет. Образец: referensy/garpunshchica.",
-      "forma": { "tip": "os", "tochki": [[-0.38, 0, 0.98], [0.38, 0, 0.94]] }, "gruppa": { "n": 7, "uklad": "grozd", "zazor": 0.86 }, "zhizn": { "est": "pole", "povedenie": "sopernica", "razmer": 0.9, "lyubit": { "sahar":  [0.01, 0.4], "kislorod":  [0.4, 0.9] } }, "zony": { "udar": { "mesto": "vsyo", "shirina": 1, "sila": 1.5 } },
+      "forma": { "tip": "os", "tochki": [[-0.38, 0, 0.98], [0.38, 0, 0.94]] }, "gruppa": { "n": 7, "uklad": "grozd", "zazor": 0.86 }, "zhizn": { "est":  "pole", "povedenie":  "sopernica", "razmer":  0.9, "lyubit":  { "sahar":  [0.01, 0.55], "kislorod":  [0.4, 0.9] } }, "zony": { "udar": { "mesto": "vsyo", "shirina": 1, "sila": 1.5 } },
       "chasti": { "obolochka": { "stenka": 0.1, "sloi": [ { "r": 1.0, "cvet": [1.05, 0.4, 0.82], "plotno": true, "bugry": 0.9, "blik": 0.15 } ] } }
     },
     "infuzoriya": {
       "_": "Хищная инфузория (туфелька): длинное тело туфелькой в коротких ресничках, внутри большое ядро и жёлтые зёрна, рот на носу, глотает бактерий целиком. Реснички гребут (grebut). Образец: referensy/tufelka.",
-      "forma": { "tip": "os", "tochki": [[-1.95, 0.06, 0.95], [-0.8, -0.04, 1.1], [0.7, -0.03, 1.02], [1.95, 0.06, 0.7]], "vypuklosti": [{"t": 1.2, "shirina": 0.55, "vysota": -0.2}] }, "zony": { "rot": { "shirina": 0.2, "do": 0.5 } }, "zhizn": { "est": "dobycha", "povedenie": "tufelka", "razmer": 2.4, "lyubit": { "kislorod":  [0.6, 1] }, "pishcha": { "kuski":  4 } },
+      "forma": { "tip": "os", "tochki": [[-1.95, 0.06, 0.95], [-0.8, -0.04, 1.1], [0.7, -0.03, 1.02], [1.95, 0.06, 0.7]], "vypuklosti": [{"t": 1.2, "shirina": 0.55, "vysota": -0.2}] }, "zony": { "rot": { "shirina": 0.2, "do": 0.5, "vmestimost": 6 } }, "zhizn": { "est": "dobycha", "povedenie": "tufelka", "razmer": 2.4, "lyubit": { "kislorod":  [0.6, 1] }, "pishcha": { "kuski":  4 } },
       "chasti": { "vorsinki": { "n": 420, "dlina": 0.13, "tolsh": 0.006, "razbros": 0.3, "vraznoboy": 0.3, "izgib": 0.35, "grebut": true, "na_tele": 0, "cvet": [0.9, 1.1, 1.3], "a": 0.7 },
         "obolochka": { "sloi": [ { "r": 1.0, "cvet": [0.85, 0.95, 1.1], "kromka": [1.3, 1.4, 1.5], "a": 0.3 }, { "r": 0.985, "cvet": [0.9, 1.0, 1.15], "kromka": [1.4, 1.5, 1.6], "a": 0.25 }, { "r": 0.965, "cvet": [0.22, 0.32, 0.5], "plotno": true, "bugry": 0.4, "blik": 0.5 } ] },
         "yadro": { "gde": [-0.1, 0.05], "r": 0.3, "boby": 1.5, "cvet": [0.42, 0.52, 0.72], "kromka": [0.6, 0.7, 0.9] }, "vklyucheniya": { "n": 120, "r": 0.042, "vsyudu": true, "raznye": true, "cvet": [0.9, 0.85, 0.35] }, "puzyri_edy": { "n": 9, "r": 0.1, "cvet": [0.7, 0.85, 0.4], "kromka": [0.9, 1, 0.7] } }
@@ -95,13 +96,7 @@
       "zhizn": {"est": "dobycha", "razmer": 3},
       "chasti": {"obolochka": {"sloi": [{"r": 1.0, "cvet": [1.0, 0.6, 1.1], "kromka": [1.2, 0.7, 1.3], "a": 0.15}, {"r": 0.97, "cvet": [0.74, 0.3, 0.95], "plotno": true, "bugry": 1.3, "blik": 0.2}]}, "yadro": {"gde": [0.1, 0.05], "r": 0.4, "cvet": [0.85, 0.6, 1.0], "kromka": [1, 0.85, 1]}, "puzyri_edy": {"n": 5, "r": 0.16, "cvet": [0.75, 0.95, 0.6], "kromka": [0.9, 1, 0.8]}, "ribosomy": {"n": 140, "r": 0.05, "cvet": [0.95, 0.75, 1.0]}}
     },
-    "kolokolchik": {
-      "_": "Колокольчик (сувойка): тело колоколом на длинном тонком стебле, венчик ресничек у рта, внутри зелёные пищевые пузырьки. Стебель это ветка тела у кормы. Образец: referensy/kolokolchik.",
-      "forma": {"tip": "os", "tochki": [[-1.3, 0, 0.1], [-0.8, 0, 0.66], [0.0, 0, 1.15], [0.8, 0, 0.98]], "vetki": [{"t": "korma", "dlina": 4.0, "r": [0.03, 0.028]}]},
-      "zony": {"rot": {"shirina": 0.4, "do": 0.5}},
-      "zhizn": {"est": "pole", "razmer": 2.2},
-      "chasti": {"vorsinki": {"n": 70, "sektor": [-0.9, 0.9], "dlina": 0.2, "tolsh": 0.007, "razbros": 0.3, "vraznoboy": 0.3, "izgib": 0.5, "grebut": true, "na_tele": 0, "cvet": [0.8, 1.25, 1.2], "a": 0.55}, "obolochka": {"sloi": [{"r": 1.0, "cvet": [0.8, 1.15, 1.1], "kromka": [1.0, 1.4, 1.35], "a": 0.18}, {"r": 0.95, "cvet": [0.36, 0.78, 0.76], "plotno": true, "bugry": 0.5, "blik": 0.4}]}, "sokr_puzyr": {"gde": [0.35], "r": 0.3, "kanaly": 0, "cvet": [0.4, 0.85, 0.82]}, "puzyri_edy": {"n": 18, "r": 0.085, "cvet": [0.45, 0.85, 0.8], "kromka": [0.8, 1, 0.95]}, "vklyucheniya": {"n": 70, "r": 0.035, "vsyudu": true, "raznye": true, "cvet": [0.5, 0.92, 0.88]}}
-    },
+    "kolokolchik": {"_": "Колокольчик (сувойка): чашечка перевёрнутым конусом на длинном тонком стебле, рот ровным срезом с губой, из рта веер ресничек (венец), тело прозрачное с зелёными пищевыми пузырьками. Стебель это ветка тела у кормы. Образец: referensy/kolokolchik.", "forma": {"tip": "os", "srez": 0.22, "tochki": [[-1.7, 0, 0.09], [-1.2, 0, 0.36], [-0.5, 0, 0.74], [0.3, 0, 1.0], [0.95, 0, 1.06], [1.2, 0, 1.24]], "vetki": [{"t": "korma", "dlina": 4.0, "r": [0.03, 0.028]}]}, "zony": {"rot": {"shirina": 0.4, "do": 0.5}}, "zhizn": {"est": "pole", "razmer": 2.2}, "chasti": {"venec": {}, "obolochka": {"sloi": [{"r": 1.0, "cvet": [0.8, 1.05, 1.15], "kromka": [1.1, 1.4, 1.45], "a": 0.2}, {"r": 0.95, "cvet": [0.5, 0.68, 0.78], "kromka": [0.9, 1.15, 1.2], "plotno": true, "a": 0.42, "bugry": 0.1, "blik": 0.3}]}, "sokr_puzyr": {"gde": [0.3], "r": 0.2, "kanaly": 0, "cvet": [0.6, 0.85, 0.95]}, "puzyri_edy": {"n": 13, "r": 0.11, "cvet": [0.78, 0.85, 0.25], "kromka": [1.0, 1.0, 0.5]}, "vklyucheniya": {"n": 150, "r": 0.02, "vsyudu": true, "raznye": true, "cvet": [0.6, 0.8, 0.85]}}},
     "kolovratka": {
       "_": "Коловратка: вытянутое прозрачное тело, на голове два выступа с ресничками (коловращательный аппарат), тонкая нога с двумя пальцами. Выступы и пальцы это ветки тела. Образец: referensy/kolovratka.",
       "forma": {"tip": "os", "tochki": [[-3.6, 0, 0.1], [-2.6, 0, 0.2], [-1.6, 0, 0.42], [-0.7, 0.05, 0.9], [0.2, 0, 1.05], [1.0, -0.03, 0.8], [1.5, 0, 0.58], [1.85, 0, 0.7]], "vetki": [{"t": "nos", "ugol": 0.7, "dlina": 0.3, "r": [0.3, 0.27]}, {"t": "nos", "ugol": -0.7, "dlina": 0.3, "r": [0.3, 0.27]}, {"t": "korma", "ugol": 0.8, "dlina": 0.4, "r": [0.035, 0.006]}, {"t": "korma", "ugol": -0.8, "dlina": 0.4, "r": [0.035, 0.006]}]},
