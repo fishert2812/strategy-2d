@@ -83,9 +83,9 @@ const RIS = {
         const ob = bok * (1 - k) + k * w * (st.razmah * Math.sin(za / (w * st.shag) * 6.283 - ph) + st.puchok * Math.sin(za / (w * st.shag) * 6.283 * 0.5 - ph * 0.5 + faza)) * (1 - 0.3 * s);
         const u = ur + (ub - ur) * beg, o = or + (ob - or) * beg + (P.izgib || 0) * (Math.min(1, (u / hl) ** 2) - 0.325), nx = P.x + ux * u - uy * o, ny = P.y + uy * u + ux * o;
         if (i) B.seg(lx, ly, nx, ny, w * st.tolsh * (1 - 0.75 * s), st.cvet, st.a * (1 - 0.5 * s)); lx = nx; ly = ny; } } },
-  // Гранулы запаса (включения): несколько светлых плотных шариков.
+  // Гранулы запаса (включения): несколько плотных шариков у полюсов, в стороне от клубка ДНК.
   vklyucheniya(st, F, P, B, at) { B.vyshe = P.tolshchina * 0.8; const w = P.tolshchina;
-    for (let k = 0; k < st.n; k++) { const [px, py] = at((hash(P.id, k + 300) - 0.5) * 1.3, (hash(P.id, k + 301) - 0.5) * 0.8); B.sphere(px, py, w * st.r * (0.8 + 0.4 * hash(P.id, k + 302)), st.cvet, st.kromka, P.id + k + 20, 0.9); } },
+    for (let k = 0; k < st.n; k++) { const [px, py] = at((k % 2 ? 1 : -1) * (0.5 + 0.2 * hash(P.id, k + 300)), (hash(P.id, k + 301) - 0.5) * 0.7); B.sphere(px, py, w * st.r * (0.8 + 0.4 * hash(P.id, k + 302)), st.cvet, st.kromka, P.id + k + 20, 0.9); } },
 };
 
 export function sobrat(zapis, poza, B) {
