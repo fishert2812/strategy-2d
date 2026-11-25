@@ -124,15 +124,29 @@ export function decoy(w, g) {
   w.vesicles.splice(i, 1); g.gone = true; w.stats.decoy = (w.stats.decoy || 0) + 1; w.events.push(['cut', g.x, g.y]); return true;
 }
 // Пузырьки-обманки в воде (зовёт main.js рядом с fx.drawUnder): светлые колечки цвета оболочки, гаснут к концу жизни.
+// Сколько от середины клетки до её оболочки в сторону phi (мир): тело — капсула, толщина и длина как в main.js (рисование клетки).
+// Где и как нарисовано тело (vid.js отдаёт свою память через useBody): мягкое тело отстаёт от a.x и поворачивает позже, чем a.a.
+let bodyFn = null; export const useBody = f => { bodyFn = f; }; const bodyOf = a => bodyFn && bodyFn(a.id);
+const reach = (w, a, g, phi) => { const R = g ? g.w : 8.5 * Math.pow(a.m, 0.3), half = g ? g.L + g.w : R * (1.6 + Math.min(a.m, w.split()) / w.split());
+  return (half - R) * Math.abs(Math.cos(phi - (g ? g.ang : a.a || 0))) + R; };
+const claspsOf = new WeakMap(); // у каждого мира свои (снимок Альманаха рисует свою семью со своим временем): пара сестёр → { t0: когда застёжка защёлкнулась, seen: когда последний раз держала } (время заплыва)
 export function drawWorld({ w, scr, z, glow, ink }) {
   const safe = w.me.length >= Math.min(...Object.values(M.flu.min)), br = safe ? 1 : 0.45; // застёжки загораются, когда семья уже не по зубам мелкому рту (книга: порог виден)
-  if (raft(w)) for (let i = 0; i < w.me.length; i++) for (let j = i + 1; j < w.me.length; j++) { // застёжки между соседками: тёмная кромка, поверх светлая черта
+  if (!claspsOf.has(w)) claspsOf.set(w, new Map()); const clasps = claspsOf.get(w);
+  const C = M.flu.clasp, now = w.stats.time, alive = new Set(); // щелчок застёжки (дизайнер): сёстры встали бок о бок — застёжки вспыхивают и сходятся зубцами, у шва мягкая вспышка
+  if (raft(w)) for (let i = 0; i < w.me.length; i++) for (let j = i + 1; j < w.me.length; j++) { // застёжки между соседками: три светлые черты поперёк шва
     const p = w.me[i], q = w.me[j], d = Math.hypot(p.x - q.x, p.y - q.y), ri = 13 * Math.sqrt(p.m), rj = 13 * Math.sqrt(q.m);
     if (d > ri + rj + M.flu.r * 0.6) continue;
-    const ux = (q.x - p.x) / (d || 1), uy = (q.y - p.y) / (d || 1);
-    for (let k = -1; k <= 1; k++) for (let s = 0; s <= 4; s++) { const f = ri + (d - ri - rj) * s / 4, ox = -uy * k * 5, oy = ux * k * 5;
-      const [x, y] = scr(p.x + ux * f + ox, p.y + uy * f + oy); ink.put(x, y, 2.2 * z + 0.6, 0.08, 0.14, 0.22, 0.55); glow.put(x, y, 1.2 * z + 0.4, 0.55, 0.85, 1, 0.4 * br); }
+    const key = Math.min(p.id, q.id) + ':' + Math.max(p.id, q.id); alive.add(key); if (!clasps.has(key)) clasps.set(key, { t0: now, seen: now }); const cl = clasps.get(key); cl.seen = now;
+    const k = Math.min(1, (now - cl.t0) / C.t), snap = 1 - k, fl = 1 + C.flash * snap * snap, spread = 5 * (1 + C.open * Math.max(0, 1 - k * 3)); // зубцы сначала врозь, за первую треть щелчка сходятся
+    const gp = bodyOf(p), gq = bodyOf(q), [px, py] = gp && gp.scr === scr ? [gp.sx, gp.sy] : scr(p.x, p.y), [qx, qy] = gq && gq.scr === scr ? [gq.sx, gq.sy] : scr(q.x, q.y); // где тела нарисованы: мягкое тело отстаёт от a.x
+    const ds = Math.hypot(qx - px, qy - py) || 1, ux = (qx - px) / ds, uy = (qy - py) / ds, phi = Math.atan2(uy, ux); // дальше всё в точках экрана
+    const e0 = reach(w, p, gp, phi) * z, e1 = ds - reach(w, q, gq, phi + Math.PI) * z, len = Math.max(4 * z, e1 - e0 + 2 * C.inset * z), mid = (e0 + e1) / 2, rg = 1.1 * z * (1 + 0.5 * snap) + 0.35, nb = Math.max(2, Math.ceil(len / (rg * 0.35))); const far = Math.max(C.far_min, Math.min(1, 1 - ((e1 - e0) / z - C.touch) / C.fade)); // вплотную застёжка яркая, издалека — бледная нить: белок держит на касании // три зубца поперёк шва: светлые сплошные черты от оболочки до оболочки (заходят под кромку на C.inset), концы тают в тела (L047: не бусами)
+    for (let kk = -1; kk <= 1; kk++) for (let s = 0; s <= nb; s++) { const e = s / nb, f = mid + len * (e - 0.5), o = kk * spread * z, end = Math.sin(Math.PI * e) ** 0.5;
+      glow.put(px + ux * f - uy * o, py + uy * f + ux * o, rg, 0.55, 0.85, 1, Math.min(1, 0.4 * br * fl) * end * Math.max(far, snap) * 2.2 / Math.sqrt(nb)); }
+    if (k < 1) glow.put(px + ux * mid, py + uy * mid, C.ring * z * (0.4 + 0.6 * Math.sqrt(k)), 0.75, 0.93, 1, C.ring_a * snap * snap); // мягкая вспышка у шва: одно пятно, без колец-схем
   }
+  for (const [key, cl] of clasps) if (!alive.has(key) && now - cl.seen > C.forget) clasps.delete(key); // расцепились надолго — следующая сцепка снова щёлкнет (на краю застёжка не мигает щелчками)
   for (const q of w.cit || []) { const [x, y] = scr(q.x, q.y), r = 3.4 * z + 1.5; // голубая точка: плотная, с тёмной кромкой — не похожа на пустые кольца пузырей фона
     ink.put(x, y, r * 1.3, 0.03, 0.08, 0.16, 0.7); glow.put(x, y, r, 0.3, 0.75, 1, 0.95); glow.put(x - r * 0.3, y - r * 0.3, r * 0.4, 0.75, 0.92, 1, 0.7); }
   for (const v of w.vesicles || []) { const [x, y] = scr(v.x, v.y), f = 1 - v.t / M.decoy.life, r = 2.2 * z + 1;

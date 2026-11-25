@@ -1,7 +1,7 @@
 // Проверки новых мутаций (mutacii.js) без экрана: node proby/zaplyv/test_mutacii.mjs. Каждая «сделал → случилось» с [ключом] гена.
 import { World } from './sim.js';
 import { look } from './look.js';
-import { M } from './mutacii.js';
+import { M, drawWorld } from './mutacii.js';
 import * as vid from './vid.js';
 import { readFileSync } from 'node:fs';
 const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
@@ -230,6 +230,22 @@ check('каждая новая мутация видна на теле свои�
   if (sl !== 1) miss.push('у разворота не один хвост');
   if (!sn) miss.push('щелчок разворота не виден');
   return miss.length ? 'не видно: ' + miss.join(', ') : '';
+});
+
+check('test_mut_scepka_shchelchok: сёстры сцепились — застёжка щёлкает: вспыхивает, зубцы сходятся, у шва мягкая вспышка и гаснет, зубцы — сплошные черты; расцепились надолго и снова встали — щёлкает снова, на краю не мигает (дизайнер)', () => {
+  const w = mw(3, ['flu']), a = w.me[0]; a.m = 1; w.me.push({ ...a, id: 99, x: a.x + 40, y: a.y, vx: 0, vy: 0 }); // щель 14: застёжке есть что тянуть
+  const shot = () => { const ring = [], hot = []; const b = { put: (x, y, r, cr, cg, cb, al) => { if (cr === 0.75) ring.push({ x, y, r, al }); else if (cr === 0.55) hot.push(al); } };
+    drawWorld({ w, scr: (x, y) => [x, y], z: 1, glow: b, ink: { put: () => {} } }); return { ring: ring.filter(q => q.al > 0.01), hot: Math.max(0, ...hot) }; };
+  w.stats.time = 10; const s0 = shot(); w.stats.time = 10.1; const s1 = shot(); w.stats.time = 11; const s2 = shot();
+  if (!s0.hot) return 'застёжек нет'; if (!(s0.hot > s2.hot * 1.5)) return 'застёжка не вспыхнула при сцепке: ' + s0.hot.toFixed(2) + ' против ' + s2.hot.toFixed(2);
+  if (s1.ring.length !== 1 || s1.ring[0].r < 4) return 'нет мягкой вспышки у шва (одно пятно): ' + s1.ring.length; if (s2.ring.length) return 'вспышка не погасла';
+  const bar = []; drawWorld({ w, scr: (x, y) => [x, y], z: 1, glow: { put: (x, y, r, cr) => { if (cr === 0.55) bar.push({ x, y, r }); } }, ink: { put: () => {} } });
+  let gap = 0; for (let i = 1; i < bar.length; i++) { const d = Math.hypot(bar[i].x - bar[i - 1].x, bar[i].y - bar[i - 1].y); if (d < 4 && d > bar[i].r + bar[i - 1].r) gap++; }
+  if (gap) return 'застёжка бусами: разрывов ' + gap + ' (L047)';
+  w.me[1].x += 200; w.stats.time = 11.2; shot(); w.me[1].x -= 200; w.stats.time = 11.4; if (shot().hot > s2.hot * 1.5) return 'на краю застёжка мигает щелчками';
+  w.me[1].x += 200; w.stats.time = 12; shot(); w.stats.time = 14; shot(); w.me[1].x -= 200; w.stats.time = 15; const s3 = shot();
+  if (!(s3.hot > s2.hot * 1.5)) return 'повторная сцепка не щёлкнула';
+  return '';
 });
 
 console.log(bad ? `МУТАЦИИ: провалов ${bad}` : 'МУТАЦИИ: все проверки прошли');
