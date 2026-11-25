@@ -230,9 +230,9 @@ function menuOpen() {
   const shoot = () => { for (const i of mo.querySelectorAll('img[data-k]')) if (!i.src) try { i.src = snap(i.dataset.k, KAB.items[i.dataset.k]); } catch (_) {} };
   requestAnimationFrame(() => requestAnimationFrame(shoot)); // снимки живых моделей — когда сцена уже рисуется
   const nb = ROD.branches || 1, w10 = nb % 10, w100 = nb % 100; $('mstate').textContent = ROD.deaths ? 'род: ' + nb + ' ' + (w10 === 1 && w100 !== 11 ? 'ветка' : w10 >= 2 && w10 <= 4 && (w100 < 12 || w100 > 14) ? 'ветки' : 'веток') + (ROD.gens ? ' · ' + ROD.gens + ' поколений' : '') : 'капля пруда, 10 мкм'; // пустые счётчики не показываем
-  const n = [...met].filter(k => KAB.items[k] && k !== 'me').length, g = [...met].filter(k => k.startsWith('gene:')).length;
+  const g = [...met].filter(k => k.startsWith('gene:')).length; // обитателей считает строка Альманаха ниже, второй счёт спорил с ней (прогон 0.74: «12 обитателей» рядом с «10 из 10»)
   const pl = (k, a, b, c) => k % 10 === 1 && k % 100 !== 11 ? a : k % 10 >= 2 && k % 10 <= 4 && (k % 100 < 12 || k % 100 > 14) ? b : c;
-  $('mknow').textContent = n ? 'Ты знаешь ' + n + ' ' + pl(n, 'обитателя', 'обитателей', 'обитателей') + (g ? ' · ' + g + ' ' + pl(g, 'ген', 'гена', 'генов') : '') : '';
+  $('mknow').textContent = g ? 'Ты знаешь ' + g + ' ' + pl(g, 'ген', 'гена', 'генов') : '';
   $('mquiet').textContent = ROD.quiet ? 'Звук выкл' : 'Звук вкл'; $('mak').textContent = kab.label().replace(/^Альманах · /, '');
   const live = menuGo.back && !ended && world.me.length; $('mback').hidden = !live; // из паузы — путь назад в паузу
   menuPick(live ? world.mode : 'swim', true); // обычный заплыв — одно касание
@@ -249,13 +249,13 @@ function menuPick(m, quiet) {
   $('mscene').querySelector(`.mo[data-m=${m}]`)?.scrollIntoView({ block: 'nearest' }); // выбранный режим виден целиком, даже когда сцена ниже
   $('mscene').classList.toggle('picked', !quiet);
   mSel = m; const same = menuGo.back && !ended && world.me.length && m === world.mode; // тот же режим из паузы: «Продолжить» тот же заплыв, рядом «Новый заплыв» (О45)
-  $('mgo').textContent = same ? 'Продолжить' : M.go; $('mnew').hidden = !same;
+  $('mgo').textContent = same ? 'Продолжить' : M.go; $('mnew').hidden = !same; $('mnew').sure = false; $('mnew').classList.remove('sure'); $('mnew').textContent = 'Новый заплыв';
 }
 function menuGo() { if (mSel === 'night') { $('menu').classList.remove('on'); openNight(); } else if (menuGo.back && !ended && world.me.length && mSel === world.mode) { $('menu').classList.remove('on'); menuGo.back = false; } else { menuGo.back = false; start(null, mSel); } } // из паузы: «Плыть» в том же режиме возвращает в тот же заплыв, другой режим — новый заплыв
 for (const o of document.querySelectorAll('#mscene .mo')) { o.onclick = () => menuPick(o.dataset.m); o.ondblclick = () => { menuPick(o.dataset.m); if (!MODES[o.dataset.m].lock) menuGo(); }; }
 $('mgo').onclick = menuGo;
 $('mquiet').onclick = () => { ROD.quiet = !ROD.quiet; saveRod(); $('mquiet').textContent = ROD.quiet ? 'Звук выкл' : 'Звук вкл'; };
-$('mnew').onclick = () => { menuGo.back = false; start(null, mSel); };
+$('mnew').onclick = () => { const n = $('mnew'); if (!n.sure) { n.sure = true; n.classList.add('sure'); n.textContent = 'Точно заново?'; return; } menuGo.back = false; start(null, mSel); }; // второе касание, как в паузе: смахивание по режимам не бросает заплыв (прогон 0.76)
 $('mback').onclick = () => { $('menu').classList.remove('on'); menuGo.back = false; genome.openScreen(); };
 $('malm').onclick = () => kab.open('Режимы');
 
@@ -688,6 +688,7 @@ function events() {
     fx.on(k, x, y, size, y2); // вид — fx.js, здесь звук и подписи
     if (k === 'spore') { beep(200, 0.6, 0.06, 'sine', 0.5); say('Уснула! Спящую не берут — переждёшь беду', 2600); }
     if (k === 'rost') { beep(440, 0.5, 0.05, 'sine', 1.5); say(rost.text(size), 3200); world.rostT = world.stats.time; } // режим «Рост»: подросла, что теперь можно есть
+    if (k === 'igla') { beep(1300, 0.08, 0.05, 'square', 0.5); } // нить-игла уколола соперницу
     if (k === 'gulp') { beep(200, 0.35, 0.06, 'sine', 0.6); } // проглотила живую клетку
     if (k === 'spit') { beep(260, 0.15, 0.04, 'sine', 0.7); tell('spit', 'Пасть тебя не взяла: ты больше её рта'); }
     if (k === 'sprout') { beep(520, 0.3, 0.05, 'sine', 2); }

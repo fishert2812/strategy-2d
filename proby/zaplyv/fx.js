@@ -161,7 +161,7 @@ export class Fx {
   drawOver(d) {
     for (const q of this.dashes) { const D = V.dash, k = q.t / D.life, g = seen(q.a.x, q.a.y, 40), L = g ? g.L : 8, w = g ? g.w : 6; // знак рывка: едет с клеткой по её оси
       if (g && q.flip === undefined) q.flip = Math.cos(q.dir - g.ang) < 0; const dir = g ? g.ang + (q.flip ? Math.PI : 0) : q.dir, ux = Math.cos(dir), uy = Math.sin(dir);
-      const fade = (1 - k) * Math.min(1, q.t / 0.05), grow = Math.min(1, q.t / (D.life * 0.3)), at = g && g.sx !== undefined ? (u, o) => [g.sx + (ux * u - uy * o) * d.z, g.sy + (uy * u + ux * o) * d.z] : (u, o) => d.scr(q.a.x + ux * u - uy * o, q.a.y + uy * u + ux * o); // по нарисованному телу
+      const fade = (1 - k) * Math.min(1, q.t / 0.05), grow = Math.min(1, q.t / (D.life * 0.3)), at = g && g.scr === d.scr ? (u, o) => [g.sx + (ux * u - uy * o) * d.z, g.sy + (uy * u + ux * o) * d.z] : (u, o) => d.scr(q.a.x + ux * u - uy * o, q.a.y + uy * u + ux * o); // по нарисованному телу
       const tl = D.trail * (L + w) * grow, nt = Math.max(2, Math.ceil(tl / (w * 0.1))); // след за кормой: сплошной клин от кормы, точки внахлёст
       for (let i = 0; i <= nt; i++) { const f = i / nt, [px, py] = at(-L - w * 0.6 - tl * f, 0); d.glow.put(px, py, w * 0.7 * (1 - f * 0.85) * d.z + 0.4, ...D.col, D.a * fade * (1 - f) ** 1.5 * 0.28); }
       const ll = D.line * (L + w) * grow, r = D.line_w * d.z + 0.3, nl = Math.max(2, Math.ceil(ll * d.z / (r * 0.6))); // две линии хода вдоль боков: сплошные, тают к хвосту
