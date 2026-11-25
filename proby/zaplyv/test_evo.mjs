@@ -6,6 +6,7 @@ import * as evo from './evo.js';
 import { readFileSync } from 'node:fs';
 const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
 const MODE = process.env.EVO_OFF ? 'rost' : 'evo';
+if (process.env.ROST_SYTOST) rost.R.sytost = +process.env.ROST_SYTOST; // самопроверка первой минуты: при прежней сытости 0.84 сторож краснеет
 let bad = 0;
 const check = (name, fn) => {
   try { const r = fn(); if (r) { bad++; console.log('  ПРОВАЛ', name + ':', r); } else console.log('  ок   ', name); }
@@ -106,7 +107,7 @@ check('test_evo_hudeet: без еды большое тело худеет, от
   console.log('    без еды минуту: масса 20 →', m?.toFixed(2));
   if (!w.me.length) return 'погибла от голода';
   if (!(m < 20 * 0.97)) return 'не худеет';
-  if (m < evo.E.hudeet.min) return 'похудела меньше min';
+  if (m < evo.E.hudeet.ot) return 'похудела меньше ot';
 });
 
 // Доказательство «ты то, что ты ешь» (ЛЭ21): после трёх проглоченных шариков на росте приходит карточка «Не боится кислоты», до трёх — нет;
@@ -127,6 +128,47 @@ check('test_evo_dobycha: съела трёх шариков — карточка
   if (!c3.includes('kislota')) return 'после трёх шариков карточки нет';
   if (!(no > 0)) return 'шарик не жжёт и без умения — проверка ничего не меряет';
   if (yes) return 'с умением шарик всё равно жжёт';
+});
+
+// Сторож первой минуты (круг 0.84 и Роман 25.11 21:19: «в целом я не вырос… никого не съел - никаких новых навыков»):
+// неторопливый бот (смотрит вокруг раз в 1,5 с, без хищников) за 60 с вырастает, получает «Глотать» и кого-то проглатывает,
+// а к концу второй минуты выбирает из карточек. Проглотить за минуту — в 4 заплывах из 5 (кокков рядом может не оказаться), за полторы — во всех.
+let nekogo = 0;
+check('test_evo_minuta: за первую минуту вырос, научился глотать и проглотил, за вторую выбрал умение', () => {
+  const plohie = [], out = [];
+  for (const seed of [2, 3, 4, 5, 6]) {
+    const w = new World(cfg, seed); w.mode = MODE; w.dir = seed * 1.3; let cel = null, rost1 = null, karta = null, gl1 = null; if (seed === 2) nekogo = 0;
+    const L0 = Math.pow(w.me[0].m, rost.vid(w)); let L60 = 0;
+    for (let i = 0; i < 30 * 120 && w.me.length; i++) {
+      for (const k of ['amoebas', 'phages', 'bdellos', 'slippers', 'bells', 'rotis', 'pseudos']) w[k] = [];
+      if (i % 45 === 0) { const a = w.me[0], gl = w.genes.gulp; let best = null, bd = 400;
+        for (const f of [...w.food.filter(f => rost.can(w, f.kind || 'bits')), ...(gl ? w.prey.filter(q => q.m * evo.E.glotat.bolshe <= a.m) : [])]) { const d = Math.hypot(f.x - a.x, f.y - a.y); if (d < bd) { bd = d; best = f; } }
+        cel = best ? { x: best.x, y: best.y } : { dx: Math.cos(w.dir), dy: Math.sin(w.dir), p: 1 }; }
+      w.step(1 / 30, cel);
+      for (const e of w.events) { if (e[0] === 'rost' && rost1 === null) rost1 = w.stats.time; if (e[0] === 'gulp' && gl1 === null) gl1 = w.stats.time; } w.events.length = 0;
+      if (w.choice.length) { if (w.choice.length > 1 && karta === null) karta = w.stats.time; w.pick(w.choice[0]); }
+      if (i === 30 * 60) L60 = w.me[0] ? Math.pow(w.me[0].m, rost.vid(w)) / L0 : 0;
+      if (i % 300 === 0) w.dir += 0.7;
+    }
+    out.push(`${seed}: рост ${rost1?.toFixed(0)} с, длина за минуту ×${L60.toFixed(2)}, карточки ${karta?.toFixed(0)} с, первый проглочен ${gl1?.toFixed(0)} с, всего ${w.stats.gulped || 0}`);
+    if (!(gl1 < 90)) plohie.push(seed + ': за полторы минуты никого не проглотил'); if (!(gl1 < 60)) nekogo++;
+    if (!(rost1 < 40)) plohie.push(seed + ': первый рост позже 40 с');
+    if (!(L60 >= 1.5)) plohie.push(seed + ': за минуту длина меньше ×1,5');
+    if (!(karta < 120)) plohie.push(seed + ': за две минуты ни одного выбора из карточек');
+  }
+  console.log('    ' + out.join(' | '));
+  if (nekogo > 1) plohie.push(`за минуту никого не проглотил в ${nekogo} заплывах из 5`);
+  if (plohie.length) return plohie.join('; ');
+});
+
+// L061 (Роман на 0.94, 25.11 22:15: «после возрождения не появился моя моделька просто исчезла»; прогон 0.84: «Плыть снова» срабатывало
+// само под пальцем): клетка гибла, пока на руках был выбор умения, и полоса карточек оставалась поверх экрана гибели — касание
+// попадало в карточку, а не в «Плыть снова». Гибель последней клетки снимает выбор.
+check('test_L061: погибла с выбором на руках — выбор снят, карточки не лезут на экран гибели', () => {
+  const w = new World(cfg, 61); w.mode = MODE; w.tiho = 1; w.choice = ['capsule', 'crispr'];
+  w.lose(w.me[0], 0, 0, 'amoeba');
+  if (w.me.length) return 'клетка не погибла';
+  if (w.choice.length) return 'после гибели на руках остался выбор: ' + w.choice.join(', ');
 });
 
 console.log(bad ? `ЭВОЛЮЦИЯ: провалов ${bad}` : 'ЭВОЛЮЦИЯ: все проверки прошли');
