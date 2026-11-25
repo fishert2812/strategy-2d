@@ -20,7 +20,8 @@ ${NOISE}
 void main(){
   vec3 n = normalize(vN);
   vec3 q = vP * 5.0;
-  n = normalize(n + bump * (vec3(vn(q), vn(q + 3.1), vn(q + 7.7)) - 0.5) * 1.6);
+  float f0 = 1.0 - abs(n.z); // насколько близко к силуэту — до шума
+  n = normalize(n + bump * (1.0 - smoothstep(0.55, 0.9, f0)) * (vec3(vn(q), vn(q + 3.1), vn(q + 7.7)) - 0.5) * 1.6); // у кромки шум гаснет: край ровный, без зубчиков и зерна
   vec3 L = normalize(vec3(-0.45, 0.55, 0.75));
   float d = max(dot(n, L), 0.0);
   float fres = pow(1.0 - abs(n.z), 2.2);
@@ -28,7 +29,7 @@ void main(){
   float cav = 0.75 + 0.25 * vn(q * 2.0);
   float rg = ridge * max(1.0 - smoothstep(0.0, 0.075, abs(vn(vP * 4.0) - 0.5)), 0.35 * (1.0 - smoothstep(0.0, 0.045, abs(vn(vP * 8.0 + 4.0) - 0.5)))) * (1.0 - 0.6 * fres); // две сетки разной частоты: тяжи густые, как на образце // светлые складки мембраны сеткой поперёк тела (амёба на образцах)
   vec3 col = vA.rgb * (0.18 + 0.72 * d) * cav + vB * fres * rimK + spec * 0.55 + vB * rg;
-  gl_FragColor = vec4(col, vA.a * min(1.0, mix(alpha0, edgeA, fres) + rg * 0.6));
+  gl_FragColor = vec4(col, vA.a * min(1.0, mix(alpha0, edgeA, fres) + rg * 0.6) * (1.0 - 0.85 * smoothstep(0.9, 1.0, f0))); // самый край мягко тает, а не обрывается ступенькой
 }`;
 
 function kind(geo, max, vertexBody, opts = {}) {
@@ -102,10 +103,12 @@ export class Bodies {
       + 'p += nn * 0.03 * sin(time * 2.0 + prm.y + p.y * 3.0); p.y += sign(p.y) * prm.w * min(abs(p.y), 1.0);';
     this.slip = kind(cap.clone(), 8, slipV, { bump: 0.04, alpha0: 0.55, edgeA: 0.8, order: 2, rimK: 1.4, ridge: 0, after: 'vA.rgb *= 1.0 - 0.7 * g; vA.a = min(1.0, vA.a * (1.0 + 0.6 * g));' }); // бороздка темнее и плотнее — видна воронка
     this.fringe = kind(cap.clone(), 8, slipV, { bump: 0.25, alpha0: 0.0, edgeA: 0.7, order: 4, rimK: 1.7, ridge: 0 }); // ворс ресничек: чуть больше тела, светится только край — мягкая сплошная бахрома
+    // Нить: короткая стеклянная трубка между двумя точками экрана. Из таких звеньев внахлёст — жгутики и ворсинки сплошными, без бус (кисти точек на тонких нитях дают пунктир).
+    this.rope = kind(new THREE.CylinderGeometry(1, 1, 2, 6, 1, true), 2400, '', { bump: 0, alpha0: 0.95, edgeA: 0.35, order: 1, rimK: 0.5 });
     const head = new THREE.IcosahedronGeometry(1, 0).toNonIndexed(); head.computeVertexNormals();
     this.head = kind(head, 120, '', { bump: 0.0, order: 3, flat: true, rimK: 0.8, alpha0: 0.35 }); // голова фага — стекло: сквозь неё видна нить ДНК (fx.js), грани блестят ободком
     this.tail = kind(new THREE.CylinderGeometry(0.28, 0.28, 2, 8), 120, '', { bump: 0.1, order: 1 });
-    this.all = [this.core, this.skin, this.ball, this.knob, this.amoeba, this.spines, this.slip, this.fringe, this.head, this.tail];
+    this.all = [this.rope, this.core, this.skin, this.ball, this.knob, this.amoeba, this.spines, this.slip, this.fringe, this.head, this.tail];
     globalThis.zaplyvBodies ??= this; // vid.js рисует амёбу этими телами, даже если main.js не передал их явно
     for (const m of this.all) this.scene.add(m);
   }
@@ -125,9 +128,9 @@ export class Bodies {
   // bend — на сколько концы отходят вбок от середины (экранные единицы, + к оси (-sin, cos)).
   rod(x, y, ang, half, w, pinch, skin, core, seed, bend = 0) {
     const sy = half / 2, glow = c => [c[0] * 0.5 + 0.5, c[1] * 0.5 + 0.5, c[2] * 0.5 + 0.5];
-    const E = (h, r) => Math.max(h / r - 2, -0.9), hc = half * 0.86, wc = w * 0.7; // сколько добавить прямой части сверх двух радиусов
-    this.put(this.core, x, y, ang, wc, wc, wc, [core[0], core[1], core[2], 1], glow(core), [pinch * 0.95, seed, bend / (4 * wc), E(hc, wc)]);
-    this.put(this.skin, x, y, ang, w, w, w, [skin[0], skin[1], skin[2], 1], glow(skin), [pinch, seed, bend / (4 * w), E(half, w)]);
+    const E = (h, r) => Math.max(h / r - 2, 0), Y = (h, r) => Math.max(0.1, Math.min(1, h / (2 * r))), hc = half * 0.86, wc = w * 0.7; // сколько добавить прямой части сверх двух радиусов; короче двух радиусов — сплющить целиком (шар без шва), а не стягивать середину
+    this.put(this.core, x, y, ang, wc, wc * Y(hc, wc), wc, [core[0], core[1], core[2], 1], glow(core), [pinch * 0.95, seed, bend / (4 * wc), E(hc, wc)]);
+    this.put(this.skin, x, y, ang, w, w * Y(half, w), w, [skin[0], skin[1], skin[2], 1], glow(skin), [pinch, seed, bend / (4 * w), E(half, w)]);
   }
   // Только прозрачная оболочка без содержимого: сквозь неё видны органы (коловратка).
   shell(x, y, ang, half, w, skin, seed, bend = 0) {
@@ -140,6 +143,7 @@ export class Bodies {
   // Шип: от точки основания (x, y) наружу под углом ang, длина len, полуширина у основания w; bend — отход острия вбок (экранные единицы).
   slipper(x, y, ang, half, w, col, rim, seed, fr = 0, fcol = rim) { this.put(this.slip, x, y, ang, w, w, w * 0.7, [col[0], col[1], col[2], 1], rim, [0, seed, 0, Math.max(half / w - 2, -0.9)]);
     if (fr) { const wf = w * (1 + fr); this.put(this.fringe, x, y, ang, wf, wf, wf * 0.7, [fcol[0], fcol[1], fcol[2], 1], fcol, [0, seed, 0, Math.max((half + w * fr) / wf - 2, -0.9)]); } }
+  seg(x0, y0, x1, y1, r, col, a = 1) { const dx = x1 - x0, dy = y1 - y0, l = Math.hypot(dx, dy); if (l < 1e-3 || this.rope.count >= 2400) return; this.put(this.rope, (x0 + x1) / 2, (y0 + y1) / 2, Math.atan2(dy, dx), r, l / 2, r, [col[0], col[1], col[2], a], col, [0, 0, 0, 0]); } // звено нити встык: внахлёст полупрозрачные концы дают яркие узлы-бусы
   spine(x, y, ang, len, w, col, rim, seed, bend = 0, wave = 0) { const c = Math.cos(ang), sn = Math.sin(ang);
     this.put(this.spines, x + c * len / 2, y + sn * len / 2, ang, w, len / 2, w, [col[0], col[1], col[2], 1], rim, [0, seed, bend / w, wave]); }
   phage(x, y, ang, s) {
