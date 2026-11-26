@@ -23,8 +23,9 @@ export function shag(C, w, me, K, mass, bolshe, umeet, syt) { const I = K.imena,
   else if (vyshe.length && glotok > 0) { const [who, m] = vyshe[0], n = Math.ceil((m * bolshe - me.m) / glotok);
     C.stroka = n <= K.glotkov ? vstav(n === 1 ? K.slova.glotok : K.slova.glotkov.replace('{n}', n), I[who][0]) : hoz && !C.eda.has(hoz[0]) ? vstav(K.slova.hozyain, I[hoz[0]][0]) : vstav(K.slova.rasti, I[who][0]); }
   else if (hoz && !C.eda.has(hoz[0])) C.stroka = vstav(K.slova.hozyain, I[hoz[0]][0]);
-  else if (glotok > 0) C.stroka = K.slova.glotay;
+  else if (glotok > 0 || Date.now() - (C.glotokT || 0) < 3000) C.stroka = K.slova.glotay; // партия 26.11: строка не мигает «Плыви искать еду», когда добыча на миг вышла из кадра
   else C.stroka = K.slova.pusto;
+  if (glotok > 0) C.glotokT = Date.now();
   return teper; }
 // П7: можно съесть — тёплый ровный свет, который медленно «дышит»
 export const eda = (C, me, m, bolshe, umeet) => umeet && m * bolshe <= me.m;
