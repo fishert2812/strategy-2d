@@ -48,6 +48,7 @@ export function oshibki(w) {
   return bad;
 }
 
+// Если у охотника есть a.kasaetsya(q, kr), касание считает она (форк «Капля» даёт обвод палочки, а не круг).
 // Шаг: каждая запись по очереди, каждый охотник с каждой жертвой в касании. Съеденное и догрызенное уходит из мира.
 export function shag(w, dt, radius) {
   for (const pr of Object.values(P.pravila)) {
@@ -56,7 +57,7 @@ export function shag(w, dt, radius) {
     for (const a of kto) {
       const r = radius(a.m) + u.zazor;
       for (const q of kogo) {
-        if (q.gone || !(Math.hypot(a.x - q.x, a.y - q.y) < r + (u.k_r ? radius(q.m) * u.k_r : 0))) continue; // сначала касание: rost.can дорогой (ищет крупнейшую клетку)
+        if (q.gone || !(a.kasaetsya ? a.kasaetsya(q, u.k_r ? radius(q.m) * u.k_r : 0) : Math.hypot(a.x - q.x, a.y - q.y) < r + (u.k_r ? radius(q.m) * u.k_r : 0))) continue; // сначала касание: rost.can дорогой (ищет крупнейшую клетку)
         if (pr.kogo.dostup == null || rost.can(w, dostup(pr, q))) sp(w, a, q, pr, dt);
       }
     }

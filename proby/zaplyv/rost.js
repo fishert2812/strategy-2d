@@ -58,12 +58,12 @@ export const dim = (w, kind) => can(w, kind) ? 1 : 0.3;
 export const text = n => R.teksty[n] || R.teksty.dalshe;
 
 // Контур следующего роста вокруг клетки и струйки от комка, который она грызёт.
-export function draw({ w, a, x, y, ang, half, wd, z, glow, time, scr }) {
+export function draw({ w, a, x, y, ang, half, wd, z, glow, time, scr, bezKontura }) { // bezKontura: форк «Капля» не рисует точечный контур роста
   if (!on(w)) return;
   const n = level(a.m), m0 = n ? porog(n) : 0, m1 = porog(n + 1), k = Math.max(0, Math.min(1, (a.m - m0) / (m1 - m0)));
   const grow = (m1 / a.m) ** R.vid, H = half * grow * 1.06, Wd = wd * grow * 1.15, ax = Math.cos(ang), ay = Math.sin(ang);
   const N = 40, lit = Math.round(k * N), flash = Math.max(0, 1 - (w.stats.time - (w.rostT ?? -9)) * 1.5);
-  for (let i = 0; i < N; i++) { // контур идёт от носа по кругу: заполненная часть ярче — сколько ещё до роста
+  if (!bezKontura) for (let i = 0; i < N; i++) { // контур идёт от носа по кругу: заполненная часть ярче — сколько ещё до роста
     const t = i / N * 6.283, e = Math.cos(t) * H, s = Math.sin(t) * Wd;
     glow.put(x + ax * e - ay * s, y + ay * e + ax * s, 2 + z, 0.75, 1, 0.9, (i < lit ? 0.75 : 0.22) + flash * 0.5);
   }
