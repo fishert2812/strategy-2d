@@ -58,6 +58,8 @@ export function hod(q, P, K, dt, rnd, d = 0) { dt = Math.max(dt, 1e-4); const ti
   const tau = K.drozh.plavno, kd = Math.min(1, dt / tau); h.bw = (h.bw || 0) * (1 - kd) + gauss(rnd) * P.vert / tau * Math.sqrt(dt) * kd / (dt / tau); o.da = h.bw * dt;
   if (tip === 'polzet' && !q.pokoy) { const N = K.nozhki, z = h.nz || (h.nz = { ang: 0, r: 0, st: znak(), rost: 1, t: N.rastet * rnd() }); o.rul = 0; o.beg = 0;
     const novyy = ot => { z.st = rnd() < N.zigzag ? -z.st : z.st; z.ang = lim(z.st * N.ugol * (0.6 + rnd() * 0.8) + lim(d, -N.k_celi, N.k_celi) + (ot || 0), -2.6, 2.6); z.r = 0; z.rost = 1; z.t = N.rastet * (0.7 + rnd() * 0.6); };
+    // ест (оболочка обхватывает кусок: pitanie.js obhvat): ходовой вырост втягивается, вещество тела уходит в губы вокруг куска, тело стоит
+    if (q.est) { z.r = Math.max(0, z.r - dt * N.ubrat); z.rost = 0; z.t = Math.min(z.t, 0.05); z.T = z.T || 1; o.sk = N.v_roste; o.vyp = [{ ot_nosa: z.ang, vysota: N.vysota * z.r, shirina: N.shirina }]; return o; }
     if (udar && z.rost) novyy(znak() * N.ot_upora);
     if (z.rost) { z.r = Math.min(1, z.r + dt / N.rastet); o.sk = N.v_roste; if ((z.t -= dt) <= 0) { z.rost = 0; z.t = z.T = N.tyanet * (0.7 + rnd() * 0.6); } }
     else { const kk = Math.min(1, dt / Math.max(dt, z.t)), sh = z.ang * kk; o.da += sh; z.ang -= sh; z.r = Math.max(0, z.r - dt / z.T); o.sk = 1 + N.pulsaciya * Math.sin(Math.PI * (1 - z.t / z.T)); if ((z.t -= dt) <= 0) novyy(); }

@@ -15,13 +15,20 @@ export function kontakt(q, veshchi, T, w, K, k_eda, dt) { const kh = T.kh * w, k
     if (e.tverd && zazor < K.vmyatina.zazor * w) { const n = g.d || 1; vmyat(q, e, g.ou / w, (g.u - g.ou) / n, g.v / n, K.vmyatina.myagkost * Math.max(0, (g.u - g.ou) / n * Math.sign(q.h?.faza === 'nazad' ? -1 : 1)) + K.vmyatina.kasanie, T.kr, e.r / w, K); }
     if (e.tverd) { if (zazor < 0) { const n = g.d || 1, c = Math.cos(q.a), s = Math.sin(q.a), nu = (g.u - g.ou) / n, nv = g.v / n; q.x += (nu * c - nv * s) * zazor; q.y += (nu * s + nv * c) * zazor; q.om = (q.om || 0) + (-K.tverd.povorot * Math.sign(g.ou * nv || 1) - (q.om || 0)) * Math.min(1, dt * K.tverd.plavno); if (!q.upor) { o.sobytiya.push(['upor', e]); q.tolchok = 0; } q.upor = K.tverd.pomnit; q.udar = 1; } continue; }
     if (q.est === e) continue;
-    if (zazor < K.prilip * w && !q.est && q.m < K.m_max) { q.est = e; e.u = g.ou; { const R = kr + e.r * K.vdavlen, n = g.d || 1; e.du = (g.u - g.ou) / n * R; e.v = g.v / n * R; } e.m0 = e.m; e.r0 = e.r; o.sobytiya.push(['prilip', e]); q.tolchok = 0; }
+    if (zazor < (q.obhvat ? K.obhvat.dotyanetsya : K.prilip) * w && !q.est && q.m < K.m_max) { q.est = e; e.u = g.ou; if (q.obhvat) e.vd0 = Math.max(K.vdavlen, zazor / e.r + 1); { const R = kr + e.r * K.vdavlen, n = g.d || 1; e.du = (g.u - g.ou) / n * R; e.v = g.v / n * R; } e.m0 = e.m; e.r0 = e.r; o.sobytiya.push(['prilip', e]); q.tolchok = 0; }
     else if (zazor < best && q.m < K.m_max) { best = zazor; o.cel = [e.x, e.y]; } }
   q.upor = Math.max(0, (q.upor || 0) - dt);
-  if (q.est) { const e = q.est, vzyal = Math.min(e.m, K.skorost * k_eda * dt); e.m -= vzyal; q.m += vzyal * K.kpd; q.syel = (q.syel || 0) + vzyal;
+  if (q.est) { const e = q.est, vzyal = Math.min(e.m, K.skorost * (q.obhvat ? K.obhvat.k_eda : k_eda) * dt); e.m -= vzyal; q.m += vzyal * K.kpd; q.syel = (q.syel || 0) + vzyal;
     // кусок держится на оболочке там, где коснулся, и тает ровно (радиус ∝ остатку: глаз видит, как он убывает, а не хлопок в конце), центр уходит в оболочку
+    // обхват (тело с выростами, q.obhvat: амёба): оболочка не ждёт, пока кусок растает снаружи, а охватывает его двумя губами-выростами с боков, они смыкаются,
+    // кусок уходит внутрь (фагоцитоз: чаша растёт вокруг частицы, пока не сомкнётся; Swanson, Nat. Rev. Mol. Cell Biol. 9, 2008) и тает уже там
+    if (q.obhvat) { const O = K.obhvat, p = e.ob = Math.min(1, (e.ob || 0) + dt / O.dlitsya), n = Math.hypot(e.du, e.v) || 1, tu = -e.v / n, tv = e.du / n, sm = (a, b, x) => { const f = Math.max(0, Math.min(1, (x - a) / (b - a))); return f * f * (3 - 2 * f); };
+      // губы растут первыми (чаша), потом кусок втягивается, губы над ним смыкаются и разглаживаются
+      const vd0 = e.vd0 ?? K.vdavlen, guby = sm(0, O.guby, p) * (1 - sm(O.vtyanut, 1, p)), vt = sm(O.vtyanut * 0.6, 1, p), Rc = kr + e.r0 * (vd0 + (O.vnutr - vd0) * vt), razv = e.r0 * (O.razvod - (O.razvod - 0.4) * sm(O.guby, 1, p));
+      e.vd = (Rc - kr) / (e.r || 1); const cu = e.u + e.du / n * Rc, cv = e.v / n * Rc;
+      q.vyp_eda = guby > 0.01 ? [1, -1].map(s => ({ u: (cu + tu * razv * s) / w, o: (cv + tv * razv * s) / w, vysota: guby * O.vysota * (e.r0 * (1 + Math.max(0, vd0))) / w, shirina: O.shirina * e.r0 / w })) : null; }
     e.r = e.r0 * Math.max(0, e.m / e.m0); prizhat(q, T, w, K); { const n = Math.hypot(e.du, e.v) || 1; vmyat(q, e, e.u / w, e.du / n, e.v / n, e.r * K.vdavlen / w, T.kr, e.r / w, K); }
-    o.sk = K.sk_za_edoy; o.cel = null; if (e.m <= 1e-6) { e.m = 0; q.est = null; q.puls = 1; o.sobytiya.push(['syel', e]); } }
+    o.sk = K.sk_za_edoy; o.cel = null; if (e.m <= 1e-6) { e.m = 0; q.est = null; q.vyp_eda = null; q.puls = 1; o.sobytiya.push(['syel', e]); } }
   otpustit(q, K, dt); return o; }
 // Вмятина оболочки в месте касания (перенос vid.js poke на любое тело и на любое место оболочки). Физика: оболочка бактерии — тонкая
 // упругая стенка под давлением изнутри (тургор), в воде без инерции. Глубина δ: нажим делить на жёсткость стенки (для стенки под
@@ -46,7 +53,7 @@ function otpustit(q, K, dt) { const V = K.vmyatina, vm = q.vm; if (!vm) return; 
 // После шага тела: если тело заехало в твёрдое, выталкивает его обратно по нормали (без поворота и событий), чтобы край не заходил на комок.
 export function vytolknut(q, veshchi, T, w) { const kh = T.kh * w, kr = T.kr * w; for (const e of veshchi) { if (!e.tverd) continue; const g = k_telu(q, e.x, e.y, kh), z = g.d - kr - e.r + vdavleno(q, e) * w; if (z < 0) { const n = g.d || 1, c = Math.cos(q.a), s = Math.sin(q.a), nu = (g.u - g.ou) / n, nv = g.v / n; q.x += (nu * c - nv * s) * z; q.y += (nu * s + nv * c) * z; } } }
 // Кусок, который едят, держится на оболочке там, где коснулся. Звать ещё раз после шага тела: тело сдвинулось и повернулось, кусок с ним.
-export function prizhat(q, T, w, K) { const e = q.est; if (!e) return; const kr = T.kr * w, c = Math.cos(q.a), s = Math.sin(q.a), k = (kr + e.r * K.vdavlen) / (kr + e.r0 * K.vdavlen), u = e.u + e.du * k, v = e.v * k; e.x = q.x + u * c - v * s; e.y = q.y + u * s + v * c; }
+export function prizhat(q, T, w, K) { const e = q.est; if (!e) return; const kr = T.kr * w, c = Math.cos(q.a), s = Math.sin(q.a), k = (kr + e.r * (e.vd ?? K.vdavlen)) / (kr + e.r0 * K.vdavlen), u = e.u + e.du * k, v = e.v * k; e.x = q.x + u * c - v * s; e.y = q.y + u * s + v * c; }
 // Во сколько раз тело сейчас толще покоя: голодная тоньше (∛массы ниже 1; выше 1 тело растёт в длину: delenie.js telo), медленное дыхание, волна сытости после куска и отклик
 // оболочки на касание: тело вздрагивает и гасит дрожь (та же затухающая волна, что у вмятины капсулы в игре: exp(−4f)·cos(14f)).
 export function tolshche(q, K, t) { const p = q.puls || 0, f = (q.tolchok ?? 9) / K.tolchok.dlitsya, tk = f < 1 ? K.tolchok.razmah * Math.exp(-4 * f) * Math.cos(14 * f) : 0;

@@ -209,7 +209,9 @@ export function sobrat(zapis, poza, B) {
     for (const v of vetki) P.nad = Math.max(P.nad, v.r0 * w * 1.05);
     // вмятины и бугры самой записи (forma.vypuklosti, vysota меньше нуля — вмятина: ротовая бороздка туфельки)
     // вырост позы задаётся углом от носа (ot_nosa, радианы по обводу): ложноножка, которую ведёт закон хода (hod.js polzet)
-    if (P.vypuklosti) P.vypuklosti = P.vypuklosti.map(v => v.ot_nosa === undefined ? v : { ...v, t: O.nos_t + v.ot_nosa });
+    // или точкой в осях тела (u, o в полутолщинах): вырост растёт на ближайшем к ней месте обвода (губа, которой оболочка обхватывает еду: pitanie.js obhvat)
+    const blizhe = v => { let bt = 0, bd = 1e9; for (let i = 0; i < 48; i++) { const t = i / 48 * 6.283, e = O.kray(t), d = (e.x - v.u) ** 2 + (e.y - v.o) ** 2; if (d < bd) { bd = d; bt = t; } } return bt; };
+    if (P.vypuklosti) P.vypuklosti = P.vypuklosti.map(v => v.ot_nosa !== undefined ? { ...v, t: O.nos_t + v.ot_nosa } : v.u !== undefined ? { ...v, t: blizhe(v) } : v);
     if (forma.vypuklosti) P.vypuklosti = [...forma.vypuklosti, ...(P.vypuklosti || [])];
     // под веткой тело не выпучивается отдельным бугром: переход делает сама ветка (иначе бугор закрывает её корень, и край тела режет основание)
     if (vetki.length && P.vypuklosti) P.vypuklosti = P.vypuklosti.filter(b => !vetki.some(v => Math.abs(Math.atan2(Math.sin(b.t - v.t), Math.cos(b.t - v.t))) < 0.35));
