@@ -32,7 +32,7 @@ import { telo as telo_rosta } from '../delenie.js';
 const q0 = new URLSearchParams(location.search), MR = await (await fetch('../mir.json')).json(), K = MR.hod, KK = MR.kontakt, Z = MR.zhizn, S = K.stend, vid = VC.vidy[q0.get('sushchestvo')] ? q0.get('sushchestvo') : 'nasha';
 // ?snimok=1 — снимок для карточки умения (Роман 26.11 21:43: в карточки «из конструктора конкретную картинку»): клетка крупно по центру, плывёт ровно,
 // без кнопок, еды и взвеси; числа mir.json hod.stend.snimok. Снимки пересобирает stend/karty.cjs
-const SN = q0.get('snimok') ? S.snimok : null; if (SN) { S.tolshchina = SN.tolshchina; document.body.classList.add('snimok'); }
+const SN = q0.get('snimok') ? S.snimok : null; if (SN) document.body.classList.add('snimok');
 const W = 720, gl = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true, preserveDrawingBuffer: !!SN }); gl.setPixelRatio(Math.min(devicePixelRatio, 2.5)); gl.autoClear = false;
 const H = W * innerHeight / innerWidth; gl.setSize(innerWidth, innerHeight, false);
 const cam = new THREE.OrthographicCamera(0, W, 0, H, -1, 1), back = new THREE.Scene(), bodies = new Bodies(); bodies.resize(W, H);
@@ -45,7 +45,7 @@ bg.position.set(W / 2, H / 2, 0); bg.scale.y = -1; back.add(bg);
 let s = (+(q0.get('seed') || 1)) * 2654435761 % 2147483647 || 1; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647, hash = (a, b) => { const x = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return x - Math.floor(x); };
 // Умения на теле: набор { умение: уровень } из адреса (?navyki=hvost:2,ship:1) и с кнопок слева; запись клетки пересобирается с частями уровня (s_navykami)
 // ?poverh=1 — как в игре с ручным телом: клетка без умений, части умений дорисованы поверх (chasti_navykov)
-const POVERH = !!q0.get('poverh'), NV = {}; let zerno = +(q0.get('vid') || 0); for (const p of (q0.get('navyki') || '').split(',')) { const [k, u] = p.split(':'); if (VC.navyki.spisok[k] && +u > 0) NV[k] = +u; }
+const POVERH = !!q0.get('poverh'), NV = {}; let zerno = +(q0.get('vid') || 0); for (const p of (q0.get('navyki') || '').split(',')) { const [k, u] = p.split(':'); if (VC.navyki.spisok[k] && +u > 0) NV[k] = +u; } if (SN) S.tolshchina = SN.svoi?.[Object.keys(NV)[0]]?.tolshchina || SN.tolshchina;
 // Запись под ползунками: каждый раз новая копия записи вида, поэтому паспорт хода и величины считаются заново.
 const P0 = { myag: +(1 / (VC.vidy[vid].forma.zhestkost || 1)).toFixed(2), zhg: VC.vidy[vid].chasti.zhgutiki ? VC.vidy[vid].chasti.zhgutiki.n ?? VC.chasti.zhgutiki.n : 0, dl: 1, korma: VC.vidy[vid].chasti.zhgutiki?.gde === 'korma' ? 1 : 0 }, PZ = { ...P0 }; let zapis, PH, vmax = 0, TL, zerna = -1, rost = 0;
 function sobrat_zapis() { let z = JSON.parse(JSON.stringify(VC.vidy[vid])); z.forma.tochki = z.forma.tochki.map(([x, y, r]) => [x * PZ.dl, y, r]);
