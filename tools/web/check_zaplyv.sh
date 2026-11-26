@@ -3,6 +3,7 @@
 # Раздаёт папку, открывает /zaplyv/ на iPhone 13, 25 с ведёт пальцем и касается.
 # Нагрузка каждый раз одна (решение 25.11): случай с заданным зерном (Math.random), колония ровно из 5 клеток (тяжёлый случай:
 # раньше деления касаниями давали то 1, то 5 клеток, и расчёт кадра прыгал 3–9 мс вокруг порога).
+# Клетки в пробе не гибнут (w.lose пустой): нагрузка остаётся та же, хищники считают как прежде.
 # Провал: ошибка страницы, кадры не идут, клетка не плывёт, клеток не 5, расчёт кадра (мир и раскладка) дольше 6 мс в среднем.
 set -eu
 SITE=$(cd "$1" && pwd); B=${2:-webkit}
@@ -21,7 +22,7 @@ const say = t => console.log('ПАСПОРТ: ' + t);
   p.on('pageerror', e => { bad++; console.log('ошибка страницы', e.message); });
   p.on('console', m => { if (m.type() === 'error' && !/favicon|404/.test(m.text())) { bad++; console.log('консоль', m.text().slice(0, 200)); } });
   await p.addInitScript(() => { let a = 20251125; Math.random = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; });
-  const KLETOK = 5, kolonia = () => p.evaluate(n => { const w = zaplyvWorld(); w.cfg.auto_split = 1e9; const a = w.me[0]; if (!a) return;
+  const KLETOK = 5, kolonia = () => p.evaluate(n => { const w = zaplyvWorld(); w.cfg.auto_split = 1e9; w.lose = () => {}; /* без гибели: съели всю колонию — заплыв кончался и мерили 0 клеток */ const a = w.me[0]; if (!a) return;
     while (w.me.length < n) { const i = w.me.length; w.me.push({ ...a, id: 800 + i, x: a.x + (i % 3) * 30, y: a.y + Math.floor(i / 3) * 30, vx: 0, vy: 0 }); }
     if (w.me.length > n) w.me.length = n; }, KLETOK);
   await p.goto(process.argv[2], { timeout: 60000 });
