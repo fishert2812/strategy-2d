@@ -3,7 +3,7 @@
 // прописано»): существа скользили ровно к цели. Сторож ловит «скользит ровно» на одной клетке и в мире, а таблица «параметр
 // записи → как изменился ход» доказывает, что ход следует из записи, а не подкручен под вид. Пороги — mir.json «hod.storozh».
 import { plyt, pasport_hoda } from './hod.js';
-import { kontakt, tolshche } from './pitanie.js';
+import { kontakt, tolshche, prizhat, vytolknut } from './pitanie.js';
 import { obvod_zon } from './zony.js';
 import { VC } from './vid_chasti.js';
 import { sozdat, shag, MR } from './mir_zhizn.js';
@@ -55,7 +55,7 @@ const KK = MR.kontakt, TLo = (() => { const O = obvod_zon(VC.vidy.nasha, { x: 0,
 function vstrecha(veshch, srazu = false) { const q = { id: 1, x: 0, y: 0, a: 0, m: 1 }, rnd = sluchay(1), dt = 1 / 30, zh = [], e = { ...veshch };
   for (let t = 0; t < 20; t += dt) { const w = W * tolshche(q, KK, t), KT = kontakt(q, [e], TLo, w, KK, 1, dt); let d = 0; if (KT.cel) { d = Math.atan2(KT.cel[1] - q.y, KT.cel[0] - q.x) - q.a; d = Math.atan2(Math.sin(d), Math.cos(d)); }
     if (srazu && q.est) { q.m += e.m * KK.kpd; e.m = 0; q.est = null; } // как было: коснулась — кусок исчез
-    plyt(q, VC.vidy.nasha, K, Z, dt, rnd, d, w, KT.sk); const c = Math.cos(q.a), sn = Math.sin(q.a), u = Math.max(-TLo.kh * w, Math.min(TLo.kh * w, (e.x - q.x) * c + (e.y - q.y) * sn));
+    plyt(q, VC.vidy.nasha, K, Z, dt, rnd, d, w, KT.sk); vytolknut(q, [e], TLo, w); prizhat(q, TLo, w, KK); const c = Math.cos(q.a), sn = Math.sin(q.a), u = Math.max(-TLo.kh * w, Math.min(TLo.kh * w, (e.x - q.x) * c + (e.y - q.y) * sn));
     zh.push({ zazor: Math.hypot(e.x - q.x - u * c, e.y - q.y - u * sn) - TLo.kr * w - e.r, r: e.r, m: q.m, est: !!q.est, em: e.m, w, upor: q.upor > 0 }); if (e.m <= 0) { for (let i = 0; i < 30; i++) { t += dt; zh.push({ zazor: 0, r: 0, m: q.m, est: false, em: 0, w: W * tolshche(q, KK, t), upor: false }); kontakt(q, [], TLo, W, KK, 1, dt); } break; } }
   return zh; }
 function sudit_korm(zh, m0) { const est = zh.filter(k => k.est); if (!zh.some(k => k.em <= 0)) return 'клетка не съела кусок за 20 с';
@@ -69,4 +69,14 @@ check('test_korm_samoproverka: тот же сторож краснеет, есл
 const sudit_upor = zh => { const mn = Math.min(...zh.map(k => k.zazor)); if (mn < -KK.storozh.vlez_max * W) return `тело влезло в комок на ${(-mn / W).toFixed(2)} полутолщины`; if (!zh.some(k => k.upor)) return 'клетка не дошла до комка или не заметила упор'; };
 check('test_upor: в твёрдый комок клетка упирается и не проходит сквозь него', () => { const q = vstrecha({ x: 6 * W, y: 0, m: 1, r: W * 2, tverd: true }); return sudit_upor(q.map((k, i) => k)); });
 check('test_upor_samoproverka: тот же сторож краснеет, если комок не твёрдый', () => { const q = { id: 1, x: 0, y: 0, a: 0, m: 1 }, rnd = sluchay(1), zh = []; for (let t = 0; t < 6; t += 1 / 30) { plyt(q, VC.vidy.nasha, K, Z, 1 / 30, rnd, Math.atan2(-q.y, 6 * W - q.x) - q.a, W); zh.push({ zazor: Math.hypot(6 * W - q.x, q.y) - TLo.kr * W - 2 * W, upor: false }); } return sudit_upor(zh) ? '' : 'сторож пропустил проход сквозь комок'; });
+// Мягкое тело (Роман 26.11: «как мы делали красиво — что они там двигают своим телом»): в повороте ось ложится дугой и сама выпрямляется.
+function povorot(Kx) { const q = { id: 1, x: 0, y: 0, a: 0, vedut: true }, rnd = sluchay(1), dt = 1 / 30; let mx = 0, konec = 0; const cel = [0, 4000];
+  for (let t = 0; t < 4; t += dt) { let d = Math.atan2(cel[1] - q.y, cel[0] - q.x) - q.a; d = Math.atan2(Math.sin(d), Math.cos(d)); plyt(q, VC.vidy.nasha, Kx, Z, dt, rnd, d, W); if (t < 1.5) mx = Math.max(mx, Math.abs(q.gnut)); konec = Math.abs(q.gnut); }
+  return mx < T.gnut_min ? `в повороте на 90° тело прогнулось всего на ${mx.toFixed(3)} половины длины, нужно не меньше ${T.gnut_min}` : konec > T.gnut_pryamo ? `на прямой тело осталось согнутым: ${konec.toFixed(3)}` : mx > Kx.telo.gnut_max + 1e-9 ? 'прогиб больше предела' : ''; }
+check('test_gnut: в повороте тело ложится дугой, на прямой выпрямляется, прогиб не больше предела', () => povorot(K));
+check('test_gnut_samoproverka: тот же сторож краснеет на жёстком теле', () => povorot({ ...K, telo: { ...K.telo, gnut: 0 } }) ? '' : 'сторож пропустил жёсткое тело');
+// Урок (26.11, стенд мира на адресе): первый кадр браузера приходит с шагом 0 или меньше нуля, из-за этого в ходе получалось «не число» и мир замирал.
+const celoe = q => ['x', 'y', 'a', 'gnut', 'gnut_vid', 'om'].find(k => !Number.isFinite(q[k])), nol = () => { const q = { id: 1, x: 0, y: 0, a: 0 }, rnd = sluchay(1); for (const dt of [0, -0.004, 1 / 60, 0, 1 / 60]) plyt(q, VC.vidy.nasha, K, Z, dt, rnd, 0.3, W); return q; };
+check('test_hod_nol: шаг времени 0 или меньше нуля не ломает клетку, все числа хода остаются числами', () => { const k = celoe(nol()); return k ? `после шага 0 поле ${k} перестало быть числом` : ''; });
+check('test_hod_nol_samoproverka: тот же сторож краснеет на клетке с «не числом» в курсе', () => celoe({ ...nol(), a: NaN }) ? '' : 'сторож пропустил «не число»');
 process.exit(bad);

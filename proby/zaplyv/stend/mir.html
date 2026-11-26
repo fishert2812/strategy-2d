@@ -3,7 +3,7 @@
 <title>Заплыв · живой мир записью</title>
 <style>html, body { margin: 0; height: 100%; background: #04101a; overflow: hidden; font-family: -apple-system, system-ui, sans-serif; color: #dff; }
 canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
-#p { position: fixed; left: 10px; right: 10px; bottom: 12px; font-size: 13px; line-height: 1.35; opacity: 0.85; text-shadow: 0 1px 3px #000; pointer-events: none; }
+#p { position: fixed; left: 10px; right: 10px; bottom: max(8px, env(safe-area-inset-bottom)); font-size: 12px; line-height: 1.3; padding: 6px 10px; border-radius: 10px; background: rgba(4, 16, 26, 0.7); pointer-events: none; }
 #k { position: fixed; left: 10px; right: 10px; top: max(12px, env(safe-area-inset-top)); font-size: 14px; line-height: 1.4; padding: 10px 12px; border-radius: 12px; background: rgba(4, 16, 26, 0.78); display: none; pointer-events: none; }
 #k b { font-size: 16px; } #k small { opacity: 0.7; }
 canvas { touch-action: none; }</style></head>
@@ -35,7 +35,7 @@ let cx = +(q.get('x') || M.W / 2), cy = +(q.get('y') || M.H / 2), time = 0, kadr
 // Потрогать: палец ведёт камеру, два пальца меняют масштаб, касание существа открывает его запись и камера идёт за ним.
 const kart = document.getElementById('k'), cv = document.getElementById('c'), pal = new Map(), km = () => W / innerWidth, Z_OT = Math.max(W / M.W, H / M.H), Z_DO = 5; let put = 0, shchip = 0;
 const kartochka = s => { const zp = s.zapis, [imya, ...opis] = (zp._ || s.vid).split(': '), f = zp.forma || {};
-  kart.innerHTML = '<b>' + imya + '</b><br>' + opis.join(': ').split(' Образец')[0] + '<br><small>Запись: тело ' + (f.tochki ? 'из ' + f.tochki.length + ' точек оси' : f.tip) + (f.vetki ? ', ветвей ' + f.vetki.length : '') + ' · части: ' + Object.keys(zp.chasti || {}).join(', ') + ' · зоны: ' + (Object.keys(zp.zony || {}).join(', ') || 'оболочка') + '<br>Сейчас: размер ' + s.m.toFixed(2) + (s.pokoy ? ' · в покое' : s.syt > 0 ? ' · сыт, переваривает' : ' · ищет еду') + '</small>'; kart.style.display = 'block'; };
+  kart.innerHTML = '<b>' + imya + '</b><br>' + opis.join(': ').split(' Образец')[0] + '<br><small>Запись: тело ' + (f.tochki ? 'из ' + f.tochki.length + ' точек оси' : f.tip) + (f.vetki ? ', ветвей ' + f.vetki.length : '') + ' · части: ' + Object.keys(zp.chasti || {}).map(k => MR.slova[k] || k).join(', ') + ' · зоны: ' + (Object.keys(zp.zony || {}).map(k => MR.slova[k] || k).join(', ') || 'оболочка') + '<br>Сейчас: размер ' + s.m.toFixed(2) + (s.pokoy ? ' · в покое' : s.syt > 0 ? ' · сыт, переваривает' : ' · ищет еду') + '</small>'; kart.style.display = 'block'; };
 const tknut = (px, py) => { const wx = okno[0] + px * km() / z, wy = okno[1] + py * km() / z; let best = null, bd = 1e9;
   for (const s of M.sv) { const d = Math.hypot(s.x - wx, s.y - wy) - Math.max(tolshchina(M, s) * 1.5, 22 * km() / z); if (d < bd) { bd = d; best = s; } }
   if (best && bd < 0) { vybr = best.id; za = null; kartochka(best); } else { vybr = null; kart.style.display = 'none'; } };
@@ -53,13 +53,13 @@ window.stend = dt => { time += dt; for (let i = 0; i < skor; i++) shag(M, dt);
   if (o && vybr && kadr % 15 === 0) kartochka(o);
   bodies.begin();
   for (const s of M.sv) { const ob = oblik(M, s), w = ob.tolshchina * z, sx = (s.x - x0) * z, sy = (s.y - y0) * z, kr = w * 4; if (sx < -kr || sx > W + kr || sy < -kr || sy > H + kr) continue; vidno++;
-    sobrat(ob.zapis, { x: sx, y: sy, a: s.a + (s.kach || 0), tolshchina: w, z, time, id: s.id, vetki: PR ? PR.kp.vetki(ob.zapis) : undefined, beg: (s.vb = (s.vb ?? s.plyvet) + (s.plyvet - (s.vb ?? s.plyvet)) * Math.min(1, dt * 12)) }, bodies); }
+    sobrat(ob.zapis, { x: sx, y: sy, a: s.a + (s.kach || 0), gnut: s.gnut_vid, tolshchina: w, z, time, id: s.id, vetki: PR ? PR.kp.vetki(ob.zapis) : undefined, beg: (s.vb = (s.vb ?? s.plyvet) + (s.plyvet - (s.vb ?? s.plyvet)) * Math.min(1, dt * 12)) }, bodies); }
   if (SPOSOB) (PR ??= new Proigryvatel(W, H, SPOSOB)).vMire(dt, M, oblik, x0, y0, z, W, H, bodies, za);
   bodies.end(time);
   if (kadr++ % 6 === 0) { const d = tex.image.data; for (let i = 0; i < d.length; i++) d[i] = Math.min(255, P.C[i] * 255); tex.needsUpdate = true; }
   U.okno.value.set(x0 / (P.nx * G), y0 / (P.ny * G), vw / (P.nx * G), vh / (P.ny * G)); U.t.value = time;
   gl.clear(); gl.render(back, cam); gl.render(bodies.scene, bodies.cam); if (PR) PR.render(gl); window.vidno = vidno;
   if (kadr % 30 === 1) { const n = perepis(M); p.textContent = 'Живой мир записью · ' + Math.round(M.t) + ' с · существ ' + M.sv.length + ' (на экране ' + vidno + ') · видов ' + Object.keys(n).length + ' · родилось ' + M.schet.rodilos + ' · съедено ' + (M.schet.syel + M.schet.proboy) + ' · голод ' + M.schet.golod + ' · мутантов ' + M.schet.mutantov; } };
-if (!q.get('zapis')) { let last = performance.now(); const go = now => { window.stend(Math.min(0.05, (now - last) / 1000)); last = now; requestAnimationFrame(go); }; requestAnimationFrame(go); }
+if (!q.get('zapis')) { let last = performance.now(); const go = now => { window.stend(Math.max(0.001, Math.min(0.05, (now - last) / 1000))); last = now; requestAnimationFrame(go); }; requestAnimationFrame(go); }
 window.stendReady = true;
 </script></body></html>
