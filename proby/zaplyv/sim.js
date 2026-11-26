@@ -213,7 +213,7 @@ export class World {
         const turn = mut.turnRate(this, a, a.tumble ? sw.tumble_turn : sw.turn), wantW = Math.max(-turn, Math.min(turn, d * sw.ease));
         const acc = mut.acc(a, sw.spin_acc); a.om = (a.om || 0) + Math.max(-acc * dt, Math.min(acc * dt, wantW - (a.om || 0)));
         a.a += Math.abs(a.om * dt) > Math.abs(d) ? d : a.om * dt;
-        thrust = (this.inSlime(a.x, a.y) && !this.genes.flagellum ? c.slime_slow : 1) /* много жгутиков пробивают слизь */ * (a.tumble ? s * 0.12 : s * Math.max(0.25, Math.cos(wrap(want - a.a)))) * (a.held > 0 ? 0.3 : 1) * (a.stun > 0 || a.spore > 0 ? 0 : 1) * (a.pinch > 0 ? c.pinch_slow : 1) * mut.thrust(this, a) * (a.chew ? rost.R.stoit : 1); // в шарике почти не плывёт; после гарпуна миг оглушена
+        thrust = (this.inSlime(a.x, a.y) && !this.genes.flagellum ? c.slime_slow : 1) /* много жгутиков пробивают слизь */ * (a.tumble ? s * 0.12 : s * Math.max(0.25, Math.cos(wrap(want - a.a)))) * (a.held > 0 ? 0.3 : 1) * (a.stun > 0 || a.spore > 0 ? 0 : 1) * (a.pinch > 0 ? c.pinch_slow : 1) * mut.thrust(this, a) * (a.chew && a.m <= (a.chew.m || 4) * rost.R.gryzt_bolshe ? rost.R.stoit : 1) /* большую клетку крошечный комок под ней не тормозит (форк, PR 395) */; // в шарике почти не плывёт; после гарпуна миг оглушена
       } else { // палец отпущен: в воде клетка встаёт сразу (вязкость); её медленно сносит и поворачивает (~90° за 10 с)
         a.drift = (a.drift ?? r() * 6.283) + (r() - 0.5) * dt * 1.5;
         a.om = (a.om || 0) * Math.max(0, 1 - 6 * dt);

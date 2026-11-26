@@ -17,3 +17,6 @@ for v in 0.06 0.54; do
   grep -q 'ПРОВАЛ test_rost_temp' <<<"$t" || { echo "  САМОПРОВЕРКА: при сытости $v test_rost_temp зелёный — сторож темпа не видит перекоса"; exit 1; }
 done
 echo "  самопроверка: при сытости втрое меньше и втрое больше test_rost_temp красный (так и должно быть)"
+g=$(ROST_GRYZT=1e9 timeout 300 node proby/zaplyv/test_rost.mjs 2>&1)
+grep -q 'ПРОВАЛ.*test_rost_bolshaya_ne_vyaznet' <<<"$g" || { echo "  САМОПРОВЕРКА: любой комок тормозит, а test_rost_bolshaya_ne_vyaznet зелёный — сторож хода большой клетки слепой"; exit 1; }
+echo "  самопроверка: когда тормозит любой комок, test_rost_bolshaya_ne_vyaznet красный (так и должно быть)"
