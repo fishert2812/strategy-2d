@@ -48,7 +48,7 @@ import * as stk from './stolk.js'; /* столкновения по контур
 import * as boj from './boj.js'; import * as gm from './genom.js'; /* одна таблица боя «кто кого и чем», удар по геному */
 const VEHI = vh.zagruzit();
 window.kaplyaLes = () => LES; window.kaplyaGlava = () => GLAVA; // спирилла, каулобактер, хлорелла (книга П39), руками // строка цели, подпись линейки, «теперь еда» (книга П5–П7)
-const KAP = await (await fetch('kaplya/kaplya.json')).json(), ZH = KAP.zhiteli, ZAP = {};
+const KAP = await (await fetch('kaplya/kaplya.json')).json(), ZH = KAP.zhiteli, ZAP = {}; Object.assign(rost.R, KAP.temp); /* Ш26, Роман 21:22 «вырастаешь… очень быстро»: в «Капле» рост реже, основной «Заплыв» не меняется */
 { const U = KAP.upravlenie; cfg.sense_idle = U.sense_idle; cfg.sense_pull = U.sense_pull; } // Роман 26.11 20:39: клетку ведёт только палец; «Нюх» не везёт к еде
 for (const [k, v] of Object.entries(ZH)) if (v && VC.vidy[v.zapis]) ZAP[k] = { ...VC.vidy[v.zapis], gruppa: undefined };
 // нарисовать жителя записью: x, y — экран, a — куда смотрит, mera — ручная мера тела (длина, радиус, толщина) на экране
