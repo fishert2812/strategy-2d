@@ -2,14 +2,14 @@
 // Роман 26.11: «Почему экран мигает? Что за проблема такая!?» Причина была в снимке для Альманаха: он рисуется на холсте игры, и если делался
 // вне кадра (встреча существа, карточка), телефон на кадр показывал студию с одним существом. Сторож каждый кадр читает весь холст
 // и ищет кадр, который резко ярче или темнее соседей с обеих сторон (вспышка или чёрный кадр). Самопроверка: снимок без защиты сторож обязан поймать.
-const { chromium } = require(process.env.PW || 'playwright'), http = require('http'), fs = require('fs'), path = require('path');
+const http = require('http'), fs = require('fs'), path = require('path');
 const KOREN = path.resolve(__dirname, '../../proby/zaplyv'), TIP = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg' };
 const PROVAL = 12; // насколько средняя яркость кадра (0–765) отличается от обоих соседей, чтобы считаться миганием
 // Ищет одиночные выбросы: кадр отличается от предыдущего и следующего в одну сторону больше чем на PROVAL
 const vybrosy = r => r.map((v, i) => i && i < r.length - 1 && ((v - r[i - 1] > PROVAL && v - r[i + 1] > PROVAL) || (r[i - 1] - v > PROVAL && r[i + 1] - v > PROVAL)) ? i : -1).filter(i => i >= 0);
 let bad = 0; const check = (n, e) => { console.log((e ? '  ПРОВАЛ ' : '  ок ') + n + (e ? ': ' + e : '')); if (e) bad++; };
 check('test_miganie_storozh_vidit: сторож ловит придуманную вспышку и чёрный кадр', vybrosy([100, 101, 140, 100, 99, 10, 98, 99, 100]).join() === '2,5' && !vybrosy([100, 105, 110, 115, 120]).length ? '' : 'сторож не видит выброс или видит его на ровном росте');
-(async () => {
+(async () => { const { chromium } = (await import(process.env.PW || 'playwright')).default || await import(process.env.PW || 'playwright'); // PW ставит шаг 79, как у касаний (52_zaplyv_tap.sh)
   const srv = http.createServer((q, s) => { const f = path.join(KOREN, decodeURIComponent(q.url.split('?')[0])); const ff = fs.existsSync(f) && fs.statSync(f).isDirectory() ? path.join(f, 'index.html') : f;
     if (!ff.startsWith(KOREN) || !fs.existsSync(ff)) { s.writeHead(404); return s.end(); } s.writeHead(200, { 'Content-Type': TIP[path.extname(ff)] || 'application/octet-stream' }); fs.createReadStream(ff).pipe(s); }).listen(0);
   const b = await chromium.launch(), p = await b.newPage({ viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
@@ -22,7 +22,7 @@ check('test_miganie_storozh_vidit: сторож ловит придуманну�
     await p.evaluate(bez => { for (let i = 0; i < 6; i++) setTimeout(() => window.zaplyvSnimok(['coccus', 'amoeba', 'bell', 'phage', 'roti', 'slipper'][i], bez), 250 + i * 400); }, bez);
     await p.waitForTimeout(3200); return p.evaluate(() => { window.__zapis = false; return window.__ryad; }); };
   const s = await zapis(false), v = vybrosy(s);
-  check('test_miganie_net: шесть снимков Альманаха во время игры, экран не мигает', s.length < 10 ? `записано кадров ${s.length}` : v.length ? `мигнуло ${v.length} раз: ${v.map(i => s[i - 1].toFixed(0) + '→' + s[i].toFixed(0) + '→' + s[i + 1].toFixed(0)).join(', ')}` : '');
+  check('test_L068 test_miganie_net: шесть снимков Альманаха во время игры, экран не мигает', s.length < 10 ? `записано кадров ${s.length}` : v.length ? `мигнуло ${v.length} раз: ${v.map(i => s[i - 1].toFixed(0) + '→' + s[i].toFixed(0) + '→' + s[i + 1].toFixed(0)).join(', ')}` : '');
   const s0 = await zapis(true), v0 = vybrosy(s0);
   check('test_miganie_samoproverka: снимок без защиты сторож ловит', v0.length ? '' : `без защиты мигания не видно (кадров ${s0.length}): сторож слепой`);
   check('test_miganie_oshibki: игра без ошибок', errs.length ? errs.join('; ') : '');
