@@ -21,3 +21,5 @@ export function shag(L, w, me, mass, K) { let sobytie = '';
 // П89: рекорд — больше всего царей за заход, хранится навсегда
 const KR = 'zaplyv.kaplya.lestnica';
 export function rekord(L) { let r = 0; try { r = +localStorage.getItem(KR) || 0; if (L && L.schet > r) { r = L.schet; localStorage.setItem(KR, String(r)); } } catch (_) {} return r; }
+// В «Лестнице» житель появляется, когда ты не легче его в krupnye_ot раз: охотники П40 не встречают новорождённую (П86: каждый шаг посилен)
+export const poyavitsya = (K, mojaM, massa0) => mojaM * K.krupnye_ot >= massa0;
