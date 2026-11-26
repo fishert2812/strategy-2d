@@ -3,7 +3,7 @@
 // прописано»): существа скользили ровно к цели. Сторож ловит «скользит ровно» на одной клетке и в мире, а таблица «параметр
 // записи → как изменился ход» доказывает, что ход следует из записи, а не подкручен под вид. Пороги — mir.json «hod.storozh».
 import { plyt, pasport_hoda } from './hod.js';
-import { kontakt, tolshche, prizhat } from './pitanie.js';
+import { kontakt, tolshche, prizhat, vytolknut } from './pitanie.js';
 import { obvod_zon } from './zony.js';
 import { VC } from './vid_chasti.js';
 import { sozdat, shag, MR } from './mir_zhizn.js';
@@ -55,7 +55,7 @@ const KK = MR.kontakt, TLo = (() => { const O = obvod_zon(VC.vidy.nasha, { x: 0,
 function vstrecha(veshch, srazu = false) { const q = { id: 1, x: 0, y: 0, a: 0, m: 1 }, rnd = sluchay(1), dt = 1 / 30, zh = [], e = { ...veshch };
   for (let t = 0; t < 20; t += dt) { const w = W * tolshche(q, KK, t), KT = kontakt(q, [e], TLo, w, KK, 1, dt); let d = 0; if (KT.cel) { d = Math.atan2(KT.cel[1] - q.y, KT.cel[0] - q.x) - q.a; d = Math.atan2(Math.sin(d), Math.cos(d)); }
     if (srazu && q.est) { q.m += e.m * KK.kpd; e.m = 0; q.est = null; } // как было: коснулась — кусок исчез
-    plyt(q, VC.vidy.nasha, K, Z, dt, rnd, d, w, KT.sk); prizhat(q, TLo, w, KK); const c = Math.cos(q.a), sn = Math.sin(q.a), u = Math.max(-TLo.kh * w, Math.min(TLo.kh * w, (e.x - q.x) * c + (e.y - q.y) * sn));
+    plyt(q, VC.vidy.nasha, K, Z, dt, rnd, d, w, KT.sk); vytolknut(q, [e], TLo, w); prizhat(q, TLo, w, KK); const c = Math.cos(q.a), sn = Math.sin(q.a), u = Math.max(-TLo.kh * w, Math.min(TLo.kh * w, (e.x - q.x) * c + (e.y - q.y) * sn));
     zh.push({ zazor: Math.hypot(e.x - q.x - u * c, e.y - q.y - u * sn) - TLo.kr * w - e.r, r: e.r, m: q.m, est: !!q.est, em: e.m, w, upor: q.upor > 0 }); if (e.m <= 0) { for (let i = 0; i < 30; i++) { t += dt; zh.push({ zazor: 0, r: 0, m: q.m, est: false, em: 0, w: W * tolshche(q, KK, t), upor: false }); kontakt(q, [], TLo, W, KK, 1, dt); } break; } }
   return zh; }
 function sudit_korm(zh, m0) { const est = zh.filter(k => k.est); if (!zh.some(k => k.em <= 0)) return 'клетка не съела кусок за 20 с';

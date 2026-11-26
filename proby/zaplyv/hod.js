@@ -24,7 +24,7 @@ export function pasport_hoda(zapis, K, rz = zapis.zhizn?.razmer ?? 1) { let p = 
     vert: K.drozh.povorot * Math.sqrt(e.kurs / (v.kurs * rz ** 3)), ugol: K.beg.ugol * lim(Math.sqrt(n / VC.chasti.zhgutiki.n), 0.5, 1.5) };
   const k = schitay(zapis); p.k_skorost = k.k_skorost; p.k_povorot = k.k_povorot; p.k_eda = k.k_eda; p.duga = v.duga || 0; p.ugol *= lim(Math.sqrt(k.k_povorot), 0.3, 1.3); PH.set(zapis, p); return p; }
 const gauss = r => (r() + r() + r() - 1.5) * 2;
-// q — существо (id, pokoy, udar: в этот шаг упёрлось), P — паспорт хода, d — угол от носа до цели (0, если цели нет).
+// q — существо (id, pokoy, udar: в этот шаг упёрлось, vedut: курс держит рука или погоня, случайных кувырков нет, только упор и резкий разворот), P — паспорт хода, d — угол от носа до цели (0, если цели нет).
 // Возвращает: sk — доля скорости вдоль носа (меньше нуля — задний ход), da — поворот за шаг, bok — снос вбок в толщинах в секунду,
 // kach — на сколько нос качнуло от курса (только вид), beg — собран ли пучок жгутиков (0 в кувырке), rul — слушается ли руля.
 export function hod(q, P, K, dt, rnd, d = 0) { const tip = P.tip, B = K.beg, o = { sk: 1, da: 0, bok: 0, kach: 0, beg: 1, rul: 1, duga: P.duga };
@@ -42,7 +42,7 @@ export function hod(q, P, K, dt, rnd, d = 0) { const tip = P.tip, B = K.beg, o =
   if (h.faza === 'beg') { h.zh += dt; o.sk = 1 + B.pulsaciya * Math.sin(h.f * 2.3 + q.id * 1.7) * Math.sin(h.f * 0.9 + q.id);
     // цель оказалась сзади: резкий разворот кувырком в её сторону (как у клетки игрока в игре: data.json swim.tumble_angle)
     if (Math.abs(d) > B.ugol_kuvyrka && h.zh > B.ne_chashche && tip === 'beg') { h.faza = 'kuvyrok'; h.t = h.T = B.kuvyrok; h.pov = d * B.dolya_razvorota; }
-    else if ((h.t -= dt) <= 0 || udar && h.zh > B.ne_chashche) { if (tip === 'polus') { h.faza = 'nazad'; h.t = B.nazad * (0.5 + rnd()); } else { h.faza = 'kuvyrok'; h.t = h.T = B.kuvyrok * (0.6 + rnd() * 0.8); h.pov = znak() * P.ugol * (0.3 + rnd() * 1.4); } } }
+    else if ((q.vedut ? 1 : (h.t -= dt)) <= 0 || udar && h.zh > B.ne_chashche) { if (tip === 'polus') { h.faza = 'nazad'; h.t = B.nazad * (0.5 + rnd()); } else { h.faza = 'kuvyrok'; h.t = h.T = B.kuvyrok * (0.6 + rnd() * 0.8); h.pov = znak() * P.ugol * (0.3 + rnd() * 1.4); } } }
   else if (h.faza === 'nazad') { o.sk = -B.nazad_skorost; o.rul = 0; if ((h.t -= dt) <= 0) { h.faza = 'kuvyrok'; h.t = h.T = B.shchelchok_t; h.pov = znak() * B.shchelchok * (0.6 + rnd() * 0.8); } }
   else { o.sk = B.v_kuvyrke; o.beg = 0; o.rul = 0; o.da += h.pov * dt / h.T * (1 - Math.cos(6.283 * (1 - h.t / h.T))); o.kach *= 2; if ((h.t -= dt) <= 0) { h.faza = 'beg'; h.t = probeg(); h.zh = 0; } }
   return o; }
