@@ -13,7 +13,7 @@ export function shag(C, w, me, K, mass, bolshe, umeet, syt) { const I = K.imena,
   for (const [who, m] of Object.entries(C.videl)) if (!C.eda.has(who) && umeet && m * bolshe <= me.m) { C.eda.add(who); teper.push(who); } // П5: перерос силуэт — «теперь еда»
   // П5: подпись линейки — ровня 0,8–1,25 твоей массы, иначе самый крупный виденный легче тебя, иначе «с кишечную палочку»
   const vidy = Object.entries(C.videl), rovnya = vidy.find(([, m]) => m >= me.m * 0.8 && m <= me.m * 1.25), legche = vidy.filter(([, m]) => m < me.m).sort((a, b) => b[1] - a[1])[0];
-  C.rostom = rovnya ? 'ростом с ' + I[rovnya[0]][2] : legche ? 'ты в ' + String(okrugl(me.m / legche[1])).replace('.', ',') + ' раза больше ' + I[legche[0]][1] : 'ростом с кишечную палочку';
+  C.rostom = rovnya ? 'ростом с ' + I[rovnya[0]][2] : legche ? 'ты в ' + String(okrugl(me.m / legche[1])).replace('.', ',') + (okrugl(me.m / legche[1]) >= 5 && Number.isInteger(okrugl(me.m / legche[1])) ? ' раз больше ' : ' раза больше ') + I[legche[0]][1] : 'ростом с кишечную палочку';
   // П6: строка цели, первое подходящее
   let vrag = null; for (const list of OPASNYE) for (const q of w[list] || []) { const who = SPIS.find(s => s[0] === list)[1]; if (!q.gone && !(q.syt > 0) && !(list === 'bodos' && q.m < me.m * bolshe) && blizh(me, q) < K.opasno && !(umeet && mass(q, who) * bolshe <= me.m) && (!vrag || blizh(me, q) < blizh(me, vrag.q))) vrag = { q, who }; }
   const vyshe = vidy.filter(([who]) => !C.eda.has(who)).sort((a, b) => a[1] - b[1]), hoz = vidy.slice().sort((a, b) => b[1] - a[1])[0];
