@@ -1253,5 +1253,116 @@
   "pauza": true,
   "odin_tap": true,
   "glotat": true
+ },
+ "boj": {
+  "_": "Одна таблица боя «кто кого и чем» (Роман 26.11 21:40–21:42; исполнитель kaplya/boj.js, прогон kaplya/progon_boj.mjs). vkl — бой через таблицу и геном; skryt — ручные гены, которые в «Капле» бьют только через таблицу; zazor — касание, точек сверх двух тел; medlenno — ход отравленной; genom — лечение (законы З2–З3); oruzhie — ключ гена: imya, sposob (yad — доза тает dlitsya с; udar — сразу), gde (kasanie | nos: dlina — точек за телами, nos — косинус угла), sila по уровням — доля генома ровни (законы З3), pauza — уколы одной цели не чаще, sobytie; celi — кого бьют: spisok мира, massa — если у существа нет своей, k_r — тело в радиусах массы, stenka — во сколько раз стенка гасит оружие (0 — не берёт). Новое оружие или житель — строка здесь, без кода; pervyj — оружие, одно из которых всегда в карточках, пока его нет (Роман 21:05)",
+  "vkl": true,
+  "skryt": [
+   "toxin",
+   "igla"
+  ],
+  "zazor": 4,
+  "medlenno": 0.7,
+  "genom": {
+   "vosst": 0.02,
+   "pokoy": 2
+  },
+  "pervyj": [
+   "toxin",
+   "igla"
+  ],
+  "oruzhie": {
+   "toxin": {
+    "imya": "Яд",
+    "sposob": "yad",
+    "gde": "kasanie",
+    "sila": [
+     0.3,
+     0.5,
+     0.8
+    ],
+    "dlitsya": 5,
+    "pauza": 0.5,
+    "sobytie": "yad"
+   },
+   "igla": {
+    "imya": "Нить-игла",
+    "sposob": "udar",
+    "gde": "nos",
+    "dlina": 14,
+    "nos": 0.7,
+    "sila": [
+     1,
+     1.5,
+     2
+    ],
+    "pauza": 1,
+    "sobytie": "igla"
+   }
+  },
+  "celi": {
+   "sopernica": {
+    "spisok": "pseudos",
+    "massa": 1.2,
+    "k_r": 0.9
+   },
+   "zapyataya": {
+    "spisok": "bdellos",
+    "massa": 0.5,
+    "k_r": 0.6
+   },
+   "kokk": {
+    "spisok": "prey",
+    "massa": 1,
+    "k_r": 0.8,
+    "stenka": {
+     "igla": 0,
+     "toxin": 0.5
+    },
+    "_": "толстую стенку кокков игла не берёт (книга, Г55)"
+   },
+   "spirilla": {
+    "spisok": "spirilly",
+    "massa": 5,
+    "k_r": 0.7
+   },
+   "kaulo": {
+    "spisok": "kaulo",
+    "massa": 1.2,
+    "k_r": 0.8
+   },
+   "brodyazhka": {
+    "spisok": "brodyazhki",
+    "massa": 0.4,
+    "k_r": 0.8
+   },
+   "kroha": {
+    "spisok": "krohi",
+    "massa": 0.4,
+    "k_r": 0.8
+   },
+   "donor": {
+    "spisok": "donors",
+    "massa": 1.2,
+    "k_r": 0.9
+   }
+  },
+  "yad_vid": {
+   "cvet": [
+    0.62,
+    0.95,
+    0.55
+   ],
+   "a": 0.28
+  },
+  "teksty": {
+   "_": "строки карточек оружия в «Капле» поверх kniga/teksty_genov.json",
+   "cdiA": {
+    "daet": "Касание отравляет соперницу: она бледнеет, плывёт медленнее и через несколько секунд лопается едой."
+   },
+   "tssB": {
+    "daet": "Укол носом: ровня растекается едой, крупную только ранит."
+   }
+  }
  }
 }

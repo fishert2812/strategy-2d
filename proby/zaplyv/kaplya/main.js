@@ -44,6 +44,7 @@ import * as glv from './glavy.js'; // главы 2–5 (П79–П83)
 import * as lin from './lineyka.js'; // линейка из живых силуэтов (П5, П87)
 import * as vh from './vehi.js'; // рост по книге: длина П51, вехи П54, худение за умения П49
 import * as vdv from './rot.js'; /* Ш2: водоворот у рта */
+import * as boj from './boj.js'; import * as gm from './genom.js'; /* одна таблица боя «кто кого и чем», удар по геному */
 const VEHI = vh.zagruzit();
 window.kaplyaLes = () => LES; window.kaplyaGlava = () => GLAVA; // спирилла, каулобактер, хлорелла (книга П39), руками // строка цели, подпись линейки, «теперь еда» (книга П5–П7)
 const KAP = await (await fetch('kaplya/kaplya.json')).json(), ZH = KAP.zhiteli, ZAP = {};
@@ -372,7 +373,7 @@ const saveMet = () => { try { localStorage.setItem('zaplyv.met', JSON.stringify(
 const KAB = await (await fetch('almanah.json')).json();
 const GENY = await fetch('kniga/teksty_genov.json').then(r => r.ok ? r.json() : {}).catch(() => ({})); // гены: имена и тексты книги
 mut.addGenes(cfg); mut.names(cfg, GENY); // новые мутации: имена из книги
-for (const [id, t] of Object.entries(KAP.upravlenie.teksty || {})) if (id !== '_') { GENY.geny ||= {}; GENY.geny[id] = { ...(GENY.geny[id] || {}), ...t }; }; /* Ш1: «Нюх» в «Капле» не обещает плыть к еде сам */
+for (const [id, t] of [...Object.entries(KAP.upravlenie.teksty || {}), ...Object.entries(KAP.boj.teksty || {})]) if (id !== '_') { GENY.geny ||= {}; GENY.geny[id] = { ...(GENY.geny[id] || {}), ...t }; }; /* Ш1: «Нюх» в «Капле» не обещает плыть к еде сам */
 const SVYAZI = await fetch('kniga/kto_s_kem.json').then(r => r.ok ? r.json() : {}).catch(() => ({})); // кто кого ест — связи карточек Альманаха
 const KNIGA = await fetch('kniga/teksty_sushchestv.json').then(r => r.ok ? r.json() : {}).catch(() => ({})), TEKSTY = KNIGA.sushchestva || {}, PODPISI = KNIGA.podpisi || {}; // тексты книги
 // Снимок модели: на миг подменяем мир студией с одним существом в середине кадра, рисуем тем же paint и вырезаем середину.
@@ -747,7 +748,8 @@ canvas.addEventListener('pointercancel', up);
 // полоса сворачивается в значок у края, коснёшься — снова раскроется; сам вариант не берётся, значок ждёт касания.
 let offerKey = '', offerT = 0; // offerT — время на часах телефона (performance.now), а не мира: полоса сворачивается за 6 настоящих секунд
 function offer(dt) {
-  { const g = KAP.upravlenie.magnit; if (world.choice.length > 1 && !world.choice.includes(g) && !world.genes[g] && evo.pool(world).includes(g)) world.choice[0] = g; } // Роман 26.11: пищевой магнит — еда плывёт к тебе; пока его нет, он всегда среди карточек
+  { const g = KAP.upravlenie.magnit; if (world.choice.length > 1 && !world.choice.includes(g) && !world.genes[g] && evo.pool(world).includes(g)) world.choice[0] = g; }
+  { const P = evo.pool(world), o = KAP.boj.pervyj.find(g => P.includes(g)); if (world.choice.length > 1 && !boj.est(world, KAP.boj) && o && !world.choice.some(g => g in KAP.boj.oruzhie)) world.choice[1] = o; } /* Ш25, Роман 21:05: без оружия живое не взять — пока его нет, одно всегда среди карточек */ // Роман 26.11: пищевой магнит — еда плывёт к тебе; пока его нет, он всегда среди карточек
   const key = world.choice.join(), O = $('offer'), D = $('odot');
   if (!world.choice.length) { if (offerKey) { O.classList.remove('on'); D.classList.remove('on'); offerKey = ''; } return; }
   if (key !== offerKey) { // новый выбор: собрать полосу
@@ -790,6 +792,7 @@ function events() {
     if (k === 'spore') { beep(200, 0.6, 0.06, 'sine', 0.5); say('Сон! Спящих не берут — переждёшь беду', 2600); }
     if (k === 'rost') { beep(440, 0.5, 0.05, 'sine', 1.5); say(rost.text(size), 3200); world.rostT = world.stats.time; } // режим «Рост»: подросла, что теперь можно есть
     if (k === 'igla') { beep(1300, 0.08, 0.05, 'square', 0.5); } // нить-игла уколола соперницу
+    if (k === 'yad') { beep(900, 0.06, 0.04, 'sine', 0.7); } /* Ш25: укол ядом */
     if (k === 'gulp') { beep(200, 0.35, 0.06, 'sine', 0.6); } // проглотила живую клетку
     if (k === 'spit') { beep(260, 0.15, 0.04, 'sine', 0.7); tell('spit', 'Пасть тебя не взяла: ты больше её рта'); }
     if (k === 'sprout') { beep(520, 0.3, 0.05, 'sine', 2); }
@@ -823,7 +826,7 @@ function tick(dt) {
   offer(dt); if (KAP.karta.pauza && world.choice.length) return; /* Ш20: пока лежат карточки, мир стоит */
   { const H = KAP.hod, me = world.me[0]; if (me) { const zb = view.z / (1 + cfg.close_up * (view.calm || 0)), k = Math.max(1, H.z0 / zb); // Роман 26.11: «чтобы при росте моем не замедлялась клетка»
     cfg.speed = H.v * rost.hod(world, me) * k ** H.stepen / (me.chew && me.m > (me.chew.m || 4) * H.gryzt_bolshe ? rost.R.stoit : 1); } } // большую клетку крошечный комок под ней не тормозит: «встать и грызть» только у комка не мельче тебя в gryzt_bolshe раз // скорость на экране не падает: тяжесть не тормозит, а отъезд камеры возмещается ходом в мире
-  const m0 = new Map(world.me.map(a => [a, a.m])); world.step(dt, pad.value()); for (const t of obl.shag(OBL, world, dt, KAP.oblasti, m0, GLAVA)) say(t, 3500);
+  const m0 = new Map(world.me.map(a => [a, a.m])), OS = boj.do_hoda(world, KAP.boj); world.step(dt, pad.value()); boj.posle_hoda(world, dt, KAP.boj, radius, OS); /* таблица боя: яд и игла бьют по геному */ for (const t of obl.shag(OBL, world, dt, KAP.oblasti, m0, GLAVA)) say(t, 3500);
   if (kis.shag(KIS, world, dt, KAP.kislota, m0, world.events.some(e => e[0] === 'gulp'))) { let byla = false; try { byla = !!localStorage.getItem('zaplyv.kaplya.kislota'); localStorage.setItem('zaplyv.kaplya.kislota', '1'); } catch (_) {} if (!byla) say(KAP.kislota.slovo, 3000); } // П26: в кислой воде еда растит вдвое слабее; имя мути при первом заходе в жизни
   umn.plata(world, m0, KAP.umeniya); // П64: плата умений «растёшь медленнее»
   { const K = KAP.sposoby; if (!les.vkl()) for (const n of sp.poluchit(world, GLAVA)) say(K.slova[n], 4500); if (sp.prisoska(world, dt, K.prisoska, radius, cel.SPIS, ms0) && !world.pyotSkazano) { world.pyotSkazano = true; say(K.slova.pyot, 3000); } if (sp.soki(world, dt, K.soki, radius) && !world.sokiSkazano) { world.sokiSkazano = true; say(K.slova.oblako, 3000); } } // П18, П19
@@ -1163,6 +1166,7 @@ function paint(time) {
     for (let j = 0; j < 7; j++) { const t = j * 2.399 + time * 0.1, rr = R * 0.7 * Math.sqrt((j + 0.5) / 7); glow.put(x + Math.cos(t) * rr, y + Math.sin(t) * rr, R * 0.6, ...K.cvet, K.a); }
     for (let j = 0; j < K.puzyrki; j++) { const t = j * 2.399, f = (time * 0.25 + j / K.puzyrki) % 1, rr = R * 0.8 * Math.sqrt((j + 0.5) / K.puzyrki); ink.put(x + Math.cos(t) * rr, y + Math.sin(t) * rr - f * R * 0.3, (1.2 + j % 2) * Math.max(1, z), ...K.cvet, 0.5 * (1 - f)); } } }
   { const K = KAP.rot; for (const k of ROT.kuski) { const F = cfg.food_kinds[k.f.kind || 'bits']; for (const t of vdv.tochki(k, K, radius)) { if (t.p >= 1) continue; const [x, y] = scr(t.x, t.y); if (!on(x, y, 10)) continue; const r = K.r_tochki * (1 - 0.45 * t.p) * Math.max(1, z * 0.6); glow.put(x, y, r * 2.6, ...F.halo, 0.22 * K.a); glow.put(x, y, r, ...F.core, K.a); } } } /* Ш2: кусок рассыпался на точки, они воронкой бегут в рот */
+  { const Y = KAP.boj.yad_vid; for (const L of Object.values(KAP.boj.celi)) for (const q of world[L.spisok] || []) if (gm.otravlen(q)) { const [x, y] = scr(q.x, q.y); if (on(x, y, 40)) glow.put(x, y, 26 * z, ...Y.cvet, Y.a); } } /* Ш25: отравленная соперница светится цветом яда */
   { const K = KAP.virus_znak, me = world.me[0]; VIR = me ? vir.muti(world.phages, me, K, radius(me.m), cfg.speed / rost.hod(world, me)) : []; for (const q of VIR) { const [x, y] = scr(q.x, q.y); if (!on(x, y, 80)) continue; const ob = q.vid === 'oblako'; glow.put(x, y, (ob ? K.r_oblako : K.r_blizko) * z, ...K.cvet, ob ? K.a_oblako : K.a_blizko); } } // П7: вирус опасен водой — серая муть рядом и в облаке, без красного и розового
   for (const g of world.phages) { // фаг T4: головка позади, хвостом вперёд — садится хвостом
     const [x, y] = scr(g.x, g.y); if (!on(x, y)) continue;
