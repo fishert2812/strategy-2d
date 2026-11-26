@@ -29,7 +29,7 @@ if (!process.env.MIR_DOLGO_SAMO) {
 } else {
   const e1 = sudit(prozhit(kopiya(K => { K.pole.il *= 10; }), D.zerna[0]));
   check('test_mir_dolgo_samo: ил кормит вдесятеро — сторож долей краснеет', () => e1 ? (console.log('    (так и должно быть: ' + e1 + ')'), '') : 'кокки на сытном иле, а сторож зелёный — он ничего не меряет');
-  const v = vremya(kopiya(K => { K.zhizn.razvodit_cherez = 1; K.zhizn.reshaet = 0; K.zhizn.chuet *= 5; }));
-  check('test_mir_bystro_samo: обводы и решения каждый шаг, чутьё впятеро дальше — сторож времени краснеет', () => v.ms > D.shag_ms ? (console.log(`    (так и должно быть: ${v.ms.toFixed(1)} мс)`), '') : `шаг ${v.ms.toFixed(1)} мс и с обводами везде — порог ничего не ловит`);
+  const v = vremya(kopiya(K => { K.zhizn.reshaet = 0; K.zhizn.chuet *= 5; }));
+  check('test_mir_bystro_samo: решения каждый шаг, чутьё впятеро дальше — сторож времени краснеет', () => v.ms > D.shag_ms ? (console.log(`    (так и должно быть: ${v.ms.toFixed(1)} мс)`), '') : `шаг ${v.ms.toFixed(1)} мс и с решениями каждый шаг — порог ничего не ловит`);
 }
 console.log(bad ? 'МИР ДОЛГО: провалов ' + bad : 'МИР ДОЛГО: все проверки прошли'); process.exit(bad ? 1 : 0);
