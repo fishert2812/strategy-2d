@@ -6,7 +6,7 @@ import { VC } from '../vid_chasti.js';
 const url = new URL('./igra.json', import.meta.url);
 export const IG = url.protocol === 'file:' ? JSON.parse((await import('node:fs')).readFileSync(url, 'utf8')) : await (await fetch(url)).json();
 export const imya = vid => ((VC.vidy[vid] || {})._ || vid).split(/[:(]/)[0].trim();
-const zapis_igroka = rz => { const z = JSON.parse(JSON.stringify(VC.vidy[IG.igrok.vid])); z.zony = { ...(z.zony || {}), rot: IG.igrok.rot }; z.zhizn = { ...(z.zhizn || {}), razmer: rz }; return z; };
+const zapis_igroka = rz => { const z = JSON.parse(JSON.stringify(VC.vidy[IG.igrok.vid])); z.zony = { ...(z.zony || {}), rot: IG.igrok.rot }; IG.igrok.obolochka?.forEach((c, i) => { const sl = z.chasti.obolochka?.sloi?.[i]; if (sl) Object.assign(sl, c); }); z.zhizn = { ...(z.zhizn || {}), razmer: rz }; return z; };
 
 export function nachat(seed = 1) {
   const K = JSON.parse(JSON.stringify(MR)), R = K.miry[IG.mir]; R.hod = true; for (const [v, n] of Object.entries(IG.dobavit)) if (v !== '_') R.naselenie[v] = (R.naselenie[v] || 0) + n;
@@ -14,7 +14,10 @@ export function nachat(seed = 1) {
   for (const s of M.sv) if (s.vid === IG.hozyain) s.car = true; // хозяин капли виден с первой минуты (план партий: «Хозяин главы виден в первом кадре»)
   const h = M.sv.find(s => s.car); vypustit(G, 1, h ? Math.max(100, Math.min(M.W - 100, h.x + IG.car.start_ot)) : M.W / 2, h ? Math.max(100, Math.min(M.H - 100, h.y + IG.car.start_ot)) : M.H / 2); teper_eda(G); return G; }
 // Своя клетка входит в мир как обычное существо (вид «igrok», чтобы родня «наша» её не считала своей)
-function vypustit(G, rz, x, y) { const M = G.M, q = { id: M.id++, vid: 'igrok', zapis: zapis_igroka(rz), x, y, a: -Math.PI / 2, m: IG.igrok.m0, beg: 0, bylo: 0, plyvet: 1, cel: 0, igrok: true }; M.sv.push(q); G.igrok = q; return q; }
+function vypustit(G, rz, x, y) { const M = G.M, q = { id: M.id++, vid: 'igrok', zapis: zapis_igroka(rz), x, y, a: -Math.PI / 2, m: IG.igrok.m0, beg: 0, bylo: 0, plyvet: 1, cel: 0, igrok: true }; M.sv.push(q); G.igrok = q; korm(G, q); return q; }
+// Еда на каждом шагу (Роман 25.11): вокруг места, где клетка проснулась, кучки мелкой добычи из записей мира (igra.json start)
+function korm(G, q) { const M = G.M, S = IG.start; if (!S) return; for (let i = 0; i < S.n; i++) { const a = M.rnd() * 6.283, d = S.ot + (S.do - S.ot) * M.rnd(), x = q.x + Math.cos(a) * d, y = q.y + Math.sin(a) * d;
+  for (let k = 0; k < S.po; k++) M.sv.push({ id: M.id++, vid: S.vid, zapis: { ...VC.vidy[S.vid], gruppa: undefined }, x: Math.max(10, Math.min(M.W - 10, x + (M.rnd() - 0.5) * 2 * S.r)), y: Math.max(10, Math.min(M.H - 10, y + (M.rnd() - 0.5) * 2 * S.r)), a: M.rnd() * 6.283, m: 1.2, beg: 0, bylo: 0, plyvet: 1, cel: 0 }); } }
 export const razmer = G => massa(G.igrok); // в телах новорождённой палочки
 export const hozyain = G => G.M.sv.find(s => s.vid === IG.hozyain);
 // «Цель и веселье» ЦВ22: цель — не число, а морда: «съешь того, кто выше тебя». Цель — самый мелкий из тех, кого рот ещё не берёт.
