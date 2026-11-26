@@ -460,6 +460,7 @@ function geneShot0(g, NW, NH, crop = 0) {
 }
 const geneColor = g => { for (const a of genomeData.arcs) if (a.slots.some(x => x.id === g)) return a.color; const p = genomeData.plasmids.find(x => x.id === g); return p ? p.color : '#7cc8ff'; }; // рамка значка — цвет группы гена
 function icon(g) {
+  { const k = (KAP.karta.kartinki || {})[g]; if (k && g !== '_') return 'kaplya/karty/' + k + '.png'; } /* Роман 21:43: картинка из конструктора */
   if (!icons.has(g)) { let url = ''; try { url = geneShot(g, 320, 320, 128); } catch (e) { url = ""; console.error("icon " + g + ": " + e.message); } icons.set(g, url); }
   return icons.get(g);
 }
