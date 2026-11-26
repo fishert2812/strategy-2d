@@ -52,11 +52,11 @@ check('test_hod_mir_samoproverka: без закона хода в записи �
 // Кормление и упор (Роман 26.11: «Еда взаимодействие с миром чтобы у нее был реалистичный контакт… проблема была кормление»).
 // Клетка и одна вещь впереди; zhurnal — по кадрам: зазор между оболочкой и вещью, радиус вещи, масса клетки, что клетка делает.
 const KK = MR.kontakt, TLo = (() => { const O = obvod_zon(VC.vidy.nasha, { x: 0, y: 0, a: 0, tolshchina: 1 }).O; return { kr: O.poperechnik / 2, kh: Math.max(0, O.dlina / 2 - O.poperechnik / 2) }; })();
-function vstrecha(veshch, srazu = false) { const q = { id: 1, x: 0, y: 0, a: 0, m: 1 }, rnd = sluchay(1), dt = 1 / 30, zh = [], e = { ...veshch };
+function vstrecha(veshch, srazu = false, KK = MR.kontakt) { const q = { id: 1, x: 0, y: 0, a: 0, m: 1 }, rnd = sluchay(1), dt = 1 / 30, zh = [], e = { ...veshch };
   for (let t = 0; t < 20; t += dt) { const w = W * tolshche(q, KK, t), KT = kontakt(q, [e], TLo, w, KK, 1, dt); let d = 0; if (KT.cel) { d = Math.atan2(KT.cel[1] - q.y, KT.cel[0] - q.x) - q.a; d = Math.atan2(Math.sin(d), Math.cos(d)); }
     if (srazu && q.est) { q.m += e.m * KK.kpd; e.m = 0; q.est = null; } // как было: коснулась — кусок исчез
     plyt(q, VC.vidy.nasha, K, Z, dt, rnd, d, w, KT.sk); vytolknut(q, [e], TLo, w); prizhat(q, TLo, w, KK); const c = Math.cos(q.a), sn = Math.sin(q.a), u = Math.max(-TLo.kh * w, Math.min(TLo.kh * w, (e.x - q.x) * c + (e.y - q.y) * sn));
-    zh.push({ zazor: Math.hypot(e.x - q.x - u * c, e.y - q.y - u * sn) - TLo.kr * w - e.r, r: e.r, m: q.m, est: !!q.est, em: e.m, w, upor: q.upor > 0 }); if (e.m <= 0) { for (let i = 0; i < 30; i++) { t += dt; zh.push({ zazor: 0, r: 0, m: q.m, est: false, em: 0, w: W * tolshche(q, KK, t), upor: false }); kontakt(q, [], TLo, W, KK, 1, dt); } break; } }
+    const vd = q.vm?.find(x => x.e === e)?.d || 0; zh.push({ vd, zazor: Math.hypot(e.x - q.x - u * c, e.y - q.y - u * sn) - TLo.kr * w - e.r + (e.tverd ? Math.max(0, vd) * w : 0), r: e.r, m: q.m, est: !!q.est, em: e.m, w, upor: q.upor > 0 }); if (e.m <= 0) { for (let i = 0; i < 30; i++) { t += dt; zh.push({ zazor: 0, r: 0, m: q.m, est: false, em: 0, w: W * tolshche(q, KK, t), upor: false }); kontakt(q, [], TLo, W, KK, 1, dt); } break; } }
   return zh; }
 function sudit_korm(zh, m0) { const est = zh.filter(k => k.est); if (!zh.some(k => k.em <= 0)) return 'клетка не съела кусок за 20 с';
   if (est.length < KK.storozh.kadrov_min) return `кусок исчез за ${est.length} кадров, а должен таять на оболочке не меньше ${KK.storozh.kadrov_min}`;
@@ -69,6 +69,12 @@ check('test_korm_samoproverka: тот же сторож краснеет, есл
 const sudit_upor = zh => { const mn = Math.min(...zh.map(k => k.zazor)); if (mn < -KK.storozh.vlez_max * W) return `тело влезло в комок на ${(-mn / W).toFixed(2)} полутолщины`; if (!zh.some(k => k.upor)) return 'клетка не дошла до комка или не заметила упор'; };
 check('test_upor: в твёрдый комок клетка упирается и не проходит сквозь него', () => { const q = vstrecha({ x: 6 * W, y: 0, m: 1, r: W * 2, tverd: true }); return sudit_upor(q.map((k, i) => k)); });
 check('test_upor_samoproverka: тот же сторож краснеет, если комок не твёрдый', () => { const q = { id: 1, x: 0, y: 0, a: 0, m: 1 }, rnd = sluchay(1), zh = []; for (let t = 0; t < 6; t += 1 / 30) { plyt(q, VC.vidy.nasha, K, Z, 1 / 30, rnd, Math.atan2(-q.y, 6 * W - q.x) - q.a, W); zh.push({ zazor: Math.hypot(6 * W - q.x, q.y) - TLo.kr * W - 2 * W, upor: false }); } return sudit_upor(zh) ? '' : 'сторож пропустил проход сквозь комок'; });
+// Вмятина оболочки (Роман 26.11: «хорошее было растягивание в разных местах оболочки клетки… как взаимодействует оболочка клетки с окружающим миром»):
+// в месте касания комка стенка прогибается (зазор в test_upor считается уже от вмятой стенки), от куска еды тоже, а после — возвращается.
+const sudit_vm = (zh, chto) => { const mx = Math.max(...zh.map(k => k.vd)); if (mx < KK.storozh.vmyatina_min) return `от ${chto} оболочка прогнулась всего на ${mx.toFixed(3)} полутолщины, нужно не меньше ${KK.storozh.vmyatina_min}`; if (mx > KK.vmyatina.glub + 1e-9) return 'вмятина глубже предела'; };
+const KK0 = { ...KK, vmyatina: { ...KK.vmyatina, myagkost: 0, kasanie: 0 } };
+check('test_vmyatina: оболочка прогибается там, где упёрлась в комок, и там, где прилип кусок', () => sudit_vm(vstrecha({ x: 6 * W, y: 0, m: 1, r: W * 2, tverd: true }), 'комка') || sudit_vm(vstrecha({ x: 8 * W, y: 2 * W, m: 0.3, r: W * 0.7 }), 'куска'));
+check('test_vmyatina_samoproverka: тот же сторож краснеет на жёсткой оболочке', () => sudit_vm(vstrecha({ x: 6 * W, y: 0, m: 1, r: W * 2, tverd: true }, false, KK0), 'комка') ? '' : 'сторож пропустил жёсткую оболочку');
 // Мягкое тело (Роман 26.11: «как мы делали красиво — что они там двигают своим телом»): в повороте ось ложится дугой и сама выпрямляется.
 function povorot(Kx) { const q = { id: 1, x: 0, y: 0, a: 0, vedut: true }, rnd = sluchay(1), dt = 1 / 30; let mx = 0, konec = 0; const cel = [0, 4000];
   for (let t = 0; t < 4; t += dt) { let d = Math.atan2(cel[1] - q.y, cel[0] - q.x) - q.a; d = Math.atan2(Math.sin(d), Math.cos(d)); plyt(q, VC.vidy.nasha, Kx, Z, dt, rnd, d, W); if (t < 1.5) mx = Math.max(mx, Math.abs(q.gnut)); konec = Math.abs(q.gnut); }

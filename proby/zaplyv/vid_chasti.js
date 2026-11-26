@@ -160,12 +160,23 @@ function gnutye(t, g) { const st = Math.round(g * VC.gnut.stupeney); if (!st || 
   const a = t[0], b = t[t.length - 1], x0 = (a[0] + b[0]) / 2, hl = Math.max(1e-6, (b[0] - a[0]) / 2), s = st / VC.gnut.stupeney;
   const baza = t.length >= 4 ? t : Array.from({ length: 5 }, (_, i) => { const f = i / 4 * (t.length - 1), j = Math.min(t.length - 2, Math.floor(f)), k = f - j; return t[j].map((v, n) => v + (t[j + 1][n] - v) * k); });
   const razmah = s * Math.sqrt(hl * Math.min(hl, VC.gnut.dlina_obrazca)); r = baza.map(([x, y, rr]) => [x, y + razmah * (((x - x0) / hl) ** 2 - 1 / 3), rr]); m.set(st, r); return r; }
+// Вмятины оболочки (поза vm: [{ u, nu, nv, d, a }] в полутолщинах, считает pitanie.js). Тело — капля вязкой несжимаемой жидкости в упругой
+// оболочке: сбоку стенка уходит внутрь на d (ось сдвигается на d/2 от предмета, радиус меньше на d/2, дальняя стенка на месте), с торца
+// конец сплющивается на d; вытесненный объём никуда не девается (несжимаемость, div v = 0), поэтому всё тело раздаётся вширь ровно на
+// столько, сколько вдавлено: Δr = (вдавленная площадь) / (2 · длина оси).
+function myatye(t, vm) { if (!vm || !vm.length || t.length < 2) return t; const N = Math.max(9, t.length);
+  const baza = t.length >= 9 ? t : Array.from({ length: N }, (_, i) => { const f = i / (N - 1) * (t.length - 1), j = Math.min(t.length - 2, Math.floor(f)), k = f - j; return t[j].map((v, n) => v + (t[j + 1][n] - v) * k); });
+  let ploshchad = 0; const dl = Math.max(1e-6, baza[N - 1][0] - baza[0][0]), n1 = baza.length - 1;
+  const r = baza.map(([x, y, rr], i) => { let dx = 0, dy = 0, dr = 0; const shag = ((baza[Math.min(n1, i + 1)][0] - baza[Math.max(0, i - 1)][0]) / 2);
+    for (const m of vm) { const k = 1 - ((x - m.u) / m.a) ** 2; if (k <= 0) continue; const g = m.d * k * k;
+      if (Math.abs(m.nu) > 0.7) { dx -= Math.sign(m.nu) * g; if (i === 0 || i === n1) ploshchad += g * 2 * rr * 0.8; } else { dy -= Math.sign(m.nv) * g / 2; dr -= g / 2; ploshchad += g * shag; } } return [x + dx, y + dy, rr + dr]; });
+  const razd = ploshchad / (2 * dl); return r.map(([x, y, rr], i) => [x, y, Math.max(baza[i][2] * 0.4, rr + razd)]); }
 export function sobrat(zapis, poza, B) {
   if (!B || !B.sphere) return 0;
   const forma = zapis.forma || { tip: 'palochka' }, tip = forma.tip, P = { ...poza, tip }, ux = Math.cos(P.a), uy = Math.sin(P.a), w = P.tolshchina; let F, at;
   if (tip === 'tuflya') { const hl = P.dlina / 2; F = FORMY.tuflya({ ...VC.formy.tuflya, ...forma, dl: P.dlina, tol: w }); at = (u, o) => [P.x + ux * u * hl - uy * o * w, P.y + uy * u * hl + ux * o * w]; }
   else { // тело свободной формы: осевая линия через опорные точки (telo_os.js); палочка и шар — её частные случаи. Части берут край, нормаль и нутро отсюда
-    const tochki = gnutye(forma.tochki || iz_formy(tip, P.dlina ? P.dlina / 2 / w : forma.dlina || 2.14, 1, (P.izgib || 0) / w), P.gnut || 0), O = (forma.srez && (tochki.srez = forma.srez), os(tochki)); P.dlina = O.dlina * w; P.nad = O.poperechnik / 2 * w * 1.05; // нутро рисуется перед сердцевиной: выше самой толстой её точки
+    const tochki = myatye(gnutye(forma.tochki || iz_formy(tip, P.dlina ? P.dlina / 2 / w : forma.dlina || 2.14, 1, (P.izgib || 0) / w), P.gnut || 0), P.vm), O = (forma.srez && (tochki.srez = forma.srez), os(tochki)); P.dlina = O.dlina * w; P.nad = O.poperechnik / 2 * w * 1.05; // нутро рисуется перед сердцевиной: выше самой толстой её точки
     // ветка задаётся коротко: { t — где на обводе, dlina, r: [у основания, у кончика], izgib, ugol, rost 0…1 }; её точки считаются один раз на запись ветки и ступень роста
     // volna — ветка сама медленно вытягивается и втягивается (ложноножка)
     const vetki = [...(forma.vetki || []), ...(P.vetki || [])].map(v => { const k = Math.round(Math.max(0, Math.min(1, v.rost ?? (v.volna ? 0.6 + 0.4 * Math.sin((P.time || 0) * v.volna + v.t * 3 + (P.id || 0)) : 1))) * VC.vetka.stupeney) / VC.vetka.stupeney;
