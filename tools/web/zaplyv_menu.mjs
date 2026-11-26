@@ -24,6 +24,8 @@ const BROKEN = {
   'нет заголовка': '#gtitle { display: none !important; }',
   'связи не строками': '.kl { width: 120px !important; }',
   'значков нет': '.pico { display: none !important; }',
+  'плитки режимов наложены': '#mscene .mband { display: block !important; height: 400px; } #mscene .mo { position: absolute !important; left: 50% !important; top: 20px !important; }',
+  'подпись плитки обрезана': '#mscene .mo small { white-space: nowrap; overflow: hidden; width: 40px; } #mscene .mfilm { display: block !important; }',
   'Альманах в режимах чипом': '#malm { width: 120px !important; min-height: 44px !important; border-radius: 22px !important; }',
 };
 async function walk(css) {
@@ -87,6 +89,12 @@ async function walk(css) {
       await p.evaluate(() => { zaplyvWorld().probe = 1; }); await tap('#mnew'); say(await p.evaluate(() => zaplyvWorld().probe === 1 && document.getElementById('menu').classList.contains('on')) && (await box('#mnew'))?.text === 'Точно заново?', 'test_L037: одно касание «Новый заплыв» в «Режимах» не бросает заплыв, спрашивает «Точно заново?» (прогон 0.76: смахнул — заплыв пропал)');
       const ov = await p.evaluate(() => { const r = [...document.querySelectorAll('#mscene .mo')].flatMap(o => [...o.querySelectorAll('img, .art, b, small')].map(e => [o.dataset.m, e.getBoundingClientRect()])).filter(x => x[1].width); const bad = []; for (let i = 0; i < r.length; i++) for (let j = i + 1; j < r.length; j++) { const a = r[i][1], b = r[j][1]; if (r[i][0] !== r[j][0] && a.left < b.right - 4 && b.left < a.right - 4 && a.top < b.bottom - 4 && b.top < a.bottom - 4) bad.push(r[i][0] + '+' + r[j][0]); } return [...new Set(bad)]; });
       say(!ov.length, 'test_L037: в «Режимах» режимы не налезают друг на друга' + (ov.length ? ': ' + ov.join(', ') : ''));
+      const cut = await p.evaluate(() => { const sc = document.getElementById('mscene').getBoundingClientRect(), bad = [], tiles = [...document.querySelectorAll('#mscene .mo')];
+        for (const o of tiles) for (const e of o.querySelectorAll('b, small')) { const r = e.getBoundingClientRect(); if (r.width && (e.scrollWidth > e.clientWidth + 1 || r.left < sc.left - 1 || r.right > sc.right + 1)) bad.push(o.dataset.m + ': «' + e.textContent.trim() + '» обрезана'); }
+        for (const e of document.querySelectorAll('#mscene *')) { if (e.closest('.mo') || e.classList.contains('mband')) continue; const r = e.getBoundingClientRect(), st = getComputedStyle(e); if (!r.width || !r.height || st.display === 'none' || st.visibility === 'hidden') continue;
+          for (const o of tiles) { const t = o.getBoundingClientRect(); if (r.left < t.right && t.left < r.right && r.top < t.bottom && t.top < r.bottom) { bad.push((e.className || e.tagName) + ' поверх ' + o.dataset.m); break; } } }
+        return [...new Set(bad)]; });
+      say(!cut.length, 'test_L037: в «Режимах» подписи плиток целиком, без обрезки краем, и через плитки не идут линии' + (cut.length ? ': ' + cut.join('; ') : '') + ' (0.105: линия через «Ночь рода», «твои породы» обрезана)');
       const miss = await p.evaluate(() => [...document.querySelectorAll('#mscene .mo')].filter(o => { o.scrollIntoView({ block: 'center' }); const r = (o.querySelector('img, .art') || o).getBoundingClientRect(); const e = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return e?.closest('.mo') !== o; }).map(o => o.dataset.m));
       say(!miss.length, 'test_L037: в «Режимах» касание по картинке каждого режима выбирает именно его' + (miss.length ? ': мимо ' + miss.join(', ') : '') + ' (прогон 0.80: «Рост» под «Голодом» не выбрать)');
       await p.evaluate(() => { zaplyvWorld().probe = 2; document.querySelector('#mscene [data-m=rost]').scrollIntoView({ block: 'center' }); }); await tap('#mscene [data-m=rost] img'); await tap('#mgo'); say(await p.evaluate(() => zaplyvWorld().probe === 2 && document.getElementById('menu').classList.contains('on')) && (await box('#mgo'))?.text === 'Бросить заплыв?', 'test_L037: другой режим из паузы не бросает идущий заплыв с первого касания, спрашивает «Бросить заплыв?» (прогон 0.81, О77)');
