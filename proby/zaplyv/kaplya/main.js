@@ -46,6 +46,7 @@ import * as vh from './vehi.js'; // рост по книге: длина П51, �
 const VEHI = vh.zagruzit();
 window.kaplyaLes = () => LES; window.kaplyaGlava = () => GLAVA; // спирилла, каулобактер, хлорелла (книга П39), руками // строка цели, подпись линейки, «теперь еда» (книга П5–П7)
 const KAP = await (await fetch('kaplya/kaplya.json')).json(), ZH = KAP.zhiteli, ZAP = {};
+{ const U = KAP.upravlenie; cfg.sense_idle = U.sense_idle; cfg.sense_pull = U.sense_pull; } // Роман 26.11 20:39: клетку ведёт только палец; «Нюх» не везёт к еде
 for (const [k, v] of Object.entries(ZH)) if (v && VC.vidy[v.zapis]) ZAP[k] = { ...VC.vidy[v.zapis], gruppa: undefined };
 // нарисовать жителя записью: x, y — экран, a — куда смотрит, mera — ручная мера тела (длина, радиус, толщина) на экране
 // Лаги на большой клетке (Роман 26.11: «Лагать и нагреваться телефон стал… большим стал»): камера отъезжает, и в кадр входят сотни жителей,
@@ -744,6 +745,7 @@ canvas.addEventListener('pointercancel', up);
 // полоса сворачивается в значок у края, коснёшься — снова раскроется; сам вариант не берётся, значок ждёт касания.
 let offerKey = '', offerT = 0; // offerT — время на часах телефона (performance.now), а не мира: полоса сворачивается за 6 настоящих секунд
 function offer(dt) {
+  { const g = KAP.upravlenie.magnit; if (world.choice.length > 1 && !world.choice.includes(g) && !world.genes[g] && evo.pool(world).includes(g)) world.choice[0] = g; } // Роман 26.11: пищевой магнит — еда плывёт к тебе; пока его нет, он всегда среди карточек
   const key = world.choice.join(), O = $('offer'), D = $('odot');
   if (!world.choice.length) { if (offerKey) { O.classList.remove('on'); D.classList.remove('on'); offerKey = ''; } return; }
   if (key !== offerKey) { // новый выбор: собрать полосу
