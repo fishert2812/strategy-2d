@@ -843,8 +843,8 @@ function paint(time) {
   const on = (x, y, pad = 80) => x > -pad && x < W + pad && y > -pad && y < H + pad;
   for (const g of world.slime) { // тяж слизи: прозрачный гель с налипшими крупинками; в нём плыть вязко
     const [x, y] = scr(g.x, g.y); if (!on(x, y, g.len * z)) continue;
-    const ca = Math.cos(g.a), sa = Math.sin(g.a), n = Math.ceil(g.len / 9);
-    for (let i = 0; i <= n; i++) {
+    const ca = Math.cos(g.a), sa = Math.sin(g.a), n = Math.ceil(g.len / 9), mel = g.w * z < KAP.lod.px; // слизь издалека: реже точки и без кромки (лаги на большой клетке)
+    for (let i = 0; i <= n; i += mel ? KAP.lod.sliz_shag : 1) {
       const u = (i / n - 0.5) * g.len, v = Math.sin(u / g.len * 6.283 + g.id) * g.w * 0.8 + Math.sin(time * 0.4 + i * 0.3) * 2;
       const px = x + (ca * u - sa * v) * z, py = y + (sa * u + ca * v) * z, edge = 1 - Math.abs(i / n - 0.5) * 2;
       const S = g.nest ? cfg.bdello_nest.look : cfg.slime_look, fade = Math.min(1, edge * 3); // гель прозрачный: внутри едва заметен, видна только граница — тонкая светлая кромка, а не пелена (Роман 25.11: «мутнота… фильтр»)
@@ -852,6 +852,7 @@ function paint(time) {
 
       if (i % 3 === 0) ink.put(px + Math.sin(i * 7.1) * g.w * 0.5 * z, py + Math.cos(i * 5.3) * g.w * 0.5 * z, 0.8 * z + 0.3, 0.8, 0.9, 1, 0.35);
     }
+    if (mel) continue;
     const S = g.nest ? cfg.bdello_nest.look : cfg.slime_look, m = Math.ceil(g.len * z / (g.nest ? Math.min(S.rim_step, S.rim * z * 0.8 + 0.2) : S.rim_step)); // у гнезда кромка внахлёст — сплошная // кромка геля сплошной тонкой линией с двух сторон
     for (let j = 0; j <= m; j++) { const u = (j / m - 0.5) * g.len, v = Math.sin(u / g.len * 6.283 + g.id) * g.w * 0.8 + Math.sin(time * 0.4 + j / m * n * 0.3) * 2, f = Math.min(1, (1 - Math.abs(j / m - 0.5) * 2) * 3);
       for (const sd of [-1, 1]) { const vv = v + sd * g.w * 0.5 * S.core, px = x + (ca * u - sa * vv) * z, py = y + (sa * u + ca * vv) * z, k = sd + 1; // кромка геля сплошной трубкой, а не точками (Роман: пунктир — провал)
@@ -1124,6 +1125,7 @@ function paint(time) {
     const n = $('sicknotch'); n.style.width = (ill.length ? 4 + 18 * k : 0) + '%'; n.style.left = Math.max(0, g * 100 - (ill.length ? 4 + 18 * k : 0)).toFixed(1) + '%'; probe.sickNotch = ill.length ? k : -1; }
   U.tint.value.set(...view.tint);
   U.drift.value.set(view.x * view.z / W, -view.y * view.z / W); // в ширинах экрана: слои сзади сдвигаются медленнее
+  lod.glow = glow.n; lod.ink = ink.n; lod.chastey = bodies.all.reduce((n, m) => n + (m.count || 0), 0); lod.po = bodies.all.map(m => m.count || 0).join(','); // для замера: сколько всего рисуется в кадре
   for (const d of [far, glow, ink, near, dust, bubbles, wake]) d.done();
 }
 
