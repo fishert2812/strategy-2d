@@ -226,7 +226,7 @@
    "fail": "inat_260919295_komok_i_bodo.jpg",
    "poza": {
     "dlina": 1.6,
-    "tolshchina": 140,
+    "tolshchina": 80,
     "ugol": 0
    },
    "avtor": "Michael Brondino, CC-BY-SA"
@@ -245,9 +245,9 @@
    "papka": "hlamidomonada",
    "fail": "inat_250470201_oval_dva_zhgutika.jpg",
    "poza": {
-    "dlina": 1.5,
-    "tolshchina": 80,
-    "ugol": -1.5708
+    "dlina": 2.0,
+    "tolshchina": 85,
+    "ugol": -1.3
    },
    "avtor": "Petr Knotek, CC-BY"
   },
@@ -295,9 +295,9 @@
    "papka": "bolshaya_ameba",
    "fail": "inat_171379532_lopasti_okrashena.jpg",
    "poza": {
-    "dlina": 3.0,
-    "tolshchina": 160,
-    "ugol": 0.2
+    "dlina": 3,
+    "tolshchina": 55,
+    "ugol": 0.3
    },
    "avtor": "Christine Young, CC-BY"
   },
@@ -305,8 +305,8 @@
    "papka": "ameba_haos",
    "fail": "inat_88597234_mnogo_lopastey.jpg",
    "poza": {
-    "dlina": 3.0,
-    "tolshchina": 200,
+    "dlina": 3.5,
+    "tolshchina": 50,
     "ugol": 0.2
    },
    "avtor": "Gone But Not Forgotten - R.I.P, CC-BY-NC"
@@ -315,9 +315,9 @@
    "papka": "trubach",
    "fail": "inat_104173623_truba_sine_zelenaya.jpg",
    "poza": {
-    "dlina": 3.5,
-    "tolshchina": 120,
-    "ugol": -1.2
+    "dlina": 5,
+    "tolshchina": 60,
+    "ugol": -1.4
    },
    "avtor": "Павлик Лисицын, CC-BY"
   },
@@ -355,9 +355,9 @@
    "papka": "nematoda",
    "fail": "inat_159580312_cherv_krupno.jpg",
    "poza": {
-    "dlina": 8,
-    "tolshchina": 40,
-    "ugol": -0.6
+    "dlina": 22,
+    "tolshchina": 22,
+    "ugol": -1.0
    },
    "avtor": "no rights reserved, CC0"
   }
