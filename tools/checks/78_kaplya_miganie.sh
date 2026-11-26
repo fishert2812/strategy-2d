@@ -4,4 +4,5 @@
 set -u
 . "$(dirname "${BASH_SOURCE[0]}")/../check_mode.sh"; run_in fast || exit 0
 command -v node >/dev/null || { echo "  нет node — мигание проверить нечем"; exit 1; }
+. tools/web/kaplya_pw.sh; [ -f "$PW" ] || { echo "  нет playwright — проверить нечем"; exit 1; }
 timeout 240 node proby/zaplyv/kaplya/test_miganie.cjs || exit 1
