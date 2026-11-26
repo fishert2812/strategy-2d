@@ -35,6 +35,7 @@ import * as pkz from './pokaz.js'; // показ нового мира посл�
 import * as sp from './sposoby.js'; // способы есть: «Присоска» и «Общие соки» (книга П18, П19)
 import * as ruka from './ruka.js'; // какой рукой ведут: линейка со стороны, которую не закрывает палец (книга П4)
 import * as zr from './zaraza.js'; // большая клетка заметнее: больше вирусов и запятых (книга П52)
+import * as vir from './virus.js'; // знак вируса водой: серая муть (книга П7)
 import * as rod from './rod.js'; // род жив: раз за заплыв просыпаешься сестрой (П73)
 import * as sm from './semena.js'; // между заплывами: семена рода, рекорд размера (П76, П94)
 import * as glv from './glavy.js'; // главы 2–5 (П79–П83)
@@ -229,7 +230,7 @@ const beep = (f, dur, vol = 0.05, type = 'sine', slide = 0.6) => {
 
 const STICK = 56; // полный ход большого пальца (~30 точек экрана); дальше кольцо едет за пальцем
 const pad = new Stick(STICK);
-let GOL = gol.sozdat(); let POK = pkz.sozdat(); let ZAR = zr.sozdat();
+let GOL = gol.sozdat(); let POK = pkz.sozdat(); let ZAR = zr.sozdat(); let VIR = [];
 let LIN = null, GL = null, SEM = [], ROD_K = rod.sozdat(), OBL = obl.sozdat(), LES = les.sozdat(), GLAVA = 1, CEL = cel.sozdat(), world, view, finger = null, down = null, moved = false, shake = 0, ended = false, lastEat = 0;
 const $ = id => document.getElementById(id);
 const ver = (await (await fetch('version.json')).json()).number; // свой номер «Заплыва», список — VERSIONS.md
@@ -703,7 +704,7 @@ function dalee() { const t = performance.now(); while (OCHERED.length && t - OCH
 // П23: коснуться одного из двух вариантов при большом событии. Две кнопки поверх игры, мир не стоит.
 function vybor(V, otvet) { let el = $('kvybor'); if (!el) { el = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'kvybor' })); Object.assign(el.style, { position: 'fixed', left: '52px', right: '16px', bottom: 'calc(env(safe-area-inset-bottom) + 250px)', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: '5', textAlign: 'center' }); }
   el.innerHTML = '<p style="margin:0;font-weight:600;text-shadow:0 1px 4px #000"></p>'; el.firstChild.textContent = V.vopros; V.knopki.forEach((t, i) => { const B = document.createElement('button'); B.textContent = t; B.onclick = e => { e.stopPropagation(); el.remove(); otvet(i); }; el.appendChild(B); }); }
-window.kaplyaVybor = () => $('kvybor'); window.kaplyaGL = () => GL; window.kaplyaSposoby = () => world.sposoby; window.kaplyaPokazMira = () => POK; window.kaplyaMayak = () => $('kmayak'); window.kaplyaGol = () => GOL; window.kaplyaZaraza = () => ZAR;
+window.kaplyaVybor = () => $('kvybor'); window.kaplyaGL = () => GL; window.kaplyaSposoby = () => world.sposoby; window.kaplyaPokazMira = () => POK; window.kaplyaMayak = () => $('kmayak'); window.kaplyaGol = () => GOL; window.kaplyaZaraza = () => ZAR; window.kaplyaVirus = () => VIR;
 { const R = ruka.sozdat(); document.body.classList.toggle('levsha', R.ruka === 'leva'); addEventListener('pointerdown', e => { if (ruka.kasanie(R, e.clientX, innerWidth, KAP.ruka)) document.body.classList.toggle('levsha', R.ruka === 'leva'); }, { passive: true }); window.kaplyaRuka = () => R; } // П4: рука по первым 20 касаниям
 window.kaplyaSay = say; window.kaplyaPokaz = pokaz; window.kaplyaOchered = () => OCHERED.length; window.kaplyaLin = () => LIN;
 const told = new Set(); // подсказка — один раз и только в момент, когда она нужна
@@ -1147,6 +1148,7 @@ function paint(time) {
     const dm = rost.dim(world, f.kind || 'bits'); if (z > KAP.lod.eda_z) glow.put(x, y, 9 * z * k * F.halo_r, ...F.halo, 0.14 * tw * dm); // большая клетка: у крупинок без ореола (лаги)
     glow.put(x, y, 3.2 * z * k + 0.6, ...F.core, 0.9 * tw * dm); // ценность видна размером и ореолом: крошка меньше всех, сок крупнее (дизайнер); искры мерцают
   }
+  { const K = KAP.virus_znak, me = world.me[0]; VIR = me ? vir.muti(world.phages, me, K, radius(me.m), cfg.speed / rost.hod(world, me)) : []; for (const q of VIR) { const [x, y] = scr(q.x, q.y); if (!on(x, y, 80)) continue; const ob = q.vid === 'oblako'; glow.put(x, y, (ob ? K.r_oblako : K.r_blizko) * z, ...K.cvet, ob ? K.a_oblako : K.a_blizko); } } // П7: вирус опасен водой — серая муть рядом и в облаке, без красного и розового
   for (const g of world.phages) { // фаг T4: головка позади, хвостом вперёд — садится хвостом
     const [x, y] = scr(g.x, g.y); if (!on(x, y)) continue;
     const s = 6 * z + 1, d = g.d, ux = Math.cos(d), uy = Math.sin(d); // сам не плывёт: смотрит куда попало, прилипший — ножками в клетку
