@@ -14,7 +14,7 @@ html, body { margin: 0; height: 100%; background: #02040a; overflow: hidden; tou
 canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 #hud { position: fixed; top: calc(env(safe-area-inset-top) + 10px); left: 68px; right: 68px; font-size: 17px;
   opacity: 0.75; pointer-events: none; display: flex; justify-content: space-between; }
-#kcel { position: fixed; bottom: calc(env(safe-area-inset-bottom) + 44px); left: 16px; right: 16px; text-align: center; font-size: 17px; font-weight: 600; text-shadow: 0 1px 4px #000; pointer-events: none; }
+#kcel { position: fixed; bottom: calc(env(safe-area-inset-bottom) + 44px); left: 16px; right: 16px; text-align: center; font-size: 17px; font-weight: 600; text-shadow: 0 1px 4px #000; pointer-events: none; padding: 10px 12px 6px; border-radius: 14px; background: rgba(4, 10, 24, 0.62); } /* подложка: существа под строкой не мешают читать (книга П4) */
 #kcel small { display: block; font-size: 13px; font-weight: 400; opacity: 0.8; }
 #scalebox { position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 24px); opacity: 0.75; pointer-events: none; }
 /* Полоса роста (Роман 25.11: «Здоровье и опыт можешь показать полосой… линию… заменить на опыт. Размер оставить только числом»):
@@ -22,7 +22,7 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 #growbar { position: relative; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.18); overflow: hidden; }
 #growfill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: #e8f2f2; border-radius: 2px; transition: width 0.25s; }
 #sicknotch { position: absolute; top: 0; bottom: 0; width: 0; background: #ff5a4a; }
-#ver { position: fixed; right: 10px; bottom: calc(env(safe-area-inset-bottom) + 6px); font-size: 11px; opacity: 0.3; pointer-events: none; }
+#ver { position: fixed; right: 10px; bottom: calc(env(safe-area-inset-bottom) + 6px); font-size: 11px; opacity: 0.45; padding: 1px 5px; border-radius: 6px; background: rgba(4, 10, 24, 0.6); pointer-events: none; }
 .layer { position: fixed; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center;
   gap: 16px; background: rgba(2, 4, 10, 0.72); padding: 24px; } /* без размытия под слоем: в WebKit без видеокарты оно дорогое */
 .layer.on { display: flex; }

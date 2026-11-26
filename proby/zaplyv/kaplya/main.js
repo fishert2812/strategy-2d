@@ -765,7 +765,8 @@ function events() {
 
 function tick(dt) {
   offer(dt);
-  world.step(dt, pad.value()); { const B = KAP.bodo, um = !!world.genes.gulp; bodo.shag(world, dt, B, radius, slyshuBodo); bodo.glotat(world, B, radius, evo.E.glotat.syt, 0, um, slyshuBodo); zh.shag(world, dt, KAP.novye); zh.glotat(world, evo.E.glotat.bolshe, radius, um, v => say(KAP.slova_glotka[v], 1600)); } // джойстик: направление и сила из сдвига пальца
+  world.step(dt, pad.value()); if (!world.genes.gulp && world.stats.time >= KAP.glotat_s) { world.genes.gulp = true; say(KAP.slova_glotat, 4000); } // книга П2, П16: глотать с 10-й секунды, а не после первого роста
+  { const B = KAP.bodo, um = !!world.genes.gulp; bodo.shag(world, dt, B, radius, slyshuBodo); bodo.glotat(world, B, radius, evo.E.glotat.syt, 0, um, slyshuBodo); zh.shag(world, dt, KAP.novye); zh.glotat(world, evo.E.glotat.bolshe, radius, um, v => say(KAP.slova_glotka[v], 1600)); } // джойстик: направление и сила из сдвига пальца
   { const [fx, fy] = world.flow(view.x, view.y); cur[0] += fx * dt; cur[1] += fy * dt; } // течение несёт взвесь
   events();
   if (!world.me.length) {
@@ -804,7 +805,7 @@ function tick(dt) {
   { const b = world.me.reduce((q, a) => a.m > q.m ? a : q, world.me[0] || { m: 1 }), sp = world.split(); // размер числом: длина палочки в микрометрах (260 единиц — 10 мкм)
     const um = 2 * 8.5 * Math.pow(b.m, 0.3) * (1.6 + Math.min(b.m, sp) / sp) / 26; const umeet = !!world.genes.gulp, ms = (q, who) => q.m || evo.E.glotat.razmer[who] || 1, KC = KAP.cel; // книга П5–П7
     for (const who of cel.shag(CEL, world, b, KC, ms, evo.E.glotat.bolshe, umeet, evo.E.glotat.syt)) say(KC.slova.teper.replace('{}', KC.imena[who][0]), 2200);
-    $('count').textContent = um.toFixed(1).replace('.', ',') + ' мкм'; $('kcel').innerHTML = CEL.stroka + '<small>' + CEL.rostom + '</small>'; }
+    $('count').textContent = um.toFixed(1).replace('.', ',') + ' мкм'; $('kcel').innerHTML = CEL.stroka + '<small>' + CEL.rostom + '</small>'; $('kcel').style.visibility = $('offer').classList.contains('on') ? 'hidden' : ''; } // полоса выбора умения не ложится поверх строки цели
   $('eaten').textContent = world.rush > 0.05 && !rost.on(world) ? 'рост ×' + (1 + world.rush).toFixed(1) : 'съедено ' + world.stats.eaten; // серия кусков подряд — рост быстрее
   if (world.readyToSplit() && !world.choice.length && !world.me.some(a => a.grab || a.held > 0) && !$('toast').classList.contains('on')) tell('split', 'Выросла! Коснись — поделишься. Или подожди'); // подсказка ждёт, пока на экране весть: не затирает «Сестра погибла за краем…» (L039)
 }
@@ -845,26 +846,17 @@ function paint(time) {
       if (tiho) probe.tiho++;
       const d = world.me.reduce((m, a) => Math.min(m, Math.hypot(a.x - wx, a.y - wy)), 1e9), lv = !tiho && wn && wn.zone[0] === wx && wn.zone[1] === wy ? wn.level : 0;
       const al = (tiho ? Zc.far * Zc.tiho : (d < R * 1.5 ? Zc.near : Zc.far) + (Zc.warn - Zc.near) * lv), [cr, cg, cb] = Zc.color, sz = (0.6 + 0.4 * lv) * z + 0.5, n = Math.max(90, Math.ceil(6.283 * Rz / (sz * 0.9))); // точки внахлёст: сплошная линия, не пунктир (L047, Роман 25.11 про амёбу)
-      const [pr, pg, pb] = Zc.podlozhka, pa = Zc.podlozhka_a * Math.min(1, al / Zc.near); // тёмная подложка под кольцом: на пёстром и зелёном фоне красная линия не тонет (О112)
-      for (let k = 0; k < n; k++) { const t = k / n * 6.283; ink.put(x + Math.cos(t) * Rz, y + Math.sin(t) * Rz, sz * Zc.podlozhka_w, pr, pg, pb, pa); }
-      const ala = al * Math.min(1, sz * 0.9 / Zc.step); for (let k = 0; k < n; k++) { const t = k / n * 6.283; ink.put(x + Math.cos(t) * Rz, y + Math.sin(t) * Rz, sz, cr, cg, cb, ala); } // точек втрое больше — каждая бледнее, линия той же силы
-      for (let k = 0; k < Zc.ticks; k++) { const t = k / Zc.ticks * 6.283 + time * 0.2; // чёрточки внутрь: куда тянет, видно, даже когда рта не видно
-        const nt = Math.max(6, Math.ceil(Rz * Zc.tick / (sz * 0.8))); for (let i = 0; i <= nt; i++) { const f = i / nt, r = Rz * (1 - Zc.tick * f); ink.put(x + Math.cos(t) * r, y + Math.sin(t) * r, sz * (1 - f * 0.5), cr, cg, cb, al * (1 - f * 0.6)); } } // чёрточка сплошная, сужается внутрь
-      if (lv > 0) probe.warn[zn[3]] = (probe.warn[zn[3]] || 0) + 1;
-      if (!tiho) for (const a of world.me) { if (Math.hypot(a.x - wx, a.y - wy) > R) continue; const [ax, ay] = scr(a.x, a.y); // тебя тянет: сплошная нить от клетки к рту, по ней к рту бегут волны яркости (не риски — О115)
-        const m = Zc.nit_kuskov, w0 = Zc.nit_w * z + 0.6, D = Zc.nit_do; let mark = 0; // нить до самого рта, толще, на тёмной кайме: на тёмной воде видна вся (О117)
-        if (bodies.seg) bodies.seg(ax, ay, ax + (x - ax) * D, ay + (y - ay) * D, w0 * Zc.podlozhka_w * 0.7, [pr, pg, pb], pa * 1.5);
-        for (let i = 0; i < m; i++) { const u0 = i / m * D, u1 = (i + 1) / m * D, vl = 0.5 + 0.5 * Math.sin((u0 * Zc.streak - time * 1.2) * 6.283), ali = Zc.warn * (Zc.nit_min + (1 - Zc.nit_min) * vl);
-          if (bodies.seg) { bodies.seg(ax + (x - ax) * u0, ay + (y - ay) * u0, ax + (x - ax) * u1, ay + (y - ay) * u1, w0, [cr, cg, cb], ali); mark++; } }
-        if (mark) probe.nit = (probe.nit || 0) + 1; } } }
+      { const M = KAP.mut, [mr, mg, mb] = M.cvet; // книга П7: опасное место — красноватая муть в воде, не круг и не линии
+        for (let k = 0; k < M.klubov; k++) { const t = k * 2.399 + time * M.krutit * (k % 2 ? 1 : -1), rr = Rz * M.razmah * Math.sqrt((k + 0.5) / M.klubov);
+          glow.put(x + Math.cos(t) * rr, y + Math.sin(t) * rr, Rz * M.klub, mr, mg, mb, (tiho ? M.tiho : M.a + M.trevoga * lv) * (0.8 + 0.2 * Math.sin(time * 1.3 + k))); } }
+      if (lv > 0) probe.warn[zn[3]] = (probe.warn[zn[3]] || 0) + 1; } }
   const edgeArrow = (x, y, [cr, cg, cb], al, big = 1) => { // стрелка у края экрана, острием к тому, что за кадром: сплошной треугольник из трубок на тёмной кайме, ниже строки счёта (О116)
     const S = cfg.zone.strelka, [cx, cy] = scr(view.x, view.y), a = Math.atan2(y - cy, x - cx), ux = Math.cos(a), uy = Math.sin(a), m = 34, top = Math.max(m, hudNiz() + S.verh);
     const t = Math.min((ux > 0 ? W - m - cx : m - cx) / (ux || 1e-9), (uy > 0 ? H - m - cy : top - cy) / (uy || 1e-9)), px = cx + ux * t, py = cy + uy * t;
     const L = S.dlina * big, hw = S.shir * big / 2, tx = px + ux * L / 2, ty = py + uy * L / 2, bx = px - ux * L / 2, by = py - uy * L / 2, nx = -uy, ny = ux, [pr, pg, pb] = cfg.zone.podlozhka;
     probe.strelki.push([px * innerWidth / W, py * innerHeight / H, L * innerWidth / W]);
-    if (!bodies.seg) return;
-    for (const [r, col, aa] of [[S.pod_r * big, [pr, pg, pb], S.pod_a * al], [S.r * big, [cr, cg, cb], Math.min(1, al * S.yarche)]])
-      for (let f = -1; f <= 1.001; f += 0.08) bodies.seg(tx, ty, bx + nx * (hw - r) * f, by + ny * (hw - r) * f, r, col, aa); };
+    { const E = KAP.kray, [er, eg, eb] = cr > 0.9 && cg < 0.5 ? E.cvet : [cr, cg, cb], ex = px + ux * E.vynos, ey = py + uy * E.vynos; // книга П9: тёплый свет у края экрана со стороны угрозы, не стрелка
+      for (let k = -2; k <= 2; k++) glow.put(ex - uy * k * E.shag * big, ey + ux * k * E.shag * big, E.r * big * (1 - Math.abs(k) * 0.15), er, eg, eb, al * E.a * (1 - Math.abs(k) * 0.2)); } };
   { const S = cfg.zone.strelka; for (const d of derzh) d.t -= pdt; // знак держится S.derzhat с после того, как круг ушёл: у быстрой амёбы он больше не мигает одним кадром (О116)
     for (const [x, y, k, wx, wy] of znaki) { let d = derzh.find(q => Math.hypot(q.wx - wx, q.wy - wy) < S.svyaz); if (!d) derzh.push(d = { wx, wy }); Object.assign(d, { wx, wy, k, t: S.derzhat }); }
     for (let i = derzh.length - 1; i >= 0; i--) if (derzh[i].t <= 0) derzh.splice(i, 1);
@@ -1016,6 +1008,8 @@ function paint(time) {
     const run = sp > 25 && !a.tumble, wob = run ? 0.035 : 0.015; // встречное вращение тела к пучку: 3 раза в секунду
     const half = a.held > 0 ? w * (1.05 + 0.6 * a.held / cfg.bdello_kill) : rost.on(world) ? w * (1.6 + 1.0 * fm) : w * gr.half, tailW = w * 7.5 / z; // хищник внутри — клетка округляется в шарик
     const body = follow(a, half / z, tailW);
+    { const hl = half / z, hw = w / z, c = Math.cos(body.ang), sn = Math.sin(body.ang), cx = body.cx, cy = body.cy; // касание еды — по обводу палочки, а не по кругу (находка Романа: еда пропадала до оболочки)
+      a.kasaetsya = (q, kr) => { const dx = q.x - cx, dy = q.y - cy, u = Math.max(-hl + hw, Math.min(hl - hw, dx * c + dy * sn)); return Math.hypot(dx - u * c, dy - u * sn) < hw + kr + 2; }; }
     const wm = w * Math.pow(2, rost.vid(world)); // мать: вдвое тяжелее, полудлина как у созревшей (см. half)
     const bo = vid.birth(a, time, world.me, body.ang, half / z, w / z, body.cx, body.cy, rost.on(world) ? wm * 2.6 / z : half * 2 / z, rost.on(world) ? wm / z : w / z); // мать ровно вдвое длиннее дочки той же толщины // деление: мать стягивается, дочки расходятся торец к торцу (vid.json split)
     if (bo) { probe.birth = time; if (bo.hide) continue; } // обход пальцем (test_L050) видит, что рождение рисуется; вторая дочка ещё часть матери
@@ -1029,7 +1023,7 @@ function paint(time) {
     bodies.rod(x, y, ang, hl, wl, pinch, [CELL[0].r, CELL[0].g, CELL[0].b], [CORE[0].r, CORE[0].g, CORE[0].b], a.id, -sag * (1 - pinch * 0.8));
     if (!rost.on(world) && !a.g && !(a.held > 0)) { const N = DL.nuc, s = hl * N.apart * dna, al = N.a * (0.5 + 0.5 * dna); // светлая ДНК (нуклеоид): одна посередине, к делению вытягивается и расходится к половинкам раньше кольца
       for (const sd of [-1, 1]) glow.put(x + ax * s * sd, y + ay * s * sd, wl * N.r, ...N.c, al); }
-    rost.draw({ w: world, a, x, y, ang, half, wd: w, z, glow, time, scr }); // контур следующего роста, струйки от комка
+    rost.draw({ w: world, a, x, y, ang, half, wd: w, z, glow, time, scr, bezKontura: true }); // в «Капле» без кольца из точек: рост виден полосой внизу // контур следующего роста, струйки от комка
     evo.draw({ w: world, a, x, y, z, glow, scr }); // «Эволюция»: нити глотания
     if (a.grab) glow.put(x, y, half * 1.8, 1, 0.25, 0.15, 0.22 + 0.15 * Math.sin(time * 14)); // схвачена: бьётся в пасти
     if (world.rush > 0.05) glow.put(x, y, half * (1.4 + world.rush * 0.6), 1, 0.75, 0.35, 0.08 + 0.1 * world.rush); // разгон роста: рибосомы работают на всю
@@ -1042,7 +1036,7 @@ function paint(time) {
     glow.put(x, y, w * 3, 0.6, 0.85, 1, 0.25 * (1 - f));
   }
   for (const a of world.me) { // след: клетка расталкивает взвесь, частицы расходятся и гаснут — вязкость видна
-    const sp = Math.hypot(a.vx, a.vy); if (sp < 40 || puffs.length > 230) continue;
+    const sp = Math.hypot(a.vx, a.vy); if (KAP.bez_sleda || sp < 40 || puffs.length > 230) continue; // в «Капле» цепочки бледных кругов за клеткой нет
     const ux = Math.cos(a.a), uy = Math.sin(a.a), rr = radius(a.m), side = Math.random() < 0.5 ? -1 : 1;
     puffs.push({ x: a.x - ux * rr * 1.3 - uy * side * rr * 0.6, y: a.y - uy * rr * 1.3 + ux * side * rr * 0.6, vx: -uy * side * 18 - ux * 6, vy: ux * side * 18 - uy * 6, t: 0 });
   }
@@ -1058,7 +1052,7 @@ function paint(time) {
     const s = 6 * z + 1, d = g.d, ux = Math.cos(d), uy = Math.sin(d); // сам не плывёт: смотрит куда попало, прилипший — ножками в клетку
     const P = (a, b) => [x + ux * a - uy * b, y + uy * a + ux * b];
     const pink = (p, r, al = 0.95) => ink.put(p[0], p[1], r, 0.82, 0.8, 0.92, al); // серебристый, как на снимках
-    if (zhitel('phages', g, x, y, d, s, time, z)) continue; bodies.phage(x, y, d, s);
+    if (zhitel('phages', g, x, y, d, s, time, z)) continue; bodies.sphere(x, y, s * 0.22, [0.62, 0.62, 0.6], [0.5, 0.5, 0.5], g.id, 0.9); continue; // книга П7: вирус — мелкое матовое серое зёрнышко, не схема T4
     if (g.host === 'me') glow.put(...P(-2.1 * s, 0), s * 1.8, ...cfg.danger.phage, g.on ? 0.3 + 0.2 * Math.sin(time * 14) : 0.12); // белёсое свечение: опасен тебе; красный — только у хищной запятой (урок L022)
     pink(P(0.85 * s, -0.35 * s), s * 0.22); pink(P(0.85 * s, 0.35 * s), s * 0.22);
     vid.phageLegs({ P, s, on: !!g.on, key: g, seed: g.x, time, ink }); // шесть лап: плывёт — поджаты, сел — веером на плёнке, хвост поперёк борта (vid.js)

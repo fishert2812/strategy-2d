@@ -9,11 +9,11 @@ const vstav = (t, imya) => t.replace('{}', t.startsWith('{}') ? imya : imya.toLo
 const okrugl = k => [1.5, 2, 3, 5, 10].reduce((b, v) => Math.abs(v - k) < Math.abs(b - k) ? v : b, 1.5);
 // Шаг: me — своя клетка, mass(q, who) — масса добычи, bolshe — во сколько раз тяжелее надо быть, umeet — умеет ли глотать, syt — доля массы в рост.
 export function shag(C, w, me, K, mass, bolshe, umeet, syt) { const I = K.imena, teper = [];
-  for (const [list, who] of SPIS) for (const q of w[list] || []) if (!q.gone && blizh(me, q) < K.vidno) C.videl[who] = Math.max(C.videl[who] || 0, mass(q, who));
+  for (const [list, who] of SPIS) for (const q of w[list] || []) if (!q.gone && blizh(me, q) < K.vidno) C.videl[who] = Math.min(C.videl[who] ?? Infinity, mass(q, who)); // самый мелкий виденный: «теперь еда» и «ещё N глотков» согласны со свечением
   for (const [who, m] of Object.entries(C.videl)) if (!C.eda.has(who) && umeet && m * bolshe <= me.m) { C.eda.add(who); teper.push(who); } // П5: перерос силуэт — «теперь еда»
   // П5: подпись линейки — ровня 0,8–1,25 твоей массы, иначе самый крупный виденный легче тебя, иначе «с кишечную палочку»
   const vidy = Object.entries(C.videl), rovnya = vidy.find(([, m]) => m >= me.m * 0.8 && m <= me.m * 1.25), legche = vidy.filter(([, m]) => m < me.m).sort((a, b) => b[1] - a[1])[0];
-  C.rostom = rovnya ? 'ростом с ' + I[rovnya[0]][2] : legche ? 'в ' + String(okrugl(me.m / legche[1])).replace('.', ',') + ' раза больше ' + I[legche[0]][1] : 'ростом с кишечную палочку';
+  C.rostom = rovnya ? 'ростом с ' + I[rovnya[0]][2] : legche ? 'ты в ' + String(okrugl(me.m / legche[1])).replace('.', ',') + ' раза больше ' + I[legche[0]][1] : 'ростом с кишечную палочку';
   // П6: строка цели, первое подходящее
   let vrag = null; for (const list of OPASNYE) for (const q of w[list] || []) { const who = SPIS.find(s => s[0] === list)[1]; if (!q.gone && !(q.syt > 0) && blizh(me, q) < K.opasno && !(umeet && mass(q, who) * bolshe <= me.m) && (!vrag || blizh(me, q) < blizh(me, vrag.q))) vrag = { q, who }; }
   const vyshe = vidy.filter(([who]) => !C.eda.has(who)).sort((a, b) => a[1] - b[1]), hoz = vidy.slice().sort((a, b) => b[1] - a[1])[0];
