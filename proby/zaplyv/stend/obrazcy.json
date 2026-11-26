@@ -413,11 +413,6 @@
    "fail": "inat_376111767_sheya_lebed.jpg",
    "avtor": "Igor Shelpiakov, CC-BY"
   },
-  "pancir": {
-   "papka": "oruzhie/5_zashchitnoe",
-   "fail": "inat_94700479_pancir_arcella.jpg",
-   "avtor": "Bruce Taylor, CC-BY"
-  },
   "spore": {
    "papka": "chasti/spora",
    "fail": "cdc_21910_clostridium_oosthuizen.jpg",
@@ -427,6 +422,31 @@
    "papka": "chasti/pili",
    "fail": "wellcome_B0004797_palochka_vorsinki.jpg",
    "avtor": "Wellcome Collection, CC BY 4.0"
+  },
+  "shield": {
+   "papka": "oruzhie/5_zashchitnoe",
+   "fail": "inat_94700479_pancir_arcella.jpg",
+   "avtor": "Bruce Taylor, CC-BY"
+  },
+  "sense": {
+   "papka": "chasti/navyki_3_chuvstva",
+   "fail": "inat_138132594_krasnyy_glazok.jpg",
+   "avtor": "crseaquist, CC-BY"
+  },
+  "fast": {
+   "papka": "chasti/navyki_2_pitanie",
+   "fail": "inat_41573296_pishchevarenie_cvetnoe.jpg",
+   "avtor": "Bruce Taylor, CC-BY"
+  },
+  "memory": {
+   "papka": "chasti/plazmidy",
+   "fail": "servier_plazmida_skruchennaya.jpg",
+   "avtor": "Servier Medical Art, CC BY 2.0"
+  },
+  "magnet": {
+   "papka": "chasti/navyki_1_dvizhenie",
+   "fail": "flickr_21215821111_tufelka_temnoe_pole.jpg",
+   "avtor": "Don Loarie, CC BY 2.0"
   }
  }
 }
