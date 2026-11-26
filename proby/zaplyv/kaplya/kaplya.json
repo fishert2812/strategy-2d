@@ -1,0 +1,13 @@
+{
+ "_": "Форк «Заплыва» по книге (Роман 26.11: «сделаем форк нашей игры… конструктором добавим просто мир… Движение мы уже докрутим»). Ход, повороты, кормление, глотание — ручная игра (sim.js, evo.js). Конструктор населяет: жители капли рисуются записями vid_chasti.json. Здесь — кто из ручного мира какой записью рисуется и во сколько толщин записи его размер; null — оставить ручной рисунок.",
+ "rezhim": "evo",
+ "zhiteli": {
+  "slippers": { "zapis": "infuzoriya", "tolshchina": 0.27, "ot": "L" },
+  "bells": { "zapis": "kolokolchik", "tolshchina": 1.0, "ot": "r" },
+  "rotis": { "zapis": "kolovratka", "tolshchina": 0.22, "ot": "L" },
+  "prey": { "zapis": "kokki", "tolshchina": 0.9, "ot": "r" },
+  "bdellos": { "zapis": "zapyataya", "tolshchina": 1.0, "ot": "w" },
+  "amoebas": { "zapis": "ameba", "tolshchina": 0.6, "ot": "r" },
+  "phages": { "zapis": "virus", "tolshchina": 1.0, "ot": "s" }
+ }
+}
