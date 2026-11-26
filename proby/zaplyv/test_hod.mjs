@@ -69,4 +69,10 @@ check('test_korm_samoproverka: тот же сторож краснеет, есл
 const sudit_upor = zh => { const mn = Math.min(...zh.map(k => k.zazor)); if (mn < -KK.storozh.vlez_max * W) return `тело влезло в комок на ${(-mn / W).toFixed(2)} полутолщины`; if (!zh.some(k => k.upor)) return 'клетка не дошла до комка или не заметила упор'; };
 check('test_upor: в твёрдый комок клетка упирается и не проходит сквозь него', () => { const q = vstrecha({ x: 6 * W, y: 0, m: 1, r: W * 2, tverd: true }); return sudit_upor(q.map((k, i) => k)); });
 check('test_upor_samoproverka: тот же сторож краснеет, если комок не твёрдый', () => { const q = { id: 1, x: 0, y: 0, a: 0, m: 1 }, rnd = sluchay(1), zh = []; for (let t = 0; t < 6; t += 1 / 30) { plyt(q, VC.vidy.nasha, K, Z, 1 / 30, rnd, Math.atan2(-q.y, 6 * W - q.x) - q.a, W); zh.push({ zazor: Math.hypot(6 * W - q.x, q.y) - TLo.kr * W - 2 * W, upor: false }); } return sudit_upor(zh) ? '' : 'сторож пропустил проход сквозь комок'; });
+// Мягкое тело (Роман 26.11: «как мы делали красиво — что они там двигают своим телом»): в повороте ось ложится дугой и сама выпрямляется.
+function povorot(Kx) { const q = { id: 1, x: 0, y: 0, a: 0, vedut: true }, rnd = sluchay(1), dt = 1 / 30; let mx = 0, konec = 0; const cel = [0, 4000];
+  for (let t = 0; t < 4; t += dt) { let d = Math.atan2(cel[1] - q.y, cel[0] - q.x) - q.a; d = Math.atan2(Math.sin(d), Math.cos(d)); plyt(q, VC.vidy.nasha, Kx, Z, dt, rnd, d, W); if (t < 1.5) mx = Math.max(mx, Math.abs(q.gnut)); konec = Math.abs(q.gnut); }
+  return mx < T.gnut_min ? `в повороте на 90° тело прогнулось всего на ${mx.toFixed(3)} половины длины, нужно не меньше ${T.gnut_min}` : konec > T.gnut_pryamo ? `на прямой тело осталось согнутым: ${konec.toFixed(3)}` : mx > Kx.telo.gnut_max + 1e-9 ? 'прогиб больше предела' : ''; }
+check('test_gnut: в повороте тело ложится дугой, на прямой выпрямляется, прогиб не больше предела', () => povorot(K));
+check('test_gnut_samoproverka: тот же сторож краснеет на жёстком теле', () => povorot({ ...K, telo: { ...K.telo, gnut: 0 } }) ? '' : 'сторож пропустил жёсткое тело');
 process.exit(bad);
