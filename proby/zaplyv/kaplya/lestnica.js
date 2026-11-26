@@ -14,7 +14,7 @@ export function shag(L, w, me, mass, K) { let sobytie = '';
   if (L.car) { const { q, list } = L.car, zhiv = !q.gone && (w[list] || []).includes(q);
     if (!zhiv) { if ((w.gulps || []).some(g => Math.hypot(g.x0 - q.x, g.y0 - q.y) < K.glotok) || w.me.some(a => d(a, q) < K.ryadom)) { L.schet++; sobytie = 'syela'; } L.car = null; } }
   if (!L.car && me) { L.car = vybrat(L, w, me, mass, K); if (!L.car && !L.ty) { L.ty = true; sobytie = sobytie || 'ty'; } if (L.car) L.ty = false; } // «Ты царь капли» (книга): крупнее тебя никого
-  L.luchshe = Math.max(L.luchshe, me ? me.m : 0); if (sobytie === 'syela') rekord(L);
+  L.luchshe = Math.max(L.luchshe, me ? me.m : 0); if (sobytie === 'syela' && !L.bezRekorda) rekord(L);
   return sobytie; }
 // П89: рекорд — больше всего царей за заход, хранится навсегда
 const KR = 'zaplyv.kaplya.lestnica';
