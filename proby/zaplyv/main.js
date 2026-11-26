@@ -166,7 +166,10 @@ const bubbles = new Dots(60, scene, 4, 'ring', 0);
 const wake = new Dots(240, scene, 3, true, 0.9); // след в воде: частицы, которые клетка расталкивает
 let puffs = [], cur = [0, 0], kids = null;
 
+const derzh = []; // знаки у края, которые ещё держатся после ухода круга (О116)
+let hudN = -1; const hudNiz = () => { if (hudN < 0) { const b = $('pause').getBoundingClientRect(); hudN = b.bottom > 0 ? b.bottom * W / innerWidth : 0; } return hudN; }; // низ строки счёта в единицах игры (стрелки у края не налезают на неё)
 function resize() {
+  hudN = -1;
   const w = innerWidth, h = innerHeight;
   H = W * h / w;
   gl.setSize(w, h, false);
@@ -821,11 +824,11 @@ function paint(time) {
       for (const sd of [-1, 1]) { const vv = v + sd * g.w * 0.5 * S.core; ink.put(x + (ca * u - sa * vv) * z, y + (sa * u + ca * vv) * z, S.rim * z + 0.3, ...(S.rim_c || [0.75, 0.92, 1]), S.rim_a * f); } }
   }
   { const Zc = cfg.zone, wn = world.warning(); // край зоны затягивания: тонкая сплошная линия (точки — язык еды, их не занимаем), еле видна всегда, ярче в полутора радиусах, разгорается только у ближайшей (L030)
-    probe.znak = 0; probe.tiho = 0; znaki.length = 0;
+    probe.znak = 0; probe.tiho = 0; znaki.length = 0; probe.strelki = [];
     const tihie = world.bells.filter(v => v.shut > 0).map(v => [...world.bell(v), cfg.vortex_r, 'bell', true]); // сжатый колокольчик: вихрь затих на пару секунд, круг не пропадает, а тускнеет (О115)
     for (const zn of [...world.zones(), ...tihie]) { const [wx, wy, R] = zn, [x, y] = scr(wx, wy), Rz = R * z, tiho = !!zn[4];
       const gap = Math.hypot(Math.max(0, -x, x - W), Math.max(0, -y, y - H)) - Rz; // край круга за кадром: на сколько точек экрана
-      if (gap > 0) { if (!tiho && gap < Zc.znak * z) { znaki.push([x, y, 1 - gap / (Zc.znak * z)]); probe.znak++; } continue; } // круг ещё за краем, но близко: знак у края (О115: «вплыл из-за края кадра»)
+      if (gap > 0) { if (!tiho && gap < Zc.znak * z) { znaki.push([x, y, 1 - gap / (Zc.znak * z), wx, wy]); probe.znak++; } continue; } // круг ещё за краем, но близко: знак у края (О115: «вплыл из-за края кадра»)
       if (tiho) probe.tiho++;
       const d = world.me.reduce((m, a) => Math.min(m, Math.hypot(a.x - wx, a.y - wy)), 1e9), lv = !tiho && wn && wn.zone[0] === wx && wn.zone[1] === wy ? wn.level : 0;
       const al = (tiho ? Zc.far * Zc.tiho : (d < R * 1.5 ? Zc.near : Zc.far) + (Zc.warn - Zc.near) * lv), [cr, cg, cb] = Zc.color, sz = (0.6 + 0.4 * lv) * z + 0.5, n = Math.max(90, Math.ceil(6.283 * Rz / (sz * 0.9))); // точки внахлёст: сплошная линия, не пунктир (L047, Роман 25.11 про амёбу)
@@ -836,15 +839,23 @@ function paint(time) {
         const nt = Math.max(6, Math.ceil(Rz * Zc.tick / (sz * 0.8))); for (let i = 0; i <= nt; i++) { const f = i / nt, r = Rz * (1 - Zc.tick * f); ink.put(x + Math.cos(t) * r, y + Math.sin(t) * r, sz * (1 - f * 0.5), cr, cg, cb, al * (1 - f * 0.6)); } } // чёрточка сплошная, сужается внутрь
       if (lv > 0) probe.warn[zn[3]] = (probe.warn[zn[3]] || 0) + 1;
       if (!tiho) for (const a of world.me) { if (Math.hypot(a.x - wx, a.y - wy) > R) continue; const [ax, ay] = scr(a.x, a.y); // тебя тянет: сплошная нить от клетки к рту, по ней к рту бегут волны яркости (не риски — О115)
-        const m = Zc.nit_kuskov, w0 = 0.55 * z + 0.25; let mark = 0;
-        for (let i = 0; i < m; i++) { const u0 = i / m * 0.7, u1 = (i + 1) / m * 0.7, vl = 0.5 + 0.5 * Math.sin((u0 * Zc.streak - time * 1.2) * 6.283), ali = Zc.warn * (0.35 + 0.65 * vl) * (1 - u0 * 0.6);
+        const m = Zc.nit_kuskov, w0 = Zc.nit_w * z + 0.6, D = Zc.nit_do; let mark = 0; // нить до самого рта, толще, на тёмной кайме: на тёмной воде видна вся (О117)
+        if (bodies.seg) bodies.seg(ax, ay, ax + (x - ax) * D, ay + (y - ay) * D, w0 * Zc.podlozhka_w * 0.7, [pr, pg, pb], pa * 1.5);
+        for (let i = 0; i < m; i++) { const u0 = i / m * D, u1 = (i + 1) / m * D, vl = 0.5 + 0.5 * Math.sin((u0 * Zc.streak - time * 1.2) * 6.283), ali = Zc.warn * (Zc.nit_min + (1 - Zc.nit_min) * vl);
           if (bodies.seg) { bodies.seg(ax + (x - ax) * u0, ay + (y - ay) * u0, ax + (x - ax) * u1, ay + (y - ay) * u1, w0, [cr, cg, cb], ali); mark++; } }
         if (mark) probe.nit = (probe.nit || 0) + 1; } } }
-  const edgeArrow = (x, y, [cr, cg, cb], al, big = 1) => { // стрелка у края экрана, острием к тому, что за кадром
-    const [cx, cy] = scr(view.x, view.y), a = Math.atan2(y - cy, x - cx), ux = Math.cos(a), uy = Math.sin(a), m = 34;
-    const t = Math.min((ux > 0 ? W - m - cx : m - cx) / (ux || 1e-9), (uy > 0 ? H - m - cy : m - cy) / (uy || 1e-9)), px = cx + ux * t, py = cy + uy * t;
-    for (let i = 0; i < 12; i++) { const s = i * 1.6 * big; ink.put(px + ux * s * 1.4, py + uy * s * 1.4, 4 * big, cr, cg, cb, al); ink.put(px + ux * 18 * big - (ux + uy) * s * 0.75, py + uy * 18 * big - (uy - ux) * s * 0.75, 4 * big, cr, cg, cb, al); ink.put(px + ux * 18 * big - (ux - uy) * s * 0.75, py + uy * 18 * big - (uy + ux) * s * 0.75, 4 * big, cr, cg, cb, al); } };
-  for (const [x, y, k] of znaki) edgeArrow(x, y, cfg.zone.color, 0.35 + 0.45 * k); // круг за краем кадра, но рядом: красная стрелка к нему
+  const edgeArrow = (x, y, [cr, cg, cb], al, big = 1) => { // стрелка у края экрана, острием к тому, что за кадром: сплошной треугольник из трубок на тёмной кайме, ниже строки счёта (О116)
+    const S = cfg.zone.strelka, [cx, cy] = scr(view.x, view.y), a = Math.atan2(y - cy, x - cx), ux = Math.cos(a), uy = Math.sin(a), m = 34, top = Math.max(m, hudNiz() + S.verh);
+    const t = Math.min((ux > 0 ? W - m - cx : m - cx) / (ux || 1e-9), (uy > 0 ? H - m - cy : top - cy) / (uy || 1e-9)), px = cx + ux * t, py = cy + uy * t;
+    const L = S.dlina * big, hw = S.shir * big / 2, tx = px + ux * L / 2, ty = py + uy * L / 2, bx = px - ux * L / 2, by = py - uy * L / 2, nx = -uy, ny = ux, [pr, pg, pb] = cfg.zone.podlozhka;
+    probe.strelki.push([px * innerWidth / W, py * innerHeight / H, L * innerWidth / W]);
+    if (!bodies.seg) return;
+    for (const [r, col, aa] of [[S.pod_r * big, [pr, pg, pb], S.pod_a * al], [S.r * big, [cr, cg, cb], Math.min(1, al * S.yarche)]])
+      for (let f = -1; f <= 1.001; f += 0.08) bodies.seg(tx, ty, bx + nx * (hw - r) * f, by + ny * (hw - r) * f, r, col, aa); };
+  { const S = cfg.zone.strelka; for (const d of derzh) d.t -= pdt; // знак держится S.derzhat с после того, как круг ушёл: у быстрой амёбы он больше не мигает одним кадром (О116)
+    for (const [x, y, k, wx, wy] of znaki) { let d = derzh.find(q => Math.hypot(q.wx - wx, q.wy - wy) < S.svyaz); if (!d) derzh.push(d = { wx, wy }); Object.assign(d, { wx, wy, k, t: S.derzhat }); }
+    for (let i = derzh.length - 1; i >= 0; i--) if (derzh[i].t <= 0) derzh.splice(i, 1);
+    for (const d of derzh) { const [x, y] = scr(d.wx, d.wy); if (on(x, y, -8)) continue; edgeArrow(x, y, cfg.zone.color, (0.35 + 0.45 * d.k) * Math.min(1, d.t / (S.derzhat * 0.5))); } } // круг за краем кадра, но рядом: красная стрелка к нему
   { const wn = world.warning(); if (wn && wn.level > 0) { const [x, y] = scr(wn.zone[0], wn.zone[1]); // источник тревоги за кадром: стрелка у края экрана, острием к нему (L030)
     if (!on(x, y, wn.zone[2] * z - 12)) { probe.edge = (probe.edge || 0) + 1; edgeArrow(x, y, cfg.zone.color, 0.45 + 0.4 * wn.level); } } }
   // Сестра за кадром (Роман 25.11: «они просто уплывают куда-то, исчезают»): камера не ждёт схваченную, заражённую и отставшую,

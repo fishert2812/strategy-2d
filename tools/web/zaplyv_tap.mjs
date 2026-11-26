@@ -360,6 +360,7 @@ if (await tap('#mscene [data-m=mut]', 'объект «Мутации»') && awai
     all.sort((a, b) => a - b); return { n: all.length, med: all[Math.floor(all.length / 2)] || 0, low: all[Math.floor(all.length * 0.2)] || 0 }; }, [s1, s0, geo]);
   await p.evaluate(() => { const w = zaplyvWorld(); w.zones = w.zony; w.step = w.stoit; w.amoebas.length = 0; w.plants = w.plants.filter(q => q.id < 950); w.me.length = 1; w.tidy = 0; });
   say(r.n >= 30 && r.med >= 70 && r.low >= 45, `test_L062: в людном кадре кольцо зоны видно — на кольце цвет кадра меняется: медиана ${Math.round(r.med)}, нижняя пятая ${Math.round(r.low)} (нужно 70 и 45 из 441; точек ${r.n})`); }
+let doRta = 0, shirNiti = 0; // нить к рту: доля последней четверти пути и ширина (меряет блок L063, проверяет L065)
 // test_L063 (прогон 0.103, О115: «круг колокольчика виден, только когда его край уже на экране — дважды вплыл из-за края кадра; один раз круг
 // пропал при колокольчике вплотную; внутри круга оранжевые риски вихря»): круг за краем кадра, но близко, — стрелка у края; сжатый колокольчик
 // круг не теряет, он тускнеет; от клетки к рту — сплошная нить без разрывов, венец ресничек — колечко, не бусы.
@@ -371,7 +372,7 @@ if (await tap('#mscene [data-m=mut]', 'объект «Мутации»') && awai
   await bell(kraj + Rv + 60, ay); await W8(4); const blizko = await p.evaluate(() => zaplyvProbe.znak);
   await bell(kraj + Rv + 900, ay); await W8(4); const daleko = await p.evaluate(() => zaplyvProbe.znak);
   await bell(ax - 130, ay, 2); await W8(4); const tiho = await p.evaluate(() => zaplyvProbe.tiho);
-  await bell(ax - 130, ay); await W8(30); const venec = await p.evaluate(() => zaplyvProbe.venec), nit = await p.evaluate(() => [zaplyvProbe.nit || 0, zaplyvWorld().zones().length]);
+  await bell(ax - 180, ay); await W8(30); const venec = await p.evaluate(() => zaplyvProbe.venec), nit = await p.evaluate(() => [zaplyvProbe.nit || 0, zaplyvWorld().zones().length]);
   // нить сплошная: тот же стоящий кадр с кругом и без, вдоль нити от клетки к рту цвет меняется почти везде (бусы и риски дают провалы)
   // камера после очистки кадра ещё доезжает (зум к одной клетке); нить тонкая, и сдвиг в пару точек между замером места и снимком давал в WebKit «видна на 5%».
   // Ждём, пока клетка и рот на экране встанут, и снимаем, только если за время снимка они не сдвинулись.
@@ -383,14 +384,29 @@ if (await tap('#mscene [data-m=mut]', 'объект «Мутации»') && awai
   const sploshn = await p.evaluate(async ([b1, b0, [[x0, y0], [x1, y1]]]) => { const read = async b64 => { const im = new Image(); im.src = 'data:image/png;base64,' + b64; await im.decode(); const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
       const x = c.getContext('2d'); x.drawImage(im, 0, 0); return { d: x.getImageData(0, 0, c.width, c.height).data, w: c.width, k: im.width / innerWidth }; };
     const A = await read(b1), B = await read(b0), px = (I, u, v) => { const i = (Math.round(v * I.k) * I.w + Math.round(u * I.k)) * 4; return [I.d[i], I.d[i + 1], I.d[i + 2]]; };
-    const L = Math.hypot(x1 - x0, y1 - y0), nx = -(y1 - y0) / L, ny = (x1 - x0) / L; let est = 0, n = 0;
-    for (let u = 0.2; u <= 0.6; u += 0.01) { let best = 0; for (let s = -2; s <= 2; s += 0.5) { const xx = x0 + (x1 - x0) * u + nx * s, yy = y0 + (y1 - y0) * u + ny * s, a = px(A, xx, yy), b = px(B, xx, yy); best = Math.max(best, Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2])); }
-      n++; if (best > 12) est++; }
-    return est / n; }, [s1, s0, geo]);
+    const L = Math.hypot(x1 - x0, y1 - y0), nx = -(y1 - y0) / L, ny = (x1 - x0) / L, raz = (u, s) => { const xx = x0 + (x1 - x0) * u + nx * s, yy = y0 + (y1 - y0) * u + ny * s, a = px(A, xx, yy), b = px(B, xx, yy); return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]); };
+    const dolya = (u0, u1) => { let est = 0, n = 0; for (let u = u0; u <= u1; u += 0.01) { let best = 0; for (let s = -2; s <= 2; s += 0.5) best = Math.max(best, raz(u, s)); n++; if (best > 12) est++; } return est / n; };
+    let shir = 0; for (let u = 0.3; u <= 0.61; u += 0.1) { let k = 0; for (let s = -6; s <= 6; s += 0.25) if (raz(u, s) > 25) k++; shir += k * 0.25 / 4; } /* ширина нити в точках CSS, средняя по четырём местам */
+    return [dolya(0.2, 0.6), dolya(0.72, 0.8), shir]; }, [s1, s0, geo]).then(([a, b, c]) => { doRta = b; shirNiti = c; return a; });
   await p.evaluate(() => { const w = zaplyvWorld(); w.zones = w.zony; w.step = w.stoit; w.bells.length = 0; w.tidy = 0; });
   say(blizko >= 1 && daleko === 0, `test_L063: круг за краем кадра, но в ${60} от края, — стрелка у края (знаков ${blizko}); далеко — без стрелки (${daleko})`);
   say(tiho >= 1, `test_L063: колокольчик сжался — круг не пропал, а затих (тихих кругов ${tiho})`);
   say(venec === 'trubka' && nit[0] > 0 && sploshn >= 0.9, `test_L063: от клетки к рту сплошная нить (видна на ${Math.round(sploshn * 100)}% пути, нужно 90; камера за снимок сдвинулась на ${dr.toFixed(1)}), венец ресничек — ${venec === 'trubka' ? 'колечко' : 'бусы'}`); }
+// test_L065 (прогон 0.104, О116 и О117: «стрелка у края мелкая, около 12 точек, похожа на птичку, налезает на строку счёта, у быстрой амёбы горит один кадр»;
+// «нить к рту обрывается на половине или двух третях пути, тонкая и тёмная на тёмной воде»): стрелка крупная, ниже строки счёта, держится после ухода круга; нить до рта и толстая.
+{ const W8 = n => p.evaluate(n => new Promise(r => { const f0 = zaplyvProbe.frames, k = () => zaplyvProbe.frames >= f0 + n ? r() : requestAnimationFrame(k); k(); }), n);
+  const [ax, ay] = await p.evaluate(() => { const w = zaplyvWorld(); for (const l of ['food', 'prey', 'amoebas', 'bdellos', 'slippers', 'bells', 'rotis', 'pseudos', 'phages', 'plants', 'crumbs', 'donors']) if (w[l]) w[l].length = 0; w.tidy = 1e9; w.me.length = 1; const a = w.me[0]; a.vx = a.vy = 0; w.stoit = w.stoit || w.step; w.step = () => {}; return [a.x, a.y]; });
+  const ekr = await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0], [x0, y0] = zaplyvScr(a.x, a.y), [x1] = zaplyvScr(a.x + 100, a.y); return { k: (x1 - x0) / 100, y0 }; });
+  const Rv = await p.evaluate(() => zaplyvWorld().cfg.vortex_r + zaplyvWorld().cfg.bell_stalk), verh = ay - ekr.y0 / ekr.k;
+  await p.evaluate(([x, y]) => { const w = zaplyvWorld(); w.bells.length = 0; w.bells.push({ x, y, dir: 0, shut: 0, id: 4244 }); }, [ax + 60, verh - Rv - 60]); await W8(6); // круг вверху справа: стрелка у верхнего края, где строка счёта
+  const st = await p.evaluate(() => (zaplyvProbe.strelki || [])[0] || null), niz = await p.evaluate(() => document.getElementById('pause').getBoundingClientRect().bottom);
+  await p.evaluate(() => { zaplyvWorld().bells[0].x += 5000; }); await W8(3); const derzhit = await p.evaluate(() => (zaplyvProbe.strelki || []).length);
+  const gasnet = await p.waitForFunction(() => !(zaplyvProbe.strelki || []).length, null, { timeout: 8000 }).then(() => 0, () => 1); // гаснет: ждём, пока стрелки не станет, не дольше 8 с
+  await p.evaluate(() => { const w = zaplyvWorld(); w.step = w.stoit; w.bells.length = 0; w.tidy = 0; });
+  say(st && st[2] >= 24 && st[1] - st[2] / 2 > niz, `test_L065: стрелка у края крупная (${st ? Math.round(st[2]) : 0} точек, нужно 24) и ниже строки счёта (верх ${st ? Math.round(st[1] - st[2] / 2) : 0}, низ строки ${Math.round(niz)})`);
+  say(derzhit >= 1 && gasnet === 0, `test_L065: круг ушёл — стрелка ещё держится (${derzhit}), потом гаснет (${gasnet})`);
+  say(doRta >= 0.8 && shirNiti >= 2, `test_L065: нить тянется до рта (видна на ${Math.round(doRta * 100)}% пути от 0,72 до 0,8 — до чашки рта, нужно 80) и толстая (${shirNiti.toFixed(1)} точки, нужно 2)`); }
+
 // test_L066 (Роман 26.11 на iPhone 16: «Сборка ползунками у меня открывает игру которая багнута и там меню главного экрана и не заходит в движок - так было и вчера»):
 // игрок уже был в игре (сохранение есть), открывает ссылку на конструктор (?pesochnica) или стенд (?stend) — меню режимов не встаёт поверх, конструктор на экране.
 for (const k of ['pesochnica', 'stend']) { const q = await p.context().newPage(); await q.goto(url + '?' + k, { timeout: 60000 });
