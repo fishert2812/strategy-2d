@@ -12,6 +12,7 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; t
 #nv { position: fixed; left: 10px; top: calc(max(10px, env(safe-area-inset-top)) + 122px); display: flex; flex-direction: column; gap: 6px; } #t select { font-size: 16px !important; } #sost { margin-top: 4px; font-size: 13px; opacity: 0.9; } #sost:empty { display: none; }
 #ob.skryt { width: 64px; padding: 2px; } #ob.skryt img { display: block !important; border-radius: 10px; } #ob.skryt figcaption, #ob.skryt.net { display: none; }
 #nv select, #nv button { min-height: 44px; max-width: 46vw; padding: 0 12px; border-radius: 12px; border: 1px solid rgba(200, 240, 255, 0.35); background: rgba(4, 16, 26, 0.8); color: inherit; font: inherit; font-size: 16px; text-align: left; } #nv button.vkl { background: rgba(200, 240, 255, 0.3); }
+body.snimok #t, body.snimok #nv, body.snimok #ob, body.snimok #p { display: none; }
 #kn { float: right; margin: -2px 0 0 8px; padding: 6px 12px; border-radius: 10px; border: 1px solid rgba(200, 240, 255, 0.35); background: none; color: inherit; font: inherit; }</style></head>
 <body><canvas id="c"></canvas><div id="t"><select id="vs"></select><button id="k_pauza">Пауза</button><button id="k_medl">Медленно</button><button id="k_eda">Еда</button><button id="k_komok">Комок</button><button id="k_kletka">Клетка</button><button id="k_obrazec">Образец</button><span id="sb"></span></div><div id="nv"></div><figure id="ob" class="skryt"><img id="ob_img" alt=""><figcaption><b id="ob_im"></b> <small id="ob_av"></small></figcaption></figure><div id="p"><button id="kn">Запись</button><div id="h"></div><div id="sost"></div><div id="r"><small id="iz"></small></div></div>
 <script type="module">
@@ -29,7 +30,10 @@ import { flazhok } from './flazhok.js';
 import { obvod_zon } from '../zony.js';
 import { telo as telo_rosta } from '../delenie.js';
 const q0 = new URLSearchParams(location.search), MR = await (await fetch('../mir.json')).json(), K = MR.hod, KK = MR.kontakt, Z = MR.zhizn, S = K.stend, vid = VC.vidy[q0.get('sushchestvo')] ? q0.get('sushchestvo') : 'nasha';
-const W = 720, gl = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true }); gl.setPixelRatio(Math.min(devicePixelRatio, 2.5)); gl.autoClear = false;
+// ?snimok=1 — снимок для карточки умения (Роман 26.11 21:43: в карточки «из конструктора конкретную картинку»): клетка крупно по центру, плывёт ровно,
+// без кнопок, еды и взвеси; числа mir.json hod.stend.snimok. Снимки пересобирает stend/karty.cjs
+const SN = q0.get('snimok') ? S.snimok : null; if (SN) document.body.classList.add('snimok');
+const W = 720, gl = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true, preserveDrawingBuffer: !!SN }); gl.setPixelRatio(Math.min(devicePixelRatio, 2.5)); gl.autoClear = false;
 const H = W * innerHeight / innerWidth; gl.setSize(innerWidth, innerHeight, false);
 const cam = new THREE.OrthographicCamera(0, W, 0, H, -1, 1), back = new THREE.Scene(), bodies = new Bodies(); bodies.resize(W, H);
 // Вода: мягкие пятна света привязаны к воде, а не к экрану, поэтому по ним видно, как клетка идёт.
@@ -41,7 +45,7 @@ bg.position.set(W / 2, H / 2, 0); bg.scale.y = -1; back.add(bg);
 let s = (+(q0.get('seed') || 1)) * 2654435761 % 2147483647 || 1; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647, hash = (a, b) => { const x = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return x - Math.floor(x); };
 // Умения на теле: набор { умение: уровень } из адреса (?navyki=hvost:2,ship:1) и с кнопок слева; запись клетки пересобирается с частями уровня (s_navykami)
 // ?poverh=1 — как в игре с ручным телом: клетка без умений, части умений дорисованы поверх (chasti_navykov)
-const POVERH = !!q0.get('poverh'), NV = {}; let zerno = +(q0.get('vid') || 0); for (const p of (q0.get('navyki') || '').split(',')) { const [k, u] = p.split(':'); if (VC.navyki.spisok[k] && +u > 0) NV[k] = +u; }
+const POVERH = !!q0.get('poverh'), NV = {}; let zerno = +(q0.get('vid') || 0); for (const p of (q0.get('navyki') || '').split(',')) { const [k, u] = p.split(':'); if (VC.navyki.spisok[k] && +u > 0) NV[k] = +u; } if (SN) S.tolshchina = SN.svoi?.[Object.keys(NV)[0]]?.tolshchina || SN.tolshchina;
 // Запись под ползунками: каждый раз новая копия записи вида, поэтому паспорт хода и величины считаются заново.
 const P0 = { myag: +(1 / (VC.vidy[vid].forma.zhestkost || 1)).toFixed(2), zhg: VC.vidy[vid].chasti.zhgutiki ? VC.vidy[vid].chasti.zhgutiki.n ?? VC.chasti.zhgutiki.n : 0, dl: 1, korma: VC.vidy[vid].chasti.zhgutiki?.gde === 'korma' ? 1 : 0 }, PZ = { ...P0 }; let zapis, PH, vmax = 0, TL, zerna = -1, rost = 0;
 function sobrat_zapis() { let z = JSON.parse(JSON.stringify(VC.vidy[vid])); z.forma.tochki = z.forma.tochki.map(([x, y, r]) => [x * PZ.dl, y, r]);
@@ -51,7 +55,7 @@ function sobrat_zapis() { let z = JSON.parse(JSON.stringify(VC.vidy[vid])); z.fo
   if (zerna >= 0 && z.chasti.vklyucheniya) z.chasti.vklyucheniya = { ...z.chasti.vklyucheniya, n: zerna };
   if (Object.keys(NV).length && !POVERH) z = s_navykami(z, NV, undefined, zerno);
   zapis = z; PH = pasport_hoda(z, K, 1); const O = obvod_zon(z, { x: 0, y: 0, a: 0, tolshchina: 1 }).O; TL = { kr: O.poperechnik / 2, kh: Math.max(0, O.dlina / 2 - O.poperechnik / 2) }; q.obvod = obvod_zon(z, { x: 0, y: 0, a: 0, tolshchina: 1 }, 64).T.map(p => [p.x, p.y]); }
-const q = { id: 1, x: 0, y: 0, a: -1.2, m: 1, pokoy: 0, udar: 0 }, VM = new Map(), E = S.eda;
+const q = { id: 1, x: 0, y: 0, a: SN ? SN.ugol : -1.2, m: 1, pokoy: 0, udar: 0 }, VM = new Map(), E = S.eda;
 // Еда и комки лежат в воде по сетке (случай от места, поэтому мир повторяется); съеденный кусок через время нарастает снова.
 const veshch = (i, j) => { const kl = i + ',' + j; let e = VM.get(kl); if (e === undefined) { const h1 = hash(i * 3 + 1, j * 7 + 2), x = (i + 0.2 + 0.6 * hash(i, j)) * E.shag, y = (j + 0.2 + 0.6 * hash(j + 7, i)) * E.shag;
   e = (i || j) && h1 < E.komok ? { x, y, m: 1, r: S.tolshchina * (E.r_komka[0] + (E.r_komka[1] - E.r_komka[0]) * hash(i + 5, j)), tverd: true } : h1 < E.komok + E.shans ? { x, y, m: E.m[0] + (E.m[1] - E.m[0]) * hash(i + 9, j + 4), r: 0 } : null; if (e && !e.tverd) e.r = S.tolshchina * E.r * Math.cbrt(e.m / E.m[1]); VM.set(kl, e); } return e; }; let cx = 0, cy = 0, time = 0, kadr = 0, vb = 1, sk_sred = 0, put = 0, ryadom = [], palec = [];
@@ -109,7 +113,7 @@ const otpustil = e => { if (nazhal && !nazhal.tych && performance.now() - nazhal
 cv.addEventListener('pointerup', otpustil); cv.addEventListener('pointercancel', () => { vedet = nazhal = null; });
 window.hodVedet = v => { vedet = v; }; window.hodVtoraya = () => q2; window.hodKomok = () => ryadom.filter(e => e.tverd).sort((a, b) => Math.hypot(a.x - q.x, a.y - q.y) - Math.hypot(b.x - q.x, b.y - q.y))[0];
 window.stend = dt => { time += dt; const w = S.tolshchina * tolshche(q, KK, time), g = E.shag;
-  ryadom = palec = palec.filter(e => e.m > 0); ryadom = ryadom.slice(); for (let j = Math.floor((cy - H) / g); j <= (cy + H) / g; j++) for (let i = Math.floor((cx - W) / g); i <= (cx + W) / g; i++) { const e = veshch(i, j); if (e && e.m > 0) ryadom.push(e); }
+  ryadom = palec = palec.filter(e => e.m > 0); ryadom = ryadom.slice(); for (let j = Math.floor((cy - H) / g); j <= (cy + H) / g; j++) for (let i = Math.floor((cx - W) / g); i <= (cx + W) / g; i++) { const e = SN ? null : veshch(i, j); if (e && e.m > 0) ryadom.push(e); }
   q.zhestkost = zapis.forma.zhestkost || 1; q.obhvat = !!zapis.forma.nozhki;
   if (vedet && nazhal?.tych) { PL.x = vedet.x; PL.y = vedet.y; PL.r = Math.min(S.palec.r * S.tolshchina, PL.r + S.palec.r * S.tolshchina * dt / S.palec.nazhim); PL.nazhim = S.palec.glub * PL.r / (S.palec.r * S.tolshchina); ryadom.push(PL); }
   if (q2) { const w2 = S.tolshchina, A = { x: q.x, y: q.y, a: q.a, w, m: q.m, zapis }, B = { x: q2.x, y: q2.y, a: q2.a, w: w2, m: q2.m, zapis }, r = kasanie(A, B, MR.kasanie, dt);
@@ -117,15 +121,16 @@ window.stend = dt => { time += dt; const w = S.tolshchina * tolshche(q, KK, time
     kontakt(q2, [], TL, w2, KK, 0, dt); q2.m = 1; plyt(q2, zapis, K, Z, dt, rnd, 0, w2, S.skorost * S.knopki.hod_vtoroy); }
   const KT = kontakt(q, ryadom, TL, w, KK, PH.k_eda, dt); // палец держат: цель там, где палец на экране (камера идёт, палец стоит); иначе цель задаёт еда
   if (vedet && vedet.ex !== undefined) { const m = W / innerWidth; vedet.x = cx - W / 2 + vedet.ex * m; vedet.y = cy - H / 2 + vedet.ey * m; }
-  q.vedut = !!vedet;
+  q.vedut = !!vedet || !!SN;
   const cel = vedet && !q.est && !nazhal?.tych && performance.now() - (nazhal ? nazhal.t : 0) >= S.kasanie_ms ? [vedet.x, vedet.y] : KT.cel; let d = 0; if (cel && Math.hypot(cel[0] - q.x, cel[1] - q.y) > w) { d = Math.atan2(cel[1] - q.y, cel[0] - q.x) - q.a; d = Math.atan2(Math.sin(d), Math.cos(d)); }
   const zr = Math.round(S.zerna[0] + (S.zerna[1] - S.zerna[0]) * Math.max(0, Math.min(1, (q.m - 1) / (KK.m_max - 1)))); // сытая клетка растёт в длину (тот же закон роста тела, что у деления: delenie.js telo), ступенями
   const rs = Math.round(Math.max(0, Math.min(S.rost_do, q.m - 1)) * S.rost_stupeney); if (zr !== zerna || rs !== rost) { zerna = zr; rost = rs; sobrat_zapis(); }
   const { X, vmax: vm } = plyt(q, zapis, K, Z, dt, rnd, d, w, KT.sk * S.skorost); vytolknut(q, ryadom, TL, w); prizhat(q, TL, w, KK); vmax = vm / (KT.sk || 1) * (KT.sk ? 1 : 0) || vmax; const vv = Math.hypot(q.vx, q.vy); window.hodSobytiya = (window.hodSobytiya || 0) + KT.sobytiya.length;
   cx += (q.x - cx) * Math.min(1, dt * S.kamera); cy += (q.y - cy) * Math.min(1, dt * S.kamera); vb += ((vmax > 0 ? X.beg : 0) - vb) * Math.min(1, dt * 12); sk_sred += (Math.abs(vv) - sk_sred) * Math.min(1, dt * 2); put += Math.abs(vv) * dt;
+  if (SN) { cx = q.sled ? q.sled.x : q.x; cy = q.sled ? q.sled.y : q.y; }
   const x0 = cx - W / 2, y0 = cy - H / 2; U.o.value.set(x0, y0); bodies.begin();
   // взвесь в воде: редкие мутные крупинки стоят на месте (сетка по воде), по ним видно ход и дрожь
-  const gv = S.vzves.shag; for (let j = Math.floor(y0 / gv); j <= (y0 + H) / gv; j++) for (let i = Math.floor(x0 / gv); i <= (x0 + W) / gv; i++) { const px = (i + hash(i, j)) * gv - x0, py = (j + hash(j + 7, i)) * gv - y0; bodies.sphere(px, py, S.vzves.r * (0.5 + hash(i + 3, j)), S.vzves.cvet, S.vzves.cvet, i * 31 + j, 0.6, S.vzves.a); }
+  const gv = S.vzves.shag; if (!SN) for (let j = Math.floor(y0 / gv); j <= (y0 + H) / gv; j++) for (let i = Math.floor(x0 / gv); i <= (x0 + W) / gv; i++) { const px = (i + hash(i, j)) * gv - x0, py = (j + hash(j + 7, i)) * gv - y0; bodies.sphere(px, py, S.vzves.r * (0.5 + hash(i + 3, j)), S.vzves.cvet, S.vzves.cvet, i * 31 + j, 0.6, S.vzves.a); }
   // кусок, который обхватывает оболочка (e.ob), рисуется поверх тела и тускнеет: он уходит внутрь и виден сквозь оболочку
   const ris = (e, al) => bodies.sphere(e.x - x0, e.y - y0, e.r, e.tverd ? E.cvet_komka : E.cvet, e.tverd ? E.kromka_komka : E.kromka, Math.round(e.x + e.y * 3), e.tverd ? 0.9 : 0.8, al);
   for (const e of ryadom) if (e.r > 0.15 && !e.palec && !(e === q.est && e.ob)) ris(e, 1);
