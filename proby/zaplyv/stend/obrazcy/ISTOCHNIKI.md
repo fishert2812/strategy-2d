@@ -45,3 +45,5 @@
 | `inat_120557721_shchupaltsa_suktorii.jpg` | crseaquist (CC BY) | CC-BY | https://www.inaturalist.org/observations/120557721 |
 | `inat_376111767_sheya_lebed.jpg` | Igor Shelpiakov (CC BY) | CC-BY | https://www.inaturalist.org/observations/376111767 |
 | `inat_94700479_pancir_arcella.jpg` | Bruce Taylor (CC BY) | CC-BY | https://www.inaturalist.org/observations/94700479 |
+| `cdc_21910_clostridium_oosthuizen.jpg` | Jennifer Oosthuizen | CDC PHIL, public domain | https://phil.cdc.gov/Details.aspx?pid=21910 |
+| `wellcome_B0004797_palochka_vorsinki.jpg` | Wellcome Collection | CC BY 4.0 | https://wellcomecollection.org/works/ngrhxakm |

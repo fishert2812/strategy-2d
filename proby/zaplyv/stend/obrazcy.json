@@ -417,6 +417,16 @@
    "papka": "oruzhie/5_zashchitnoe",
    "fail": "inat_94700479_pancir_arcella.jpg",
    "avtor": "Bruce Taylor, CC-BY"
+  },
+  "spore": {
+   "papka": "chasti/spora",
+   "fail": "cdc_21910_clostridium_oosthuizen.jpg",
+   "avtor": "Jennifer Oosthuizen, CDC PHIL, public domain"
+  },
+  "fim": {
+   "papka": "chasti/pili",
+   "fail": "wellcome_B0004797_palochka_vorsinki.jpg",
+   "avtor": "Wellcome Collection, CC BY 4.0"
   }
  }
 }
