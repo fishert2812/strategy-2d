@@ -35,3 +35,7 @@
 | `inat_192031761_shar_v_iglah.jpg` | crseaquist | CC-BY | https://www.inaturalist.org/observations/192031761 |
 | `inat_323997152_grusha_zhgutiki.jpg` | no rights reserved | CC0 | https://www.inaturalist.org/observations/323997152 |
 | `inat_159580312_cherv_krupno.jpg` | no rights reserved | CC0 | https://www.inaturalist.org/observations/159580312 |
+| `cdc_23241_cre_rossow.jpg` | Stephanie Rossow | CDC PHIL, public domain | https://phil.cdc.gov/Details.aspx?pid=23241 |
+| `cdc_23251_salmonella_typhi_archer.jpg` | James Archer | CDC PHIL, public domain | https://phil.cdc.gov/Details.aspx?pid=23251 |
+| `didiniy_hobotok_ostriyo.jpg` | crseaquist | CC-BY | https://www.inaturalist.org/observations/168758990 |
+| `inat_60804766_voronka_stentor.jpg` | zookanthos | CC-BY | https://www.inaturalist.org/observations/60804766 |
