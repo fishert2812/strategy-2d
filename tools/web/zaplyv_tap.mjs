@@ -418,17 +418,19 @@ for (const k of ['pesochnica', 'stend']) { const q = await p.context().newPage()
 // test_L067 (О121, прогон 0.108 на 393×659: «панель „Собрать бактерию“ закрывает весь экран, бегунок у края вылезает из столбца, дорожки в нуле не видно»):
 // на экране iPhone с открытой панелью собираемая бактерия видна целиком над панелью, панель не выше konstruktor.json panel.vys, своя клетка под панелью не выглядывает, бегунки в своих столбцах.
 { const q = await p.context().newPage(); await q.setViewportSize({ width: 393, height: 659 }); await q.goto(url + '?pesochnica', { timeout: 60000 });
-  await q.waitForFunction(() => !!document.getElementById('pk') && window.zaplyvProbe && zaplyvProbe.frames > 60, null, { timeout: 30000 }).catch(() => {}); await q.waitForTimeout(1500);
-  const r = await q.evaluate(() => { const R = id => document.getElementById(id).getBoundingClientRect(), pk = R('pk'), pt = R('pt'), c = R('c'), w = zaplyvWorld(), me = w.me[0];
+  // ждём готовности, а не паузы (под нагрузкой полной проверки кадры идут медленно): образец уже в воде, холст сдвинут под панель
+  await q.waitForFunction(() => !!document.getElementById('pk') && window.zaplyvProbe && zaplyvProbe.frames > 60 && zaplyvWorld().pseudos.some(o => o.obrazec) && !!document.getElementById('c').style.transform, null, { timeout: 60000 }).catch(() => {});
+  let r, telo, hk = false; for (let tr = 0; tr < 20 && !hk; tr++) { if (tr) await q.waitForTimeout(500); /* тело ещё не нарисовано или камера едет — меряем снова, пока не сойдётся */
+  r = await q.evaluate(() => { const R = id => document.getElementById(id).getBoundingClientRect(), pk = R('pk'), pt = R('pt'), c = R('c'), w = zaplyvWorld(), me = w.me[0];
     const naEkr = (x, y) => { const [sx, sy] = zaplyvScr(x, y); return [c.left + sx * c.width / innerWidth, c.top + sy * c.height / innerHeight]; };
     const polz = [...document.querySelectorAll('#pk .polz')].map(d => [d.getBoundingClientRect(), d.querySelector('input').getBoundingClientRect()]);
     return { h: innerHeight, verh: pt.bottom, niz: pk.top, vys: pk.height, me: me ? naEkr(me.x, me.y)[1] : 0, vylez: polz.filter(([d, i]) => i.right > d.right + 0.5 || i.left < d.left - 0.5).length, polz: polz.length }; });
   const kadr = (await q.screenshot({ clip: { x: 0, y: r.verh, width: 393, height: Math.max(8, r.niz - r.verh) }, scale: 'css' })).toString('base64');
-  const telo = await q.evaluate(async b64 => { const im = new Image(); im.src = 'data:image/png;base64,' + b64; await im.decode(); const cv = document.createElement('canvas'); cv.width = im.width; cv.height = im.height;
+  telo = await q.evaluate(async b64 => { const im = new Image(); im.src = 'data:image/png;base64,' + b64; await im.decode(); const cv = document.createElement('canvas'); cv.width = im.width; cv.height = im.height;
     const g = cv.getContext('2d'); g.drawImage(im, 0, 0); const d = g.getImageData(0, 0, im.width, im.height).data; let t = null;
     for (let y = 0; y < im.height; y++) for (let x = 0; x < im.width; x++) { const i = (y * im.width + x) * 4; if (d[i] > 150 && d[i + 1] < 110) t = t ? [Math.min(t[0], x), Math.min(t[1], y), Math.max(t[2], x), Math.max(t[3], y)] : [x, y, x, y]; } /* розовое тело на тёмной воде */
     return t && [...t, im.width, im.height]; }, kadr);
-  const hk = !!telo && telo[1] > 2 && telo[3] < telo[5] - 3 && telo[0] > 2 && telo[2] < telo[4] - 3;
+  hk = !!telo && telo[1] > 2 && telo[3] < telo[5] - 3 && telo[0] > 2 && telo[2] < telo[4] - 3; }
   say(r.vys <= 0.45 * r.h + 1 && hk && r.me - r.niz >= 40 && !r.vylez && r.polz >= 4, `test_L067: на 393×659 панель ${Math.round(r.vys / r.h * 100)}% экрана (нужно не выше 45), бактерия над панелью ${telo ? 'видна целиком' : 'не найдена'}${telo && !hk ? ' — режется краем' : ''}, своя клетка ${Math.round(r.me - r.niz)} точек под верхом панели (нужно 40), бегунков вылезло ${r.vylez} из ${r.polz}`);
   await q.close(); }
 say(!errs.length, 'ошибок страницы нет' + (errs.length ? ': ' + errs.join('; ') : ''));
