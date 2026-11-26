@@ -29,7 +29,8 @@ export function posle_hoda(w, dt, B, radius, S) { for (const g in S.geny) w.gene
 // Ш3 «Кто колет тебя»: удар жителя по тебе тоже идёт по геному, а не по массе. Ручной гарпун соперницы (dvizhok.js) и её яд (zhizn.js) отнимают массу
 // и убивают ниже предела; в «Капле» во время хода мира такую гибель не пускаем (ohrana), массу возвращаем, а удар считаем строкой na_tebya по З3
 // от массы бьющего. Геном кончился — гибнешь. Без урона pokoy секунд геном лечится.
-export function ohrana(w, B) { const L = w.lose.bind(w); w.lose = (a, x, y, who) => { if (B.vkl && w._bojHod && Object.values(B.na_tebya).some(X => X.kto && X.kto.includes(who))) return; L(a, x, y, who); }; }
+const oglushen = (w, B, x, y) => { const t = w.stats.time; for (const [, C] of spiski(B)) for (const q of w[C.spisok] || []) if (q.oglush > t && Math.hypot(q.x - x, q.y - y) < B.oglush_r) return true; return false; };
+export function ohrana(w, B) { const L = w.lose.bind(w); w.lose = (a, x, y, who) => { if (B.vkl && w._bojHod && Object.values(B.na_tebya).some(X => X.kto && X.kto.includes(who))) return; if (B.vkl && x != null && (B.oglush_kto || []).includes(who) && oglushen(w, B, x, y)) return; /* П65 «Гарпун»: у оглушённого рот закрыт */ L(a, x, y, who); }; }
 export function po_tebe(w, dt, B, m0) { if (!B.vkl) return 0; const now = w.stats.time; let n = 0;
   for (const e of w.events) { const X = B.na_tebya[e[0]]; if (!X || e.length < 5 || e.boj) continue; e.boj = true; /* событие считаем один раз, даже если список событий не чистят */
     let a = null, bd = 1e9; for (const b of w.me) { const d = Math.hypot(b.x - e[3], b.y - e[4]); if (d < bd) { bd = d; a = b; } } if (!a) continue;
