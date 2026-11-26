@@ -29,6 +29,8 @@ import * as zh from './zhiteli.js';
 import * as les from './lestnica.js'; // аркада «Лестница» (П86–П89): ?lestnica
 import * as umn from './umeniya.js'; // умения по книге: «Вампир», шапка «Нюха» (П65, П71)
 import * as obl from './oblasti.js'; // области по книге: плёнка, без кислорода, сероводород, тень (П29–П33)
+import * as rod from './rod.js'; // род жив: раз за заплыв просыпаешься сестрой (П73)
+import * as sm from './semena.js'; // между заплывами: семена рода, рекорд размера (П76, П94)
 import * as vh from './vehi.js'; // рост по книге: длина П51, вехи П54, худение за умения П49
 const VEHI = vh.zagruzit();
 window.kaplyaLes = () => LES; // спирилла, каулобактер, хлорелла (книга П39), руками // строка цели, подпись линейки, «теперь еда» (книга П5–П7)
@@ -219,7 +221,7 @@ const beep = (f, dur, vol = 0.05, type = 'sine', slide = 0.6) => {
 
 const STICK = 56; // полный ход большого пальца (~30 точек экрана); дальше кольцо едет за пальцем
 const pad = new Stick(STICK);
-let OBL = obl.sozdat(), LES = les.sozdat(), GLAVA = 1, CEL = cel.sozdat(), world, view, finger = null, down = null, moved = false, shake = 0, ended = false, lastEat = 0;
+let SEM = [], ROD_K = rod.sozdat(), OBL = obl.sozdat(), LES = les.sozdat(), GLAVA = 1, CEL = cel.sozdat(), world, view, finger = null, down = null, moved = false, shake = 0, ended = false, lastEat = 0;
 const $ = id => document.getElementById(id);
 const ver = (await (await fetch('version.json')).json()).number; // свой номер «Заплыва», список — VERSIONS.md
 $('ver').textContent = 'Капля по книге · ' + ver;
@@ -230,12 +232,14 @@ function start(genes, mode) {
   world.posle = Object.fromEntries(Object.values(GENY.geny || {}).filter(q => q.klyuch).map(q => [q.klyuch, q.posle || []])); world.known = met; // ген от того, кого уже встречал
   if (Array.isArray(genes)) world.inherit(genes); // заплыв веткой рода после «Ночи рода»
   $('night').classList.remove('on'); $('menu').classList.remove('on');
-  view = { x: 0, y: 0, z: 2.2, tint: [...TINT[0]] }; CEL = cel.sozdat(); GLAVA = 1; LES = les.sozdat(); OBL = obl.sozdat(); zh.nachalo(world); if (les.vkl() || VEHI.has('glotat')) world.genes.gulp = true; if (!les.vkl()) bodo.nachalo(world, KAP.bodo); // П54: веха «Глотать: навсегда» // в «Лестнице» хозяина нет, «Глотать» с рождения (П86)
+  view = { x: 0, y: 0, z: 2.2, tint: [...TINT[0]] }; CEL = cel.sozdat(); GLAVA = 1; LES = les.sozdat(); OBL = obl.sozdat(); ROD_K = rod.sozdat(); zh.nachalo(world); { const P = sm.pamyat(), K = KAP.semena; SEM = P.zahodov && world.me[0] ? sm.posadit(world.me[0], K, sm.vybor(P, K, world.cfg.genes, world.genes)) : []; if (SEM.length) setTimeout(() => say(K.slova.start, 3000), 300); } // П76: семена рода
+  { const lose0 = world.lose.bind(world); world.lose = (a, x, y, who) => { const m = a.m; lose0(a, x, y, who); if (world.me.length || les.vkl()) return; const sis = rod.probudit(ROD_K, world, KAP.rod, m, x, y); if (!sis) { sm.zapomnit(world, KAP.semena, who, vh.dlina(KAP.rost, m)); return; } const R = KAP.rod.slova, im = ((KAP.cel.imena[who] || [R.kto])[0] || R.kto).toLowerCase(); view.x = sis.x; view.y = sis.y; say(R.zhiv.replace('{kto}', im), 4500); }; } // П73: род жив if (les.vkl() || VEHI.has('glotat')) world.genes.gulp = true; if (!les.vkl()) bodo.nachalo(world, KAP.bodo); // П54: веха «Глотать: навсегда» // в «Лестнице» хозяина нет, «Глотать» с рождения (П86)
   fx.reset(); fx.world = world; ended = false; // fx читает мир: сидящие вирусы, запятые, амёбы
   $('end').classList.remove('on');
   setTimeout(() => say(KAP.start, 5000), 700); // книга П1: цель одной фразой, длинная форма для первого экрана
 }
 $('again').onclick = () => start(null, world.mode); // снова в том же режиме
+{ const B = document.createElement('button'); B.id = 'kles'; B.className = 'ghost'; $('again').after(B); B.onclick = () => { location.search = les.vkl() ? '' : '?lestnica'; }; } // П89: рядом с «Плыть снова» кнопка «Лестница» (в «Лестнице» — назад в главы)
 // Род между заплывами: гибели, последний род (для ночи), ветки и поколения ночей, «Тише». Память — в этом браузере.
 let ROD = {}; try { ROD = JSON.parse(localStorage.getItem('zaplyv.rod') || '{}') || {}; } catch (_) {}
 const saveRod = () => { try { localStorage.setItem('zaplyv.rod', JSON.stringify(ROD)); } catch (_) {} };
@@ -792,6 +796,7 @@ function tick(dt) {
     cfg.speed = H.v * rost.hod(world, me) * k ** H.stepen / (me.chew && me.m > (me.chew.m || 4) * H.gryzt_bolshe ? rost.R.stoit : 1); } } // большую клетку крошечный комок под ней не тормозит: «встать и грызть» только у комка не мельче тебя в gryzt_bolshe раз // скорость на экране не падает: тяжесть не тормозит, а отъезд камеры возмещается ходом в мире
   const m0 = new Map(world.me.map(a => [a, a.m])); world.step(dt, pad.value()); for (const t of obl.shag(OBL, world, dt, KAP.oblasti, m0, GLAVA)) say(t, 3500);
   { const T = $('kten') || Object.assign(document.body.appendChild(document.createElement('div')), { id: 'kten' }); if (!T.style.position) Object.assign(T.style, { position: 'fixed', inset: '0', background: '#000', pointerEvents: 'none', transition: 'opacity 1.5s', opacity: '0', zIndex: '1' }); T.style.opacity = OBL.ten ? KAP.oblasti.ten.a : 0; } // П33: тень от облака
+  { const g = sm.shag(SEM, world, world.me[0], KAP.semena, dt, radius); if (g) { world.genes[g] = true; say(KAP.semena.slova.vzyato.replace('{}', geneName(g)), 3000, g); } } // П76: коснулся семени — умение твоё
   vh.hudet(world, evo.E, KAP.rost, dt); if (umn.tech(world, dt, KAP.umeniya, radius) && !world.vampirSkazano) { world.vampirSkazano = true; say(KAP.umeniya.slova.vampir, 3500); } if (!world.genes.gulp && world.stats.time >= KAP.glotat_s) { world.genes.gulp = true; world.choice = world.choice.filter(g => g !== 'gulp'); say(KAP.slova_glotat, 4000); } // книга П2, П16: глотать с 10-й секунды, а не после первого роста
   { const B = KAP.bodo, um = !!world.genes.gulp; bodo.shag(world, dt, B, radius, slyshuBodo); bodo.glotat(world, B, radius, evo.E.glotat.syt, 0, um, slyshuBodo); zh.shag(world, dt, KAP.novye); zh.glotat(world, evo.E.glotat.bolshe, radius, um, v => say(KAP.slova_glotka[v], 1600)); } // джойстик: направление и сила из сдвига пальца
   { const [fx, fy] = world.flow(view.x, view.y); cur[0] += fx * dt; cur[1] += fy * dt; } // течение несёт взвесь
@@ -805,7 +810,7 @@ function tick(dt) {
       $('cfact').textContent = t.priroda || k.fact; $('ctip').textContent = t.sovet || k.tip || '';
       if (kk && KAB.items[kk] && kk !== 'me') $('cab').textContent = 'Кто это · ' + (t.imya || k.name) + ' в Альманахе'; else cabLabel(); // прогон 0.68: «Альманах» с гибели вёл в общий список, а не к убийце
       $('ckill').src = KAB.items[kk] ? snap(kk, KAB.items[kk]) : ''; $('ckill').hidden = !KAB.items[kk];
-      $('stats').innerHTML = pathText(world);
+      $('stats').innerHTML = pathText(world); { const K = KAP.lestnica, rek = les.rekord(LES); $('stats').innerHTML = (sm.pamyat().rekord ? K.slova.rekord_razmer.replace('{r}', sm.pamyat().rekord.toFixed(1).replace('.', ',')) + '<br>' : '') + (les.vkl() ? K.slova.itog.replace('{n}', LES.schet).replace('{r}', rek) + '<br>' : '') + $('stats').innerHTML; $('kles').innerHTML = les.vkl() ? K.slova.nazad : K.slova.knopka + '<small>' + K.slova.cel + (rek ? ' · ' + K.slova.rekord.replace('{r}', rek) : '') + '</small>'; } // П89: счёт и рекорд «Лестницы»
       ROD.deaths = (ROD.deaths || 0) + 1; ROD.genes = Object.keys(world.genes).filter(g => world.genes[g]); ROD.most = world.stats.most; ROD.seed = world.seed; // род для ночи и меню
       const kl = world.stats.killer || 'me'; ROD.killers = ROD.killers || {}; ROD.killers[kl] = (ROD.killers[kl] || 0) + 1; saveRod();
       setTimeout(() => { $('end').classList.add('on'); $('end').scrollTop = 0; $('toast').classList.remove('on'); }, 700); // лист гибели всегда с начала: убийца сверху (L031) // подсказка заплыва не ложится на экран гибели
@@ -1046,6 +1051,8 @@ function paint(time) {
   }
   for (const a of world.me) { const n = umn.nuh(world, a, KAP.umeniya, radius); if (!n) continue; const K = KAP.umeniya.nuh, R = radius(a.m) * z, [x, y] = scr(a.x, a.y), c = Math.cos(n.ugol), s = Math.sin(n.ugol), L = R * K.razmer * (0.5 + 0.5 * n.sila);
     bodies.seg(x + c * R * 0.85, y + s * R * 0.85, x + c * (R * 0.85 + L), y + s * (R * 0.85 + L), L * 0.9 + 1, K.cvet, K.a); } // П65: шапка «Нюха» на носу смотрит на самую густую еду
+  for (const q of SEM) { const [x, y] = scr(q.x, q.y), K = KAP.semena, R = K.r * z * 0.6 + 3, h = geneColor(q.g).replace('#', ''), c = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255 || 0.6), fade = Math.min(1, (K.t - q.t) / 0.5);
+    glow.put(x, y, R * 3, ...c, 0.35 * fade); bodies.seg(x, y - R * 0.5, x, y + R * 0.5, R * 1.3, c, 0.9 * fade); glow.put(x, y, R * 1.2, 1, 1, 1, 0.25 * fade); } // семя рода: малая капсула цвета умения
   if (LES.car && !LES.car.q.gone) { const q = LES.car.q, L = Math.max(6, radius(ms0(q, LES.car.who)) * z * 1.2), [x, y] = scr(q.x, q.y), K = KAP.korona; // корона царя капли (П88)
     if (on(x, y, 40)) { const hx = x, hy = y - L * KAP.lestnica.korona_vyshe; for (let k = -1; k <= 1; k++) { const bx = hx + k * L * K.shir; bodies.seg(bx, hy, bx, hy - L * K.zub * (k ? 0.75 : 1), L * K.tolsh + 0.6, K.cvet, 0.95); } bodies.seg(hx - L * K.shir * 1.2, hy, hx + L * K.shir * 1.2, hy, L * K.tolsh * 1.2 + 0.6, K.cvet, 0.95); glow.put(hx, hy, L * 1.4, ...K.cvet, 0.25); } }
   for (const b of world.bodos || []) { if (!b.car) continue; const L = bodo.dlina(KAP.bodo, b.m) * z, [x, y] = scr(b.x, b.y); // корона поверх тела, после всех бодо
