@@ -12,6 +12,7 @@ export const sozdat = () => ({});
 // Шаг после хода мира: строки «сработало». say(текст, мс, ген).
 export function shag(S, w, K, say) { const R = K.srabotal, ys = w.syel || {};
   for (const [who, d] of Object.entries(K.dobycha)) { const k = ys[who] || 0; if (k > (S['s_' + who] || 0)) { S['s_' + who] = k; const lv = w.genes[d.gene] ? Math.max(1, (w.lvl || {})[d.gene] || 0) : 0, nado = d.n * (lv + 1);
+    if (lv && !(w.urovni && w.urovni(d.gene))) continue; /* умение есть и выше некуда: счёт молчит */ if (k >= nado && S['g_' + who] === nado) continue; if (k >= nado) S['g_' + who] = nado;
     say((k >= nado ? d.gotovo : d.slovo).replace('{k}', k).replace(/\{n\}/g, nado), K.ms, d.gene); } }
   for (const e of w.events) { const X = R[e[0]]; if (!X || (X.chetvertyj && e[4] !== X.chetvertyj)) continue;
     const g = X.geny.find(q => w.genes[q]); if (!g || (S[e[0]] || 0) >= K.raz) continue;
