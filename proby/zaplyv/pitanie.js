@@ -41,7 +41,7 @@ export function kontakt(q, veshchi, T, w, K, k_eda, dt) { const kh = T.kh * w, k
 // этому времени для эталона. q.zhestkost — жёсткость оболочки из записи (forma.zhestkost, по умолчанию 1: палочка со стенкой; у амёбы и
 // инфузории меньше): мягкая мнётся глубже (δ ∝ 1/жёсткость) и возвращается медленнее (время ∝ 1/√жёсткость). Объём сохраняет рисование
 // (vid_chasti.js myatye: где вдавлено, там тело раздаётся). q.vm — живые вмятины, q.vm_vid — они же для позы (sobrat: поза vm).
-function vmyat(q, e, u, nu, nv, glub, R1, R2, K) { const V = K.vmyatina, zh = q.zhestkost || 1, d = Math.min(V.glub, glub / zh); if (!(d > 0)) return; const vm = q.vm || (q.vm = []); let m = vm.find(x => x.e === e);
+export function vmyat(q, e, u, nu, nv, glub, R1, R2, K) { const V = K.vmyatina, zh = q.zhestkost || 1, d = Math.min(V.glub, glub / zh); if (!(d > 0)) return; const vm = q.vm || (q.vm = []); let m = vm.find(x => x.e === e);
   if (!m) { vm.push(m = { e, d: 0 }); if (vm.length > V.shtuk) vm.shift(); } m.u = u; m.nu = nu; m.nv = nv; m.d0 = d; m.a = Math.max(V.shirina_min, Math.sqrt(R1 * R2 / (R1 + R2) * d)); m.t = 0; m.derzhit = 1; }
 // на сколько полутолщин оболочка сейчас вдавлена этим предметом: настолько тело подходит к нему ближе (вмятина лежит на предмете, без щели)
 const vdavleno = (q, e) => { const m = q.vm && q.vm.find(x => x.e === e); return m ? Math.max(0, m.d) : 0; };
