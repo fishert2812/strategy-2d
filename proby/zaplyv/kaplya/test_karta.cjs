@@ -21,7 +21,7 @@ let bad = 0; const check = (n, e) => { console.log((e ? '  ПРОВАЛ ' : '  �
     const t0 = await vremya(); await p.waitForTimeout(wait * 1000); const t1 = await vremya(); if (t1 - t0 > 0.05) return `мир шёл ${(t1 - t0).toFixed(1)} с, пока лежали карточки`;
     const plohaya = K.k.find(k => !k.img || !k.imya || !k.stroka || !k.vidno); if (plohaya) return `карточка без снимка, имени или строки: ${JSON.stringify(plohaya)}`;
     const g = await p.evaluate(() => zaplyvWorld().choice[0]); await p.tap('#obtns button:first-child');
-    await p.waitForTimeout(1200); const t2 = await vremya(), vzyal = await p.evaluate(g => !!zaplyvWorld().genes[g] && !zaplyvWorld().choice.length, g);
+    await p.waitForFunction(t => zaplyvWorld().stats.time - t >= 0.5 && !zaplyvWorld().choice.length, t1, { timeout: 10000 }).catch(() => {}); /* урок 26.11: на медленной машине 1,2 с не хватало, чтобы мир прошёл 0,5 с; ждём само событие, до 10 с */ const t2 = await vremya(), vzyal = await p.evaluate(g => !!zaplyvWorld().genes[g] && !zaplyvWorld().choice.length, g);
     if (!vzyal) return `одно касание не взяло «${g}»`; if (t2 - t1 < 0.5) return 'после выбора мир не пошёл'; return ''; };
   // «Глотать» карточкой на glotat_s секунде (Р5)
   const G = await p.evaluate(() => { const K = kaplyaKarta(); return { glotat: K.glotat }; });
