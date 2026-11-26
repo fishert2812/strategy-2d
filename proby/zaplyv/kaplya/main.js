@@ -709,7 +709,7 @@ function dalee() { const t = performance.now(); while (OCHERED.length && t - OCH
 // П23: коснуться одного из двух вариантов при большом событии. Две кнопки поверх игры, мир не стоит.
 function vybor(V, otvet) { let el = $('kvybor'); if (!el) { el = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'kvybor' })); Object.assign(el.style, { position: 'fixed', left: '52px', right: '16px', bottom: 'calc(env(safe-area-inset-bottom) + 250px)', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: '5', textAlign: 'center' }); }
   el.innerHTML = '<p style="margin:0;font-weight:600;text-shadow:0 1px 4px #000"></p>'; el.firstChild.textContent = V.vopros; V.knopki.forEach((t, i) => { const B = document.createElement('button'); B.textContent = t; B.onclick = e => { e.stopPropagation(); el.remove(); otvet(i); }; el.appendChild(B); }); }
-window.kaplyaVybor = () => $('kvybor'); window.kaplyaRot = () => KAP.rot; window.kaplyaGL = () => GL; window.kaplyaSposoby = () => world.sposoby; window.kaplyaPokazMira = () => POK; window.kaplyaMayak = () => $('kmayak'); window.kaplyaGol = () => GOL; window.kaplyaZaraza = () => ZAR; window.kaplyaVirus = () => VIR; window.kaplyaKislota = () => KIS;
+window.kaplyaVybor = () => $('kvybor'); window.kaplyaKarta = () => KAP.karta; window.kaplyaRot = () => KAP.rot; window.kaplyaGL = () => GL; window.kaplyaSposoby = () => world.sposoby; window.kaplyaPokazMira = () => POK; window.kaplyaMayak = () => $('kmayak'); window.kaplyaGol = () => GOL; window.kaplyaZaraza = () => ZAR; window.kaplyaVirus = () => VIR; window.kaplyaKislota = () => KIS;
 { const R = ruka.sozdat(); document.body.classList.toggle('levsha', R.ruka === 'leva'); addEventListener('pointerdown', e => { if (ruka.kasanie(R, e.clientX, innerWidth, KAP.ruka)) document.body.classList.toggle('levsha', R.ruka === 'leva'); }, { passive: true }); window.kaplyaRuka = () => R; } // П4: рука по первым 20 касаниям
 window.kaplyaSay = say; window.kaplyaPokaz = pokaz; window.kaplyaOchered = () => OCHERED.length; window.kaplyaLin = () => LIN;
 const told = new Set(); // подсказка — один раз и только в момент, когда она нужна
@@ -753,13 +753,13 @@ function offer(dt) {
   if (key !== offerKey) { // новый выбор: собрать полосу
     offerKey = key; offerT = performance.now(); $('otitle').textContent = evo.on(world) ? KAP.stroki.podrosla : $('otitle').dataset.d; /* П125: «Подросла!» с родом — своё слово */ const box = $('obtns'); box.innerHTML = '';
     world.choice.forEach(g => { const b = document.createElement('button'); b.innerHTML = '<img class="gicon" alt=""><span></span><small></small>';
-      b.children[1].textContent = geneName(g); b.children[2].textContent = mut.daet(world, g, geneBook(g)); b.firstChild.src = icon(g); b.firstChild.style.borderColor = geneColor(g);
-      b.onclick = e => { e.stopPropagation(); if (oswipe) return; if (b.classList.contains('sel')) return take(g); // первое касание выбирает, второе берёт: случайный тап большим пальцем навык не возьмёт
+      b.children[1].textContent = geneName(g) + (world.genes[g] ? ' ' + (mut.lvl(world, g) + 1) : ''); /* К3: имя и уровень */ b.children[2].textContent = mut.daet(world, g, geneBook(g)); b.firstChild.src = icon(g); b.firstChild.style.borderColor = geneColor(g);
+      b.onclick = e => { e.stopPropagation(); if (oswipe) return; if (KAP.karta.odin_tap || b.classList.contains('sel')) return take(g); /* Ш20: мир стоит, случайного тапа нет — берётся одним касанием */ // первое касание выбирает, второе берёт: случайный тап большим пальцем навык не возьмёт
         for (const q of box.children) q.classList.remove('sel'); b.classList.add('sel'); offerT = performance.now(); $('otitle').textContent = 'Коснись ещё раз — взять «' + geneName(g) + '»'; $('odesc').textContent = b.children[2].textContent; }; box.appendChild(b); }); $('odesc').textContent = '';
-    D.querySelector('img').src = icon(world.choice[0]); O.classList.add('on'); D.classList.remove('on'); beep(440, 0.3, 0.04, 'sine', 2);
+    D.querySelector('img').src = icon(world.choice[0]); O.classList.toggle('karta', !!KAP.karta.pauza); if (KAP.karta.pauza) $('otitle').textContent = KAP.stroki.karta; O.classList.add('on'); D.classList.remove('on'); beep(440, 0.3, 0.04, 'sine', 2);
   }
   const age = (performance.now() - offerT) / 1000;
-  if (O.classList.contains('on') && age > cfg.offer_fold) { O.classList.remove('on'); D.classList.add('on'); } // свернулась в значок
+  if (!KAP.karta.pauza && O.classList.contains('on') && age > cfg.offer_fold) { O.classList.remove('on'); D.classList.add('on'); } // свернулась в значок
   D.style.setProperty('--left', 1); // сам не берётся: значок ждёт касания (прогон 0.84, О86: «Чует еду взялся сам без выбора»)
 }
 // Свайп, начатый на полосе, — это плавание, а не выбор (прогон 0.84, О86): палец на полосе сразу ведёт джойстик; ушёл дальше 12 точек — касание варианта не считается.
@@ -768,7 +768,7 @@ $('offer').addEventListener('pointerdown', e => { const [x, y] = unit(e); ofrom 
 addEventListener('pointermove', e => { if (!ofrom || !down) return; const [x, y] = unit(e); pad.move(x, y); finger = pad.finger; if (Math.hypot(x - ofrom[0], y - ofrom[1]) > 12) { oswipe = moved = true; } });
 const oup = () => { if (!ofrom) return; ofrom = null; pad.end(performance.now()); down = null; finger = null; setTimeout(() => { oswipe = false; }, 0); }; // касание полосы не «делится»
 addEventListener('pointerup', oup); addEventListener('pointercancel', oup);
-function take(g) { world.pick(g); offer(0); say('Взято: ' + geneName(g), 2200, g); fx.ring(world.center().x, world.center().y, 0, 300); beep(660, 0.4, 0.06, 'sine', 1.5); }
+function take(g) { world.pick(g); offer(0); say(g === 'gulp' ? KAP.slova_glotat : 'Взято: ' + geneName(g), g === 'gulp' ? 4000 : 2200, g); fx.ring(world.center().x, world.center().y, 0, 300); beep(660, 0.4, 0.06, 'sine', 1.5); }
 $('odot').onclick = e => { e.stopPropagation(); offerT = performance.now(); $('offer').classList.add('on'); $('odot').classList.remove('on'); };
 $('otitle').dataset.d = $('otitle').textContent;
 
@@ -820,7 +820,7 @@ function events() {
 }
 
 function tick(dt) {
-  offer(dt);
+  offer(dt); if (KAP.karta.pauza && world.choice.length) return; /* Ш20: пока лежат карточки, мир стоит */
   { const H = KAP.hod, me = world.me[0]; if (me) { const zb = view.z / (1 + cfg.close_up * (view.calm || 0)), k = Math.max(1, H.z0 / zb); // Роман 26.11: «чтобы при росте моем не замедлялась клетка»
     cfg.speed = H.v * rost.hod(world, me) * k ** H.stepen / (me.chew && me.m > (me.chew.m || 4) * H.gryzt_bolshe ? rost.R.stoit : 1); } } // большую клетку крошечный комок под ней не тормозит: «встать и грызть» только у комка не мельче тебя в gryzt_bolshe раз // скорость на экране не падает: тяжесть не тормозит, а отъезд камеры возмещается ходом в мире
   const m0 = new Map(world.me.map(a => [a, a.m])); world.step(dt, pad.value()); for (const t of obl.shag(OBL, world, dt, KAP.oblasti, m0, GLAVA)) say(t, 3500);
@@ -833,7 +833,7 @@ function tick(dt) {
   { const t = les.vkl() ? '' : gol.shag(GOL, world, dt, KAP.golod, GLAVA, OBL.ten); if (t) say(t, 3500); const M = $('kmut') || Object.assign(document.body.appendChild(document.createElement('div')), { id: 'kmut' }); if (!M.style.position) Object.assign(M.style, { position: 'fixed', inset: '0', background: KAP.golod.mut.cvet, pointerEvents: 'none', zIndex: '1' }); M.style.opacity = (GOL.mut * KAP.golod.mut.a).toFixed(3); } // П85: голод — вода мутнеет
   { const T = $('kten') || Object.assign(document.body.appendChild(document.createElement('div')), { id: 'kten' }); if (!T.style.position) Object.assign(T.style, { position: 'fixed', inset: '0', background: '#000', pointerEvents: 'none', transition: 'opacity 1.5s', opacity: '0', zIndex: '1' }); T.style.opacity = OBL.ten ? KAP.oblasti.ten.a : 0; } // П33: тень от облака
   { const g = sm.shag(SEM, world, world.me[0], KAP.semena, dt, radius); if (g) { world.genes[g] = true; say(KAP.semena.slova.vzyato.replace('{}', geneName(g)), 3000, g); } } // П76: коснулся семени — умение твоё
-  vh.hudet(world, evo.E, KAP.rost, dt); if (umn.tech(world, dt, KAP.umeniya, radius) && !world.vampirSkazano) { world.vampirSkazano = true; say(KAP.umeniya.slova.vampir, 3500); } if (!world.genes.gulp && world.stats.time >= KAP.glotat_s) { world.genes.gulp = true; world.choice = world.choice.filter(g => g !== 'gulp'); say(KAP.slova_glotat, 4000); } // книга П2, П16: глотать с 10-й секунды, а не после первого роста
+  vh.hudet(world, evo.E, KAP.rost, dt); if (umn.tech(world, dt, KAP.umeniya, radius) && !world.vampirSkazano) { world.vampirSkazano = true; say(KAP.umeniya.slova.vampir, 3500); } if (!world.genes.gulp && world.stats.time >= KAP.glotat_s) { if (!KAP.karta.glotat) { world.genes.gulp = true; world.choice = world.choice.filter(g => g !== 'gulp'); say(KAP.slova_glotat, 4000); } else if (!world.choice.length) world.choice = ['gulp']; } /* Ш20, Р5: «Глотать» — карточкой на 10-й секунде */ // книга П2, П16: глотать с 10-й секунды, а не после первого роста
   { const B = KAP.bodo, um = !!world.genes.gulp; bodo.shag(world, dt, B, radius, slyshuBodo); bodo.glotat(world, B, radius, evo.E.glotat.syt, 0, um, slyshuBodo); zh.shag(world, dt, KAP.novye, v => !!ZAP[zh.SPISKI[v]] && (les.vkl() ? les.poyavitsya(KAP.lestnica, world.me[0] ? world.me[0].m : 1, KAP.novye[v].massa[0]) : GLAVA >= (KAP.novye[v].glava || 1)), radius); zh.glotat(world, evo.E.glotat.bolshe, radius, um, v => say(KAP.slova_glotka[v], 1600)); } // джойстик: направление и сила из сдвига пальца
   { const [fx, fy] = world.flow(view.x, view.y); cur[0] += fx * dt; cur[1] += fy * dt; } // течение несёт взвесь
   events();
