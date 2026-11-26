@@ -30,6 +30,7 @@ import * as les from './lestnica.js'; // аркада «Лестница» (П86
 import * as umn from './umeniya.js'; // умения по книге: «Вампир», шапка «Нюха» (П65, П71)
 import * as obl from './oblasti.js'; // области по книге: плёнка, без кислорода, сероводород, тень (П29–П33)
 import * as gol from './golod.js'; // события области по книге П85: голод волнами, засуха
+import * as mk from './mayak.js'; // маяк сестры у края экрана (книга П12)
 import * as rod from './rod.js'; // род жив: раз за заплыв просыпаешься сестрой (П73)
 import * as sm from './semena.js'; // между заплывами: семена рода, рекорд размера (П76, П94)
 import * as glv from './glavy.js'; // главы 2–5 (П79–П83)
@@ -698,7 +699,7 @@ function dalee() { const t = performance.now(); while (OCHERED.length && t - OCH
 // П23: коснуться одного из двух вариантов при большом событии. Две кнопки поверх игры, мир не стоит.
 function vybor(V, otvet) { let el = $('kvybor'); if (!el) { el = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'kvybor' })); Object.assign(el.style, { position: 'fixed', left: '52px', right: '16px', bottom: 'calc(env(safe-area-inset-bottom) + 250px)', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: '5', textAlign: 'center' }); }
   el.innerHTML = '<p style="margin:0;font-weight:600;text-shadow:0 1px 4px #000"></p>'; el.firstChild.textContent = V.vopros; V.knopki.forEach((t, i) => { const B = document.createElement('button'); B.textContent = t; B.onclick = e => { e.stopPropagation(); el.remove(); otvet(i); }; el.appendChild(B); }); }
-window.kaplyaVybor = () => $('kvybor'); window.kaplyaGL = () => GL; window.kaplyaGol = () => GOL;
+window.kaplyaVybor = () => $('kvybor'); window.kaplyaGL = () => GL; window.kaplyaMayak = () => $('kmayak'); window.kaplyaGol = () => GOL;
 window.kaplyaSay = say; window.kaplyaPokaz = pokaz; window.kaplyaOchered = () => OCHERED.length; window.kaplyaLin = () => LIN;
 const told = new Set(); // подсказка — один раз и только в момент, когда она нужна
 function tell(k, text) { if (told.has(k)) return; told.add(k); say(text, 2600); }
@@ -810,6 +811,7 @@ function tick(dt) {
   { const H = KAP.hod, me = world.me[0]; if (me) { const zb = view.z / (1 + cfg.close_up * (view.calm || 0)), k = Math.max(1, H.z0 / zb); // Роман 26.11: «чтобы при росте моем не замедлялась клетка»
     cfg.speed = H.v * rost.hod(world, me) * k ** H.stepen / (me.chew && me.m > (me.chew.m || 4) * H.gryzt_bolshe ? rost.R.stoit : 1); } } // большую клетку крошечный комок под ней не тормозит: «встать и грызть» только у комка не мельче тебя в gryzt_bolshe раз // скорость на экране не падает: тяжесть не тормозит, а отъезд камеры возмещается ходом в мире
   const m0 = new Map(world.me.map(a => [a, a.m])); world.step(dt, pad.value()); for (const t of obl.shag(OBL, world, dt, KAP.oblasti, m0, GLAVA)) say(t, 3500);
+  mk.shag(world, dt, KAP.mayak); // П12: род помнит, где уплывшая сестра
   { const t = les.vkl() ? '' : gol.shag(GOL, world, dt, KAP.golod, GLAVA, OBL.ten); if (t) say(t, 3500); const M = $('kmut') || Object.assign(document.body.appendChild(document.createElement('div')), { id: 'kmut' }); if (!M.style.position) Object.assign(M.style, { position: 'fixed', inset: '0', background: KAP.golod.mut.cvet, pointerEvents: 'none', zIndex: '1' }); M.style.opacity = (GOL.mut * KAP.golod.mut.a).toFixed(3); } // П85: голод — вода мутнеет
   { const T = $('kten') || Object.assign(document.body.appendChild(document.createElement('div')), { id: 'kten' }); if (!T.style.position) Object.assign(T.style, { position: 'fixed', inset: '0', background: '#000', pointerEvents: 'none', transition: 'opacity 1.5s', opacity: '0', zIndex: '1' }); T.style.opacity = OBL.ten ? KAP.oblasti.ten.a : 0; } // П33: тень от облака
   { const g = sm.shag(SEM, world, world.me[0], KAP.semena, dt, radius); if (g) { world.genes[g] = true; say(KAP.semena.slova.vzyato.replace('{}', geneName(g)), 3000, g); } } // П76: коснулся семени — умение твоё
@@ -1235,6 +1237,11 @@ function frame(now) {
   if (solo) for (const l in solo) world[l] = [];
   igraT = now / 1000; try { render(now / 1000, () => { if (!ended) { js.push(performance.now() - t0); if (js.length > 300) js.shift(); } }); } finally { if (solo) Object.assign(world, solo); }
   if (LIN && !ended) for (const [list, who] of cel.SPIS) if (CEL.videl[who] != null && !LIN.sil[who]) { const q = (world[list] || []).find(q => { if (q.gone) return false; const [x, y] = scr(q.x, q.y); return x > 90 && x < W - 90 && y > 200 && y < H - 310; }); if (q) { const [x, y] = scr(q.x, q.y); lin.snyat(LIN, KAP.lineyka, canvas, who, x, y, radius(q.m || evo.E.glotat.razmer[who] || 1) * view.z, W); } } // силуэт: кадр самой игры при первой встрече
+  { const M = KAP.mayak, me = world.me[0], r = world.rodnya, el = $('kmayak') || Object.assign(document.body.appendChild(document.createElement('img')), { id: 'kmayak' }); // П12: маяк — живой силуэт сестры у края, пока она за краем
+    if (!el.style.position) Object.assign(el.style, { position: 'fixed', width: M.px + 'px', height: M.px + 'px', marginLeft: -M.px / 2 + 'px', marginTop: -M.px / 2 + 'px', pointerEvents: 'none', zIndex: '3', borderRadius: '50%', opacity: '0.85' });
+    if (LIN && me && !LIN.sil._ya) { const [x, y] = scr(me.x, me.y); if (x > 90 && x < W - 90 && y > 200 && y < H - 310) lin.snyat(LIN, KAP.lineyka, canvas, '_ya', x, y, radius(me.m) * view.z, W); }
+    const p = r && !ended && LIN && LIN.sil._ya ? mk.kraj(...scr(r.x, r.y), W, H, M) : null; el.style.display = p ? 'block' : 'none';
+    if (p) { if (el.src !== LIN.sil._ya) el.src = LIN.sil._ya; el.style.left = p.x * innerWidth / W + 'px'; el.style.top = p.y * innerHeight / H + 'px'; el.style.transform = `rotate(${p.a + Math.sin(performance.now() / 400) * M.kach}rad)`; } }
   if (probe.frames % 60 === 0) knowGenes();
   probe.frames++; probe.dpr = dprNow; probe.cells = world.me.length; probe.z = view.z; // масштаб камеры: тап-обход проверяет, что она возвращается (L029)
   probe.js = js.reduce((s, v) => s + v, 0) / Math.max(js.length, 1); probe.jsWorst = Math.max(0, ...js.slice(5)); probe.path = Math.max(probe.path || 0, world.stats.path);
