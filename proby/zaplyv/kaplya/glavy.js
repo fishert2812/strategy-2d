@@ -20,8 +20,8 @@ export function stroka(G, w, me, K) { const k = K[G.n]; if (!k || G.n < 3) retur
   if (G.n === 4) return syel(w, 'slipper') > (G.syel.slipper || 0) ? k.roti : syel(w, 'roti') > (G.syel.roti || 0) ? k.slipper : k.cel;
   if (G.n === 5) return k.cel.replace('{n}', w.me.length).replace('{k}', K[5].kletok);
   return k.cel; }
-// П80: живой глоток на границе кислорода — предложить выбор «Оставить жить / Переварить» (один раз, пока не ответил)
-export function kroha(G, w, me, K) { if (G.n !== 3 || G.obyatie || G.zhdet || !me) return false; const v = vsego(w); if (v > G.vsego && Math.abs(w.depth(me.y) - w.cfg.pond.oxy) < K[3].polosa) { G.zhdet = true; G.vsego = v; return true; } G.vsego = v; return false; }
+// П80: проглотила дышащую кроху (она живёт у границы кислорода) — предложить выбор «Оставить жить / Переварить» (один раз, пока не ответил)
+export function kroha(G, w, me, K) { if (G.n !== 3 || G.obyatie || G.zhdet || !me) return false; const v = syel(w, 'kroha'); if (v > (G.kroh ?? (G.syel.kroha || 0))) { G.zhdet = true; G.kroh = v; return true; } return false; } // П29, П68: проглочена именно дышащая кроха
 // П77, П116: глава пройдена, когда съеден хозяин. Хозяин — самый крупный пловец области, которого можно съесть к концу главы; выбирается, когда цель главы выполнена.
 // shagL — шаг выбора царя из lestnica.js (та же корона и та же проверка «съела»). Возвращает 'cel' (цель выполнена, пошёл хозяин), 'proydena' или ''.
 export function shag(G, w, me, K, mass, shagL) { if (G.faza === 'cel') { if (!proydena(G, w, me, K)) return ''; G.faza = 'hozyain'; }
