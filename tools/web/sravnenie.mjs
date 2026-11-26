@@ -47,7 +47,7 @@ async function prohod(vidy, obr, kadry, tiho) {
   await ctx.close(); return bad;
 }
 
-const vse = A.length ? A : Object.keys(VC.vidy);
+const vse = A.length ? A : Object.keys(VC.vidy).filter(k => !VC.vidy[k].igra);
 let code = 0;
 if (!selftest) { if (KADRY) fs.mkdirSync(KADRY, { recursive: true });
   const bad = await prohod(vse, OBR, KADRY);
