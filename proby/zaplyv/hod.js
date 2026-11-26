@@ -79,7 +79,7 @@ export function hod(q, P, K, dt, rnd, d = 0) { dt = Math.max(dt, 1e-4); const ti
     if (Math.abs(d) > B.ugol_kuvyrka && h.zh > B.ne_chashche && tip === 'beg') { h.faza = 'kuvyrok'; h.pov = d * B.dolya_razvorota; h.t = h.T = plavno(B.kuvyrok, h.pov); }
     else if ((q.vedut ? 1 : (h.t -= dt)) <= 0 || udar && h.zh > B.ne_chashche) { if (tip === 'polus') { h.faza = 'nazad'; h.t = B.nazad * (0.5 + rnd()); } else { h.faza = 'kuvyrok'; h.pov = znak() * P.ugol * (0.3 + rnd() * 1.4); h.t = h.T = plavno(B.kuvyrok * (0.6 + rnd() * 0.8), h.pov); } } }
   else if (h.faza === 'nazad') { o.sk = -B.nazad_skorost; o.rul = 0; if ((h.t -= dt) <= 0) { h.faza = 'kuvyrok'; h.pov = znak() * B.shchelchok * (0.6 + rnd() * 0.8); h.t = h.T = plavno(B.shchelchok_t, h.pov); } }
-  else { o.sk = B.v_kuvyrke; o.beg = 0; o.rul = 0; o.da += h.pov * dt / h.T * (1 - Math.cos(6.283 * (1 - h.t / h.T))); o.kach *= 2; if ((h.t -= dt) <= 0) { h.faza = 'beg'; h.t = probeg(); h.zh = 0; } }
+  else { o.sk = B.v_kuvyrke; o.beg = 0; o.rul = 0; o.da += h.pov * dt / h.T * (1 - Math.cos(6.283 * (1 - h.t / h.T))); o.kach *= 1 + Math.sin(Math.PI * (1 - h.t / h.T)); if ((h.t -= dt) <= 0) { h.faza = 'beg'; h.t = probeg(); h.zh = 0; } }
   return o; }
 // Течение: вода в капле медленно ходит кругами и несёт всех одинаково (бездивергентное поле из двух волн, еду не сминает в кучи).
 export function techenie(K, x, y, t) { const T = K.techenie, k = 6.283 / T.masshtab, f = t * 6.283 / T.period;
