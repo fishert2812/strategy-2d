@@ -13,7 +13,7 @@ export function nachalo(w, B) { const r = w.r || Math.random, ug = Math.PI / 2 +
 // Кого бодо может взять: бактерий мельче себя в bolshe раз (шарики, соперницы, соседки, тебя)
 function dobycha(w, b, B, radius) { let best = null, bd = B.zona; const R = rot(B, b);
   const cand = (q, kto) => { if (q.gone || q.spore > 0) return; const m = q.m || 1; if (m * B.bolshe > b.m) return; const dd = d(R, q) - radius(m); if (dd < bd) { bd = dd; best = { q, kto }; } };
-  for (const q of w.me) cand(q, 'me'); for (const q of w.prey) cand(q, 'prey'); for (const q of w.pseudos) cand(q, 'pseudos'); for (const q of w.donors) cand(q, 'donors'); return best; }
+  for (const q of w.me) cand(q, 'me'); for (const q of w.prey) cand(q, 'prey'); for (const q of w.pseudos) cand(q, 'pseudos'); for (const q of w.donors) cand(q, 'donors'); for (const k of ['spirilly', 'kaulo', 'brodyazhki']) for (const q of w[k] || []) cand(q, k); return best; } // бодо ест и спирилл, и каулобактеров (П39)
 export function shag(w, dt, B, radius, slyshu) { if (!w.bodos) return; const novye = [];
   for (const b of w.bodos) { const L = dlina(B, b.m); b.t += dt; b.syt = Math.max(0, b.syt - dt);
     if (b.faza === 'sidit') { const c = !b.syt && dobycha(w, b, B, radius); // сидит у комка, нос качается; увидел добычу — замах
