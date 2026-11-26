@@ -35,3 +35,15 @@
 | `inat_192031761_shar_v_iglah.jpg` | crseaquist | CC-BY | https://www.inaturalist.org/observations/192031761 |
 | `inat_323997152_grusha_zhgutiki.jpg` | no rights reserved | CC0 | https://www.inaturalist.org/observations/323997152 |
 | `inat_159580312_cherv_krupno.jpg` | no rights reserved | CC0 | https://www.inaturalist.org/observations/159580312 |
+| `cdc_23241_cre_rossow.jpg` | Stephanie Rossow | CDC PHIL, public domain | https://phil.cdc.gov/Details.aspx?pid=23241 |
+| `cdc_23251_salmonella_typhi_archer.jpg` | James Archer | CDC PHIL, public domain | https://phil.cdc.gov/Details.aspx?pid=23251 |
+| `didiniy_hobotok_ostriyo.jpg` | crseaquist | CC-BY | https://www.inaturalist.org/observations/168758990 |
+| `inat_60804766_voronka_stentor.jpg` | zookanthos | CC-BY | https://www.inaturalist.org/observations/60804766 |
+| `inat_388767403_igly_acanthocystis.jpg` | no rights reserved | CC0 | https://www.inaturalist.org/observations/388767403 |
+| `tufelka_trihocisty.jpg` | Picturepest | CC BY 2.0 | https://www.flickr.com/photos/picksfromoutthere/8149944429/ |
+| `wellcome_B0004800_ecoli_pili_krasnaya.jpg` | Wellcome Collection | CC BY 4.0 | https://wellcomecollection.org/works/snc7dx3t |
+| `inat_120557721_shchupaltsa_suktorii.jpg` | crseaquist (CC BY) | CC-BY | https://www.inaturalist.org/observations/120557721 |
+| `inat_376111767_sheya_lebed.jpg` | Igor Shelpiakov (CC BY) | CC-BY | https://www.inaturalist.org/observations/376111767 |
+| `inat_94700479_pancir_arcella.jpg` | Bruce Taylor (CC BY) | CC-BY | https://www.inaturalist.org/observations/94700479 |
+| `cdc_21910_clostridium_oosthuizen.jpg` | Jennifer Oosthuizen | CDC PHIL, public domain | https://phil.cdc.gov/Details.aspx?pid=21910 |
+| `wellcome_B0004797_palochka_vorsinki.jpg` | Wellcome Collection | CC BY 4.0 | https://wellcomecollection.org/works/ngrhxakm |
