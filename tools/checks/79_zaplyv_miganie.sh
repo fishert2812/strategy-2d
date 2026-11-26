@@ -12,4 +12,8 @@ if [ -z "$PW" ]; then
   PW=$W/node_modules/playwright/index.mjs
 fi
 [ -f "$PW" ] || { echo "  нет playwright — мигание проверить нечем"; exit 1; }
-PW=$PW timeout 240 node tools/web/test_miganie.cjs || exit 1
+# браузер: свой у playwright, иначе Chrome раннера (как 52_zaplyv_tap.sh)
+if [ -z "${CHROME:-}" ] && ! ls -d /opt/pw-browsers/chromium* ~/.cache/ms-playwright/chromium* >/dev/null 2>&1; then
+  for c in /usr/bin/google-chrome /usr/bin/chromium /usr/bin/chromium-browser; do [ -x "$c" ] && CHROME=$c && break; done
+fi
+PW=$PW CHROME=${CHROME:-} timeout 240 node tools/web/test_miganie.cjs || exit 1
