@@ -107,6 +107,8 @@ ONLY=L062 case_ "test_L062: кольцо зоны бледное" 52_zaplyv_tap.
 ONLY=L063 case_ "test_L063: круг за краем без стрелки" 52_zaplyv_tap.sh red "sed -i 's/if (!tiho \&\& gap < Zc.znak \* z)/if (false)/' $Z/main.js"
 ONLY=L063 case_ "test_L063: сжатый колокольчик без круга" 52_zaplyv_tap.sh red "sed -i 's/world.bells.filter(v => v.shut > 0).map/[].map/' $Z/main.js"
 ONLY=L063 case_ "test_L063: венец бусами" 52_zaplyv_tap.sh red "sed -i 's/if (bodies.seg) { probe.venec/if (false) { probe.venec/' $Z/main.js"
+# L066: ссылка на конструктор после игры снова открывает меню
+ONLY=L066 case_ "test_L066: ?pesochnica под меню" 52_zaplyv_tap.sh red "sed -i \"s/!\\['pesochnica', 'stend'\\].some(/![].some(/\" $Z/main.js"
 # L047: след за клеткой снова бусами
 ONLY=L047 case_ "test_L047: след бусами" 53_zaplyv_vid.sh red "sed -i 's/wake.put(x, y, (5 + 9 \\* p.t)/wake.put(x, y, (1.1 + 9 * p.t)/' $Z/main.js"
 # L057: колония снова делится рывком, проходит сквозь себя и расплывается
