@@ -5,6 +5,7 @@ export function sozdat(K) { const st = document.createElement('style');
   st.textContent = `#klin{position:fixed;left:8px;bottom:calc(env(safe-area-inset-bottom) + ${K.niz}px);display:flex;flex-direction:column-reverse;gap:3px;pointer-events:none;z-index:2}
 #klin img,#klin i{width:${K.px}px;height:${K.px}px;border-radius:50%;border:2px solid rgba(255,255,255,.25);opacity:.55;object-fit:cover;background:#0006}
 #klin img.eda{opacity:1;border-color:rgb(255,190,110)}#klin img.vsp{animation:kvsp 1s}#klin i{display:block;width:${K.px}px;height:6px;border-radius:3px;border:0;opacity:1;background:#9fe0ff;box-shadow:0 0 6px #9fe0ff}
+body.levsha #klin{left:auto;right:8px}
 @keyframes kvsp{0%{transform:scale(1.6);box-shadow:0 0 14px rgb(255,190,110)}100%{transform:scale(1)}}
 .knad{position:fixed;width:${K.px}px;height:${K.px}px;border-radius:50%;border:2px solid rgb(255,190,110);pointer-events:none;z-index:2;animation:knad 1s forwards}@keyframes knad{0%{opacity:0;transform:translateY(0)}20%{opacity:1}100%{opacity:0;transform:translateY(-30px)}}`;
   document.head.appendChild(st); const box = document.createElement('div'); box.id = 'klin'; document.body.appendChild(box); return { box, sil: {}, klyuch: '' }; }

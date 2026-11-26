@@ -33,6 +33,7 @@ import * as gol from './golod.js'; // события области по кни�
 import * as mk from './mayak.js'; // маяк сестры у края экрана (книга П12)
 import * as pkz from './pokaz.js'; // показ нового мира после хозяина главы (книга П13, П84)
 import * as sp from './sposoby.js'; // способы есть: «Присоска» и «Общие соки» (книга П18, П19)
+import * as ruka from './ruka.js'; // какой рукой ведут: линейка со стороны, которую не закрывает палец (книга П4)
 import * as rod from './rod.js'; // род жив: раз за заплыв просыпаешься сестрой (П73)
 import * as sm from './semena.js'; // между заплывами: семена рода, рекорд размера (П76, П94)
 import * as glv from './glavy.js'; // главы 2–5 (П79–П83)
@@ -702,6 +703,7 @@ function dalee() { const t = performance.now(); while (OCHERED.length && t - OCH
 function vybor(V, otvet) { let el = $('kvybor'); if (!el) { el = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'kvybor' })); Object.assign(el.style, { position: 'fixed', left: '52px', right: '16px', bottom: 'calc(env(safe-area-inset-bottom) + 250px)', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: '5', textAlign: 'center' }); }
   el.innerHTML = '<p style="margin:0;font-weight:600;text-shadow:0 1px 4px #000"></p>'; el.firstChild.textContent = V.vopros; V.knopki.forEach((t, i) => { const B = document.createElement('button'); B.textContent = t; B.onclick = e => { e.stopPropagation(); el.remove(); otvet(i); }; el.appendChild(B); }); }
 window.kaplyaVybor = () => $('kvybor'); window.kaplyaGL = () => GL; window.kaplyaSposoby = () => world.sposoby; window.kaplyaPokazMira = () => POK; window.kaplyaMayak = () => $('kmayak'); window.kaplyaGol = () => GOL;
+{ const R = ruka.sozdat(); document.body.classList.toggle('levsha', R.ruka === 'leva'); addEventListener('pointerdown', e => { if (ruka.kasanie(R, e.clientX, innerWidth, KAP.ruka)) document.body.classList.toggle('levsha', R.ruka === 'leva'); }, { passive: true }); window.kaplyaRuka = () => R; } // П4: рука по первым 20 касаниям
 window.kaplyaSay = say; window.kaplyaPokaz = pokaz; window.kaplyaOchered = () => OCHERED.length; window.kaplyaLin = () => LIN;
 const told = new Set(); // подсказка — один раз и только в момент, когда она нужна
 function tell(k, text) { if (told.has(k)) return; told.add(k); say(text, 2600); }
