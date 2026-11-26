@@ -2,7 +2,7 @@
 // Судья на настоящем мире (sim.js, evo.js, mutacii.js, boj.js): взятое оружие приходит снова следующим уровнем (П63); прежние гены не приходят отдельно (П65);
 // «Шип» оглушает: цель стоит (П65 «Гарпун»); «Голубая еда» в «Капле» кормит; спасшее умение говорит о себе строкой (П11).
 // Самопроверки: без настройки навыков уровень не приходит; шип без оглушения, капля без голубой еды и пустой счёт строк судья ловит.
-import fs from 'fs'; import { World, radius } from '../sim.js'; import * as mut from '../mutacii.js'; import * as evo from '../evo.js'; import * as zh from './zhiteli.js'; import * as boj from './boj.js'; import * as nv from './navyki.js';
+import fs from 'fs'; import { World, radius } from '../sim.js'; import * as mut from '../mutacii.js'; import * as evo from '../evo.js'; import * as zh from './zhiteli.js'; import * as boj from './boj.js'; import * as nv from './navyki.js'; import * as psh from './pishcha.js';
 const base = JSON.parse(fs.readFileSync(new URL('../data.json', import.meta.url))), KAP = JSON.parse(fs.readFileSync(new URL('./kaplya.json', import.meta.url))), DT = 1 / 30;
 let bad = 0; const check = (n, e) => { console.log((e ? '  ПРОВАЛ ' : '  ок ') + n + (e ? ': ' + e : '')); if (e) bad++; };
 const mir = (N = KAP.navyki) => { const cfg = JSON.parse(JSON.stringify(base)); mut.addGenes(cfg); const w = new World(cfg, 9); w.mode = 'evo'; if (N) nv.nastroit(w, mut, N); zh.nachalo(w); w.step(DT, null); w.lose = () => {}; for (const g of KAP.boj.novye_geny) if (!evo.E.svoi.includes(g)) evo.E.svoi.push(g); return w; };
@@ -30,4 +30,21 @@ check('test_navyki_slova_samoproverka: строки выключены — су�
 const teksty = () => { const G = JSON.parse(fs.readFileSync(new URL('../kniga/teksty_genov.json', import.meta.url))).geny, T = { ...G }; for (const [k, v] of Object.entries(KAP.navyki.teksty)) if (k !== '_') T[k] = { ...T[k], ...v };
   const net = ['gvpA', 'snap', 'citT'].filter(k => !/еды|пасти|драться/.test(T[k]?.daet || '')); return net.length ? 'карточка не говорит пользу: ' + net.join(', ') : ''; };
 check('test_navyki_teksty: карточки «Всплывает», «Разворот», «Голубая еда» говорят, зачем они игроку (Роман 22:20)', teksty());
+const recept = K => { const w = mir(); const E0 = JSON.parse(JSON.stringify(evo.E.dobycha)); nv.recepty(evo.E, K); const S = nv.sozdat(), sk = []; let karta = null;
+  try { for (let i = 1; i <= 3; i++) { w.syel = { coccus: i }; nv.shag(S, w, K, t => sk.push(t)); } karta = evo.earned(w).includes('capsule'); w.pick('capsule'); const ur = evo.earned(w).includes('capsule');
+    if (!karta) return 'три шарика не дали карточку «Скользкая оболочка»'; if (ur) return 'уровень 2 пришёл без новых шариков'; if (sk.length !== 3 || !/1 из 3/.test(sk[0])) return 'строки счёта: ' + JSON.stringify(sk); return ''; } finally { evo.E.dobycha = E0; } };
+check('test_navyki_recept: три проглоченных шарика дают карточку их умения, взятое не приходит снова без новых, счёт «1 из 3» строкой (П41)', recept(KAP.navyki));
+check('test_navyki_recept_samoproverka: без рецептов судья ловит', recept({ ...KAP.navyki, dobycha: {} }) ? '' : 'судья не заметил');
+const pishcha = K => { const w = mir(); const a = w.me[0]; w.lose = () => {}; const am = { x: a.x + 400, y: a.y, vx: 0, vy: 0, m: 40, id: 990 }, q = { x: am.x + radius(40) + 6, y: am.y, vx: 0, vy: 0, m: 0.5, a: 0, id: 991 };
+  for (let t = 0; t < 4; t += DT) { w.amoebas = []; w.parafizo = [am]; w.phages = []; q.sick = -1; if (!q.gone && !w.prey.includes(q)) w.prey.push(q); w.prey = w.prey.filter(c => c === q); w.step(DT, null); a.x = am.x - 400; psh.shag(w, DT, K, radius); if (q.gone) return am.m > 40 ? '' : 'съела, но не выросла'; }
+  return 'парафизомонада рядом с шариком не съела его за 4 с'; };
+check('test_navyki_pishcha: крупный житель «Капли» сам ест шарика рядом и растёт, без тебя (П42)', pishcha(KAP.pishcha));
+check('test_navyki_pishcha_samoproverka: без таблицы «кто кого ест» судья ловит', pishcha({ ...KAP.pishcha, kto: {} }) ? '' : 'судья не заметил');
+const yadro = B => { const bil = lv => { const w = mir(); w.me = [w.me[0]]; const a = w.me[0]; a.m = 1.5; w.genes.toxin = true; w.lvl = { toxin: lv }; boj.ohrana(w, B);
+    const am = { x: a.x + radius(1.5) + radius(6) * 0.8 + 2, y: a.y, vx: 0, vy: 0, m: 6, id: 995 };
+    for (let t = 0; t < 2; t += DT) { w.amoebas = [am]; w.phages = []; a.x = am.x - radius(1.5) - radius(6) * 0.8 - 2; a.y = am.y; const S = boj.do_hoda(w, B); w.step(DT, null); boj.posle_hoda(w, DT, B, radius, S); w.events.length = 0; }
+    return am.gn ? 1 - am.gn.f + am.gn.dozy.reduce((v, d) => v + d.ost, 0) : 0; };
+  const u1 = bil(1), u2 = bil(2); return u1 > 0 ? `«Яд» 1 уже травит амёбу (${u1.toFixed(2)})` : u2 <= 0 ? '«Яд» 2 не травит амёбу' : ''; };
+check('test_navyki_yadro: «Яд» 1 бьёт только бактерий, «Яд» 2 травит и клетки с ядром (П65)', yadro(KAP.boj));
+check('test_navyki_yadro_samoproverka: без порога уровня судья ловит', yadro({ ...KAP.boj, celi: { ...KAP.boj.celi, ameba: { ...KAP.boj.celi.ameba, s_urovnya: {} } } }) ? '' : 'судья не заметил');
 process.exit(bad ? 1 : 0);
