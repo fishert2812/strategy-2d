@@ -391,6 +391,14 @@ if (await tap('#mscene [data-m=mut]', 'объект «Мутации»') && awai
   say(blizko >= 1 && daleko === 0, `test_L063: круг за краем кадра, но в ${60} от края, — стрелка у края (знаков ${blizko}); далеко — без стрелки (${daleko})`);
   say(tiho >= 1, `test_L063: колокольчик сжался — круг не пропал, а затих (тихих кругов ${tiho})`);
   say(venec === 'trubka' && nit[0] > 0 && sploshn >= 0.9, `test_L063: от клетки к рту сплошная нить (видна на ${Math.round(sploshn * 100)}% пути, нужно 90; камера за снимок сдвинулась на ${dr.toFixed(1)}), венец ресничек — ${venec === 'trubka' ? 'колечко' : 'бусы'}`); }
+// test_L066 (Роман 26.11 на iPhone 16: «Сборка ползунками у меня открывает игру которая багнута и там меню главного экрана и не заходит в движок - так было и вчера»):
+// игрок уже был в игре (сохранение есть), открывает ссылку на конструктор (?pesochnica) или стенд (?stend) — меню режимов не встаёт поверх, конструктор на экране.
+for (const k of ['pesochnica', 'stend']) { const q = await p.context().newPage(); await q.goto(url + '?' + k, { timeout: 60000 });
+  await q.waitForFunction(() => window.zaplyvProbe && zaplyvProbe.frames > 20, null, { timeout: 30000 }).catch(() => {});
+  if (k === 'pesochnica') await q.waitForFunction(() => !!document.getElementById('pk'), null, { timeout: 15000 }).catch(() => {});
+  const r = await q.evaluate(() => ({ menu: document.getElementById('menu')?.classList.contains('on'), pk: !!document.getElementById('pk'), visits: JSON.parse(localStorage.getItem('zaplyv.rod') || '{}').visits || 0 }));
+  say(r.visits >= 1 && !r.menu && (k !== 'pesochnica' || r.pk), `test_L066: ссылка ?${k} после игры (заходов ${r.visits}) открывает ${k === 'pesochnica' ? 'конструктор' : 'стенд'}, а не меню (меню ${r.menu ? 'встало' : 'нет'}${k === 'pesochnica' ? ', конструктор ' + (r.pk ? 'на экране' : 'нет') : ''})`);
+  await q.close(); }
 say(!errs.length, 'ошибок страницы нет' + (errs.length ? ': ' + errs.join('; ') : ''));
 await b.close();
 console.log(bad ? `КАСАНИЯ: провалов ${bad}` : 'КАСАНИЯ: все кнопки отвечают пальцу');
