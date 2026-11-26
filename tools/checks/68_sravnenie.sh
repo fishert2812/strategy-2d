@@ -38,5 +38,5 @@ python3 -m http.server "$port" --bind 127.0.0.1 --directory proby >/dev/null 2>&
 trap 'kill $srv 2>/dev/null; rm -rf "$tmp"' EXIT
 for _ in $(seq 50); do curl -s -o /dev/null "http://127.0.0.1:$port/zaplyv/" && break; sleep 0.1; done
 u="http://127.0.0.1:$port/zaplyv/"
-PW=$PW CHROME=${CHROME:-} timeout 200 node tools/web/sravnenie.mjs "$u" --obrazcy "$OBR" || exit 1
+PW=$PW CHROME=${CHROME:-} timeout 420 node tools/web/sravnenie.mjs "$u" --obrazcy "$OBR" || exit 1
 PW=$PW CHROME=${CHROME:-} timeout 200 node tools/web/sravnenie.mjs "$u" --obrazcy "$OBR" --selftest

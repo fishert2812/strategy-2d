@@ -15,4 +15,23 @@
 | `flickr_4937868095_odin_na_steble.jpg` | Giuseppe Vago | CC BY 2.0 | https://www.flickr.com/photos/giuseppevago/4937868095/ |
 | `flickr_7185556283_bdelloida_temnoe_pole.jpg` | smaller.pathological.ca | CC BY 2.0 | https://www.flickr.com/photos/smaller-pathological/7185556283/ |
 | `flickr_10085619254_fag_steklo_dnk.jpg` | Servier Medical Art | CC BY 2.0 | https://www.flickr.com/photos/serviermedicalart/10085619254/ |
-| `cdc_16869_ecoli_eckert.jpg` | Alissa Eckert - Medical Illustrator | CDC PHIL, public domain | https://phil.cdc.gov/Details.aspx?pid=16869 |
+| `inat_161415736_odna_kletka.jpg` | Igor Shelpiakov | CC-BY | https://www.inaturalist.org/observations/161415736 |
+| `inat_293889454_vint_krupno.jpg` | James K. Douch | CC-BY-SA | https://www.inaturalist.org/observations/293889454 |
+| `inat_259370138_rozetki_na_volokne.jpg` | no rights reserved | CC0 | https://www.inaturalist.org/observations/259370138 |
+| `inat_342744565_shary_zelenye.jpg` | Thomas Gyselinck | CC-BY | https://www.inaturalist.org/observations/342744565 |
+| `inat_147803992_busy_s_geterocistami.jpg` | James K. Douch | CC-BY-SA | https://www.inaturalist.org/observations/147803992 |
+| `inat_260919295_komok_i_bodo.jpg` | Michael Brondino | CC-BY-SA | https://www.inaturalist.org/observations/260919295 |
+| `wellcome_B0004799_ecoli_vorsinki.jpg` | Wellcome Collection | CC BY 4.0 | https://wellcomecollection.org/works/b7m7m69t |
+| `inat_250318062_shar_zhgutik.jpg` | no rights reserved | CC0 | https://www.inaturalist.org/observations/250318062 |
+| `inat_250470201_oval_dva_zhgutika.jpg` | Petr Knotek | CC-BY | https://www.inaturalist.org/observations/250470201 |
+| `inat_293412297_dva_ovala.jpg` | Igor Shelpiakov | CC-BY | https://www.inaturalist.org/observations/293412297 |
+| `wellcome_B0006951_virus_zerna_cvet.jpg` | Wellcome Collection | CC BY 4.0 | https://wellcomecollection.org/works/bk6m2jy6 |
+| `wellcome_B0000119_mitohondriya_tem.jpg` | Wellcome Collection | CC BY 4.0 | https://wellcomecollection.org/works/fdawx9jg |
+| `inat_168758990_bochonok_hobotok.jpg` | crseaquist | CC-BY | https://www.inaturalist.org/observations/168758990 |
+| `inat_171379532_lopasti_okrashena.jpg` | Christine Young | CC-BY | https://www.inaturalist.org/observations/171379532 |
+| `inat_88597234_mnogo_lopastey.jpg` | Gone But Not Forgotten - R.I.P | CC-BY-NC | https://www.inaturalist.org/observations/88597234 |
+| `inat_104173623_truba_sine_zelenaya.jpg` | Павлик Лисицын | CC-BY | https://www.inaturalist.org/observations/104173623 |
+| `inat_57301496_sporangii_na_pyltse.jpg` | zookanthos | CC-BY | https://www.inaturalist.org/observations/57301496 |
+| `inat_192031761_shar_v_iglah.jpg` | crseaquist | CC-BY | https://www.inaturalist.org/observations/192031761 |
+| `inat_323997152_grusha_zhgutiki.jpg` | no rights reserved | CC0 | https://www.inaturalist.org/observations/323997152 |
+| `inat_159580312_cherv_krupno.jpg` | no rights reserved | CC0 | https://www.inaturalist.org/observations/159580312 |

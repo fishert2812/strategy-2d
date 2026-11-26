@@ -1,5 +1,5 @@
 {
- "_": "Стенд сравнения с образцом (stend/obrazec.html, tools/web/sravnenie.mjs). На каждую запись vid_chasti.json (раздел vidy) — цветной образец из design/referensy/ (папка и файл, лучший по README папки) и поза для кадра: dlina и tolshchina тела в толщинах экрана (720 по ширине), ugol в радианах. Новая запись в vidy без строки здесь — проверка красная. Записи с пометкой igra сравнению не подлежат: igra true — старое тело ручной игры, igra \"kaplya\" — жители игры «Капля» по книге, цветного образца у них пока нет (долг: найти образцы и снять пометку). avtor — подпись под снимком на стенде (автор и права). Уменьшенные копии снимков для стенда лежат в stend/obrazcy/ под тем же именем файла.",
+ "_": "Стенд сравнения с образцом (stend/obrazec.html, tools/web/sravnenie.mjs). На каждую запись vid_chasti.json (раздел vidy) — цветной образец из design/referensy/ (папка и файл, лучший по README папки) и поза для кадра: dlina и tolshchina тела в толщинах экрана (720 по ширине), ugol в радианах. Новая запись в vidy без строки здесь — проверка красная. Записи с пометкой igra сравнению не подлежат: igra true — старое тело ручной игры, igra \"kaplya\" — жители игры «Капля» по книге, пометка осталась только у тех, кому образца ещё нет; сверка печатает их в паспорте. avtor — подпись под снимком на стенде (автор и права). Уменьшенные копии снимков для стенда лежат в stend/obrazcy/ под тем же именем файла.",
  "vidy": {
   "nasha": {
    "papka": "nasha_palochka",
@@ -122,34 +122,244 @@
    "avtor": "Servier Medical Art, CC BY 2.0"
   },
   "sopernitsa": {
-   "papka": "nasha_palochka",
-   "fail": "cdc_16869_ecoli_eckert.jpg",
+   "papka": "sopernitsa",
+   "fail": "wellcome_B0004799_ecoli_vorsinki.jpg",
    "poza": {
-    "dlina": 3.2,
-    "tolshchina": 85,
+    "dlina": 3.0,
+    "tolshchina": 80,
     "ugol": -1.5708
    },
-   "avtor": "Alissa Eckert - Medical Illustrator, CDC, общественное достояние"
+   "avtor": "Wellcome Collection, CC BY 4.0"
   },
   "sopernitsa_zamok": {
-   "papka": "nasha_palochka",
-   "fail": "cdc_16869_ecoli_eckert.jpg",
+   "papka": "sopernitsa_zamok",
+   "fail": "wellcome_B0004799_ecoli_vorsinki.jpg",
    "poza": {
-    "dlina": 3.2,
-    "tolshchina": 85,
+    "dlina": 3.0,
+    "tolshchina": 80,
     "ugol": -1.5708
    },
-   "avtor": "Alissa Eckert - Medical Illustrator, CDC, общественное достояние"
+   "avtor": "Wellcome Collection, CC BY 4.0"
   },
   "donor": {
-   "papka": "nasha_palochka",
-   "fail": "cdc_16869_ecoli_eckert.jpg",
+   "papka": "donor",
+   "fail": "wellcome_B0004799_ecoli_vorsinki.jpg",
    "poza": {
-    "dlina": 3.2,
-    "tolshchina": 85,
+    "dlina": 3.0,
+    "tolshchina": 80,
     "ugol": -1.5708
    },
-   "avtor": "Alissa Eckert - Medical Illustrator, CDC, общественное достояние"
+   "avtor": "Wellcome Collection, CC BY 4.0"
+  },
+  "bodo": {
+   "papka": "bodo",
+   "fail": "inat_161415736_odna_kletka.jpg",
+   "poza": {
+    "dlina": 3.0,
+    "tolshchina": 80,
+    "ugol": -1.5708
+   },
+   "avtor": "Igor Shelpiakov, CC-BY"
+  },
+  "spirilla": {
+   "papka": "spirilla",
+   "fail": "inat_293889454_vint_krupno.jpg",
+   "poza": {
+    "dlina": 5,
+    "tolshchina": 40,
+    "ugol": -1.2
+   },
+   "avtor": "James K. Douch, CC-BY-SA"
+  },
+  "kaulobakter": {
+   "papka": "kaulobakter",
+   "fail": "inat_259370138_rozetki_na_volokne.jpg",
+   "poza": {
+    "dlina": 3.0,
+    "tolshchina": 80,
+    "ugol": -1.5708
+   },
+   "avtor": "no rights reserved, CC0"
+  },
+  "brodyazhka": {
+   "papka": "brodyazhka",
+   "fail": "inat_259370138_rozetki_na_volokne.jpg",
+   "poza": {
+    "dlina": 3.0,
+    "tolshchina": 80,
+    "ugol": -1.5708
+   },
+   "avtor": "no rights reserved, CC0"
+  },
+  "hlorella": {
+   "papka": "hlorella",
+   "fail": "inat_342744565_shary_zelenye.jpg",
+   "poza": {
+    "dlina": 1,
+    "tolshchina": 80,
+    "ugol": 0
+   },
+   "avtor": "Thomas Gyselinck, CC-BY"
+  },
+  "anabena": {
+   "papka": "anabena",
+   "fail": "inat_147803992_busy_s_geterocistami.jpg",
+   "poza": {
+    "dlina": 6,
+    "tolshchina": 50,
+    "ugol": 0
+   },
+   "avtor": "James K. Douch, CC-BY-SA"
+  },
+  "geterocista": {
+   "papka": "geterocista",
+   "fail": "inat_147803992_busy_s_geterocistami.jpg",
+   "poza": {
+    "dlina": 1.3,
+    "tolshchina": 170,
+    "ugol": 0
+   },
+   "avtor": "James K. Douch, CC-BY-SA"
+  },
+  "detrit": {
+   "papka": "detrit",
+   "fail": "inat_260919295_komok_i_bodo.jpg",
+   "poza": {
+    "dlina": 1.6,
+    "tolshchina": 140,
+    "ugol": 0
+   },
+   "avtor": "Michael Brondino, CC-BY-SA"
+  },
+  "spumella": {
+   "papka": "spumella",
+   "fail": "inat_250318062_shar_zhgutik.jpg",
+   "poza": {
+    "dlina": 1,
+    "tolshchina": 70,
+    "ugol": 0
+   },
+   "avtor": "no rights reserved, CC0"
+  },
+  "hlamidomonada": {
+   "papka": "hlamidomonada",
+   "fail": "inat_250470201_oval_dva_zhgutika.jpg",
+   "poza": {
+    "dlina": 1.5,
+    "tolshchina": 80,
+    "ugol": -1.5708
+   },
+   "avtor": "Petr Knotek, CC-BY"
+  },
+  "ciklidium": {
+   "papka": "ciklidium",
+   "fail": "inat_293412297_dva_ovala.jpg",
+   "poza": {
+    "dlina": 1.6,
+    "tolshchina": 80,
+    "ugol": -1.5708
+   },
+   "avtor": "Igor Shelpiakov, CC-BY"
+  },
+  "virus_zerno": {
+   "papka": "virus_zerno",
+   "fail": "wellcome_B0006951_virus_zerna_cvet.jpg",
+   "poza": {
+    "dlina": 1,
+    "tolshchina": 200,
+    "ugol": 0
+   },
+   "avtor": "Wellcome Collection, CC BY 4.0"
+  },
+  "kroha": {
+   "papka": "kroha",
+   "fail": "wellcome_B0000119_mitohondriya_tem.jpg",
+   "poza": {
+    "dlina": 3.0,
+    "tolshchina": 80,
+    "ugol": -1.5708
+   },
+   "avtor": "Wellcome Collection, CC BY 4.0"
+  },
+  "didiniy": {
+   "papka": "didiniy",
+   "fail": "inat_168758990_bochonok_hobotok.jpg",
+   "poza": {
+    "dlina": 1.6,
+    "tolshchina": 130,
+    "ugol": -1.5708
+   },
+   "avtor": "crseaquist, CC-BY"
+  },
+  "bolshaya_ameba": {
+   "papka": "bolshaya_ameba",
+   "fail": "inat_171379532_lopasti_okrashena.jpg",
+   "poza": {
+    "dlina": 3.0,
+    "tolshchina": 160,
+    "ugol": 0.2
+   },
+   "avtor": "Christine Young, CC-BY"
+  },
+  "ameba_haos": {
+   "papka": "ameba_haos",
+   "fail": "inat_88597234_mnogo_lopastey.jpg",
+   "poza": {
+    "dlina": 3.0,
+    "tolshchina": 200,
+    "ugol": 0.2
+   },
+   "avtor": "Gone But Not Forgotten - R.I.P, CC-BY-NC"
+  },
+  "trubach": {
+   "papka": "trubach",
+   "fail": "inat_104173623_truba_sine_zelenaya.jpg",
+   "poza": {
+    "dlina": 3.5,
+    "tolshchina": 120,
+    "ugol": -1.2
+   },
+   "avtor": "Павлик Лисицын, CC-BY"
+  },
+  "gribok": {
+   "papka": "gribok",
+   "fail": "inat_57301496_sporangii_na_pyltse.jpg",
+   "poza": {
+    "dlina": 1,
+    "tolshchina": 70,
+    "ugol": 0
+   },
+   "avtor": "zookanthos, CC-BY"
+  },
+  "parafizomonada": {
+   "papka": "parafizomonada",
+   "fail": "inat_192031761_shar_v_iglah.jpg",
+   "poza": {
+    "dlina": 1,
+    "tolshchina": 80,
+    "ugol": 0
+   },
+   "avtor": "crseaquist, CC-BY"
+  },
+  "cerkomonada": {
+   "papka": "cerkomonada",
+   "fail": "inat_323997152_grusha_zhgutiki.jpg",
+   "poza": {
+    "dlina": 3.0,
+    "tolshchina": 80,
+    "ugol": -1.5708
+   },
+   "avtor": "no rights reserved, CC0"
+  },
+  "nematoda": {
+   "papka": "nematoda",
+   "fail": "inat_159580312_cherv_krupno.jpg",
+   "poza": {
+    "dlina": 8,
+    "tolshchina": 40,
+    "ugol": -0.6
+   },
+   "avtor": "no rights reserved, CC0"
   }
  }
 }
