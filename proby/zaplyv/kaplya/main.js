@@ -694,7 +694,7 @@ function meet(k) { // первая встреча в заплыве: имя и �
 }
 function pokaz(text, ms, gene) { pokazT = performance.now(); $('toast').textContent = text; if (gene) { const im = new Image(); im.src = icon(gene); im.className = 'ticon'; im.alt = ''; im.style.borderColor = geneColor(gene); $('toast').prepend(im); } $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(dalee, ms); }
 // П11: строка не перебивает строку. Новая ждёт, пока прошлая провисит min_ms; очередь короткая, старые строки выкидываются. Числа — kaplya.json «stroki».
-function say(text, ms, gene) { const K = KAP.stroki, t = performance.now(), T = $('toast'); if (T.classList.contains('on') && t - pokazT < K.min_ms && T.textContent !== text) { if (!OCHERED.some(q => q[0] === text)) { OCHERED.push([text, ms, gene, t]); if (OCHERED.length > K.ochered) OCHERED.shift(); } clearTimeout(toastT); toastT = setTimeout(dalee, K.min_ms - (t - pokazT)); return; } pokaz(text, ms, gene); }
+function say(text, ms, gene) { text = String(text).replace(/^Подросла!/, KAP.stroki.podrosla); const K = KAP.stroki, t = performance.now(), T = $('toast'); if (T.classList.contains('on') && t - pokazT < K.min_ms && T.textContent !== text) { if (!OCHERED.some(q => q[0] === text)) { OCHERED.push([text, ms, gene, t]); if (OCHERED.length > K.ochered) OCHERED.shift(); } clearTimeout(toastT); toastT = setTimeout(dalee, K.min_ms - (t - pokazT)); return; } pokaz(text, ms, gene); }
 function dalee() { const t = performance.now(); while (OCHERED.length && t - OCHERED[0][3] > KAP.stroki.zhdat_ms) OCHERED.shift(); if (OCHERED.length) { const [a, b, c] = OCHERED.shift(); pokaz(a, Math.max(b, KAP.stroki.min_ms), c); } else $('toast').classList.remove('on'); }
 // П23: коснуться одного из двух вариантов при большом событии. Две кнопки поверх игры, мир не стоит.
 function vybor(V, otvet) { let el = $('kvybor'); if (!el) { el = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'kvybor' })); Object.assign(el.style, { position: 'fixed', left: '52px', right: '16px', bottom: 'calc(env(safe-area-inset-bottom) + 250px)', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: '5', textAlign: 'center' }); }
@@ -739,7 +739,7 @@ function offer(dt) {
   const key = world.choice.join(), O = $('offer'), D = $('odot');
   if (!world.choice.length) { if (offerKey) { O.classList.remove('on'); D.classList.remove('on'); offerKey = ''; } return; }
   if (key !== offerKey) { // новый выбор: собрать полосу
-    offerKey = key; offerT = performance.now(); $('otitle').textContent = evo.on(world) ? evo.E.zagolovok : $('otitle').dataset.d; const box = $('obtns'); box.innerHTML = '';
+    offerKey = key; offerT = performance.now(); $('otitle').textContent = evo.on(world) ? KAP.stroki.podrosla : $('otitle').dataset.d; /* П125: «Подросла!» с родом — своё слово */ const box = $('obtns'); box.innerHTML = '';
     world.choice.forEach(g => { const b = document.createElement('button'); b.innerHTML = '<img class="gicon" alt=""><span></span><small></small>';
       b.children[1].textContent = geneName(g); b.children[2].textContent = mut.daet(world, g, geneBook(g)); b.firstChild.src = icon(g); b.firstChild.style.borderColor = geneColor(g);
       b.onclick = e => { e.stopPropagation(); if (oswipe) return; if (b.classList.contains('sel')) return take(g); // первое касание выбирает, второе берёт: случайный тап большим пальцем навык не возьмёт

@@ -2,7 +2,7 @@
 // Сделаны руками (Роман 26.11: «не получается — доводи руками»); тела — записи конструктора (kaplya.json «zhiteli»). Мир ручной игры:
 // квадраты по cfg.chunk, область по world.biome (0 глубина, 1 мелководье, 2 ил) — шансы книги идут в этом же порядке. Числа — kaplya.json «novye».
 const d = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-export const SPISKI = { spirilla: 'spirilly', kaulo: 'kaulo', brodyazhka: 'brodyazhki', hlorella: 'hlorelly', parafizo: 'parafizo', cerko: 'cerko', spumella: 'spumelly', hlamido: 'hlamido', ciklidium: 'ciklidii' };
+export const SPISKI = { spirilla: 'spirilly', kaulo: 'kaulo', brodyazhka: 'brodyazhki', hlorella: 'hlorelly', kroha: 'krohi', parafizo: 'parafizo', cerko: 'cerko', spumella: 'spumelly', hlamido: 'hlamido', ciklidium: 'ciklidii' };
 // П40 «Существа следующих размеров»: парафизомонада, церкомонада, спумелла (хватают рывком, как бодо), хламидомонада (рывками, не опасна), циклидиум (тянет потоком мелочь).
 // Повадка — N[вид].povadka: 'oxotnik' | 'ryvki' | 'potok'. Появляются с главы N[вид].glava и только если у движка есть запись (mozhno).
 const KRUPNYE = ['parafizo', 'cerko', 'spumella', 'hlamido', 'ciklidium'];
@@ -10,8 +10,9 @@ export function nachalo(w) { for (const k of Object.values(SPISKI)) w[k] = []; w
 // Каулобактер без комка рядом садится на свой комок.
 // Заселение квадрата при первом подходе (как chunk() ручной игры): шанс по области, в первых safe_chunks от старта — только мирные
 function zaselit(w, N, cx, cy, mozhno) { const C = w.cfg.chunk, r = w.r, x0 = cx * C, y0 = cy * C, b = w.biome(x0 + C / 2, y0 + C / 2), pt = () => ({ x: x0 + r() * C, y: y0 + r() * C });
-  for (const [vid, S] of Object.entries(N)) { if (vid === '_' || !S.shans || (mozhno && !mozhno(vid)) || r() >= S.shans[b]) continue; const n = S.po[0] + Math.floor(r() * (S.po[1] - S.po[0] + 1));
-    for (let i = 0; i < n; i++) { const p = pt(), m = S.massa[0] + r() * (S.massa[1] - S.massa[0]), q = { id: ++w.ids, ...p, a: r() * 6.283, m, t: r() * 2, faza: 'beg' };
+  for (const [vid, S] of Object.entries(N)) { if (vid === '_' || !S.shans || (mozhno && !mozhno(vid))) continue; const yg = S.u_granicy != null ? (w.cfg.pond.oxy - w.cfg.pond.y0) * w.cfg.pond.h : null; // П29: дышащие крохи живут полосой у границы кислорода
+    if (yg != null ? !(yg + S.u_granicy > y0 && yg - S.u_granicy < y0 + C) : r() >= S.shans[b]) continue; const n = S.po[0] + Math.floor(r() * (S.po[1] - S.po[0] + 1));
+    for (let i = 0; i < n; i++) { const p = pt(); if (yg != null) p.y = yg + (r() - 0.5) * 2 * S.u_granicy; const m = S.massa[0] + r() * (S.massa[1] - S.massa[0]), q = { id: ++w.ids, ...p, a: r() * 6.283, m, t: r() * 2, faza: 'beg' };
       if (vid === 'kaulo') { let dom = [...w.crumbs, ...w.plants].filter(o => d(o, p) < C).sort((a, b) => d(a, p) - d(b, p))[0]; if (!dom) { dom = { id: ++w.ids, ...p, m: 4 }; w.crumbs.push(dom); } q.dom = dom; q.x = dom.x + Math.cos(q.a) * 30; q.y = dom.y + Math.sin(q.a) * 30; q.korma = r() * S.otryv[0]; }
       w[SPISKI[vid]].push(q); } } }
 export function shag(w, dt, N, mozhno, radius) { const C = w.cfg.chunk, me = w.me[0];
@@ -26,6 +27,7 @@ export function shag(w, dt, N, mozhno, radius) { const C = w.cfg.chunk, me = w.m
   for (const q of w.brodyazhki) { q.t += dt; q.zhizn += dt; // бродяжка: бег 1 с, перемена хода; через 30 с садится на ближайший комок и становится матерью
     if (q.t > B.hod.beg) { q.t = 0; q.a += (w.r() - 0.5) * 2.4; } q.x += Math.cos(q.a) * B.hod.v * dt; q.y += Math.sin(q.a) * B.hod.v * dt;
     if (q.zhizn > B.sest) { const dom = [...w.crumbs, ...w.plants].sort((a, b) => d(a, q) - d(b, q))[0]; if (dom && d(dom, q) < C) { q.gone = true; w.kaulo.push({ id: q.id, x: q.x, y: q.y, a: 0, m: K.massa[0], t: 0, korma: 0, dom }); } } }
+  for (const q of w.krohi) { q.t += dt; q.x += Math.sin(q.t * 0.9 + q.id) * 6 * dt; q.y += Math.cos(q.t * 0.7 + q.id) * 4 * dt; } // кроха дрожит на месте
   for (const q of w.hlorelly) { q.t += dt; q.x += Math.sin(q.t * 0.3 + q.id) * 3 * dt; q.y += Math.cos(q.t * 0.25 + q.id) * 3 * dt; } // дрейфует, не плывёт
   for (const k of Object.values(SPISKI)) w[k] = w[k].filter(q => !q.gone && (!me || d(q, me) < C * 4)); } // далеко ушедшие забываются, квадрат заселится заново не будет
 // Крупные П40 руками. oxotnik: видит лёгкую тебя в chutyo — замах, рывок ртом, отдых, сыт после syt.n на syt.t с. potok: тянет к себе мелких в potok.r. ryvki: бег и стоп.
