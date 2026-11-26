@@ -21,7 +21,9 @@ const q = new URLSearchParams(location.search), skor = +(q.get('skor') || 1); le
 const W = 720, gl = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true }); gl.setPixelRatio(Math.min(devicePixelRatio, 2.5)); gl.autoClear = false;
 const H = W * innerHeight / innerWidth; gl.setSize(innerWidth, innerHeight, false);
 const cam = new THREE.OrthographicCamera(0, W, 0, H, -1, 1), back = new THREE.Scene(), bodies = new Bodies(); bodies.resize(W, H);
-const M = sozdat(q.get('mir') || 'kaplya', +(q.get('seed') || 1)), P = M.pole, G = P.shag_setki;
+// на стенде закон хода включён (?hod=0 — прежнее ровное скольжение, на нём выверено равновесие видов шага 72)
+const imya = q.get('mir') || 'kaplya', K0 = JSON.parse(JSON.stringify(MR)); if (q.get('hod') !== '0') K0.miry[imya].hod = true;
+const M = sozdat(imya, +(q.get('seed') || 1), K0), P = M.pole, G = P.shag_setki;
 // Вода и еда: фон темнее в глубине, еда светится тёплым там, где её больше (поле рисуется одной текстурой, без частиц).
 const tex = new THREE.DataTexture(new Uint8Array(P.nx * P.ny), P.nx, P.ny, THREE.RedFormat); tex.magFilter = THREE.LinearFilter; tex.minFilter = THREE.LinearFilter;
 const U = { eda: { value: tex }, okno: { value: new THREE.Vector4() }, t: { value: 0 } };

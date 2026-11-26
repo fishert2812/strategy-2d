@@ -15,13 +15,13 @@ export function pohodka(zapis) { const c = zapis.chasti || {};
 // Паспорт хода из записи (величины zakony.js: тяга F, сопротивление повороту povorot, радиус r, время потери курса kurs), всё отношением
 // к эталону: kach — качание носа: момент вращающегося пучка против сопротивления тела повороту (длинное тело качает слабее);
 // sdvig и vert — тепловая дрожь: сдвиг ∝ 1/r, поворот ∝ 1/√(время потери курса), то есть мелкое трясёт и крутит сильнее;
-// ugol — разворот в кувырке: чем больше нитей расплетается, тем он сильнее. rz — во сколько раз вид крупнее эталона (zhizn.razmer).
+// ugol — разворот в кувырке: чем больше нитей расплетается, тем он сильнее, а длинное тело (k_povorot мал) вода развернуть не даёт. rz — во сколько раз вид крупнее эталона (zhizn.razmer).
 const PH = new WeakMap(), lim = (x, a, b) => Math.max(a, Math.min(b, x));
 export function pasport_hoda(zapis, K, rz = zapis.zhizn?.razmer ?? 1) { let p = PH.get(zapis); if (p) return p;
   const v = velichiny(zapis), e = velichiny(VC.vidy[ZK.etalon]), zh = zapis.chasti?.zhgutiki, n = zh ? zh.n ?? VC.chasti.zhgutiki.n : 0;
   p = { tip: pohodka(zapis), kach: K.beg.kachanie * lim(Math.sqrt(v.F / v.povorot / (e.F / e.povorot)), 0, 2), sdvig: K.drozh.sdvig * e.r / (v.r * rz),
     vert: K.drozh.povorot * Math.sqrt(e.kurs / (v.kurs * rz ** 3)), ugol: K.beg.ugol * lim(Math.sqrt(n / VC.chasti.zhgutiki.n), 0.5, 1.5) };
-  const k = schitay(zapis); p.k_skorost = k.k_skorost; p.k_povorot = k.k_povorot; p.k_eda = k.k_eda; PH.set(zapis, p); return p; }
+  const k = schitay(zapis); p.k_skorost = k.k_skorost; p.k_povorot = k.k_povorot; p.k_eda = k.k_eda; p.ugol *= lim(Math.sqrt(k.k_povorot), 0.3, 1.3); PH.set(zapis, p); return p; }
 const gauss = r => (r() + r() + r() - 1.5) * 2;
 // q — существо (id, pokoy, udar: в этот шаг упёрлось), P — паспорт хода, d — угол от носа до цели (0, если цели нет).
 // Возвращает: sk — доля скорости вдоль носа (меньше нуля — задний ход), da — поворот за шаг, bok — снос вбок в толщинах в секунду,

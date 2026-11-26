@@ -46,8 +46,9 @@ check('test_hod_iz_zapisi: меняешь запись — ход меняетс
 // В мире: закон хода виден у каждого плывущего вида — нос качается и бег прерывается кувырком, задним ходом или отворотом.
 function mir(K0) { const M = sozdat('kaplya', 1, K0), kach = {}, faz = {}; for (let t = 0; t < 30; t += 0.05) { shag(M, 0.05); for (const q of M.sv) { if (q.pokoy) continue; (kach[q.vid] ||= []).push(q.kach || 0); if (q.h && q.h.faza !== 'beg') faz[q.vid] = (faz[q.vid] || 0) + 1; } }
   for (const k of Object.keys(K0.miry.kaplya.naselenie)) { if (pasport_hoda(VC.vidy[k], K).tip === 'drozh') continue; if (!(razbros(kach[k] || [0]) > T.kach_min)) return `${k}: нос не качается`; if (!faz[k]) return `${k}: ни кувырка, ни разворота за полминуты`; } }
-check('test_hod_mir: в живом мире у каждого плывущего вида нос качается и бег прерывается (ни один вид не скользит ровно)', () => mir(MR));
-check('test_hod_mir_samoproverka: без закона хода в записи мира тот же сторож краснеет', () => { const K0 = JSON.parse(JSON.stringify(MR)); delete K0.hod; return mir(K0) ? '' : 'сторож пропустил мир без закона хода'; });
+const s_hodom = v => { const K0 = JSON.parse(JSON.stringify(MR)); K0.miry.kaplya.hod = v; return K0; };
+check('test_hod_mir: в мире с законом хода у каждого плывущего вида нос качается и бег прерывается (ни один вид не скользит ровно)', () => mir(s_hodom(true)));
+check('test_hod_mir_samoproverka: без закона хода в записи мира тот же сторож краснеет', () => mir(s_hodom(false)) ? '' : 'сторож пропустил мир без закона хода');
 // Кормление и упор (Роман 26.11: «Еда взаимодействие с миром чтобы у нее был реалистичный контакт… проблема была кормление»).
 // Клетка и одна вещь впереди; zhurnal — по кадрам: зазор между оболочкой и вещью, радиус вещи, масса клетки, что клетка делает.
 const KK = MR.kontakt, TLo = (() => { const O = obvod_zon(VC.vidy.nasha, { x: 0, y: 0, a: 0, tolshchina: 1 }).O; return { kr: O.poperechnik / 2, kh: Math.max(0, O.dlina / 2 - O.poperechnik / 2) }; })();

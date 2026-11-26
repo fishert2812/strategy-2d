@@ -70,8 +70,8 @@ export function shag(M, dt) { M.n = (M.n || 0) + 1; const Z = M.K.zhizn, S = M.s
       const H = hochet({ x: q.x, y: q.y, m: B, a: q.a, vid: q.vid }, vokrug, { ...A, chuet: R, blizko_rodnya: A.blizko_rodnya * w / Z.tolshchina }, { sytost: q.syt > 0 ? 1 : 0, pole: gl > 1e-9 ? { gx: gx / gl, gy: gy / gl } : null }, M.rnd());
       q.svoih = svoih; q.cel_a = H.skorost > 0 ? Math.atan2(H.uy, H.ux) : q.a; q.sk = sk = H.skorost; q.zanyatie = H.zanyatie; }
     // ход (hod.js, mir.json «hod»): движитель из записи (бег и кувырок, задний ход и щелчок, винт инфузории, дрожь) и тело в вязкой воде
-    // (поворот с разгоном, тяга, боковое сопротивление); без «hod» в записи мира тело скользит ровно, как раньше (самопроверка сторожа)
-    const HD = M.K.hod; let d = q.cel_a - q.a; d = Math.atan2(Math.sin(d), Math.cos(d)); if (q.pokoy) sk = 0; // в покое не плывёт
+    // (поворот с разгоном, тяга, боковое сопротивление); включается записью мира (miry.<имя>.hod); без него тело скользит ровно, как раньше: равновесие видов капли пока выверено на ровном ходе
+    const HD = M.mir.hod ? M.K.hod : null; let d = q.cel_a - q.a; d = Math.atan2(Math.sin(d), Math.cos(d)); if (q.pokoy) sk = 0; // в покое не плывёт
     if (HD) { const PHd = pasport_hoda(q.zapis, HD, p.rz), X = hod(q, PHd, HD, dt, M.rnd, sk > 0 ? d : 0); q.plyvet = v > 0 && sk > 0 ? X.beg : 0; q.kach = X.kach;
       shag_tela(q, HD, dt, sk > 0 ? d : 0, v * sk, X, p.h.k_povorot, w, v > 0 ? PHd.sdvig : Z.drozh * 0.577, M.rnd); } // 0,577 — тот же средний уход, что давал прежний равномерный снос неподвижных
     else { const mx = Z.povorot0 * Math.min(4, p.h.k_povorot) * dt; q.a += Math.max(-mx, Math.min(mx, d)); q.plyvet = v > 0 && sk > 0 ? 1 : 0;
