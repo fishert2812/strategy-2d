@@ -1,5 +1,5 @@
 {
-	"_": "Стенд сравнения с образцом (stend/obrazec.html, tools/web/sravnenie.mjs). На каждую запись vid_chasti.json (раздел vidy) — цветной образец из design/referensy/ (папка и файл, лучший по README папки) и поза для кадра: dlina и tolshchina тела в толщинах экрана (720 по ширине), ugol в радианах. Новая запись в vidy без строки здесь — проверка красная.",
+	"_": "Стенд сравнения с образцом (stend/obrazec.html, tools/web/sravnenie.mjs). На каждую запись vid_chasti.json (раздел vidy) — цветной образец из design/referensy/ (папка и файл, лучший по README папки) и поза для кадра: dlina и tolshchina тела в толщинах экрана (720 по ширине), ugol в радианах. Новая запись в vidy без строки здесь — проверка красная. Записи с пометкой igra сравнению не подлежат: igra true — старое тело ручной игры, igra \"kaplya\" — жители игры «Капля» по книге, цветного образца у них пока нет (долг: найти образцы и снять пометку).",
 	"vidy": {
 		"nasha": { "papka": "nasha_palochka", "fail": "cdc_23242_enterobakterii_eckert.jpg", "poza": { "dlina": 3.2, "tolshchina": 85, "ugol": -1.5708 } },
 		"seno": { "papka": "sennaya_palochka", "fail": "cdc_23247_cdifficile_oosthuizen.jpg", "poza": { "dlina": 4.0, "tolshchina": 56, "ugol": -1.5708 } },
