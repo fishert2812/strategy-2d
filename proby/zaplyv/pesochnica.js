@@ -25,7 +25,13 @@ if (typeof document !== 'undefined') {
 body:has(.layer.on) #pk,body:has(.layer.on) #pt{display:none}
 #pk{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:8px 10px calc(env(safe-area-inset-bottom) + 8px);background:linear-gradient(#02040a00,#02040af2 9%);font:15px/1.3 -apple-system,system-ui,sans-serif;color:#dff3f5;touch-action:pan-y}
 #pk .ryad{display:flex;gap:6px;padding:4px 0}#pk .ryad button{flex:1;padding:0 6px;font-size:14px}
-#pk .setka{display:grid;grid-template-columns:1fr 1fr;gap:2px 14px}#pk .polz{display:block;font-size:13.5px}#pk .polz span{display:block}#pk .polz input{display:block;width:100%;height:26px;margin:0;accent-color:#8fe6f2}body.kon #pt .kozha{visibility:hidden}
+#pk .setka{display:grid;grid-template-columns:1fr 1fr;gap:2px 14px}#pk .polz{display:block;font-size:13.5px;min-width:0}#pk .polz span{display:block}
+#pk .polz input{display:block;width:100%;height:26px;margin:0;-webkit-appearance:none;appearance:none;background:transparent;--p:0%}
+#pk .polz input::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:linear-gradient(to right,#8fe6f2 var(--p),#2f5560 var(--p))}
+#pk .polz input::-moz-range-track{height:6px;border-radius:3px;background:linear-gradient(to right,#8fe6f2 var(--p),#2f5560 var(--p))}
+#pk .polz input::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:22px;height:22px;margin-top:-8px;border-radius:50%;background:#fff;border:0}
+#pk .polz input::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#fff;border:0}
+body.kon #pk{box-sizing:border-box;max-height:${KN.K.panel.vys * 100}vh;max-height:${KN.K.panel.vys * 100}dvh;display:flex;flex-direction:column}body.kon #pk .kon{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}#pk .kon>button{position:sticky;bottom:0;box-shadow:0 0 0 10px #02040a}body.kon #pt .kozha{visibility:hidden}
 #pk .zak{font-size:13px;line-height:1.25;padding:2px 0;color:#bfe6ea}#pk .setka{margin-top:6px}#pk .formy{display:flex;gap:5px;margin-top:6px}#pk .formy button{flex:1;min-height:36px;padding:0 2px;font-size:13px}#pk .zak i{display:block;font-style:normal;font-size:12px;color:#8fe6f2;font-family:ui-monospace,Menlo,monospace;white-space:nowrap;letter-spacing:-0.3px}#pk .zak b{display:inline-block;margin-right:6px;color:#fff;font-weight:600;font-size:15px}#pk .kon>button{width:100%;margin-top:6px}#pk .mera{font-size:12.5px;color:#a9d3d9;padding:2px 0}
 body.kon #c{transform:scale(${KN.K.scena.masshtab});transform-origin:50% 0}body.kon #pk{background:linear-gradient(#02040a00,#02040a 5%)}#pst{display:none;position:fixed;inset:0;z-index:19}body.kon #pst{display:block}
 #pk button{flex:none;width:auto;margin:0;white-space:nowrap;min-height:44px;padding:0 14px;border-radius:22px;border:1px solid #3b8a96;background:#0a2832cc;color:#dff3f5;font:inherit}#pk button.net{display:none}
@@ -51,7 +57,7 @@ body.kon #c{transform:scale(${KN.K.scena.masshtab});transform-origin:50% 0}body.
   const kon = el('div', 'kon', '', pk); pk.insertBefore(kon, um);
   const vk = {}, pokazat = k => { for (const n in vk) vk[n].classList.toggle('on', n === k); kon.style.display = k === 'kon' ? '' : 'none'; um.style.display = k === 'kon' ? 'none' : '';
     for (const b of sos) b.classList.toggle('net', k !== 'sos'); for (const b of svoi) b.classList.toggle('net', k !== 'um'); for (const g in knop) knop[g].classList.toggle('net', k !== 'um'); um.scrollTop = 0;
-    stroka.style.display = k === 'kon' ? 'none' : ''; tek = k; document.body.classList.toggle('kon', k === 'kon'); const w = W(); if (w) { w.cfg.close_up = k === 'kon' ? KN.K.scena.krupno : P.krupno; if (k !== 'kon') for (const q of w.pseudos) delete q.obrazec; } };
+    stroka.style.display = k === 'kon' ? 'none' : ''; if (k !== 'kon') document.getElementById('c').style.transform = ''; tek = k; document.body.classList.toggle('kon', k === 'kon'); const w = W(); if (w) { w.cfg.close_up = k === 'kon' ? KN.K.scena.krupno : P.krupno; if (k !== 'kon') for (const q of w.pseudos) delete q.obrazec; } };
   let tek = 'kon'; for (const [k, t] of [['kon', KN.K.slova.vkladka], ['um', S.umeniya], ['sos', S.sosedi]]) { vk[k] = el('button', '', t, ryad); vk[k].onclick = () => pokazat(k); }
   const svoi = [], sos = [], vid = () => pokazat(tek);
   const mut = el('button', 'gl', S.mutirovat, um); mut.onclick = () => { const w = W(), g = mutaciya(w.genes, Object.keys(w.cfg.genes), Math.random()); if (g) postav(g); else stroka.textContent = zanyato(w.genes) >= P.mest ? S.net_mesta : S.vse; obnovi(); };
@@ -69,7 +75,7 @@ body.kon #c{transform:scale(${KN.K.scena.masshtab});transform-origin:50% 0}body.
   const pereschet = () => { const w = W(); if (!w) return; DV.V.vidy.svoya = KN.anketa(forma, w.cfg); KN.stroki(forma, w.cfg).forEach((z, i) => { zak[i].firstChild.textContent = z.imya + ' ' + z.chislo + '%'; zak[i].children[1].textContent = z.tekst; zak[i].lastChild.textContent = z.formula; }); };
   const setka = el('div', 'setka', '', kon);
   for (const [k, Z] of Object.entries(KN.K.polzunki)) { const r = el('label', 'polz', '', setka), im = el('span', '', '', r), inp = el('input', '', '', r); inp.type = 'range';
-    const zn = Z.znacheniya, pishi = () => { im.textContent = Z.imya + ' ' + (Z.slova ? Z.slova[forma[k]] : Z.mkm ? (forma[k] * KN.K.priroda.mkm).toFixed(2).replace('.', ',') + ' ' + KN.K.slova.mkm : Number.isInteger(Z.shag ?? 1) ? forma[k] : forma[k].toFixed(Z.znakov ?? 1).replace('.', ',')); };
+    const zn = Z.znacheniya, pishi = () => { inp.style.setProperty('--p', (inp.value - inp.min) / ((inp.max - inp.min) || 1) * 100 + '%'); /* дорожка видна и в нуле, заполнена до кружка (О121) */ im.textContent = Z.imya + ' ' + (Z.slova ? Z.slova[forma[k]] : Z.mkm ? (forma[k] * KN.K.priroda.mkm).toFixed(2).replace('.', ',') + ' ' + KN.K.slova.mkm : Number.isInteger(Z.shag ?? 1) ? forma[k] : forma[k].toFixed(Z.znakov ?? 1).replace('.', ',')); };
     Object.assign(inp, zn ? { min: 0, max: zn.length - 1, step: 1, value: zn.indexOf(forma[k]) } : { min: Z.ot, max: Z.do, step: Z.shag, value: forma[k] });
     inp.oninput = () => { forma[k] = zn ? zn[+inp.value] : +inp.value; pishi(); pereschet(); }; pishi(); }
   for (let i = 0; i < Object.keys(KN.K.formuly).length; i++) { const z = el('div', 'zak', '', kon); el('b', '', '', z); el('span', '', '', z); el('i', '', '', z); zak.push(z); }
@@ -77,7 +83,9 @@ body.kon #c{transform:scale(${KN.K.scena.masshtab});transform-origin:50% 0}body.
   const SC = KN.K.scena, pst = el('div', '', '', document.body); pst.id = 'pst'; let pole = { x: 0, y: 0, a: 50, b: 30 };
   const novaya = o => ({ x: pole.x, y: pole.y, vx: 0, vy: 0, a: Math.random() * 6.283, t: 0, cool: 0, vid: 'svoya', id: ++W().ids, ...o });
   const scena = w => { const z = (window.zaplyvProbe.z || 1) * innerWidth / SC.shirina, me = w.me[0], verh = pt.getBoundingClientRect().bottom, niz = pk.getBoundingClientRect().top; if (!me) return; w.cfg.close_up = (1 + SC.krupno) * Math.min(1, SC.dlina_v_kadr / ((forma.forma === 'shar' || forma.forma === 'grozd' ? forma.tolshchina * (forma.forma === 'grozd' ? 2 : forma.cepochka) : forma.dlina * forma.cepochka) + forma.zh_dlina * SC.dolya_zhgutika)) * (w.pseudos.some(q => q.vid === 'svoya' && !q.obrazec) ? SC.otezd : 1) - 1;
-    pole = { x: me.x, y: me.y - (innerHeight / 2 - (verh + niz) / 2 / SC.masshtab) / z, a: innerWidth / 2 / SC.masshtab / z * SC.pole[0], b: (niz - verh) / 2 / SC.masshtab / z * SC.pole[1] };
+    const cv = document.getElementById('c'), sdvig = Math.max(0, niz + KN.K.panel.pod - SC.masshtab * innerHeight / 2); /* своя клетка (середина холста) уходит под панель целиком (О121) */
+    cv.style.transform = 'translateY(' + sdvig + 'px) scale(' + SC.masshtab + ')';
+    pole = { x: me.x, y: me.y - (innerHeight / 2 - ((verh + niz) / 2 - sdvig) / SC.masshtab) / z, a: innerWidth / 2 / SC.masshtab / z * SC.pole[0], b: (niz - verh) / 2 / SC.masshtab / z * SC.pole[1] };
     let obr = w.pseudos.find(q => q.obrazec); if (!obr) w.pseudos.push(obr = novaya({ obrazec: true }));
     Object.assign(obr, { x: pole.x, y: pole.y, vx: 0, vy: 0, a: SC.ugol, t: 1, rest: 2 });
     const sv = w.pseudos.filter(q => q.vid === 'svoya'), T = Math.min(SC.tesno * forma.dlina * forma.cepochka, pole.a * 0.6); // копии не лезут друг на друга и на образец
