@@ -66,7 +66,7 @@ cv.addEventListener('pointerup', otpustil); cv.addEventListener('pointercancel',
 window.hodVedet = v => { vedet = v; }; window.hodKomok = () => ryadom.filter(e => e.tverd).sort((a, b) => Math.hypot(a.x - q.x, a.y - q.y) - Math.hypot(b.x - q.x, b.y - q.y))[0];
 window.stend = dt => { time += dt; const w = S.tolshchina * tolshche(q, KK, time), g = E.shag;
   ryadom = palec = palec.filter(e => e.m > 0); ryadom = ryadom.slice(); for (let j = Math.floor((cy - H) / g); j <= (cy + H) / g; j++) for (let i = Math.floor((cx - W) / g); i <= (cx + W) / g; i++) { const e = veshch(i, j); if (e && e.m > 0) ryadom.push(e); }
-  q.zhestkost = zapis.forma.zhestkost || 1;
+  q.zhestkost = zapis.forma.zhestkost || 1; q.obhvat = !!zapis.forma.nozhki;
   const KT = kontakt(q, ryadom, TL, w, KK, PH.k_eda, dt); // палец держат: цель там, где палец на экране (камера идёт, палец стоит); иначе цель задаёт еда
   if (vedet && vedet.ex !== undefined) { const m = W / innerWidth; vedet.x = cx - W / 2 + vedet.ex * m; vedet.y = cy - H / 2 + vedet.ey * m; }
   q.vedut = !!vedet;
@@ -78,11 +78,14 @@ window.stend = dt => { time += dt; const w = S.tolshchina * tolshche(q, KK, time
   const x0 = cx - W / 2, y0 = cy - H / 2; U.o.value.set(x0, y0); bodies.begin();
   // взвесь в воде: редкие мутные крупинки стоят на месте (сетка по воде), по ним видно ход и дрожь
   const gv = S.vzves.shag; for (let j = Math.floor(y0 / gv); j <= (y0 + H) / gv; j++) for (let i = Math.floor(x0 / gv); i <= (x0 + W) / gv; i++) { const px = (i + hash(i, j)) * gv - x0, py = (j + hash(j + 7, i)) * gv - y0; bodies.sphere(px, py, S.vzves.r * (0.5 + hash(i + 3, j)), S.vzves.cvet, S.vzves.cvet, i * 31 + j, 0.6, S.vzves.a); }
-  for (const e of ryadom) if (e.r > 0.15) bodies.sphere(e.x - x0, e.y - y0, e.r, e.tverd ? E.cvet_komka : E.cvet, e.tverd ? E.kromka_komka : E.kromka, Math.round(e.x + e.y * 3), e.tverd ? 0.9 : 0.8, 1);
-  sobrat(zapis, { x: (q.sled ? q.sled.x : q.x) - x0, y: (q.sled ? q.sled.y : q.y) - y0, a: (q.sled ? q.sled.a : q.a) + q.kach, tolshchina: w, z: 1, time, id: 1, beg: vb, zh: q.zh, gnut: q.gnut_vid, vm: q.vm_vid, plesk: q.plesk, vypuklosti: q.vyp }, bodies); bodies.end(time);
+  // кусок, который обхватывает оболочка (e.ob), рисуется поверх тела и тускнеет: он уходит внутрь и виден сквозь оболочку
+  const ris = (e, al) => bodies.sphere(e.x - x0, e.y - y0, e.r, e.tverd ? E.cvet_komka : E.cvet, e.tverd ? E.kromka_komka : E.kromka, Math.round(e.x + e.y * 3), e.tverd ? 0.9 : 0.8, al);
+  for (const e of ryadom) if (e.r > 0.15 && !(e === q.est && e.ob)) ris(e, 1);
+  sobrat(zapis, { x: (q.sled ? q.sled.x : q.x) - x0, y: (q.sled ? q.sled.y : q.y) - y0, a: (q.sled ? q.sled.a : q.a) + q.kach, tolshchina: w, z: 1, time, id: 1, beg: vb, zh: q.zh, gnut: q.gnut_vid, vm: q.vm_vid, plesk: q.plesk, vypuklosti: q.vyp_eda ? [...(q.vyp || []), ...q.vyp_eda] : q.vyp }, bodies); if (q.est && q.est.ob && q.est.r > 0.15) { bodies.vyshe = w * 3; ris(q.est, 1); bodies.vyshe = 0; } bodies.end(time);
   gl.clear(); gl.render(back, cam); gl.render(bodies.scene, bodies.cam);
   if (kadr++ % 6 === 0) { const dl = 2 * (TL.kh + TL.kr); h.innerHTML = '<b>' + (zapis._ || vid).split(/[:(]/)[0].trim() + '</b><br>' + (q.est ? 'ест: кусок тает на оболочке' : q.upor > 0 ? 'упёрлась в комок' : PH.tip === 'drozh' ? 'дрожит на месте' : PH.tip === 'polzet' ? (q.h?.nz?.rost ? 'тянет вырост' : 'перетекает в вырост') : SLOVA[q.h.faza]) + ' · ' + (sk_sred / (2 * w * dl)).toFixed(1).replace('.', ',') + ' длины тела в секунду';
     document.getElementById('iz').textContent = 'Из записи движок вывел: ' + TIP[PH.tip] + '; быстрее всего ' + (vmax / (2 * w * dl)).toFixed(1).replace('.', ',') + ' длины тела в секунду; нос качает на ' + (PH.kach * 57.3).toFixed(0) + '°; в кувырке разворот до ' + (PH.ugol * 1.7 * 57.3).toFixed(0) + '°.'; } };
 if (!q0.get('zapis')) { let last = performance.now(); const go = now => { if (!pauza) window.stend(Math.max(0.001, Math.min(0.05, (now - last) / 1000)) * (medl ? S.medlenno : 1)); last = now; requestAnimationFrame(go); }; requestAnimationFrame(go); }
+window.hodDbg = () => { const e = q.est; return e && { est: 1, ob: e.ob, vd: e.vd, vd0: e.vd0, r: e.r, d: Math.hypot(e.x - q.x, e.y - q.y), TL, sled: q.sled && [q.sled.x - q.x, q.sled.y - q.y, q.sled.a - q.a], vyp: q.vyp_eda, nz: q.vyp }; };
 window.stendReady = true;
 </script></body></html>
