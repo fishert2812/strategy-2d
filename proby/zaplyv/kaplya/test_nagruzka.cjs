@@ -24,8 +24,9 @@ check('test_nagruzka_sud: судья краснеет на придуманно�
   const sudS = ([a, b]) => a !== 'проверка А' ? `первую строку перебили: «${a}»` : b !== 'проверка Б' ? `вторая строка пропала: «${b}»` : '';
   check('test_kaplya_stroki: всплывающая строка не перебивает прошлую (П11)', sudS(await stroki('kaplyaSay')));
   await p.waitForTimeout(3500); check('test_kaplya_stroki_samoproverka: показ без очереди судья ловит', sudS(await stroki('kaplyaPokaz')) ? '' : 'судья не заметил');
-  const zamer = async m => { await p.evaluate(m => { const w = zaplyvWorld(); w.me.forEach(a => a.m = m); w.me.length = 1; }, m);
-    for (let i = 0; i < 8; i++) { await p.evaluate(i => { const a = zaplyvWorld().me[0]; a.x += Math.cos(i) * 80; a.y += Math.sin(i) * 80; }, i); await p.waitForTimeout(400); }
+  /* урок 27.11: малышку и большую мерили в разных местах мира, и замер малышки скакал от 190 до 990 частей — сторож краснел сам. Теперь пара мерится в одной точке P. */
+  const zamer = async (m, P) => { await p.evaluate(m => { const w = zaplyvWorld(); w.me.forEach(a => a.m = m); w.me.length = 1; }, m);
+    for (let i = 0; i < 8; i++) { await p.evaluate(([i, P]) => { const a = zaplyvWorld().me[0]; if (P) { a.x = P.x + Math.cos(i) * 80; a.y = P.y + Math.sin(i) * 80; } else { a.x += Math.cos(i) * 80; a.y += Math.sin(i) * 80; } }, [i, P]); await p.waitForTimeout(400); }
     return p.evaluate(() => new Promise(r => { const t = [], L = []; let l = performance.now(); const f = n => { t.push(n - l); l = n; L.push(kaplyaLod()); if (t.length < 40) requestAnimationFrame(f); else { t.sort((a, b) => a - b); const med = k => L.map(x => x[k]).sort((a, b) => a - b)[20]; r({ kadr: Math.round(t[20]), tel: med('tel'), chastey: med('chastey') }); } }; requestAnimationFrame(f); })); };
   // П5, П87: у линейки столбик живых силуэтов — кадр самой игры, а не пустая вода. Судья: среднее по силуэту ярче порога; самопроверка — чёрный кадр судья ловит.
   const yarko = src => p.evaluate(src => new Promise(r => { const im = new Image(); im.onload = () => { const c = document.createElement('canvas'); c.width = c.height = 24; const g = c.getContext('2d'); g.drawImage(im, 0, 0, 24, 24); const d = g.getImageData(0, 0, 24, 24).data; let s = 0; for (let i = 0; i < d.length; i += 4) s += Math.max(d[i], d[i + 1], d[i + 2]); r(s / 576); }; im.onerror = () => r(0); im.src = src; }), src);
@@ -35,10 +36,14 @@ check('test_nagruzka_sud: судья краснеет на придуманно�
   check('test_kaplya_lineyka: у линейки силуэты из кадра игры и ты между ними (П5, П87)', !sil.s.length ? 'ни одного силуэта' : !sil.ty ? 'нет метки «ты»' : Math.max(...ya) < 60 ? `силуэты тёмные: ${ya}` : '');
   const chern = await yarko('data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><rect width="24" height="24" fill="#051018"/></svg>'));
   check('test_kaplya_lineyka_samoproverka: тёмный кадр судья ловит', chern < 60 ? '' : 'судья не отличает тёмное');
-  const med3 = A => Object.fromEntries(Object.keys(A[0]).map(k => [k, A.map(x => x[k]).sort((a, b) => a - b)[1]])); // урок 26.11: один замер мира скачет (кадр 67 против 100, частей 210 против 1289) — медиана трёх попеременных замеров
-  const S3 = [], V3 = []; for (let i = 0; i < 3; i++) { S3.push(await zamer(1.4)); V3.push(await zamer(150)); } const s = med3(S3), v = med3(V3); console.log('  малышка', JSON.stringify(s), 'большая', JSON.stringify(v));
+  const medN = A => Object.fromEntries(Object.keys(A[0]).map(k => [k, A.map(x => x[k]).sort((a, b) => a - b)[A.length >> 1]])); /* урок 26.11: один замер мира скачет — медиана попеременных замеров */
+  const S3 = [], V3 = [], P0 = await p.evaluate(() => { const a = zaplyvWorld().me[0]; return { x: a.x, y: a.y }; });
+  for (let i = 0; i < 5; i++) { const P = { x: P0.x + 400 * Math.cos(i * 1.3), y: P0.y + 400 * Math.sin(i * 1.3) }; S3.push(await zamer(1.4, P)); V3.push(await zamer(150, P)); }
+  /* малышку берём по её тяжёлым местам (второй сверху замер из пяти): телефон их уже тянет, большая не должна быть тяжелее их в 1,5 раза. Большую по медиане. */
+  const verh = A => Object.fromEntries(Object.keys(A[0]).map(k => [k, A.map(x => x[k]).sort((a, b) => a - b)[A.length - 2]]));
+  const s = verh(S3), v = medN(V3); console.log('  малышка', JSON.stringify(s), 'большая', JSON.stringify(v));
   check('test_nagruzka_rost: большая клетка (масса 150) не тяжелее малышки больше чем в 1,5 раза', sud(s, v));
   await p.evaluate(() => { window.kaplyaBezLod = true; }); const v0 = await zamer(150); await p.evaluate(() => { window.kaplyaBezLod = false; });
-  check('test_nagruzka_samoproverka: без взвеси сторож краснеет', sud(s, v0) ? '' : `без взвеси всё равно зелёный: ${JSON.stringify(v0)}`);
+  console.log('  без взвеси', JSON.stringify(v0)); check('test_nagruzka_samoproverka: без взвеси сторож краснеет', sud(s, v0) ? '' : `без взвеси всё равно зелёный: ${JSON.stringify(v0)}`);
   check('test_nagruzka_oshibki: игра без ошибок', errs.length ? errs.join('; ') : '');
   await b.close(); srv.close(); process.exit(bad ? 1 : 0); })();
