@@ -204,11 +204,14 @@ export function sobrat(zapis, poza, B) {
     const vp = (P.vypuklosti || []).map(v => { const e = O.kray(v.t); return { x: e.x, y: e.y, nx: Math.cos(e.n), ny: Math.sin(e.n), sh: v.shirina || 0.5, h: (v.vysota || 0) / 2 }; });
     F = { O, tochki, vetki, kray: t => { const k = O.kray(t); let o = k.o; for (const v of vp) { const d = Math.hypot(k.x - v.x, k.y - v.y) / v.sh; o += Math.sign(k.o || 1) * v.h * Math.exp(-d * d) * (1 + Math.cos(k.n) * v.nx + Math.sin(k.n) * v.ny); } return { u: k.u, o, n: k.n, g: 0 }; }, vnutri: (u, o) => [u * 0.7, o * 0.6] };
     at = (u, o) => { const [x, y] = O.at(u, o); return [P.x + (x * ux - y * uy) * w, P.y + (x * uy + y * ux) * w]; }; }
+  // нутро — вязкая несжимаемая жидкость: где оболочку вдавило, содержимое оттекает от вмятины (поза plesk: сдвиг нутра в осях тела, в полутолщинах; считает pitanie.js)
+  const pl = P.plesk && (P.plesk[0] || P.plesk[1]) ? P.plesk : null, at_nutra = pl ? (u, o) => { const [x, y] = at(u, o); return [x + (pl[0] * ux - pl[1] * uy) * w, y + (pl[0] * uy + pl[1] * ux) * w]; } : at;
   P.nad ??= w * 0.8; let n = 0;
-  for (const [kl, svoi] of Object.entries(zapis.chasti || {})) { const r = RIS[kl]; if (!r) continue; r({ ...VC.chasti[kl], ...svoi }, F, P, B, at); B.vyshe = 0; n++; }
+  for (const [kl, svoi] of Object.entries(zapis.chasti || {})) { const r = RIS[kl]; if (!r) continue; r({ ...VC.chasti[kl], ...svoi }, F, P, B, pl && NUTRO.has(kl) ? at_nutra : at); B.vyshe = 0; n++; }
   return n; // сколько частей нарисовано (тест: все части записи нашлись)
 }
 export const KLYUCHI = Object.keys(RIS);
+const NUTRO = new Set(['nukleoid', 'ribosomy', 'vklyucheniya', 'zerna', 'yadro', 'puzyri_edy', 'sokr_puzyr']);
 // Группа клеток одной записью (zapis.gruppa: { n, uklad: grozd | cep, zazor }): гроздь кокков, цепочка палочек. Каждая клетка — та же запись.
 export function sobrat_gruppu(zapis, poza, B) { const G = zapis.gruppa; if (!G || G.n < 2) return sobrat(zapis, poza, B); const w = poza.tolshchina, O = os(zapis.forma.tochki), sh = O.dlina * w * (G.zazor ?? 0.9); let n = 0;
   for (let i = 0; i < G.n; i++) { const t = i * 2.4 + poza.id, d = sh * 0.6 * Math.sqrt(i), o = (i - (G.n - 1) / 2) * sh, iz = (G.izlom || 0) * (hash(poza.id, i + 44) - 0.5) * 2;

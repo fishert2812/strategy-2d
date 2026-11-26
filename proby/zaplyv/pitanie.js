@@ -40,6 +40,8 @@ function vmyat(q, e, u, nu, nv, glub, R1, R2, K) { const V = K.vmyatina, zh = q.
 const vdavleno = (q, e) => { const m = q.vm && q.vm.find(x => x.e === e); return m ? Math.max(0, m.d) : 0; };
 function otpustit(q, K, dt) { const V = K.vmyatina, vm = q.vm; if (!vm) return; for (let i = vm.length - 1; i >= 0; i--) { const m = vm[i];
     if (m.derzhit) { m.derzhit = 0; m.d += (m.d0 - m.d) * Math.min(1, dt * V.bystro); m.dk = m.d; } else { m.t += dt * Math.sqrt(q.zhestkost || 1); const f = m.t / V.dlitsya; if (f >= 1) { vm.splice(i, 1); continue; } m.d = m.dk * Math.exp(-4 * f) * Math.cos(14 * f); } }
+  // нутро оттекает от вмятин (несжимаемая жидкость уходит оттуда, где стенку вдавило) и возвращается с вязким запаздыванием
+  let pu = 0, pv = 0; for (const m of vm) { pu -= m.nu * m.d * V.ottok; pv -= m.nv * m.d * V.ottok; } const kp = Math.min(1, dt * V.bystro * V.nutro), p = q.plesk || (q.plesk = [0, 0]); p[0] += (pu - p[0]) * kp; p[1] += (pv - p[1]) * kp;
   q.vm_vid = vm.length ? vm : null; }
 // После шага тела: если тело заехало в твёрдое, выталкивает его обратно по нормали (без поворота и событий), чтобы край не заходил на комок.
 export function vytolknut(q, veshchi, T, w) { const kh = T.kh * w, kr = T.kr * w; for (const e of veshchi) { if (!e.tverd) continue; const g = k_telu(q, e.x, e.y, kh), z = g.d - kr - e.r + vdavleno(q, e) * w; if (z < 0) { const n = g.d || 1, c = Math.cos(q.a), s = Math.sin(q.a), nu = (g.u - g.ou) / n, nv = g.v / n; q.x += (nu * c - nv * s) * z; q.y += (nu * s + nv * c) * z; } } }
