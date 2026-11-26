@@ -238,6 +238,7 @@ function start(genes, mode) {
   setTimeout(() => say(KAP.start, 5000), 700); // книга П1: цель одной фразой, длинная форма для первого экрана
 }
 $('again').onclick = () => start(null, world.mode); // снова в том же режиме
+{ const B = document.createElement('button'); B.id = 'kles'; B.className = 'ghost'; $('again').after(B); B.onclick = () => { location.search = les.vkl() ? '' : '?lestnica'; }; } // П89: рядом с «Плыть снова» кнопка «Лестница» (в «Лестнице» — назад в главы)
 // Род между заплывами: гибели, последний род (для ночи), ветки и поколения ночей, «Тише». Память — в этом браузере.
 let ROD = {}; try { ROD = JSON.parse(localStorage.getItem('zaplyv.rod') || '{}') || {}; } catch (_) {}
 const saveRod = () => { try { localStorage.setItem('zaplyv.rod', JSON.stringify(ROD)); } catch (_) {} };
@@ -807,7 +808,7 @@ function tick(dt) {
       $('cfact').textContent = t.priroda || k.fact; $('ctip').textContent = t.sovet || k.tip || '';
       if (kk && KAB.items[kk] && kk !== 'me') $('cab').textContent = 'Кто это · ' + (t.imya || k.name) + ' в Альманахе'; else cabLabel(); // прогон 0.68: «Альманах» с гибели вёл в общий список, а не к убийце
       $('ckill').src = KAB.items[kk] ? snap(kk, KAB.items[kk]) : ''; $('ckill').hidden = !KAB.items[kk];
-      $('stats').innerHTML = pathText(world);
+      $('stats').innerHTML = pathText(world); { const K = KAP.lestnica, rek = les.rekord(LES); $('stats').innerHTML = (les.vkl() ? K.slova.itog.replace('{n}', LES.schet).replace('{r}', rek) + '<br>' : '') + $('stats').innerHTML; $('kles').innerHTML = les.vkl() ? K.slova.nazad : K.slova.knopka + '<small>' + K.slova.cel + (rek ? ' · ' + K.slova.rekord.replace('{r}', rek) : '') + '</small>'; } // П89: счёт и рекорд «Лестницы»
       ROD.deaths = (ROD.deaths || 0) + 1; ROD.genes = Object.keys(world.genes).filter(g => world.genes[g]); ROD.most = world.stats.most; ROD.seed = world.seed; // род для ночи и меню
       const kl = world.stats.killer || 'me'; ROD.killers = ROD.killers || {}; ROD.killers[kl] = (ROD.killers[kl] || 0) + 1; saveRod();
       setTimeout(() => { $('end').classList.add('on'); $('end').scrollTop = 0; $('toast').classList.remove('on'); }, 700); // лист гибели всегда с начала: убийца сверху (L031) // подсказка заплыва не ложится на экран гибели
