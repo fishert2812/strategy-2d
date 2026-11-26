@@ -13,4 +13,8 @@ const sud = (K) => { const w = mir(), L = sozdat(); shag(L, w, w.me[0], mass, K)
 check('test_lestnica_car: царь плывущий, из окна, не ближе; съела — счёт и новый царь; крупнее никого — «Ты царь капли»', sud(K));
 check('test_lestnica_samoproverka: без «не ближе» судья краснеет', sud({ ...K, blizhe: 0 }) ? '' : 'судья не заметил');
 check('test_lestnica_samoproverka2: с неподвижными судья краснеет', sud({ ...K, plyvut: [['hlorelly', 'hlorella'], ...K.plyvut] }) ? '' : 'судья не заметил');
+// П88: царя тяжелее тебя больше чем вчетверо не бывает никогда (урок 26.11: крупные П40 в списке дали спумеллу 85 при твоей массе 1)
+const vchetvero = K => { const w = { me: [{ x: 0, y: 0, m: 1 }], spumelly: [{ x: 800, y: 0, m: 85 }], gulps: [] }, L = sozdat(); shag(L, w, w.me[0], mass, K); return L.car ? `царь тяжелее в ${L.car.q.m} раз` : ''; };
+check('test_lestnica_vchetvero: царя тяжелее тебя вчетверо не бывает (П88)', vchetvero(K));
+check('test_lestnica_vchetvero_samoproverka: окно до 1000 — судья краснеет', vchetvero({ ...K, okno3: [1.05, 1000] }) ? '' : 'судья не заметил');
 process.exit(bad ? 1 : 0);
