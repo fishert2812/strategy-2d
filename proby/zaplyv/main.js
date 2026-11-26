@@ -352,9 +352,15 @@ function shotDensity() {
   if (shotLow || gl.getPixelRatio() <= 2) return; shotLow = true; gl.setPixelRatio(2); resize();
   requestAnimationFrame(() => { shotLow = false; gl.setPixelRatio(dprNow); resize(); });
 }
-function snap(k, it) {
+// Мигание (Роман 26.11: «Почему экран мигает?», найдено в «Капле», #390): снимок для Альманаха и значков рисуется на холсте игры. Вне кадра игры
+// (встреча существа, карточка, таймер) телефон успевал показать студию с одним существом вместо мира. После снимка мир сразу перерисовывается.
+let vKadre = false, igraT = null;
+function posleSnimka() { if (vKadre || igraT == null) return; if (shotLow) { shotLow = false; gl.setPixelRatio(dprNow); resize(); } vKadre = true; try { render(igraT); } finally { vKadre = false; } }
+function snap(k, it) { const r = snap0(k, it); posleSnimka(); return r; }
+window.zaplyvSnimok = (k, bez) => (bez ? snap0 : snap)(k, KAB.items[k]); // для сторожа мигания (tools/web/test_miganie.cjs): bez — без защиты, сторож обязан поймать
+function snap0(k, it) {
   shotDensity();
-  if (it.gene) return geneShot(it.gene, 480, 300); // ген в Альманахе — тот же снимок, что значок: часть, которую он даёт, подсвечена
+  if (it.gene) return geneShot0(it.gene, 480, 300); // ген в Альманахе — тот же снимок, что значок: часть, которую он даёт, подсвечена
   const fxs = fx.save(), keep = [world, view, kids, down, moved, puffs, paint.t]; // все анимации эффектов целиком (fx.save), а не только кольца и разряды
   const out = document.createElement('canvas'); out.width = 480; out.height = 300;
   try {
@@ -370,7 +376,8 @@ function snap(k, it) {
 // Значок гена (макет дизайнера: круг, тело приглушено, часть, которую даёт ген, подсвечена). Снимаем клетку без гена и с геном
 // той же студией, что Альманах, и оставляем ярким только то, что изменилось: сам ген на теле. Кеш — снимаем один раз.
 const icons = new Map();
-function geneShot(g, NW, NH, crop = 0) {
+function geneShot(g, NW, NH, crop = 0) { const r = geneShot0(g, NW, NH, crop); posleSnimka(); return r; }
+function geneShot0(g, NW, NH, crop = 0) {
   shotDensity();
   const grab = genes => {
     const fxs = fx.save(), keep = [world, view, kids, down, moved, puffs, paint.t], c = document.createElement('canvas'); c.width = NW; c.height = NH;
@@ -1071,7 +1078,8 @@ function paint(time) {
   for (const d of [far, glow, ink, near, dust, bubbles, wake]) d.done();
 }
 
-function render(t, after) {
+function render(t, after) { const byl = vKadre; vKadre = true; try { render0(t, after); } finally { vKadre = byl; } }
+function render0(t, after) {
   U.time.value = t;
   paint(t); if (after) after();
   gl.autoClear = false;
@@ -1121,7 +1129,7 @@ function frame(now) {
   goalArrow();
   const solo = kids ? Object.fromEntries(['food', 'slime', ...Object.values(LISTS)].filter(l => l !== 'me').map(l => [l, world[l]])) : null; // выбор дочки: на сцене только две дочки — чужое существо не попадает за дочку (холодный игрок видел амёбу на «Пучке жгутиков»)
   if (solo) for (const l in solo) world[l] = [];
-  try { render(now / 1000, () => { if (!ended) { js.push(performance.now() - t0); if (js.length > 300) js.shift(); } }); } finally { if (solo) Object.assign(world, solo); }
+  igraT = now / 1000; try { render(now / 1000, () => { if (!ended) { js.push(performance.now() - t0); if (js.length > 300) js.shift(); } }); } finally { if (solo) Object.assign(world, solo); }
   if (probe.frames % 60 === 0) knowGenes();
   probe.frames++; probe.dpr = dprNow; probe.cells = world.me.length; probe.z = view.z; // масштаб камеры: тап-обход проверяет, что она возвращается (L029)
   probe.js = js.reduce((s, v) => s + v, 0) / Math.max(js.length, 1); probe.jsWorst = Math.max(0, ...js.slice(5)); probe.path = Math.max(probe.path || 0, world.stats.path);
