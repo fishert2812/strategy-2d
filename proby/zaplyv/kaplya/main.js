@@ -27,6 +27,7 @@ import * as bodo from './bodo.js'; // бодо — хозяин главы 1 (к
 import * as cel from './cel.js';
 import * as zh from './zhiteli.js';
 import * as les from './lestnica.js'; // аркада «Лестница» (П86–П89): ?lestnica
+import * as umn from './umeniya.js'; // умения по книге: «Вампир», шапка «Нюха» (П65, П71)
 import * as vh from './vehi.js'; // рост по книге: длина П51, вехи П54, худение за умения П49
 const VEHI = vh.zagruzit();
 window.kaplyaLes = () => LES; // спирилла, каулобактер, хлорелла (книга П39), руками // строка цели, подпись линейки, «теперь еда» (книга П5–П7)
@@ -788,7 +789,7 @@ function tick(dt) {
   offer(dt);
   { const H = KAP.hod, me = world.me[0]; if (me) { const zb = view.z / (1 + cfg.close_up * (view.calm || 0)), k = Math.max(1, H.z0 / zb); // Роман 26.11: «чтобы при росте моем не замедлялась клетка»
     cfg.speed = H.v * rost.hod(world, me) * k ** H.stepen / (me.chew && me.m > (me.chew.m || 4) * H.gryzt_bolshe ? rost.R.stoit : 1); } } // большую клетку крошечный комок под ней не тормозит: «встать и грызть» только у комка не мельче тебя в gryzt_bolshe раз // скорость на экране не падает: тяжесть не тормозит, а отъезд камеры возмещается ходом в мире
-  world.step(dt, pad.value()); vh.hudet(world, evo.E, KAP.rost, dt); if (!world.genes.gulp && world.stats.time >= KAP.glotat_s) { world.genes.gulp = true; world.choice = world.choice.filter(g => g !== 'gulp'); say(KAP.slova_glotat, 4000); } // книга П2, П16: глотать с 10-й секунды, а не после первого роста
+  world.step(dt, pad.value()); vh.hudet(world, evo.E, KAP.rost, dt); if (umn.tech(world, dt, KAP.umeniya, radius) && !world.vampirSkazano) { world.vampirSkazano = true; say(KAP.umeniya.slova.vampir, 3500); } if (!world.genes.gulp && world.stats.time >= KAP.glotat_s) { world.genes.gulp = true; world.choice = world.choice.filter(g => g !== 'gulp'); say(KAP.slova_glotat, 4000); } // книга П2, П16: глотать с 10-й секунды, а не после первого роста
   { const B = KAP.bodo, um = !!world.genes.gulp; bodo.shag(world, dt, B, radius, slyshuBodo); bodo.glotat(world, B, radius, evo.E.glotat.syt, 0, um, slyshuBodo); zh.shag(world, dt, KAP.novye); zh.glotat(world, evo.E.glotat.bolshe, radius, um, v => say(KAP.slova_glotka[v], 1600)); } // джойстик: направление и сила из сдвига пальца
   { const [fx, fy] = world.flow(view.x, view.y); cur[0] += fx * dt; cur[1] += fy * dt; } // течение несёт взвесь
   events();
@@ -1039,6 +1040,8 @@ function paint(time) {
   for (const a of world.me) if (a.spore > 0) { // сон-персистер: та же палочка, но погасшая — серая, жгутики обвисли, редкое «дыхание»; перед пробуждением теплеет
     const [x, y] = scr(a.x, a.y); vid.sleeper({ a, x, y, z, time, cfg, bodies, glow, ink });
   }
+  for (const a of world.me) { const n = umn.nuh(world, a, KAP.umeniya, radius); if (!n) continue; const K = KAP.umeniya.nuh, R = radius(a.m) * z, [x, y] = scr(a.x, a.y), c = Math.cos(n.ugol), s = Math.sin(n.ugol), L = R * K.razmer * (0.5 + 0.5 * n.sila);
+    bodies.seg(x + c * R * 0.85, y + s * R * 0.85, x + c * (R * 0.85 + L), y + s * (R * 0.85 + L), L * 0.9 + 1, K.cvet, K.a); } // П65: шапка «Нюха» на носу смотрит на самую густую еду
   if (LES.car && !LES.car.q.gone) { const q = LES.car.q, L = Math.max(6, radius(ms0(q, LES.car.who)) * z * 1.2), [x, y] = scr(q.x, q.y), K = KAP.korona; // корона царя капли (П88)
     if (on(x, y, 40)) { const hx = x, hy = y - L * KAP.lestnica.korona_vyshe; for (let k = -1; k <= 1; k++) { const bx = hx + k * L * K.shir; bodies.seg(bx, hy, bx, hy - L * K.zub * (k ? 0.75 : 1), L * K.tolsh + 0.6, K.cvet, 0.95); } bodies.seg(hx - L * K.shir * 1.2, hy, hx + L * K.shir * 1.2, hy, L * K.tolsh * 1.2 + 0.6, K.cvet, 0.95); glow.put(hx, hy, L * 1.4, ...K.cvet, 0.25); } }
   for (const b of world.bodos || []) { if (!b.car) continue; const L = bodo.dlina(KAP.bodo, b.m) * z, [x, y] = scr(b.x, b.y); // корона поверх тела, после всех бодо
