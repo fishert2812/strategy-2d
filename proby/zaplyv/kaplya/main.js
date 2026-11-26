@@ -5,7 +5,7 @@
 import * as THREE from '../three.module.min.js';
 import { World, radius } from '../sim.js';
 import * as mut from '../mutacii.js';
-import * as rost from '../rost.js';
+import * as rost from '../rost.js'; import * as glk from './glotok.js';
 import * as dv from '../dvizhok.js'; // палочки-соседи рисуются по анкетам (vidy.json)
 import * as evo from '../evo.js'; // режим «Эволюция»: пока только по адресу ?rezhim=evo, плитка в меню — когда все умения нарисованы
 import { Stick } from '../controls.js';
@@ -44,6 +44,7 @@ import * as glv from './glavy.js'; // главы 2–5 (П79–П83)
 import * as lin from './lineyka.js'; // линейка из живых силуэтов (П5, П87)
 import * as vh from './vehi.js'; // рост по книге: длина П51, вехи П54, худение за умения П49
 import * as vdv from './rot.js'; /* Ш2: водоворот у рта */
+import * as stk from './stolk.js'; /* столкновения по контуру записей движка */
 import * as boj from './boj.js'; import * as gm from './genom.js'; /* одна таблица боя «кто кого и чем», удар по геному */
 const VEHI = vh.zagruzit();
 window.kaplyaLes = () => LES; window.kaplyaGlava = () => GLAVA; // спирилла, каулобактер, хлорелла (книга П39), руками // строка цели, подпись линейки, «теперь еда» (книга П5–П7)
@@ -59,7 +60,7 @@ const lod = { tel: 0, tochek: 0 }; // window.kaplyaBezLod выключает в�
 const ms0 = (q, who) => q.m || evo.E.glotat.razmer[who] || 1; // масса жителя, как в «Глотать»
 const zhitel = (k, q, x, y, a, mera, time, z) => { const Z = ZAP[k]; if (!Z) return false; const t = mera * ZH[k].tolshchina;
   if (!window.kaplyaBezLod && (t < KAP.lod.px || (q.m || 1) < lod.ya * KAP.lod.dolya)) { lod.tochek++; glow.put(x, y, t * KAP.lod.razmer + 1, ...LODC[k], KAP.lod.a); return true; }
-  lod.tel++; sobrat(Z, { x, y, a, tolshchina: t, z, time, id: q.id || 1, beg: 1 }, bodies); return true; };
+  lod.tel++; q._poza = { a, t: t / z }; sobrat(Z, { x, y, a, tolshchina: t, z, time, id: q.id || 1, beg: 1 }, bodies); return true; }; /* _poza — какой житель нарисован, по ней он и сталкивается (stolk.js) */
 window.kaplyaLod = () => ({ ...lod }); // для замера: сколько жителей в кадре телом и сколько точкой
 const DL = cfg.delenie; // деление по физике (design/zaplyv_fizika_kak_v_zhizni.md, п. 14)
 const NJ = await (await fetch('night.json')).json(); // «Ночь рода»: числа ночи
@@ -826,7 +827,7 @@ function tick(dt) {
   offer(dt); if (KAP.karta.pauza && world.choice.length) return; /* Ш20: пока лежат карточки, мир стоит */
   { const H = KAP.hod, me = world.me[0]; if (me) { const zb = view.z / (1 + cfg.close_up * (view.calm || 0)), k = Math.max(1, H.z0 / zb); // Роман 26.11: «чтобы при росте моем не замедлялась клетка»
     cfg.speed = H.v * rost.hod(world, me) * k ** H.stepen / (me.chew && me.m > (me.chew.m || 4) * H.gryzt_bolshe ? rost.R.stoit : 1); } } // большую клетку крошечный комок под ней не тормозит: «встать и грызть» только у комка не мельче тебя в gryzt_bolshe раз // скорость на экране не падает: тяжесть не тормозит, а отъезд камеры возмещается ходом в мире
-  const m0 = new Map(world.me.map(a => [a, a.m])), OS = boj.do_hoda(world, KAP.boj); world.step(dt, pad.value()); boj.posle_hoda(world, dt, KAP.boj, radius, OS); /* таблица боя: яд и игла бьют по геному */ for (const t of obl.shag(OBL, world, dt, KAP.oblasti, m0, GLAVA)) say(t, 3500);
+  const m0 = new Map(world.me.map(a => [a, a.m])), OS = boj.do_hoda(world, KAP.boj); world.step(dt, pad.value()); boj.posle_hoda(world, dt, KAP.boj, radius, OS); /* таблица боя: яд и игла бьют по геному */ stk.shag(world, KAP.stolk, ZAP, VC.vidy[KAP.stolk.igrok.zapis]); /* Роман 21:55: не проходишь сквозь жителей */ for (const t of obl.shag(OBL, world, dt, KAP.oblasti, m0, GLAVA)) say(t, 3500);
   if (kis.shag(KIS, world, dt, KAP.kislota, m0, world.events.some(e => e[0] === 'gulp'))) { let byla = false; try { byla = !!localStorage.getItem('zaplyv.kaplya.kislota'); localStorage.setItem('zaplyv.kaplya.kislota', '1'); } catch (_) {} if (!byla) say(KAP.kislota.slovo, 3000); } // П26: в кислой воде еда растит вдвое слабее; имя мути при первом заходе в жизни
   umn.plata(world, m0, KAP.umeniya); // П64: плата умений «растёшь медленнее»
   { const K = KAP.sposoby; if (!les.vkl()) for (const n of sp.poluchit(world, GLAVA)) say(K.slova[n], 4500); if (sp.prisoska(world, dt, K.prisoska, radius, cel.SPIS, ms0) && !world.pyotSkazano) { world.pyotSkazano = true; say(K.slova.pyot, 3000); } if (sp.soki(world, dt, K.soki, radius) && !world.sokiSkazano) { world.sokiSkazano = true; say(K.slova.oblako, 3000); } } // П18, П19
@@ -837,7 +838,7 @@ function tick(dt) {
   { const T = $('kten') || Object.assign(document.body.appendChild(document.createElement('div')), { id: 'kten' }); if (!T.style.position) Object.assign(T.style, { position: 'fixed', inset: '0', background: '#000', pointerEvents: 'none', transition: 'opacity 1.5s', opacity: '0', zIndex: '1' }); T.style.opacity = OBL.ten ? KAP.oblasti.ten.a : 0; } // П33: тень от облака
   { const g = sm.shag(SEM, world, world.me[0], KAP.semena, dt, radius); if (g) { world.genes[g] = true; say(KAP.semena.slova.vzyato.replace('{}', geneName(g)), 3000, g); } } // П76: коснулся семени — умение твоё
   vh.hudet(world, evo.E, KAP.rost, dt); if (umn.tech(world, dt, KAP.umeniya, radius) && !world.vampirSkazano) { world.vampirSkazano = true; say(KAP.umeniya.slova.vampir, 3500); } if (!world.genes.gulp && world.stats.time >= KAP.glotat_s) { if (!KAP.karta.glotat) { world.genes.gulp = true; world.choice = world.choice.filter(g => g !== 'gulp'); say(KAP.slova_glotat, 4000); } else if (!world.choice.length) world.choice = ['gulp']; } /* Ш20, Р5: «Глотать» — карточкой на 10-й секунде */ // книга П2, П16: глотать с 10-й секунды, а не после первого роста
-  { const B = KAP.bodo, um = !!world.genes.gulp; bodo.shag(world, dt, B, radius, slyshuBodo); bodo.glotat(world, B, radius, evo.E.glotat.syt, 0, um, slyshuBodo); zh.shag(world, dt, KAP.novye, v => !!ZAP[zh.SPISKI[v]] && (les.vkl() ? les.poyavitsya(KAP.lestnica, world.me[0] ? world.me[0].m : 1, KAP.novye[v].massa[0]) : GLAVA >= (KAP.novye[v].glava || 1)), radius); zh.glotat(world, evo.E.glotat.bolshe, radius, um, v => say(KAP.slova_glotka[v], 1600)); } // джойстик: направление и сила из сдвига пальца
+  { const B = KAP.bodo, um = !!world.genes.gulp; bodo.shag(world, dt, B, radius, slyshuBodo); bodo.glotat(world, B, radius, evo.E.glotat.syt, 0, um, slyshuBodo); zh.shag(world, dt, KAP.novye, v => !!ZAP[zh.SPISKI[v]] && (les.vkl() ? les.poyavitsya(KAP.lestnica, world.me[0] ? world.me[0].m : 1, KAP.novye[v].massa[0]) : GLAVA >= (KAP.novye[v].glava || 1)), radius); zh.glotat(world, evo.E.glotat.bolshe, radius, um, (v, mq, ma) => say(glk.slovo(KAP.slova_glotka, v, mq, ma, evo.E.glotat.syt), 2600)); } // джойстик: направление и сила из сдвига пальца
   { const [fx, fy] = world.flow(view.x, view.y); cur[0] += fx * dt; cur[1] += fy * dt; } // течение несёт взвесь
   events();
   if (!world.me.length) {

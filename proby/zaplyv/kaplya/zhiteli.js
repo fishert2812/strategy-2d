@@ -45,5 +45,5 @@ function krupny(w, q, S, dt, radius, vid) { const H = S.hod; q.t += dt; q.syt = 
 // Своя клетка глотает их, как «Глотать» в evo.js: тяжелее в bolshe раз и коснулась — тает внутри, масса в рост
 export function glotat(w, bolshe, radius, umeet, slyshu) { if (!umeet) return;
   for (const [vid, k] of Object.entries(SPISKI)) for (const q of w[k]) for (const a of w.me) if (!q.gone && a.m >= q.m * bolshe && d(a, q) < radius(a.m) + radius(q.m) * 0.8) {
-    q.gone = true; w.gulps = w.gulps || []; w.gulps.push({ a, x: q.x, y: q.y, x0: q.x, y0: q.y, m: q.m, who: vid, t: 0 }); w.syel = w.syel || {}; w.syel[vid] = (w.syel[vid] || 0) + 1; slyshu(vid); }
+    q.gone = true; w.gulps = w.gulps || []; w.gulps.push({ a, x: q.x, y: q.y, x0: q.x, y0: q.y, m: q.m, who: vid, t: 0 }); w.syel = w.syel || {}; w.syel[vid] = (w.syel[vid] || 0) + 1; slyshu(vid, q.m, a.m); }
   for (const k of Object.values(SPISKI)) w[k] = w[k].filter(q => !q.gone); }
