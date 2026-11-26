@@ -63,7 +63,7 @@ window.stend = dt => { time += dt; const w = S.tolshchina * tolshche(q, KK, time
   const cel = vedet && !q.est && performance.now() - (nazhal ? nazhal.t : 0) >= S.kasanie_ms ? [vedet.x, vedet.y] : KT.cel; let d = 0; if (cel && Math.hypot(cel[0] - q.x, cel[1] - q.y) > w) { d = Math.atan2(cel[1] - q.y, cel[0] - q.x) - q.a; d = Math.atan2(Math.sin(d), Math.cos(d)); }
   const zr = Math.round(S.zerna[0] + (S.zerna[1] - S.zerna[0]) * Math.max(0, Math.min(1, (q.m - 1) / (KK.m_max - 1)))); // сытая клетка растёт в длину (тот же закон роста тела, что у деления: delenie.js telo), ступенями
   const rs = Math.round(Math.max(0, Math.min(1, q.m - 1)) * S.rost_stupeney); if (zr !== zerna || rs !== rost) { zerna = zr; rost = rs; sobrat_zapis(); }
-  const { X, vmax: vm } = plyt(q, zapis, K, Z, dt, rnd, d, w, KT.sk); vytolknut(q, ryadom, TL, w); prizhat(q, TL, w, KK); vmax = vm / (KT.sk || 1); const vv = Math.hypot(q.vx, q.vy); window.hodSobytiya = (window.hodSobytiya || 0) + KT.sobytiya.length;
+  const { X, vmax: vm } = plyt(q, zapis, K, Z, dt, rnd, d, w, KT.sk * S.skorost); vytolknut(q, ryadom, TL, w); prizhat(q, TL, w, KK); vmax = vm / (KT.sk || 1) * (KT.sk ? 1 : 0) || vmax; const vv = Math.hypot(q.vx, q.vy); window.hodSobytiya = (window.hodSobytiya || 0) + KT.sobytiya.length;
   cx += (q.x - cx) * Math.min(1, dt * S.kamera); cy += (q.y - cy) * Math.min(1, dt * S.kamera); vb += ((vmax > 0 ? X.beg : 0) - vb) * Math.min(1, dt * 12); sk_sred += (Math.abs(vv) - sk_sred) * Math.min(1, dt * 2); put += Math.abs(vv) * dt;
   const x0 = cx - W / 2, y0 = cy - H / 2; U.o.value.set(x0, y0); bodies.begin();
   // взвесь в воде: редкие мутные крупинки стоят на месте (сетка по воде), по ним видно ход и дрожь
