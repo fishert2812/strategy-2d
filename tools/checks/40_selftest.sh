@@ -104,6 +104,8 @@ ONLY=L047 case_ "test_L047: кисть без запаса" 52_zaplyv_tap.sh red
 # L062: кольцо зоны снова бледное и без подложки — в людном кадре его не видно
 ONLY=L062 case_ "test_L062: кольцо зоны бледное" 52_zaplyv_tap.sh red "sed -i 's/\"far\": 0.45, \"near\": 0.6/\"far\": 0.12, \"near\": 0.3/; s/\"podlozhka_a\": 0.3/\"podlozhka_a\": 0/' $Z/data.json"
 # L063: круг за краем без стрелки; сжатый колокольчик теряет круг; венец снова бусами
+ONLY=L065 case_ "test_L065: стрелка у края снова мелкая" 52_zaplyv_tap.sh red "sed -i 's/\"strelka\": { \"dlina\": 54,/\"strelka\": { \"dlina\": 18,/' $Z/data.json"
+ONLY=L065 case_ "test_L065: нить снова обрывается на 0.7 пути" 52_zaplyv_tap.sh red "sed -i 's/\"nit_do\": 0.96/\"nit_do\": 0.7/' $Z/data.json"
 ONLY=L063 case_ "test_L063: круг за краем без стрелки" 52_zaplyv_tap.sh red "sed -i 's/if (!tiho \&\& gap < Zc.znak \* z)/if (false)/' $Z/main.js"
 ONLY=L063 case_ "test_L063: сжатый колокольчик без круга" 52_zaplyv_tap.sh red "sed -i 's/world.bells.filter(v => v.shut > 0).map/[].map/' $Z/main.js"
 ONLY=L063 case_ "test_L063: венец бусами" 52_zaplyv_tap.sh red "sed -i 's/if (bodies.seg) { probe.venec/if (false) { probe.venec/' $Z/main.js"
