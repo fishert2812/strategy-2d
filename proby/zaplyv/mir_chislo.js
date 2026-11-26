@@ -8,14 +8,14 @@
 import * as pole from './pole.js';
 import { VC } from './vid_chasti.js';
 import { velichiny } from './zakony.js';
-import { pasport as zhPasport, po_pravilu } from './mir_zhizn.js';
+import { pasport as zhPasport, beret as zhBeret } from './mir_zhizn.js';
 const rd = async f => { const u = new URL('./' + f, import.meta.url); return u.protocol === 'file:' ? JSON.parse((await import('node:fs')).readFileSync(u, 'utf8')) : (await fetch(u)).json(); };
 export const MR = await rd('mir.json'), CH = await rd('mir_chislo.json');
 const Z = MR.zhizn, LN2 = Math.log(2);
 
 // Паспорт и правила охоты — те же функции, что у поштучного мира (mir_zhizn.js), чтобы на границе мир не прыгал.
 export const pasport = k => ({ k, ...zhPasport(VC.vidy[k]) });
-export const beret = (q, o) => MR.pravila.find(pr => q.Z[pr.a] && po_pravilu(null, pr, { zapis: VC.vidy[q.k], m: 1 }, { zapis: VC.vidy[o.k], m: 1 })) || null;
+export const beret = (q, o) => zhBeret(VC.vidy[q.k], VC.vidy[o.k], MR, q.telo, o.telo); // та же таблица зон, что у поштучного мира, на новорождённых
 const tolshchina = (p, m) => Z.tolshchina * p.rz * Math.cbrt(m);
 const m_sr = Z.delitsya / (2 * LN2); // средняя масса растущего племени между делениями (рождённые 1, делятся при 2)
 
