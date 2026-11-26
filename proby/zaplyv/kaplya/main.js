@@ -371,6 +371,7 @@ const saveMet = () => { try { localStorage.setItem('zaplyv.met', JSON.stringify(
 const KAB = await (await fetch('almanah.json')).json();
 const GENY = await fetch('kniga/teksty_genov.json').then(r => r.ok ? r.json() : {}).catch(() => ({})); // гены: имена и тексты книги
 mut.addGenes(cfg); mut.names(cfg, GENY); // новые мутации: имена из книги
+for (const [id, t] of Object.entries(KAP.upravlenie.teksty || {})) if (id !== '_') { GENY.geny ||= {}; GENY.geny[id] = { ...(GENY.geny[id] || {}), ...t }; }; /* Ш1: «Нюх» в «Капле» не обещает плыть к еде сам */
 const SVYAZI = await fetch('kniga/kto_s_kem.json').then(r => r.ok ? r.json() : {}).catch(() => ({})); // кто кого ест — связи карточек Альманаха
 const KNIGA = await fetch('kniga/teksty_sushchestv.json').then(r => r.ok ? r.json() : {}).catch(() => ({})), TEKSTY = KNIGA.sushchestva || {}, PODPISI = KNIGA.podpisi || {}; // тексты книги
 // Снимок модели: на миг подменяем мир студией с одним существом в середине кадра, рисуем тем же paint и вырезаем середину.
