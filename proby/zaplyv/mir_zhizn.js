@@ -69,6 +69,7 @@ export function shag(M, dt) { M.n = (M.n || 0) + 1; const Z = M.K.zhizn, S = M.s
       const H = hochet({ x: q.x, y: q.y, m: B, a: q.a, vid: q.vid }, vokrug, { ...A, chuet: R, blizko_rodnya: A.blizko_rodnya * w / Z.tolshchina }, { sytost: q.syt > 0 ? 1 : 0, pole: gl > 1e-9 ? { gx: gx / gl, gy: gy / gl } : null }, M.rnd());
       q.svoih = svoih; q.cel_a = H.skorost > 0 ? Math.atan2(H.uy, H.ux) : q.a; q.sk = sk = H.skorost; q.zanyatie = H.zanyatie; }
     { let d = q.cel_a - q.a; d = Math.atan2(Math.sin(d), Math.cos(d)); const mx = Z.povorot0 * Math.min(4, p.h.k_povorot) * dt; q.a += Math.max(-mx, Math.min(mx, d)); }
+    if (q.pokoy) sk = 0; // в покое не плывёт
     q.plyvet = v > 0 && sk > 0 ? 1 : 0;
     if (v > 0) { q.x += Math.cos(q.a) * v * sk * dt; q.y += Math.sin(q.a) * v * sk * dt; } else { q.x += (M.rnd() - 0.5) * Z.drozh * Math.sqrt(dt) * 2; q.y += (M.rnd() - 0.5) * Z.drozh * Math.sqrt(dt) * 2; }
     if (q.x < w || q.x > M.W - w) { q.a = Math.PI - q.a; q.x = Math.max(w, Math.min(M.W - w, q.x)); } if (q.y < w || q.y > M.H - w) { q.a = -q.a; q.y = Math.max(w, Math.min(M.H - w, q.y)); }
@@ -77,14 +78,18 @@ export function shag(M, dt) { M.n = (M.n || 0) + 1; const Z = M.K.zhizn, S = M.s
     if (p.pishcha.sahar) prihod += M.pole.vzyat(q.x, q.y, e * p.pishcha.sahar * M.pole.tut(q.x, q.y)) * Z.kpd; if (p.pishcha.kuski) prihod += M.pole.vzyat_kuski(q.x, q.y, e * p.pishcha.kuski * M.pole.kuski(q.x, q.y)) * Z.kpd;
     // своя теснота (mir.json «tesnota_svoih», один закон на всех): чем больше своих рядом, тем меньше каждый берёт (делят одну воду), тем медленнее рост и деление
     if (Z.tesnota_svoih) prihod /= 1 + ((q.svoih || 0) / Z.tesnota_svoih.n0) ** (Z.tesnota_svoih.stepen ?? 1);
-    q.m += (prihod - Z.cena * p.cena1 * Math.pow(B, Z.stepen_ceny) * dt) / p.telo; // крупное тело тратит на единицу веса меньше (закон Клайбера)
+    // покой (mir.json «pokoy», один закон на всех): исхудавший ниже vhod сбавляет обмен до доли dolya (у вида с zhizn.pokoy_glubzhe — ещё глубже, спора сенной),
+    // не плывёт, не охотится, не делится, но ест из воды и съесть его можно; просыпается, когда отъелся выше vyhod и проспал не меньше zaderzhka секунд (не мигает)
+    const PK = Z.pokoy; if (PK) { if (!q.pokoy && q.m < PK.vhod) { q.pokoy = M.t || 1e-6; } else if (q.pokoy && q.m > PK.vyhod && M.t - q.pokoy >= PK.zaderzhka) q.pokoy = 0; }
+    const pk = q.pokoy ? PK.dolya * (q.zapis.zhizn?.pokoy_glubzhe ?? 1) : 1;
+    q.m += (prihod - pk * Z.cena * p.cena1 * Math.pow(B, Z.stepen_ceny) * dt) / p.telo; // крупное тело тратит на единицу веса меньше (закон Клайбера)
     // теснота: тела расталкиваются
     // чужие расходятся по настоящим обводам (stolknovenie.js: оболочка ↔ оболочка, лёгкий уходит дальше); круг — только грубый отбор пар
     // каждое тело расталкивается раз в razvodit_cherez шагов (тела движутся медленно против шага, а расчёт обводов самый дорогой)
     if ((q.id + M.n) % (Z.razvodit_cherez || 1) === 0) ryadom(q, w * (p.L + 2), o => { if (o.id < q.id) return; const wo = tolshchina(M, o), po = pasport(o.zapis); if (!blizko(q, p, w, o, po, wo)) return;
       const r = razvesti(q.zapis, { x: q.x, y: q.y, a: q.a, tolshchina: w }, o.zapis, { x: o.x, y: o.y, a: o.a, tolshchina: wo }, M.SK); if (!r.pary) return; q.x += r.A.dx; q.y += r.A.dy; q.a += r.A.da; o.x += r.B.dx; o.y += r.B.dy; o.a += r.B.da; });
     // встречи: у кого есть рот или удар, тот проверяет касание зон с соседями другого вида
-    if (p.oruzhie.length && !q.syt) ryadom(q, w * (p.L + 1) + kl * 0.5, o => { if (q.mertv || o.mertv || o.vid === q.vid) return; const wo = tolshchina(M, o), po = pasport(o.zapis); if (Math.hypot(q.x - o.x, q.y - o.y) > w * (p.L / 2 + 1) + wo * (po.L / 2 + 1)) return;
+    if (p.oruzhie.length && !q.syt && !q.pokoy) ryadom(q, w * (p.L + 1) + kl * 0.5, o => { if (q.mertv || o.mertv || o.vid === q.vid) return; const wo = tolshchina(M, o), po = pasport(o.zapis); if (Math.hypot(q.x - o.x, q.y - o.y) > w * (p.L / 2 + 1) + wo * (po.L / 2 + 1)) return;
       const K = kasanie(obvod_zon(q.zapis, { x: q.x, y: q.y, a: q.a, tolshchina: w }, 32), obvod_zon(o.zapis, { x: o.x, y: o.y, a: o.a, tolshchina: wo }, 32), w * 0.15);
       for (const k of K) { const r = iskhod(M, q, k.a, o, k.b); if (!r) continue; const pr = { ishod: r.ishod, ...M.K.ishody[r.ishod] }; const Bo = massa(o); o.mertv = pr.ishod; M.schet[pr.ishod]++; M.sobytiya.push({ chto: pr.ishod, kto: q.id, kogo: o.id, x: o.x, y: o.y });
         const dob = pr.ishod === 'syel' ? 1 : pr.dolya, vm = k.a === 'rot' ? q.zapis.zony?.rot?.vmestimost || 1 : 1; // рот глотает пачкой: вакуоль на vmestimost добыч, перевар на всю вакуоль
@@ -92,7 +97,7 @@ export function shag(M, dt) { M.n = (M.n || 0) + 1; const Z = M.K.zhizn, S = M.s
   // гибель от голода, деление, уборка
   const novye = []; for (const q of S) { if (q.mertv) continue; const p = pasport(q.zapis);
     if (q.m < Z.smert) { q.mertv = 'golod'; M.schet.golod++; M.pole.prolit(q.x, q.y, massa(q) * Z.ostatki); M.sobytiya.push({ chto: 'golod', kogo: q.id, x: q.x, y: q.y }); continue; }
-    if (q.m >= Z.delitsya && S.length + novye.length < Z.predel) { q.m /= 2; const w = tolshchina(M, q), d = p.L * w * 0.5; let zp = q.zapis; if (M.rnd() < Z.mutaciya.shans) { zp = mutaciya(q.zapis, M.rnd, Z.mutaciya.sila); M.schet.mutantov++; }
+    if (q.m >= Z.delitsya && !q.pokoy && S.length + novye.length < Z.predel) { q.m /= 2; const w = tolshchina(M, q), d = p.L * w * 0.5; let zp = q.zapis; if (M.rnd() < Z.mutaciya.shans) { zp = mutaciya(q.zapis, M.rnd, Z.mutaciya.sila); M.schet.mutantov++; }
       const o = { id: M.id++, vid: q.vid, zapis: zp, x: q.x - Math.cos(q.a) * d, y: q.y - Math.sin(q.a) * d, a: q.a + (M.rnd() - 0.5), m: q.m, beg: 0, bylo: 0, plyvet: 1, mat: q.id }; q.x += Math.cos(q.a) * d; q.y += Math.sin(q.a) * d; novye.push(o); M.schet.rodilos++; M.sobytiya.push({ chto: 'delenie', kto: q.id, kogo: o.id, x: q.x, y: q.y }); } }
   M.sv = S.filter(q => !q.mertv).concat(novye); M.pritok = M.pole.shag(dt);
   // занос: капля открыта, из воды за краем изредка приносит того, кого внутри почти не осталось (одно существо у края, без запаса)
