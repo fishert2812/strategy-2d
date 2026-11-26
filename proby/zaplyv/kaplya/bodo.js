@@ -12,13 +12,19 @@ export function nachalo(w, B) { const r = w.r || Math.random, ug = -Math.PI / 2 
   w.bodos = [{ id: ++w.ids, x, y, a: ug + Math.PI, m, dom, faza: 'sidit', t: 0, syt: B.start_syt, sytN: 0, car: true }]; }
 // Кого бодо может взять: бактерий мельче себя в bolshe раз (шарики, соперницы, соседки, тебя)
 function dobycha(w, b, B, radius) { let best = null, bd = B.zona; const R = rot(B, b);
-  const cand = (q, kto) => { if (q.gone || q.spore > 0) return; const m = q.m || 1; if (m * B.bolshe > b.m) return; const dd = d(R, q) - radius(m); if (dd < bd) { bd = dd; best = { q, kto }; } };
+  const cand = (q, kto) => { if (q.gone || q.spore > 0) return; if (kto === 'me' && !b.car && q.m >= B.molodoy) return; /* П78: молодой бодо не берёт тебя с массы molodoy */ const m = q.m || 1; if (m * B.bolshe > b.m) return; const dd = d(R, q) - radius(m); if (dd < bd) { bd = dd; best = { q, kto }; } };
   for (const q of w.me) cand(q, 'me'); for (const q of w.prey) cand(q, 'prey'); for (const q of w.pseudos) cand(q, 'pseudos'); for (const q of w.donors) cand(q, 'donors'); for (const k of ['spirilly', 'kaulo', 'brodyazhki']) for (const q of w[k] || []) cand(q, k); return best; } // бодо ест и спирилл, и каулобактеров (П39)
 // Прижат ли бодо к своему комку (П78, законы 21, 22): тело у самого комка. Прижатого можно съесть уже с перевесом B.prizhat (1,3), свободного — только с bolshe (1,8)
 export const prizhat = (B, b, radius, a) => { const k = d(b, b.dom), s = d(a, b); return k < radius(b.dom.m || 4) + dlina(B, b.m) * B.prizhat_blizko && s < radius(a.m) + dlina(B, b.m) * 1.3 && ((b.x - a.x) * (b.dom.x - b.x) + (b.y - a.y) * (b.dom.y - b.y)) / (k * s || 1) > B.prizhat_ugol; }; // ты прижимаешь его телом с той стороны, что дальше от комка
 export function shag(w, dt, B, radius, slyshu) { if (!w.bodos) return; const novye = [];
   for (const b of w.bodos) { const L = dlina(B, b.m); b.t += dt; b.syt = Math.max(0, b.syt - dt);
-    if (b.faza === 'sidit') { const c = !b.syt && dobycha(w, b, B, radius); // сидит у комка, нос качается; увидел добычу — замах
+    const ugroza = b.car && w.me.find(a => a.m >= b.m * B.prizhat && d(a, b) < B.boy.vidit); // П78: бой на привязи — ты тяжелее хозяина в 1,3 раза и рядом
+    if (ugroza && (b.faza === 'sidit' || b.faza === 'otdyh')) { const k = Math.atan2(b.y - b.dom.y, b.x - b.dom.x), ot = Math.atan2(ugroza.y - b.dom.y, ugroza.x - b.dom.x), st = Math.sin(k - ot) >= 0 ? 1 : -1; b.faza = 'boy_zamah'; b.t = 0; b.boy = k + st * B.boy.shag; }
+    if (b.faza === 'boy_zamah') { if (b.t >= B.boy.zamah) { b.faza = 'boy_ryvok'; b.t = 0; } } // замах пружиной: задний жгутик натягивается
+    else if (b.faza === 'boy_ryvok') { const R = d(b, b.dom) || 1, tx = b.dom.x + Math.cos(b.boy) * R, ty = b.dom.y + Math.sin(b.boy) * R, dd = Math.hypot(tx - b.x, ty - b.y) || 1; b.x += (tx - b.x) / dd * Math.min(dd, B.boy.v * dt); b.y += (ty - b.y) / dd * Math.min(dd, B.boy.v * dt); b.a = Math.atan2(ty - b.y, tx - b.x);
+      if (b.t >= B.boy.ryvok) { b.faza = 'boy_otdyh'; b.t = 0; } } // прыжок по кругу вокруг комка, прочь от тебя
+    else if (b.faza === 'boy_otdyh') { if (b.t >= B.boy.otdyh) { b.faza = 'sidit'; b.t = 0; } }
+    else     if (b.faza === 'sidit') { const c = !b.syt && dobycha(w, b, B, radius); // сидит у комка, нос качается; увидел добычу — замах
       const k = d(b, b.dom), cel = Math.atan2(b.dom.y - b.y, b.dom.x - b.x) + Math.PI; b.a += Math.atan2(Math.sin(cel - b.a), Math.cos(cel - b.a)) * Math.min(1, dt * 2) + Math.sin(b.t * 1.7 + b.id) * 0.4 * dt;
       if (k > L * 1.3) { b.x += (b.dom.x - b.x) / k * B.hod * dt; b.y += (b.dom.y - b.y) / k * B.hod * dt; }
       if (c) { b.faza = 'zamah'; b.t = 0; b.cel = c; } }

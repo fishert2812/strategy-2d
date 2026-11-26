@@ -456,7 +456,7 @@ const cabLabel = () => { $('cab').textContent = kab.label(); };
 cabLabel();
 const knowGenes = () => { let add = false; for (const g in world.genes) if (!met.has('gene:' + g)) { met.add('gene:' + g); add = true; } if (add) { saveMet(); cabLabel(); } }; // ген, который у тебя был, — запись в Альманахе
 $('cab').onclick = () => { knowGenes(); kab.open(); const kk = world.stats.killer; if (ended && kk && KAB.items[kk] && kk !== 'me') { met.add(kk); kab.openCard(kk); } }; // с гибели — сразу карточка того, кто съел; «‹ Альманах» внизу ведёт на полку
-let toastT = 0;
+let toastT = 0, OCHERED = [], pokazT = 0; // очередь строк (П11)
 // Пауза с геномом: мир замирает, твоя клетка крупно в середине кольца ДНК.
 let paused = false;
 const genome = genomeScreen({ G: genomeData, cfg, world: () => world, icon: g => icon(g),
@@ -687,7 +687,11 @@ function meet(k) { // первая встреча в заплыве: имя и �
   if (fresh) { met.add(k); saveMet(); cabLabel(); beep(990, 0.12, 0.03, 'sine', 1.3); }
   if (fresh || t.otnoshenie === 'opasen') say(name + ': ' + (t.znachit || cards[k]?.tip || '') + (fresh ? ' · новое в Альманахе' : ''), 3200);
 }
-function say(text, ms, gene) { $('toast').textContent = text; if (gene) { const im = new Image(); im.src = icon(gene); im.className = 'ticon'; im.alt = ''; im.style.borderColor = geneColor(gene); $('toast').prepend(im); } $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => $('toast').classList.remove('on'), ms); }
+function pokaz(text, ms, gene) { pokazT = performance.now(); $('toast').textContent = text; if (gene) { const im = new Image(); im.src = icon(gene); im.className = 'ticon'; im.alt = ''; im.style.borderColor = geneColor(gene); $('toast').prepend(im); } $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(dalee, ms); }
+// П11: строка не перебивает строку. Новая ждёт, пока прошлая провисит min_ms; очередь короткая, старые строки выкидываются. Числа — kaplya.json «stroki».
+function say(text, ms, gene) { const K = KAP.stroki, t = performance.now(), T = $('toast'); if (T.classList.contains('on') && t - pokazT < K.min_ms && T.textContent !== text) { if (!OCHERED.some(q => q[0] === text)) { OCHERED.push([text, ms, gene, t]); if (OCHERED.length > K.ochered) OCHERED.shift(); } clearTimeout(toastT); toastT = setTimeout(dalee, K.min_ms - (t - pokazT)); return; } pokaz(text, ms, gene); }
+function dalee() { const t = performance.now(); while (OCHERED.length && t - OCHERED[0][3] > KAP.stroki.zhdat_ms) OCHERED.shift(); if (OCHERED.length) { const [a, b, c] = OCHERED.shift(); pokaz(a, Math.max(b, KAP.stroki.min_ms), c); } else $('toast').classList.remove('on'); }
+window.kaplyaSay = say; window.kaplyaPokaz = pokaz; window.kaplyaOchered = () => OCHERED.length;
 const told = new Set(); // подсказка — один раз и только в момент, когда она нужна
 function tell(k, text) { if (told.has(k)) return; told.add(k); say(text, 2600); }
 start(null, KAP.rezhim); // скрытый режим «Эволюция»
@@ -848,6 +852,7 @@ function tick(dt) {
       const st = glv.stroka(GL, world, b, K); if (st && !CEL.stroka.includes('!')) CEL.stroka = st; } // П79–П82: главы 3–5
     if (GLAVA === 2 && !world.me.some(a => a.grab)) { const G = KAP.glavy[2], ab = world.amoebas.reduce((q, x) => !q || Math.hypot(x.x - b.x, x.y - b.y) < Math.hypot(q.x - b.x, q.y - b.y) ? x : q, null); // П79: глава 2 «Хищник» — цель амёба
       if (!CEL.stroka.includes('!')) CEL.stroka = ab && cel.eda(CEL, b, ms(ab, 'amoeba'), evo.E.glotat.bolshe, umeet) ? G.eda : ab && Math.hypot(ab.x - b.x, ab.y - b.y) < KC.vidno ? G.rasti : G.ishchi; }
+    if (!world.molodoySkazano && b.m >= KAP.bodo.molodoy && (world.bodos || []).some(q => !q.car)) { world.molodoySkazano = true; say(KAP.bodo.slova.molodoy, 3000); } // П78: молодой бодо больше не берёт
     { const B = KAP.bodo, car = (world.bodos || []).find(q => q.car); if (car && umeet && b.m >= car.m * B.prizhat && Math.hypot(car.x - b.x, car.y - b.y) < KC.vidno) CEL.stroka = bodo.prizhat(B, car, radius, b) || b.m >= car.m * B.bolshe ? B.slova.eda : B.slova.prizhmi; } // П78: «Прижми бодо к комку!», «Бодо теперь еда!»
     $('count').textContent = (um < 100 ? um.toFixed(1) : um < 1000 ? String(Math.round(um)) : (um / 1000).toFixed(um < 10000 ? 2 : 1)).replace('.', ',') + (um < 1000 ? ' мкм' : ' мм'); $('kcel').innerHTML = CEL.stroka + '<small>' + CEL.rostom + '</small>'; $('kcel').style.visibility = $('offer').classList.contains('on') ? 'hidden' : ''; } // полоса выбора умения не ложится поверх строки цели
   $('eaten').textContent = world.rush > 0.05 && !rost.on(world) ? 'рост ×' + (1 + world.rush).toFixed(1) : 'съедено ' + world.stats.eaten; // серия кусков подряд — рост быстрее

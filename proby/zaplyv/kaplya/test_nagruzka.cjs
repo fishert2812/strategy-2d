@@ -19,6 +19,11 @@ check('test_nagruzka_sud: судья краснеет на придуманно�
   const start = await p.evaluate(() => ({ bodo: (zaplyvWorld().bodos || []).length, glava: window.kaplyaGlava && kaplyaGlava() })); // урок 26.11: комментарий съел строку, и хозяин бодо пропал со старта
   check('test_kaplya_start: на старте главы 1 есть хозяин бодо', start.glava === 1 && start.bodo >= 1 ? '' : JSON.stringify(start));
   await p.evaluate(() => { zaplyvWorld().lose = () => {}; });
+  // П11: строка не перебивает строку. Судья: через 0,3 с видна первая, через 2,6 с — вторая. Самопроверка: показ без очереди (kaplyaPokaz) судья ловит.
+  const stroki = async f => { await p.waitForFunction(() => !document.getElementById('toast').classList.contains('on') && !kaplyaOchered(), null, { timeout: 30000 }).catch(() => {}); return p.evaluate(f => new Promise(r => { const T = document.getElementById('toast'), S = window[f]; T.classList.remove('on'); S('проверка А', 3000); S('проверка Б', 3000); setTimeout(() => { const a = T.textContent; setTimeout(() => r([a, T.textContent]), 2300); }, 300); }), f); };
+  const sudS = ([a, b]) => a !== 'проверка А' ? `первую строку перебили: «${a}»` : b !== 'проверка Б' ? `вторая строка пропала: «${b}»` : '';
+  check('test_kaplya_stroki: всплывающая строка не перебивает прошлую (П11)', sudS(await stroki('kaplyaSay')));
+  await p.waitForTimeout(3500); check('test_kaplya_stroki_samoproverka: показ без очереди судья ловит', sudS(await stroki('kaplyaPokaz')) ? '' : 'судья не заметил');
   const zamer = async m => { await p.evaluate(m => { const w = zaplyvWorld(); w.me.forEach(a => a.m = m); w.me.length = 1; }, m);
     for (let i = 0; i < 8; i++) { await p.evaluate(i => { const a = zaplyvWorld().me[0]; a.x += Math.cos(i) * 80; a.y += Math.sin(i) * 80; }, i); await p.waitForTimeout(400); }
     return p.evaluate(() => new Promise(r => { const t = [], L = []; let l = performance.now(); const f = n => { t.push(n - l); l = n; L.push(kaplyaLod()); if (t.length < 40) requestAnimationFrame(f); else { t.sort((a, b) => a - b); const med = k => L.map(x => x[k]).sort((a, b) => a - b)[20]; r({ kadr: Math.round(t[20]), tel: med('tel'), chastey: med('chastey') }); } }; requestAnimationFrame(f); })); };
