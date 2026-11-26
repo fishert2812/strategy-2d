@@ -32,6 +32,7 @@ import * as obl from './oblasti.js'; // области по книге: плён
 import * as rod from './rod.js'; // род жив: раз за заплыв просыпаешься сестрой (П73)
 import * as sm from './semena.js'; // между заплывами: семена рода, рекорд размера (П76, П94)
 import * as glv from './glavy.js'; // главы 2–5 (П79–П83)
+import * as lin from './lineyka.js'; // линейка из живых силуэтов (П5, П87)
 import * as vh from './vehi.js'; // рост по книге: длина П51, вехи П54, худение за умения П49
 const VEHI = vh.zagruzit();
 window.kaplyaLes = () => LES; window.kaplyaGlava = () => GLAVA; // спирилла, каулобактер, хлорелла (книга П39), руками // строка цели, подпись линейки, «теперь еда» (книга П5–П7)
@@ -222,7 +223,7 @@ const beep = (f, dur, vol = 0.05, type = 'sine', slide = 0.6) => {
 
 const STICK = 56; // полный ход большого пальца (~30 точек экрана); дальше кольцо едет за пальцем
 const pad = new Stick(STICK);
-let GL = null, SEM = [], ROD_K = rod.sozdat(), OBL = obl.sozdat(), LES = les.sozdat(), GLAVA = 1, CEL = cel.sozdat(), world, view, finger = null, down = null, moved = false, shake = 0, ended = false, lastEat = 0;
+let LIN = null, GL = null, SEM = [], ROD_K = rod.sozdat(), OBL = obl.sozdat(), LES = les.sozdat(), GLAVA = 1, CEL = cel.sozdat(), world, view, finger = null, down = null, moved = false, shake = 0, ended = false, lastEat = 0;
 const $ = id => document.getElementById(id);
 const ver = (await (await fetch('version.json')).json()).number; // свой номер «Заплыва», список — VERSIONS.md
 $('ver').textContent = 'Капля по книге · ' + ver;
@@ -691,7 +692,7 @@ function pokaz(text, ms, gene) { pokazT = performance.now(); $('toast').textCont
 // П11: строка не перебивает строку. Новая ждёт, пока прошлая провисит min_ms; очередь короткая, старые строки выкидываются. Числа — kaplya.json «stroki».
 function say(text, ms, gene) { const K = KAP.stroki, t = performance.now(), T = $('toast'); if (T.classList.contains('on') && t - pokazT < K.min_ms && T.textContent !== text) { if (!OCHERED.some(q => q[0] === text)) { OCHERED.push([text, ms, gene, t]); if (OCHERED.length > K.ochered) OCHERED.shift(); } clearTimeout(toastT); toastT = setTimeout(dalee, K.min_ms - (t - pokazT)); return; } pokaz(text, ms, gene); }
 function dalee() { const t = performance.now(); while (OCHERED.length && t - OCHERED[0][3] > KAP.stroki.zhdat_ms) OCHERED.shift(); if (OCHERED.length) { const [a, b, c] = OCHERED.shift(); pokaz(a, Math.max(b, KAP.stroki.min_ms), c); } else $('toast').classList.remove('on'); }
-window.kaplyaSay = say; window.kaplyaPokaz = pokaz; window.kaplyaOchered = () => OCHERED.length;
+window.kaplyaSay = say; window.kaplyaPokaz = pokaz; window.kaplyaOchered = () => OCHERED.length; window.kaplyaLin = () => LIN;
 const told = new Set(); // подсказка — один раз и только в момент, когда она нужна
 function tell(k, text) { if (told.has(k)) return; told.add(k); say(text, 2600); }
 start(null, KAP.rezhim); // скрытый режим «Эволюция»
@@ -843,7 +844,8 @@ function tick(dt) {
   for (let i = 0; i < 3; i++) view.tint[i] += (t[i] - view.tint[i]) * Math.min(1, dt * 0.8);
   { const b = world.me.reduce((q, a) => a.m > q.m ? a : q, world.me[0] || { m: 1 }), sp = world.split(); // размер числом: длина палочки в микрометрах (260 единиц — 10 мкм)
     const um = vh.dlina(KAP.rost, b.m); if (!les.vkl()) for (const h of vh.shag(VEHI, KAP.rost, um, { glotat: world.genes.gulp, bodo: GLAVA === 2 })) setTimeout(() => say(h.tekst, 3500), 1500); const umeet = !!world.genes.gulp, ms = (q, who) => q.m || evo.E.glotat.razmer[who] || 1, KC = KAP.cel; // книга П5–П7 // П51 длина, П54 вехи
-    for (const who of cel.shag(CEL, world, b, KC, ms, evo.E.glotat.bolshe, umeet, evo.E.glotat.syt)) say(KC.slova.teper.replace('{}', KC.imena[who][0]), 2200);
+    LIN ||= lin.sozdat(KAP.lineyka); for (const who of cel.shag(CEL, world, b, KC, ms, evo.E.glotat.bolshe, umeet, evo.E.glotat.syt)) { say(KC.slova.teper.replace('{}', KC.imena[who][0]), 2200); lin.vspyshka(LIN, who, ...scr(b.x, b.y).map(v => v * innerWidth / W)); }
+    lin.obnovit(LIN, CEL.videl, CEL.eda, b.m); // П5, П87: столбик силуэтов у линейки
     { const K = KAP.oblasti, g = obl.gde(world, b, K), mt = [g && K.metka[g], OBL.ten && K.metka.ten].filter(Boolean); if (mt.length) CEL.rostom = mt.join(' · ') + ' · ' + CEL.rostom; } // область видна под строкой цели всё время, пока ты в ней
     if (les.vkl()) { const K = KAP.lestnica, ev = les.shag(LES, world, b, ms, K); if (ev === 'syela') say(K.slova.syela.replace('{n}', LES.schet), 3000); if (ev === 'ty') say(K.slova.ty, 3000); if (LES.ty && !CEL.stroka.includes('!')) CEL.stroka = K.slova.ty_stroka; // П87: строка цели «Лестницы»
       if (!CEL.stroka.includes('!') && LES.car) { const im = KC.imena[LES.car.who] || [LES.car.who, LES.car.who, LES.car.who]; CEL.stroka = cel.eda(CEL, b, ms(LES.car.q, LES.car.who), evo.E.glotat.bolshe, umeet) ? K.slova.eda : K.slova.rasti.replace('{}', im[0].toLowerCase()); }
@@ -1217,6 +1219,7 @@ function frame(now) {
   const solo = kids ? Object.fromEntries(['food', 'slime', ...Object.values(LISTS)].filter(l => l !== 'me').map(l => [l, world[l]])) : null; // выбор дочки: на сцене только две дочки — чужое существо не попадает за дочку (холодный игрок видел амёбу на «Пучке жгутиков»)
   if (solo) for (const l in solo) world[l] = [];
   igraT = now / 1000; try { render(now / 1000, () => { if (!ended) { js.push(performance.now() - t0); if (js.length > 300) js.shift(); } }); } finally { if (solo) Object.assign(world, solo); }
+  if (LIN && !ended) for (const [list, who] of cel.SPIS) if (CEL.videl[who] != null && !LIN.sil[who]) { const q = (world[list] || []).find(q => { if (q.gone) return false; const [x, y] = scr(q.x, q.y); return x > 90 && x < W - 90 && y > 200 && y < H - 310; }); if (q) { const [x, y] = scr(q.x, q.y); lin.snyat(LIN, KAP.lineyka, canvas, who, x, y, radius(q.m || evo.E.glotat.razmer[who] || 1) * view.z, W); } } // силуэт: кадр самой игры при первой встрече
   if (probe.frames % 60 === 0) knowGenes();
   probe.frames++; probe.dpr = dprNow; probe.cells = world.me.length; probe.z = view.z; // масштаб камеры: тап-обход проверяет, что она возвращается (L029)
   probe.js = js.reduce((s, v) => s + v, 0) / Math.max(js.length, 1); probe.jsWorst = Math.max(0, ...js.slice(5)); probe.path = Math.max(probe.path || 0, world.stats.path);
