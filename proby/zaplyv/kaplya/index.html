@@ -34,6 +34,9 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 #obtns button span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.15; } #obtns button small { display: none; } /* имя целиком, до двух строк; что даёт — над вариантами после первого касания */
 #obtns .gicon { width: 36px; height: 36px; flex: none; } #odesc { font-size: 14px; line-height: 1.25; opacity: 0.85; margin: 0 4px 6px; } #odesc:empty { display: none; }
 #obtns button.sel { outline: 2px solid rgba(255, 214, 140, 0.95); background: rgba(255, 214, 140, 0.16); } /* первое касание только выбирает, второе берёт */
+#offer.karta { top: 14%; bottom: auto; padding: 14px 10px; background: rgba(6, 12, 24, 0.9); } #offer.karta #otitle { font-size: 20px; text-align: center; margin-bottom: 10px; } /* Ш20: мир стоит, карточки крупно посреди экрана */
+#offer.karta #obtns button { flex-direction: column; align-items: center; text-align: center; padding: 10px 6px; gap: 6px; min-height: 0; } #offer.karta #obtns .gicon { width: 96px; height: 96px; margin: 0; border-width: 3px; }
+#offer.karta #obtns button span { font-size: 16px; font-weight: 600; } #offer.karta #obtns button small { display: block; font-size: 13px; line-height: 1.2; opacity: 0.85; } #offer.karta #odesc { display: none; }
 #odot { position: fixed; z-index: 15; right: 10px; bottom: calc(env(safe-area-inset-bottom) + 30px); width: 56px; height: 56px; min-height: 56px; padding: 0; border-radius: 50%;
   background: conic-gradient(rgba(255, 214, 140, 0.9) calc(var(--left, 1) * 360deg), rgba(255, 255, 255, 0.12) 0); /* кольцо-таймер до автовыбора */
   transform: scale(0); transition: transform 0.3s ease; } #odot.on { transform: scale(1); animation: opulse 1.6s ease-in-out infinite; } /* свёрнутый выбор: значок ждёт касания */
