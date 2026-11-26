@@ -15,7 +15,7 @@ export function shag(C, w, me, K, mass, bolshe, umeet, syt) { const I = K.imena,
   const vidy = Object.entries(C.videl), rovnya = vidy.find(([, m]) => m >= me.m * 0.8 && m <= me.m * 1.25), legche = vidy.filter(([, m]) => m < me.m).sort((a, b) => b[1] - a[1])[0];
   C.rostom = rovnya ? 'ростом с ' + I[rovnya[0]][2] : legche ? 'ты в ' + String(okrugl(me.m / legche[1])).replace('.', ',') + ' раза больше ' + I[legche[0]][1] : 'ростом с кишечную палочку';
   // П6: строка цели, первое подходящее
-  let vrag = null; for (const list of OPASNYE) for (const q of w[list] || []) { const who = SPIS.find(s => s[0] === list)[1]; if (!q.gone && !(q.syt > 0) && blizh(me, q) < K.opasno && !(umeet && mass(q, who) * bolshe <= me.m) && (!vrag || blizh(me, q) < blizh(me, vrag.q))) vrag = { q, who }; }
+  let vrag = null; for (const list of OPASNYE) for (const q of w[list] || []) { const who = SPIS.find(s => s[0] === list)[1]; if (!q.gone && !(q.syt > 0) && !(list === 'bodos' && q.m < me.m * bolshe) && blizh(me, q) < K.opasno && !(umeet && mass(q, who) * bolshe <= me.m) && (!vrag || blizh(me, q) < blizh(me, vrag.q))) vrag = { q, who }; }
   const vyshe = vidy.filter(([who]) => !C.eda.has(who)).sort((a, b) => a[1] - b[1]), hoz = vidy.slice().sort((a, b) => b[1] - a[1])[0];
   let glotok = 0; for (const [list, who] of SPIS) for (const q of w[list] || []) if (!q.gone && umeet && blizh(me, q) < K.vidno && mass(q, who) * bolshe <= me.m) glotok = Math.max(glotok, mass(q, who) * syt);
   if (vrag) C.stroka = vstav(K.slova.opasno, I[vrag.who][0]);

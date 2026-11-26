@@ -805,6 +805,7 @@ function tick(dt) {
   { const b = world.me.reduce((q, a) => a.m > q.m ? a : q, world.me[0] || { m: 1 }), sp = world.split(); // размер числом: длина палочки в микрометрах (260 единиц — 10 мкм)
     const um = 2 * 8.5 * Math.pow(b.m, 0.3) * (1.6 + Math.min(b.m, sp) / sp) / 26; const umeet = !!world.genes.gulp, ms = (q, who) => q.m || evo.E.glotat.razmer[who] || 1, KC = KAP.cel; // книга П5–П7
     for (const who of cel.shag(CEL, world, b, KC, ms, evo.E.glotat.bolshe, umeet, evo.E.glotat.syt)) say(KC.slova.teper.replace('{}', KC.imena[who][0]), 2200);
+    { const B = KAP.bodo, car = (world.bodos || []).find(q => q.car); if (car && umeet && b.m >= car.m * B.prizhat && Math.hypot(car.x - b.x, car.y - b.y) < KC.vidno) CEL.stroka = bodo.prizhat(B, car, radius, b) || b.m >= car.m * B.bolshe ? B.slova.eda : B.slova.prizhmi; } // П78: «Прижми бодо к комку!», «Бодо теперь еда!»
     $('count').textContent = um.toFixed(1).replace('.', ',') + ' мкм'; $('kcel').innerHTML = CEL.stroka + '<small>' + CEL.rostom + '</small>'; $('kcel').style.visibility = $('offer').classList.contains('on') ? 'hidden' : ''; } // полоса выбора умения не ложится поверх строки цели
   $('eaten').textContent = world.rush > 0.05 && !rost.on(world) ? 'рост ×' + (1 + world.rush).toFixed(1) : 'съедено ' + world.stats.eaten; // серия кусков подряд — рост быстрее
   if (world.readyToSplit() && !world.choice.length && !world.me.some(a => a.grab || a.held > 0) && !$('toast').classList.contains('on')) tell('split', 'Выросла! Коснись — поделишься. Или подожди'); // подсказка ждёт, пока на экране весть: не затирает «Сестра погибла за краем…» (L039)
@@ -1007,6 +1008,9 @@ function paint(time) {
   const foodNear = world.food.some(f => Math.hypot(f.x - view.x, f.y - view.y) < 120);
   for (const a of world.me) if (a.spore > 0) { // сон-персистер: та же палочка, но погасшая — серая, жгутики обвисли, редкое «дыхание»; перед пробуждением теплеет
     const [x, y] = scr(a.x, a.y); vid.sleeper({ a, x, y, z, time, cfg, bodies, glow, ink });
+  }
+  for (const b of world.bodos || []) { if (!b.car) continue; const L = bodo.dlina(KAP.bodo, b.m) * z, [x, y] = scr(b.x, b.y); // корона поверх тела, после всех бодо
+    { const K = KAP.korona, hx = x, hy = y - L * K.vyshe; for (let k = -1; k <= 1; k++) { const bx = hx + k * L * K.shir; bodies.seg(bx, hy, bx, hy - L * K.zub * (k ? 0.75 : 1), L * K.tolsh, K.cvet, 0.95); } bodies.seg(hx - L * K.shir * 1.2, hy, hx + L * K.shir * 1.2, hy, L * K.tolsh * 1.2, K.cvet, 0.95); glow.put(hx, hy, L * 0.9, ...K.cvet, 0.18); } // П77: корона хозяина над ним (всегда вверх по экрану), видна издалека
   }
   for (const a of kids || world.me) { // палочка: мягкое тело
     if (a.spore > 0) continue; // перёд ведёт, корма и пучок жгутиков идут по его следу
