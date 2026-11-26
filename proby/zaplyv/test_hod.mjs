@@ -2,6 +2,7 @@
 // Урок (Роман 26.11: «физика никакая… абсолютно не живая… одной бактерии — чтобы она двигалась. Это все должно в движке быть
 // прописано»): существа скользили ровно к цели. Сторож ловит «скользит ровно» на одной клетке и в мире, а таблица «параметр
 // записи → как изменился ход» доказывает, что ход следует из записи, а не подкручен под вид. Пороги — mir.json «hod.storozh».
+import fs from 'node:fs';
 import { plyt, pasport_hoda } from './hod.js';
 import { kontakt, tolshche, prizhat, vytolknut } from './pitanie.js';
 import { obvod_zon } from './zony.js';
@@ -61,7 +62,7 @@ function vstrecha(veshch, srazu = false, KK = MR.kontakt) { const q = { id: 1, x
 function sudit_korm(zh, m0) { const est = zh.filter(k => k.est); if (!zh.some(k => k.em <= 0)) return 'клетка не съела кусок за 20 с';
   if (est.length < KK.storozh.kadrov_min) return `кусок исчез за ${est.length} кадров, а должен таять на оболочке не меньше ${KK.storozh.kadrov_min}`;
   for (let i = 1; i < est.length; i++) if (est[i].r > est[i - 1].r + 1e-9) return 'кусок, пока его едят, не уменьшается';
-  if (est.some(k => k.zazor > KK.prilip * W + 1)) return 'кусок, пока его едят, оторвался от оболочки';
+  if (est.some(k => k.zazor > KK.prilip * W + 1)) return 'кусок, пока его едят, оторвался от оболочки: зазор ' + Math.max(...est.map(k => k.zazor)).toFixed(1);
   const dm = zh[zh.length - 1].m - zh[0].m; if (!(dm > m0 * KK.kpd * 0.7)) return `клетка не пополнела: масса выросла на ${dm.toFixed(3)}, а съедено ${m0}`;
   const wk = Math.max(...zh.slice(-30).map(k => k.w)), w1 = zh[zh.length - 1].w; if (!(wk > w1 * (1 + KK.puls.razmah * 0.5))) return 'после куска по телу не прошла волна сытости'; }
 check('test_korm: кусок не исчезает — клетка подходит, прижимается, кусок тает на оболочке, клетка полнеет, проходит волна сытости', () => sudit_korm(vstrecha({ x: 8 * W, y: 2 * W, m: 0.12, r: W * 0.5 }), 0.12));
@@ -76,11 +77,23 @@ const KK0 = { ...KK, vmyatina: { ...KK.vmyatina, myagkost: 0, kasanie: 0 } };
 check('test_vmyatina: оболочка прогибается там, где упёрлась в комок, и там, где прилип кусок', () => sudit_vm(vstrecha({ x: 6 * W, y: 0, m: 1, r: W * 2, tverd: true }), 'комка') || sudit_vm(vstrecha({ x: 8 * W, y: 2 * W, m: 0.3, r: W * 0.7 }), 'куска'));
 check('test_vmyatina_samoproverka: тот же сторож краснеет на жёсткой оболочке', () => sudit_vm(vstrecha({ x: 6 * W, y: 0, m: 1, r: W * 2, tverd: true }, false, KK0), 'комка') ? '' : 'сторож пропустил жёсткую оболочку');
 // Мягкое тело (Роман 26.11: «как мы делали красиво — что они там двигают своим телом»): в повороте ось ложится дугой и сама выпрямляется.
-function povorot(Kx) { const q = { id: 1, x: 0, y: 0, a: 0, vedut: true }, rnd = sluchay(1), dt = 1 / 30; let mx = 0, konec = 0; const cel = [0, 4000];
-  for (let t = 0; t < 4; t += dt) { let d = Math.atan2(cel[1] - q.y, cel[0] - q.x) - q.a; d = Math.atan2(Math.sin(d), Math.cos(d)); plyt(q, VC.vidy.nasha, Kx, Z, dt, rnd, d, W); if (t < 1.5) mx = Math.max(mx, Math.abs(q.gnut)); konec = Math.abs(q.gnut); }
+function povorot(Kx) { const q = { id: 1, x: 0, y: 0, a: 0, vedut: true }, rnd = sluchay(1), dt = 1 / 30; let mx = 0, konec = 0, nk = 0; const cel = [0, 4000];
+  for (let t = 0; t < 4; t += dt) { let d = Math.atan2(cel[1] - q.y, cel[0] - q.x) - q.a; d = Math.atan2(Math.sin(d), Math.cos(d)); plyt(q, VC.vidy.nasha, Kx, Z, dt, rnd, d, W); if (t < 1.5) mx = Math.max(mx, Math.abs(q.gnut)); if (t >= 3) { konec += Math.abs(q.gnut); nk++; } } konec /= nk;
   return mx < T.gnut_min ? `в повороте на 90° тело прогнулось всего на ${mx.toFixed(3)} половины длины, нужно не меньше ${T.gnut_min}` : konec > T.gnut_pryamo ? `на прямой тело осталось согнутым: ${konec.toFixed(3)}` : mx > Kx.telo.gnut_max + 1e-9 ? 'прогиб больше предела' : ''; }
 check('test_gnut: в повороте тело ложится дугой, на прямой выпрямляется, прогиб не больше предела', () => povorot(K));
-check('test_gnut_samoproverka: тот же сторож краснеет на жёстком теле', () => povorot({ ...K, telo: { ...K.telo, gnut: 0 } }) ? '' : 'сторож пропустил жёсткое тело');
+check('test_gnut_samoproverka: тот же сторож краснеет на жёстком теле', () => povorot({ ...K, telo: { ...K.telo, gnut: 0, gnut_sled: 0 } }) ? '' : 'сторож пропустил жёсткое тело');
+// Выросты-ножки (Роман 26.11: «выступы на теле в виде оболочки они как ножки… им тоже формулы нужны»): амёба идёт выростами.
+function polzet(zapis) { const q = { id: 1, x: 0, y: 0, a: 0 }, rnd = sluchay(3), dt = 1 / 30, N = K.nozhki; let put = 0, mx = 0, mn = 9, levo = 0, pravo = 0, x = 0, y = 0;
+  for (let t = 0; t < 40; t += dt) { plyt(q, zapis, K, Z, dt, rnd, 0, W); put += Math.hypot(q.x - x, q.y - y); x = q.x; y = q.y; const v = q.vyp?.[0]; if (!v) continue; mx = Math.max(mx, v.vysota); mn = Math.min(mn, v.vysota); if (v.vysota > N.vysota * 0.5) v.ot_nosa > 0.2 ? levo++ : v.ot_nosa < -0.2 ? pravo++ : 0; }
+  if (mx < N.vysota * 0.8) return `вырост не вытянулся: наибольшая высота ${mx.toFixed(2)} из ${N.vysota}`; if (mn > N.vysota * 0.2) return 'вырост не втянулся в тело'; if (!levo || !pravo) return 'выросты отходят только в одну сторону, зигзага нет';
+  if (put < 3 * W) return `тело за 40 с проползло ${(put / W).toFixed(1)} полутолщины, выросты его не тащат`; if (Math.hypot(q.x, q.y) < put * T.nozhki_pryamo) return `путь не держит направление: ушла на ${(Math.hypot(q.x, q.y) / put).toFixed(2)} пути, нужно не меньше ${T.nozhki_pryamo}`; }
+check('test_nozhki: амёба идёт выростами — вырост вытягивается, тело перетекает в него, стороны чередуются, путь держит направление', () => polzet(VC.vidy.ameba));
+check('test_nozhki_samoproverka: тот же сторож краснеет на теле без выростов', () => { const z = JSON.parse(JSON.stringify(VC.vidy.ameba)); delete z.forma.nozhki; return polzet(z) ? '' : 'сторож пропустил тело без выростов'; });
+// Урок (26.11, слияния на адресе: «после 12 кусков тело пережалось посередине, как песочные часы»; Роман: «Деление пока оставь»): сытая клетка на
+// стенде одной клетки растёт в длину только до начала перетяжки, деление там не показываем.
+const DLN = JSON.parse(fs.readFileSync(new URL('./delenie.json', import.meta.url))), bez_del = do_ => do_ < DLN.peretyazhka.s ? '' : `рост на стенде до ${do_}, а перетяжка деления начинается с ${DLN.peretyazhka.s}`;
+check('test_stend_bez_deleniya: на стенде одной клетки рост от еды кончается раньше перетяжки', () => bez_del(K.stend.rost_do));
+check('test_stend_bez_deleniya_samoproverka: тот же сторож краснеет на росте до конца', () => bez_del(1) ? '' : 'сторож пропустил рост до деления');
 // Урок (26.11, стенд мира на адресе): первый кадр браузера приходит с шагом 0 или меньше нуля, из-за этого в ходе получалось «не число» и мир замирал.
 const celoe = q => ['x', 'y', 'a', 'gnut', 'gnut_vid', 'om'].find(k => !Number.isFinite(q[k])), nol = () => { const q = { id: 1, x: 0, y: 0, a: 0 }, rnd = sluchay(1); for (const dt of [0, -0.004, 1 / 60, 0, 1 / 60]) plyt(q, VC.vidy.nasha, K, Z, dt, rnd, 0.3, W); return q; };
 check('test_hod_nol: шаг времени 0 или меньше нуля не ломает клетку, все числа хода остаются числами', () => { const k = celoe(nol()); return k ? `после шага 0 поле ${k} перестало быть числом` : ''; });

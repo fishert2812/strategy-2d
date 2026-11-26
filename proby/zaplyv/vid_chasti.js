@@ -208,6 +208,8 @@ export function sobrat(zapis, poza, B) {
     // нутро рисуется выше самой толстой части, ветки тоже (головка вируса толще хвоста)
     for (const v of vetki) P.nad = Math.max(P.nad, v.r0 * w * 1.05);
     // вмятины и бугры самой записи (forma.vypuklosti, vysota меньше нуля — вмятина: ротовая бороздка туфельки)
+    // вырост позы задаётся углом от носа (ot_nosa, радианы по обводу): ложноножка, которую ведёт закон хода (hod.js polzet)
+    if (P.vypuklosti) P.vypuklosti = P.vypuklosti.map(v => v.ot_nosa === undefined ? v : { ...v, t: O.nos_t + v.ot_nosa });
     if (forma.vypuklosti) P.vypuklosti = [...forma.vypuklosti, ...(P.vypuklosti || [])];
     // под веткой тело не выпучивается отдельным бугром: переход делает сама ветка (иначе бугор закрывает её корень, и край тела режет основание)
     if (vetki.length && P.vypuklosti) P.vypuklosti = P.vypuklosti.filter(b => !vetki.some(v => Math.abs(Math.atan2(Math.sin(b.t - v.t), Math.cos(b.t - v.t))) < 0.35));

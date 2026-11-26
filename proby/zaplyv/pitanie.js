@@ -15,7 +15,7 @@ export function kontakt(q, veshchi, T, w, K, k_eda, dt) { const kh = T.kh * w, k
     if (e.tverd && zazor < K.vmyatina.zazor * w) { const n = g.d || 1; vmyat(q, e, g.ou / w, (g.u - g.ou) / n, g.v / n, K.vmyatina.myagkost * Math.max(0, (g.u - g.ou) / n * Math.sign(q.h?.faza === 'nazad' ? -1 : 1)) + K.vmyatina.kasanie, T.kr, e.r / w, K); }
     if (e.tverd) { if (zazor < 0) { const n = g.d || 1, c = Math.cos(q.a), s = Math.sin(q.a), nu = (g.u - g.ou) / n, nv = g.v / n; q.x += (nu * c - nv * s) * zazor; q.y += (nu * s + nv * c) * zazor; q.om = (q.om || 0) + (-K.tverd.povorot * Math.sign(g.ou * nv || 1) - (q.om || 0)) * Math.min(1, dt * K.tverd.plavno); if (!q.upor) { o.sobytiya.push(['upor', e]); q.tolchok = 0; } q.upor = K.tverd.pomnit; q.udar = 1; } continue; }
     if (q.est === e) continue;
-    if (zazor < K.prilip * w && !q.est && q.m < K.m_max) { q.est = e; e.u = g.ou; e.v = Math.sign(g.v || 1) * Math.sqrt(Math.max(0, (kr + e.r * K.vdavlen) ** 2 - (g.u - g.ou) ** 2)); e.du = g.u - g.ou; e.m0 = e.m; e.r0 = e.r; o.sobytiya.push(['prilip', e]); q.tolchok = 0; }
+    if (zazor < K.prilip * w && !q.est && q.m < K.m_max) { q.est = e; e.u = g.ou; { const R = kr + e.r * K.vdavlen, n = g.d || 1; e.du = (g.u - g.ou) / n * R; e.v = g.v / n * R; } e.m0 = e.m; e.r0 = e.r; o.sobytiya.push(['prilip', e]); q.tolchok = 0; }
     else if (zazor < best && q.m < K.m_max) { best = zazor; o.cel = [e.x, e.y]; } }
   q.upor = Math.max(0, (q.upor || 0) - dt);
   if (q.est) { const e = q.est, vzyal = Math.min(e.m, K.skorost * k_eda * dt); e.m -= vzyal; q.m += vzyal * K.kpd; q.syel = (q.syel || 0) + vzyal;
