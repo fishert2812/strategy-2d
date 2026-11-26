@@ -51,7 +51,7 @@ const zhitel = (k, q, x, y, a, mera, time, z) => { const Z = ZAP[k]; if (!Z) ret
 window.kaplyaLod = () => ({ ...lod }); // для замера: сколько жителей в кадре телом и сколько точкой
 const DL = cfg.delenie; // деление по физике (design/zaplyv_fizika_kak_v_zhizni.md, п. 14)
 const NJ = await (await fetch('night.json')).json(); // «Ночь рода»: числа ночи
-const cards = await (await fetch('cards.json')).json(); cards.bodo = KAP.bodo.karta; // карточка гибели от бодо
+const cards = await (await fetch('cards.json')).json(); cards.bodo = KAP.bodo.karta; for (const [k, v] of Object.entries(KAP.karty_krupnyh)) if (k !== '_') cards[k] = v; // карточки гибели от бодо и крупных П40
 const genomeData = await (await fetch('genome.json')).json();
 const W = 720; // ширина экрана в единицах игры
 const canvas = document.getElementById('c');
@@ -797,7 +797,7 @@ function events() {
     if (k === 'sick') { beep(180, 0.3, 0.05, 'sawtooth', 0.7); }
     if (k === 'burst' || k === 'eaten') { shake = 0.35; beep(110, 0.45, 0.09, 'triangle', 0.5);
       const [sx, sy] = scr(x, y), who = k === 'burst' ? 'phage' : size; // погибла за краем экрана — говорим, кто её взял (урок L039)
-      if (world.me.length && !(sx > 0 && sx < W && sy > 0 && sy < H)) { probe.lostFar = (probe.lostFar || 0) + 1; say('Сестра погибла за краем экрана: ' + ((cards[who] && cards[who].name) || 'хищник'), 2600); } }
+      if (world.me.length && !(sx > 0 && sx < W && sy > 0 && sy < H)) { probe.lostFar = (probe.lostFar || 0) + 1; say('Родня погибла за краем экрана: ' + ((cards[who] && cards[who].name) || 'хищник'), 2600); } }
   }
   world.events.length = 0;
 }
@@ -810,7 +810,7 @@ function tick(dt) {
   { const T = $('kten') || Object.assign(document.body.appendChild(document.createElement('div')), { id: 'kten' }); if (!T.style.position) Object.assign(T.style, { position: 'fixed', inset: '0', background: '#000', pointerEvents: 'none', transition: 'opacity 1.5s', opacity: '0', zIndex: '1' }); T.style.opacity = OBL.ten ? KAP.oblasti.ten.a : 0; } // П33: тень от облака
   { const g = sm.shag(SEM, world, world.me[0], KAP.semena, dt, radius); if (g) { world.genes[g] = true; say(KAP.semena.slova.vzyato.replace('{}', geneName(g)), 3000, g); } } // П76: коснулся семени — умение твоё
   vh.hudet(world, evo.E, KAP.rost, dt); if (umn.tech(world, dt, KAP.umeniya, radius) && !world.vampirSkazano) { world.vampirSkazano = true; say(KAP.umeniya.slova.vampir, 3500); } if (!world.genes.gulp && world.stats.time >= KAP.glotat_s) { world.genes.gulp = true; world.choice = world.choice.filter(g => g !== 'gulp'); say(KAP.slova_glotat, 4000); } // книга П2, П16: глотать с 10-й секунды, а не после первого роста
-  { const B = KAP.bodo, um = !!world.genes.gulp; bodo.shag(world, dt, B, radius, slyshuBodo); bodo.glotat(world, B, radius, evo.E.glotat.syt, 0, um, slyshuBodo); zh.shag(world, dt, KAP.novye); zh.glotat(world, evo.E.glotat.bolshe, radius, um, v => say(KAP.slova_glotka[v], 1600)); } // джойстик: направление и сила из сдвига пальца
+  { const B = KAP.bodo, um = !!world.genes.gulp; bodo.shag(world, dt, B, radius, slyshuBodo); bodo.glotat(world, B, radius, evo.E.glotat.syt, 0, um, slyshuBodo); zh.shag(world, dt, KAP.novye, v => !!ZAP[zh.SPISKI[v]] && (les.vkl() || GLAVA >= (KAP.novye[v].glava || 1)), radius); zh.glotat(world, evo.E.glotat.bolshe, radius, um, v => say(KAP.slova_glotka[v], 1600)); } // джойстик: направление и сила из сдвига пальца
   { const [fx, fy] = world.flow(view.x, view.y); cur[0] += fx * dt; cur[1] += fy * dt; } // течение несёт взвесь
   events();
   if (!world.me.length) {
