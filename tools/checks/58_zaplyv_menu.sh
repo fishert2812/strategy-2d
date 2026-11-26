@@ -22,4 +22,4 @@ trap 'kill $srv 2>/dev/null' EXIT
 for _ in $(seq 50); do curl -s -o /dev/null "http://127.0.0.1:$port/zaplyv/" && break; sleep 0.1; done
 u="http://127.0.0.1:$port/zaplyv/"
 PW=$PW CHROME=${CHROME:-} timeout 150 node tools/web/zaplyv_menu.mjs "$u" || exit 1
-PW=$PW CHROME=${CHROME:-} timeout 320 node tools/web/zaplyv_menu.mjs "$u" --selftest # восемь обходов; с проверками О77/О78/П2 обход дольше
+PW=$PW CHROME=${CHROME:-} timeout 450 node tools/web/zaplyv_menu.mjs "$u" --selftest # восемь обходов; с проверками О77/О78/П2 обход дольше
