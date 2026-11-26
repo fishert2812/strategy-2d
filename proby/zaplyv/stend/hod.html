@@ -6,9 +6,10 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; t
 #p { position: fixed; left: 10px; right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); padding: 10px 12px; border-radius: 14px; background: rgba(4, 16, 26, 0.8); font-size: 14px; line-height: 1.35; }
 #p label { display: flex; align-items: center; gap: 8px; margin-top: 6px; } #p label span { flex: 0 0 46%; } #p input[type=range] { flex: 1; }
 #h { opacity: 0.9; } #h b { font-size: 16px; } #r { display: none; margin-top: 6px; } #r.otkryto { display: block; } #r small { opacity: 0.7; display: block; }
-#vs { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; } #vs a { padding: 5px 9px; border-radius: 9px; border: 1px solid rgba(200, 240, 255, 0.3); color: inherit; text-decoration: none; font-size: 13px; } #vs a.tut { background: rgba(200, 240, 255, 0.18); }
+#t { position: fixed; left: 10px; right: 10px; top: max(10px, env(safe-area-inset-top)); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+#t select, #t button { min-height: 44px; min-width: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid rgba(200, 240, 255, 0.35); background: rgba(4, 16, 26, 0.8); color: inherit; font: inherit; font-size: 15px; } #t button.vkl { background: rgba(200, 240, 255, 0.3); } #t select { flex: 1 1 100%; } #sb { flex: 1 1 100%; font-size: 12px; opacity: 0.75; text-align: right; }
 #kn { float: right; margin: -2px 0 0 8px; padding: 6px 12px; border-radius: 10px; border: 1px solid rgba(200, 240, 255, 0.35); background: none; color: inherit; font: inherit; }</style></head>
-<body><canvas id="c"></canvas><div id="p"><button id="kn">Запись</button><div id="h"></div><div id="r"><small id="iz"></small></div></div>
+<body><canvas id="c"></canvas><div id="t"><select id="vs"></select><button id="k_pauza">Пауза</button><button id="k_medl">Медленно</button><button id="k_eda">Еда</button><button id="k_komok">Комок</button><span id="sb"></span></div><div id="p"><button id="kn">Запись</button><div id="h"></div><div id="r"><small id="iz"></small></div></div>
 <script type="module">
 // Стенд хода одной клетки: существо из записи (vid_chasti.json) плывёт по закону хода движка (hod.js, числа mir.json «hod»), ничего
 // не подкручено под вид. Ползунки меняют запись (число жгутиков, длина тела, жгутик на корме), ход пересчитывается сам из величин
@@ -48,7 +49,12 @@ const h = document.getElementById('h'), r = document.getElementById('r');
 const polzunok = (imya, kl, ot, do_, shag) => { const l = document.createElement('label'); l.innerHTML = '<span>' + imya + '</span><input type="range" min="' + ot + '" max="' + do_ + '" step="' + shag + '" value="' + PZ[kl] + '">'; l.firstChild.nextSibling.addEventListener('input', e => { PZ[kl] = +e.target.value; sobrat_zapis(); }); r.appendChild(l); };
 document.getElementById('kn').addEventListener('click', () => r.classList.toggle('otkryto'));
 // выбор существа из готовых записей движка (без записей живой игры): страница открывается заново с ?sushchestvo=
-{ const d = document.createElement('div'); d.id = 'vs'; for (const [k, z] of Object.entries(VC.vidy)) { if (z.igra) continue; const a = document.createElement('a'); a.href = '?sushchestvo=' + k; a.textContent = (z._ || k).split(/[:(,]/)[0].trim(); if (k === vid) a.className = 'tut'; d.appendChild(a); } r.appendChild(d); }
+{ const d = document.getElementById('vs'); for (const [k, z] of Object.entries(VC.vidy)) { if (z.igra) continue; const a = document.createElement('option'); a.value = k; a.textContent = (z._ || k).split(/[:(,]/)[0].trim(); a.selected = k === vid; d.appendChild(a); } d.addEventListener('change', () => { location.search = '?sushchestvo=' + d.value; }); }
+// инструменты проверяющего: пауза, замедление, готовые ситуации одним касанием (кусок еды и комок перед носом), метка сборки для снимков экрана
+let pauza = false, medl = false; const kn = (id, f) => document.getElementById(id).addEventListener('click', e => { f(e.currentTarget); }), pered = k => ({ x: q.x + Math.cos(q.a) * S.tolshchina * k, y: q.y + Math.sin(q.a) * S.tolshchina * k });
+kn('k_pauza', b => { pauza = !pauza; b.classList.toggle('vkl', pauza); }); kn('k_medl', b => { medl = !medl; b.classList.toggle('vkl', medl); });
+kn('k_eda', () => palec.push({ ...pered(S.knopki.eda), m: E.m[1], r: S.tolshchina * E.r })); kn('k_komok', () => palec.push({ ...pered(S.knopki.komok), m: 1, r: S.tolshchina * S.knopki.r_komka, tverd: true }));
+fetch('../version.json').then(v => v.json()).then(v => { document.getElementById('sb').textContent = 'версия ' + v.number + ' · сборка движка ' + S.sborka; });
 polzunok('Жгутиков', 'zhg', 0, S.zhgutikov_do, 1); polzunok('Длина тела', 'dl', S.dlina[0], S.dlina[1], 0.05); polzunok('Жгутик на корме', 'korma', 0, 1, 1); sobrat_zapis();
 window.hodZapis = (kl, v) => { PZ[kl] = v; sobrat_zapis(); }; window.hodSost = () => ({ vm: q.vm_vid && q.vm_vid.map(m => [+m.u.toFixed(2), +m.nu.toFixed(2), +m.d.toFixed(2), +m.a.toFixed(2)]), m: q.m, est: !!q.est, x: q.x, y: q.y, a: q.a, kach: q.kach, faza: q.h?.faza, vmax, PH });
 // Палец: короткое касание кладёт кусок еды; пока палец на воде, клетка идёт к нему (тем же ходом: дуга, кувырок на резком развороте).
@@ -77,6 +83,6 @@ window.stend = dt => { time += dt; const w = S.tolshchina * tolshche(q, KK, time
   gl.clear(); gl.render(back, cam); gl.render(bodies.scene, bodies.cam);
   if (kadr++ % 6 === 0) { const dl = 2 * (TL.kh + TL.kr); h.innerHTML = '<b>' + (zapis._ || vid).split(/[:(]/)[0].trim() + '</b><br>' + (q.est ? 'ест: кусок тает на оболочке' : q.upor > 0 ? 'упёрлась в комок' : PH.tip === 'drozh' ? 'дрожит на месте' : SLOVA[q.h.faza]) + ' · ' + (sk_sred / (2 * w * dl)).toFixed(1).replace('.', ',') + ' длины тела в секунду';
     document.getElementById('iz').textContent = 'Из записи движок вывел: ' + TIP[PH.tip] + '; быстрее всего ' + (vmax / (2 * w * dl)).toFixed(1).replace('.', ',') + ' длины тела в секунду; нос качает на ' + (PH.kach * 57.3).toFixed(0) + '°; в кувырке разворот до ' + (PH.ugol * 1.7 * 57.3).toFixed(0) + '°.'; } };
-if (!q0.get('zapis')) { let last = performance.now(); const go = now => { window.stend(Math.max(0.001, Math.min(0.05, (now - last) / 1000))); last = now; requestAnimationFrame(go); }; requestAnimationFrame(go); }
+if (!q0.get('zapis')) { let last = performance.now(); const go = now => { if (!pauza) window.stend(Math.max(0.001, Math.min(0.05, (now - last) / 1000)) * (medl ? S.medlenno : 1)); last = now; requestAnimationFrame(go); }; requestAnimationFrame(go); }
 window.stendReady = true;
 </script></body></html>
