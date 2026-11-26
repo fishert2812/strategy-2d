@@ -11,13 +11,13 @@ export const nachat = (w, n) => ({ n, syel: { ...(w.syel || {}) }, vsego: vsego(
 export function proydena(G, w, me, K) { const n = G.n, P = w.cfg.pond, nov = who => syel(w, who) > (G.syel[who] || 0);
   if (n === 2) return nov('amoeba');
   if (n === 3) return G.obyatie; // П23, П68: «Оставить жить» выбрано
-  if (n === 4) return nov('slipper') && nov('roti');
+  if (n === 4) return (nov('slipper') || nov('tufelka3')) && (nov('roti') || nov('kolovratka3')); // туфелька и коловратка: ручные или великаны после объятия (П53)
   if (n === 5) return w.me.length >= K[5].kletok;
   return false; }
 // Строка цели глав 3–5 (у главы 2 своя, с амёбой, в main.js)
 export function stroka(G, w, me, K) { const k = K[G.n]; if (!k || G.n < 3) return null;
   if (G.n === 3) return me && Math.abs(w.depth(me.y) - w.cfg.pond.oxy) < K[3].polosa ? k.tut : w.depth(me.y) < w.cfg.pond.oxy ? k.vniz : k.vverh;
-  if (G.n === 4) return syel(w, 'slipper') > (G.syel.slipper || 0) ? k.roti : syel(w, 'roti') > (G.syel.roti || 0) ? k.slipper : k.cel;
+  if (G.n === 4) { const nv = (a, b) => syel(w, a) > (G.syel[a] || 0) || syel(w, b) > (G.syel[b] || 0); return nv('slipper', 'tufelka3') ? k.roti : nv('roti', 'kolovratka3') ? k.slipper : k.cel; }
   if (G.n === 5) return k.cel.replace('{n}', w.me.length).replace('{k}', K[5].kletok);
   return k.cel; }
 // П80: проглотила дышащую кроху (она живёт у границы кислорода) — предложить выбор «Оставить жить / Переварить» (один раз, пока не ответил)

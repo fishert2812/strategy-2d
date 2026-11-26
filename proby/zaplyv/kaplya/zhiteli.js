@@ -2,10 +2,10 @@
 // Сделаны руками (Роман 26.11: «не получается — доводи руками»); тела — записи конструктора (kaplya.json «zhiteli»). Мир ручной игры:
 // квадраты по cfg.chunk, область по world.biome (0 глубина, 1 мелководье, 2 ил) — шансы книги идут в этом же порядке. Числа — kaplya.json «novye».
 const d = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-export const SPISKI = { spirilla: 'spirilly', kaulo: 'kaulo', brodyazhka: 'brodyazhki', hlorella: 'hlorelly', kroha: 'krohi', parafizo: 'parafizo', cerko: 'cerko', spumella: 'spumelly', hlamido: 'hlamido', ciklidium: 'ciklidii' };
+export const SPISKI = { spirilla: 'spirilly', kaulo: 'kaulo', brodyazhka: 'brodyazhki', hlorella: 'hlorelly', kroha: 'krohi', ameba3: 'ameby3', kolovratka3: 'kolovratki3', tufelka3: 'tufelki3', parafizo: 'parafizo', cerko: 'cerko', spumella: 'spumelly', hlamido: 'hlamido', ciklidium: 'ciklidii' };
 // П40 «Существа следующих размеров»: парафизомонада, церкомонада, спумелла (хватают рывком, как бодо), хламидомонада (рывками, не опасна), циклидиум (тянет потоком мелочь).
 // Повадка — N[вид].povadka: 'oxotnik' | 'ryvki' | 'potok'. Появляются с главы N[вид].glava и только если у движка есть запись (mozhno).
-const KRUPNYE = ['parafizo', 'cerko', 'spumella', 'hlamido', 'ciklidium'];
+const KRUPNYE = ['parafizo', 'cerko', 'spumella', 'hlamido', 'ciklidium', 'ameba3', 'kolovratka3', 'tufelka3']; // ameba3… — великаны после объятия (П53), их ставит velikany в main.js
 export function nachalo(w) { for (const k of Object.values(SPISKI)) w[k] = []; w.novyeKv = new Set(); }
 // Каулобактер без комка рядом садится на свой комок.
 // Заселение квадрата при первом подходе (как chunk() ручной игры): шанс по области, в первых safe_chunks от старта — только мирные
@@ -29,18 +29,18 @@ export function shag(w, dt, N, mozhno, radius) { const C = w.cfg.chunk, me = w.m
     if (q.zhizn > B.sest) { const dom = [...w.crumbs, ...w.plants].sort((a, b) => d(a, q) - d(b, q))[0]; if (dom && d(dom, q) < C) { q.gone = true; w.kaulo.push({ id: q.id, x: q.x, y: q.y, a: 0, m: K.massa[0], t: 0, korma: 0, dom }); } } }
   for (const q of w.krohi) { q.t += dt; q.x += Math.sin(q.t * 0.9 + q.id) * 6 * dt; q.y += Math.cos(q.t * 0.7 + q.id) * 4 * dt; } // кроха дрожит на месте
   for (const q of w.hlorelly) { q.t += dt; q.x += Math.sin(q.t * 0.3 + q.id) * 3 * dt; q.y += Math.cos(q.t * 0.25 + q.id) * 3 * dt; } // дрейфует, не плывёт
-  for (const k of Object.values(SPISKI)) w[k] = w[k].filter(q => !q.gone && (!me || d(q, me) < C * 4)); } // далеко ушедшие забываются, квадрат заселится заново не будет
+  for (const k of Object.values(SPISKI)) w[k] = w[k].filter(q => !q.gone && (!me || d(q, me) < Math.max(C * 4, radius ? radius(me.m) * 8 : 0))); } // большая клетка: забываем дальше, иначе жители пропадают у неё на глазах // далеко ушедшие забываются, квадрат заселится заново не будет
 // Крупные П40 руками. oxotnik: видит лёгкую тебя в chutyo — замах, рывок ртом, отдых, сыт после syt.n на syt.t с. potok: тянет к себе мелких в potok.r. ryvki: бег и стоп.
-function krupny(w, q, S, dt, radius, vid) { const H = S.hod; q.t += dt; q.syt = Math.max(0, (q.syt || 0) - dt); const me = w.me.filter(a => a.m * S.bolshe <= q.m).sort((a, b) => d(a, q) - d(b, q))[0], R = radius(q.m);
-  if (S.povadka === 'oxotnik' && me && !q.syt && q.faza === 'beg' && d(me, q) < S.chutyo + R) { const gap = d(me, q) - R - radius(me.m) * 0.9, ug = Math.atan2(me.y - q.y, me.x - q.x); // увидел — плывёт к тебе; близко — замах
-    if (gap < S.ryvok.v * S.ryvok.t) { q.faza = 'zamah'; q.t = 0; q.cel = me; } else { q.a += Math.atan2(Math.sin(ug - q.a), Math.cos(ug - q.a)) * Math.min(1, dt * 3); q.x += Math.cos(q.a) * H.v * dt; q.y += Math.sin(q.a) * H.v * dt; return; } }
+function krupny(w, q, S, dt, radius, vid) { const H = S.hod; q.t += dt; q.syt = Math.max(0, (q.syt || 0) - dt); const me = w.me.filter(a => a.m * S.bolshe <= q.m).sort((a, b) => d(a, q) - d(b, q))[0], R = radius(q.m), f = S.skor_r ? Math.max(1, R / S.skor_r) : 1; // великан: ход и рывок растут с телом (skor_r — радиус, при котором ход как записан)
+  if (S.povadka === 'oxotnik' && me && !q.syt && q.faza === 'beg' && d(me, q) < S.chutyo * f + R) { const gap = d(me, q) - R - radius(me.m) * 0.9, ug = Math.atan2(me.y - q.y, me.x - q.x); // увидел — плывёт к тебе; близко — замах
+    if (gap < S.ryvok.v * f * S.ryvok.t) { q.faza = 'zamah'; q.t = 0; q.cel = me; } else { q.a += Math.atan2(Math.sin(ug - q.a), Math.cos(ug - q.a)) * Math.min(1, dt * 3); q.x += Math.cos(q.a) * H.v * f * dt; q.y += Math.sin(q.a) * H.v * f * dt; return; } }
   if (q.faza === 'zamah') { const c = q.cel, ug = Math.atan2(c.y - q.y, c.x - q.x); q.a += Math.atan2(Math.sin(ug - q.a), Math.cos(ug - q.a)) * Math.min(1, dt * 8); if (q.t >= S.ryvok.zamah) { q.faza = 'ryvok'; q.t = 0; } return; }
-  if (q.faza === 'ryvok') { q.x += Math.cos(q.a) * S.ryvok.v * dt; q.y += Math.sin(q.a) * S.ryvok.v * dt; const c = q.cel;
+  if (q.faza === 'ryvok') { q.x += Math.cos(q.a) * S.ryvok.v * f * dt; q.y += Math.sin(q.a) * S.ryvok.v * f * dt; const c = q.cel;
     if (c && w.me.includes(c) && d(c, q) < R + radius(c.m) * 0.9) { w.lose(c, c.x, c.y, vid); q.m += c.m * 0.5; q.sytN = (q.sytN || 0) + 1; if (q.sytN >= S.syt.n) { q.syt = S.syt.t; q.sytN = 0; } q.faza = 'otdyh'; q.t = 0; }
     else if (q.t >= S.ryvok.t) { q.faza = 'otdyh'; q.t = 0; } return; }
   if (q.faza === 'otdyh') { if (q.t >= S.ryvok.otdyh) { q.faza = 'beg'; q.t = 0; } return; }
-  if (S.povadka === 'potok') for (const a of w.me) { if (a.m * S.bolshe > q.m) continue; const k = d(a, q); if (k < S.potok.r + R) { a.x += (q.x - a.x) / k * S.potok.v * dt; a.y += (q.y - a.y) / k * S.potok.v * dt; if (k < R * 0.8) { w.lose(a, a.x, a.y, vid); q.m += a.m * 0.5; return; } } }
-  const v = q.faza === 'stop' ? 0 : H.v; if (q.faza === 'beg' && q.t > H.beg) { q.faza = H.stop ? 'stop' : 'beg'; q.t = 0; q.a += (w.r() - 0.5) * 1.6; } else if (q.faza === 'stop' && q.t > H.stop) { q.faza = 'beg'; q.t = 0; }
+  if (S.povadka === 'potok') for (const a of w.me) { if (a.m * S.bolshe > q.m) continue; const k = d(a, q); if (k < S.potok.r * f + R) { a.x += (q.x - a.x) / k * S.potok.v * f * dt; a.y += (q.y - a.y) / k * S.potok.v * f * dt; if (k < R * 0.8) { w.lose(a, a.x, a.y, vid); q.m += a.m * 0.5; return; } } }
+  const v = q.faza === 'stop' ? 0 : H.v * f; if (q.faza === 'beg' && q.t > H.beg) { q.faza = H.stop ? 'stop' : 'beg'; q.t = 0; q.a += (w.r() - 0.5) * 1.6; } else if (q.faza === 'stop' && q.t > H.stop) { q.faza = 'beg'; q.t = 0; }
   q.x += Math.cos(q.a) * v * dt; q.y += Math.sin(q.a) * v * dt; q.kach = Math.sin(q.t * 3 + q.id) * 0.1; }
 // Своя клетка глотает их, как «Глотать» в evo.js: тяжелее в bolshe раз и коснулась — тает внутри, масса в рост
 export function glotat(w, bolshe, radius, umeet, slyshu) { if (!umeet) return;
