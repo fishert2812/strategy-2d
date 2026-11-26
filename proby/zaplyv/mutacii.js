@@ -40,10 +40,11 @@ export const lvl = (w, g) => w.genes[g] ? Math.max(1, (w.lvl || {})[g] || 0) : 0
 export const more = (w, g) => g in M.levels && own(w, g) && lvl(w, g) < M.levels[g];
 export function up(w, g) { if (!(g in M.levels)) return; const n = (w.lvl ||= {})[g] = lvl(w, g) + 1; (w.upAt ||= {})[g] = w.stats.time; // только что выбран: круг навыка вспыхивает на воде // sim.js pick: до того, как ген встал
   for (const c of ((M.combo || {})[g] || [])[n - 1] || []) { w.genes[c] = true; (w.from ||= {})[c] = 'kid'; } } // объединённое умение: ступень включает прежний ген
-const parts = w => w.mode === 'mut' ? Object.entries(M.combo || {}).filter(([k]) => k !== '_').flatMap(([, v]) => v.flat()) : []; // в режиме прежние гены идут только ступенями
+const parts = w => w.mode === 'mut' || w.kaplya ? Object.entries(M.combo || {}).filter(([k]) => k !== '_').flatMap(([, v]) => v.flat()) : []; // в режиме прежние гены идут только ступенями
 export const daet = (w, g, book) => (g in M.levels && book['uroven' + (lvl(w, g) + 1)]) || book.daet || ''; // на карточке дочки — текст следующего уровня из книги
 const fresh = (w, list) => list.filter(g => !w.genes[g] || more(w, g));
 // Из чего выбирают дочки при делении. В режиме — одна новая мутация (кроме чужих) и одно прежнее умение.
+export const chasti = parts; /* «Капля»: прежние гены, что приходят только ступенями */
 export function pool(w) {
   const old = Object.keys(w.cfg.genes).filter(g => !(g in M.genes) || everywhere(g));
   if (!on(w)) return old;
@@ -97,7 +98,7 @@ export function cell(w, a, dt, th) {
     (w.vesicles ||= []).push({ x: a.x - Math.cos(a.a) * r, y: a.y - Math.sin(a.a) * r, t: 0 });
     if (w.vesicles.length > M.decoy.max) w.vesicles.shift();
   }
-  if (a === w.me[0] && w.mode === 'mut') citrate(w);
+  if (a === w.me[0] && (w.mode === 'mut' || w.kaplya)) citrate(w); /* «Капля»: голубая еда тоже есть */
   if (has(w, 'citrate') && w.cit) for (const q of w.cit) if (!q.gone && Math.hypot(q.x - a.x, q.y - a.y) < 13 * Math.sqrt(a.m) + M.citrate.r) { // голубую точку съедает только клетка с геном
     q.gone = true; w.grow(a, M.citrate.food); w.stats.citrate = (w.stats.citrate || 0) + 1; w.fed(q.x, q.y, 1); } // как обычная еда: счёт «съедено», звук
   if (a === w.me[0] && w.refuse) { for (const g of w.refuse) g.t += dt; w.refuse = w.refuse.filter(g => g.t < M.door.flash); }

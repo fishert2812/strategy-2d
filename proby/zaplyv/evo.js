@@ -19,10 +19,11 @@ export const E = url.protocol === 'file:' ? JSON.parse((await import('node:fs'))
 export const on = w => w.mode === 'evo';
 const has = (w, g) => on(w) && !!w.genes[g];
 // Что можно предложить: все гены мира и свои умения режима, которых у клетки ещё нет, кроме умений семьи.
-export const pool = w => [...Object.keys(w.cfg.genes), ...E.svoi].filter(g => !w.genes[g] && !E.bez.includes(g) && !ot(g));
+export const pool = w => [...Object.keys(w.cfg.genes), ...E.svoi].filter(g => (!w.genes[g] || (w.urovni && w.urovni(g))) && !E.bez.includes(g) && !ot(g) && !(w.ne_dat && w.ne_dat(g))); // «Капля» (kaplya/navyki.js): взятое умение приходит следующим уровнем, прежние гены — ступенями
 // Умение от добычи: заработано ли (съедено n тех, у кого оно есть).
 const ot = g => Object.values(E.dobycha).some(d => d.gene === g);
-export const earned = w => Object.entries(E.dobycha).filter(([who, d]) => (w.syel?.[who] || 0) >= d.n && !w.genes[d.gene]).map(([, d]) => d.gene);
+const uroven = (w, g) => w.genes[g] ? Math.max(1, (w.lvl || {})[g] || 0) : 0; // «Капля»: рецепт даёт и следующий уровень (П41), за каждый — ещё n съеденных
+export const earned = w => Object.entries(E.dobycha).filter(([who, d]) => (w.syel?.[who] || 0) >= d.n * (uroven(w, d.gene) + 1) && (!w.genes[d.gene] || (w.urovni && w.urovni(d.gene)))).map(([, d]) => d.gene);
 
 // Кого можно проглотить: список мира, ключ карточки (кто), масса.
 const PREY = [['prey', 'coccus'], ['pseudos', 'pseudo'], ['bdellos', 'bdello'], ['amoebas', 'amoeba'], ['bells', 'bell'], ['rotis', 'roti'], ['slippers', 'slipper']];
