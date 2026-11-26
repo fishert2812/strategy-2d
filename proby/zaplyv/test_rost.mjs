@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
 const MODE = process.env.ROST_OFF ? 'swim' : 'rost';
 if (process.env.ROST_SYTOST) rost.R.sytost = +process.env.ROST_SYTOST; // самопроверка темпа: сторож краснеет и на медленном, и на быстром росте
+if (process.env.ROST_GRYZT) rost.R.gryzt_bolshe = +process.env.ROST_GRYZT; // самопроверка: как было до правки (любой комок тормозит) — test_rost_bolshaya_ne_vyaznet обязан покраснеть
 let bad = 0;
 const check = (name, fn) => {
   try { const r = fn(); if (r) { bad++; console.log('  ПРОВАЛ', name + ':', r); } else console.log('  ок   ', name); }
@@ -97,6 +98,17 @@ check('test_rost_eda: еда открывается по ростам, у ком
   console.log('    у комка: масса', 6.5, '→', b.m.toFixed(2), '| ход у комка', (v3 / v4).toFixed(2), 'от хода без комка');
   if (!(b.m + (b.zhd || 0) > 6.55)) return 'комок не грызёт';
   if (MODE === 'rost' && !(v3 < v4 * 0.7)) return 'у комка клетка не встаёт';
+});
+
+check('test_rost_bolshaya_ne_vyaznet: большая клетка у мелкого комка не тормозит, а у крупного встаёт', () => {
+  const hod = (m, km) => { const w = empty(11, m), b = w.me[0]; w.crumbs.push({ x: 0, y: -10, m: km, id: 99 }); const w0 = empty(11, m); let v = 0, v0 = 0;
+    for (let i = 0; i < 45; i++) { w.crumbs[0] && Object.assign(w.crumbs[0], { x: b.x, y: b.y - 5 }); w.step(1 / 30, { x: 0, y: -4000 }); w0.step(1 / 30, { x: 0, y: -4000 }); if (i > 20) { v += Math.hypot(b.vx, b.vy); v0 += Math.hypot(w0.me[0].vx, w0.me[0].vy); } }
+    return v / v0; };
+  const mel = hod(150, 4), krup = hod(150, 100);
+  console.log('    масса 150: ход у мелкого комка', mel.toFixed(2), '| у крупного', krup.toFixed(2), 'от хода без комка');
+  if (MODE !== 'rost') return '';
+  if (!(mel > 0.9)) return `мелкий комок держит большую клетку: ход ${mel.toFixed(2)} от свободного`;
+  if (!(krup < 0.7)) return `у крупного комка клетка не встаёт: ход ${krup.toFixed(2)}`;
 });
 
 // Доказательство: выросшая клетка переживает пасть, которая маленькую съедает.
