@@ -41,7 +41,7 @@ function sobrat_zapis() { const z = JSON.parse(JSON.stringify(VC.vidy[vid])); z.
   if (PZ.zhg > 0) { z.chasti.zhgutiki = { ...(z.chasti.zhgutiki || {}), n: PZ.zhg }; if (PZ.korma) z.chasti.zhgutiki.gde = 'korma'; else delete z.chasti.zhgutiki.gde; } else delete z.chasti.zhgutiki;
   if (rost > 0) z.forma.tochki = telo_rosta({ ...z, rost: rost / S.rost_stupeney });
   if (zerna >= 0 && z.chasti.vklyucheniya) z.chasti.vklyucheniya = { ...z.chasti.vklyucheniya, n: zerna };
-  zapis = z; PH = pasport_hoda(z, K, 1); const O = obvod_zon(z, { x: 0, y: 0, a: 0, tolshchina: 1 }).O; TL = { kr: O.poperechnik / 2, kh: Math.max(0, O.dlina / 2 - O.poperechnik / 2) }; }
+  zapis = z; PH = pasport_hoda(z, K, 1); const O = obvod_zon(z, { x: 0, y: 0, a: 0, tolshchina: 1 }).O; TL = { kr: O.poperechnik / 2, kh: Math.max(0, O.dlina / 2 - O.poperechnik / 2) }; q.obvod = obvod_zon(z, { x: 0, y: 0, a: 0, tolshchina: 1 }, 64).T.map(p => [p.x, p.y]); }
 const q = { id: 1, x: 0, y: 0, a: -1.2, m: 1, pokoy: 0, udar: 0 }, VM = new Map(), E = S.eda;
 // Еда и комки лежат в воде по сетке (случай от места, поэтому мир повторяется); съеденный кусок через время нарастает снова.
 const veshch = (i, j) => { const kl = i + ',' + j; let e = VM.get(kl); if (e === undefined) { const h1 = hash(i * 3 + 1, j * 7 + 2), x = (i + 0.2 + 0.6 * hash(i, j)) * E.shag, y = (j + 0.2 + 0.6 * hash(j + 7, i)) * E.shag;
