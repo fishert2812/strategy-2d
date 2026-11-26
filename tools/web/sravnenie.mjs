@@ -53,6 +53,9 @@ if (!selftest) { if (KADRY) fs.mkdirSync(KADRY, { recursive: true });
   const bad = await prohod(vse, OBR, KADRY);
   for (const v of Object.keys(OB.vidy)) if (!VC.vidy[v]) { console.log(`  ПРОВАЛ test_sravnenie_obrazec: в stend/obrazcy.json «${v}», а записи в vid_chasti.json нет`); code = 1; }
   console.log(`  паспорт: экран ${IM} ${DEV.viewport.width}×${DEV.viewport.height}, записей ${vse.length} (${vse.join(', ')}), образцы из ${OBR}, провалов ${bad}` + (KADRY ? `, кадры в ${KADRY}` : ''));
+  // пропуски не прячем: записи с пометкой igra в сравнение не идут, паспорт называет их число и имена (цель — ноль жителей «Капли» без образца)
+  const bez = Object.keys(VC.vidy).filter(k => VC.vidy[k].igra && !OB.vidy[k]);
+  console.log(`  паспорт: без образца: ${bez.length}` + (bez.length ? ` (${bez.join(', ')})` : ''));
   if (bad) code = 1;
 } else {
   const pusto = fs.mkdtempSync(path.join((await import('node:os')).tmpdir(), 'obr-'));
