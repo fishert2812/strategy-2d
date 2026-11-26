@@ -6,6 +6,7 @@ canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; t
 #p { position: fixed; left: 10px; right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); padding: 10px 12px; border-radius: 14px; background: rgba(4, 16, 26, 0.8); font-size: 14px; line-height: 1.35; }
 #p label { display: flex; align-items: center; gap: 8px; margin-top: 6px; } #p label span { flex: 0 0 46%; } #p input[type=range] { flex: 1; }
 #h { opacity: 0.9; } #h b { font-size: 16px; } #r { display: none; margin-top: 6px; } #r.otkryto { display: block; } #r small { opacity: 0.7; display: block; }
+#vs { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; } #vs a { padding: 5px 9px; border-radius: 9px; border: 1px solid rgba(200, 240, 255, 0.3); color: inherit; text-decoration: none; font-size: 13px; } #vs a.tut { background: rgba(200, 240, 255, 0.18); }
 #kn { float: right; margin: -2px 0 0 8px; padding: 6px 12px; border-radius: 10px; border: 1px solid rgba(200, 240, 255, 0.35); background: none; color: inherit; font: inherit; }</style></head>
 <body><canvas id="c"></canvas><div id="p"><button id="kn">Запись</button><div id="h"></div><div id="r"><small id="iz"></small></div></div>
 <script type="module">
@@ -46,6 +47,8 @@ const SLOVA = { beg: 'бежит, пучок собран', kuvyrok: 'кувыр
 const h = document.getElementById('h'), r = document.getElementById('r');
 const polzunok = (imya, kl, ot, do_, shag) => { const l = document.createElement('label'); l.innerHTML = '<span>' + imya + '</span><input type="range" min="' + ot + '" max="' + do_ + '" step="' + shag + '" value="' + PZ[kl] + '">'; l.firstChild.nextSibling.addEventListener('input', e => { PZ[kl] = +e.target.value; sobrat_zapis(); }); r.appendChild(l); };
 document.getElementById('kn').addEventListener('click', () => r.classList.toggle('otkryto'));
+// выбор существа из готовых записей движка (без записей живой игры): страница открывается заново с ?sushchestvo=
+{ const d = document.createElement('div'); d.id = 'vs'; for (const [k, z] of Object.entries(VC.vidy)) { if (z.igra) continue; const a = document.createElement('a'); a.href = '?sushchestvo=' + k; a.textContent = (z._ || k).split(/[:(,]/)[0].trim(); if (k === vid) a.className = 'tut'; d.appendChild(a); } r.appendChild(d); }
 polzunok('Жгутиков', 'zhg', 0, S.zhgutikov_do, 1); polzunok('Длина тела', 'dl', S.dlina[0], S.dlina[1], 0.05); polzunok('Жгутик на корме', 'korma', 0, 1, 1); sobrat_zapis();
 window.hodZapis = (kl, v) => { PZ[kl] = v; sobrat_zapis(); }; window.hodSost = () => ({ vm: q.vm_vid && q.vm_vid.map(m => [+m.u.toFixed(2), +m.nu.toFixed(2), +m.d.toFixed(2), +m.a.toFixed(2)]), m: q.m, est: !!q.est, x: q.x, y: q.y, a: q.a, kach: q.kach, faza: q.h?.faza, vmax, PH });
 // Палец: короткое касание кладёт кусок еды; пока палец на воде, клетка идёт к нему (тем же ходом: дуга, кувырок на резком развороте).
@@ -70,7 +73,7 @@ window.stend = dt => { time += dt; const w = S.tolshchina * tolshche(q, KK, time
   // взвесь в воде: редкие мутные крупинки стоят на месте (сетка по воде), по ним видно ход и дрожь
   const gv = S.vzves.shag; for (let j = Math.floor(y0 / gv); j <= (y0 + H) / gv; j++) for (let i = Math.floor(x0 / gv); i <= (x0 + W) / gv; i++) { const px = (i + hash(i, j)) * gv - x0, py = (j + hash(j + 7, i)) * gv - y0; bodies.sphere(px, py, S.vzves.r * (0.5 + hash(i + 3, j)), S.vzves.cvet, S.vzves.cvet, i * 31 + j, 0.6, S.vzves.a); }
   for (const e of ryadom) if (e.r > 0.15) bodies.sphere(e.x - x0, e.y - y0, e.r, e.tverd ? E.cvet_komka : E.cvet, e.tverd ? E.kromka_komka : E.kromka, Math.round(e.x + e.y * 3), e.tverd ? 0.9 : 0.8, 1);
-  sobrat(zapis, { x: q.x - x0, y: q.y - y0, a: q.a + q.kach, tolshchina: w, z: 1, time, id: 1, beg: vb, zh: q.zh, gnut: q.gnut_vid, vm: q.vm_vid, plesk: q.plesk, vypuklosti: q.vyp }, bodies); bodies.end(time);
+  sobrat(zapis, { x: (q.sled ? q.sled.x : q.x) - x0, y: (q.sled ? q.sled.y : q.y) - y0, a: (q.sled ? q.sled.a : q.a) + q.kach, tolshchina: w, z: 1, time, id: 1, beg: vb, zh: q.zh, gnut: q.gnut_vid, vm: q.vm_vid, plesk: q.plesk, vypuklosti: q.vyp }, bodies); bodies.end(time);
   gl.clear(); gl.render(back, cam); gl.render(bodies.scene, bodies.cam);
   if (kadr++ % 6 === 0) { const dl = 2 * (TL.kh + TL.kr); h.innerHTML = '<b>' + (zapis._ || vid).split(/[:(]/)[0].trim() + '</b><br>' + (q.est ? 'ест: кусок тает на оболочке' : q.upor > 0 ? 'упёрлась в комок' : PH.tip === 'drozh' ? 'дрожит на месте' : SLOVA[q.h.faza]) + ' · ' + (sk_sred / (2 * w * dl)).toFixed(1).replace('.', ',') + ' длины тела в секунду';
     document.getElementById('iz').textContent = 'Из записи движок вывел: ' + TIP[PH.tip] + '; быстрее всего ' + (vmax / (2 * w * dl)).toFixed(1).replace('.', ',') + ' длины тела в секунду; нос качает на ' + (PH.kach * 57.3).toFixed(0) + '°; в кувырке разворот до ' + (PH.ugol * 1.7 * 57.3).toFixed(0) + '°.'; } };
