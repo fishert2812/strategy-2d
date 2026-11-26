@@ -234,7 +234,7 @@ const beep = (f, dur, vol = 0.05, type = 'sine', slide = 0.6) => {
 
 const STICK = 56; // полный ход большого пальца (~30 точек экрана); дальше кольцо едет за пальцем
 const pad = new Stick(STICK);
-let GOL = gol.sozdat(); let POK = pkz.sozdat(); let ZAR = zr.sozdat(); let VIR = []; let VDOH = 0; let KIS = kis.sozdat();
+let GOL = gol.sozdat(); let POK = pkz.sozdat(); let ZAR = zr.sozdat(); let VIR = []; let VDOH = 0; let KIS = kis.sozdat(); let ROT = vdv.sozdat();
 let LIN = null, GL = null, SEM = [], ROD_K = rod.sozdat(), OBL = obl.sozdat(), LES = les.sozdat(), GLAVA = 1, CEL = cel.sozdat(), world, view, finger = null, down = null, moved = false, shake = 0, ended = false, lastEat = 0;
 const $ = id => document.getElementById(id);
 const ver = (await (await fetch('version.json')).json()).number; // свой номер «Заплыва», список — VERSIONS.md
@@ -246,7 +246,7 @@ function start(genes, mode) {
   world.posle = Object.fromEntries(Object.values(GENY.geny || {}).filter(q => q.klyuch).map(q => [q.klyuch, q.posle || []])); world.known = met; // ген от того, кого уже встречал
   if (Array.isArray(genes)) world.inherit(genes); // заплыв веткой рода после «Ночи рода»
   $('night').classList.remove('on'); $('menu').classList.remove('on');
-  if (GOL.zapas && world) { world.cfg.food_per_chunk = GOL.zapas.f; world.cfg.food_patches = GOL.zapas.p; } GOL = gol.sozdat(); POK = pkz.sozdat(); ZAR = zr.sozdat(); KIS = kis.sozdat(); // голод, показ мира и заметность не переживают новый заход
+  if (GOL.zapas && world) { world.cfg.food_per_chunk = GOL.zapas.f; world.cfg.food_patches = GOL.zapas.p; } GOL = gol.sozdat(); POK = pkz.sozdat(); ROT = vdv.sozdat(); ZAR = zr.sozdat(); KIS = kis.sozdat(); // голод, показ мира и заметность не переживают новый заход
   view = { x: 0, y: 0, z: 2.2, tint: [...TINT[0]] }; CEL = cel.sozdat(); GLAVA = 1; LES = les.sozdat(); OBL = obl.sozdat(); ROD_K = rod.sozdat(); zh.nachalo(world); { const P = sm.pamyat(), K = KAP.semena; SEM = P.zahodov && world.me[0] ? sm.posadit(world.me[0], K, sm.vybor(P, K, world.cfg.genes, world.genes)) : []; if (SEM.length) setTimeout(() => say(K.slova.start, 3000), 300); } // П76: семена рода
   { const sg = les.vkl() ? 1 : glv.sohranena(); if (sg >= 2 && KAP.glavy[sg] && world.me[0]) { GLAVA = sg; world.me[0].m = KAP.glavy[sg].massa; setTimeout(() => say(KAP.glavy[sg].nazvanie, 3500), 600); } GL = glv.nachat(world, GLAVA); } // П76, П83: заход с последней непройденной главы
   if (les.vkl() || VEHI.has('glotat') || GLAVA >= 2) world.genes.gulp = true; if (!les.vkl() && GLAVA === 1) bodo.nachalo(world, KAP.bodo); // П54: веха «Глотать: навсегда»; в «Лестнице» хозяина нет, «Глотать» с рождения (П86)
@@ -709,7 +709,7 @@ function dalee() { const t = performance.now(); while (OCHERED.length && t - OCH
 // П23: коснуться одного из двух вариантов при большом событии. Две кнопки поверх игры, мир не стоит.
 function vybor(V, otvet) { let el = $('kvybor'); if (!el) { el = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'kvybor' })); Object.assign(el.style, { position: 'fixed', left: '52px', right: '16px', bottom: 'calc(env(safe-area-inset-bottom) + 250px)', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: '5', textAlign: 'center' }); }
   el.innerHTML = '<p style="margin:0;font-weight:600;text-shadow:0 1px 4px #000"></p>'; el.firstChild.textContent = V.vopros; V.knopki.forEach((t, i) => { const B = document.createElement('button'); B.textContent = t; B.onclick = e => { e.stopPropagation(); el.remove(); otvet(i); }; el.appendChild(B); }); }
-window.kaplyaVybor = () => $('kvybor'); window.kaplyaKarta = () => KAP.karta; window.kaplyaRot = () => KAP.rot; window.kaplyaGL = () => GL; window.kaplyaSposoby = () => world.sposoby; window.kaplyaPokazMira = () => POK; window.kaplyaMayak = () => $('kmayak'); window.kaplyaGol = () => GOL; window.kaplyaZaraza = () => ZAR; window.kaplyaVirus = () => VIR; window.kaplyaKislota = () => KIS;
+window.kaplyaVybor = () => $('kvybor'); window.kaplyaKarta = () => KAP.karta; window.kaplyaRot = () => ({ K: KAP.rot, S: ROT }); window.kaplyaGL = () => GL; window.kaplyaSposoby = () => world.sposoby; window.kaplyaPokazMira = () => POK; window.kaplyaMayak = () => $('kmayak'); window.kaplyaGol = () => GOL; window.kaplyaZaraza = () => ZAR; window.kaplyaVirus = () => VIR; window.kaplyaKislota = () => KIS;
 { const R = ruka.sozdat(); document.body.classList.toggle('levsha', R.ruka === 'leva'); addEventListener('pointerdown', e => { if (ruka.kasanie(R, e.clientX, innerWidth, KAP.ruka)) document.body.classList.toggle('levsha', R.ruka === 'leva'); }, { passive: true }); window.kaplyaRuka = () => R; } // П4: рука по первым 20 касаниям
 window.kaplyaSay = say; window.kaplyaPokaz = pokaz; window.kaplyaOchered = () => OCHERED.length; window.kaplyaLin = () => LIN;
 const told = new Set(); // подсказка — один раз и только в момент, когда она нужна
@@ -829,7 +829,7 @@ function tick(dt) {
   { const K = KAP.sposoby; if (!les.vkl()) for (const n of sp.poluchit(world, GLAVA)) say(K.slova[n], 4500); if (sp.prisoska(world, dt, K.prisoska, radius, cel.SPIS, ms0) && !world.pyotSkazano) { world.pyotSkazano = true; say(K.slova.pyot, 3000); } if (sp.soki(world, dt, K.soki, radius) && !world.sokiSkazano) { world.sokiSkazano = true; say(K.slova.oblako, 3000); } } // П18, П19
   mk.shag(world, dt, KAP.mayak); // П12: род помнит, где уплывшая сестра
   zr.shag(ZAR, world, dt, KAP.zaraza, radius); // П52, ЛЭ26: на большую клетку садится больше вирусов, вокруг неё больше запятых
-  vdv.shag(world, dt, KAP.rot, radius, Math.max(mut.lvl(world, 'magnet'), world.genes.sense ? 1 : 0)); /* Ш2, З6: еда перед носом закручивается водоворотом в рот; «Чует еду» (книга: «Нюх» становится «Магнитом», К0 — умения не удаляем) даёт конус первого уровня */
+  vdv.shag(ROT, world, dt, KAP.rot, radius, Math.max(mut.lvl(world, 'magnet'), world.genes.sense ? 1 : 0)); /* Ш2, З6: еда перед носом закручивается водоворотом в рот; «Чует еду» (книга: «Нюх» становится «Магнитом», К0 — умения не удаляем) даёт конус первого уровня */
   { const t = les.vkl() ? '' : gol.shag(GOL, world, dt, KAP.golod, GLAVA, OBL.ten); if (t) say(t, 3500); const M = $('kmut') || Object.assign(document.body.appendChild(document.createElement('div')), { id: 'kmut' }); if (!M.style.position) Object.assign(M.style, { position: 'fixed', inset: '0', background: KAP.golod.mut.cvet, pointerEvents: 'none', zIndex: '1' }); M.style.opacity = (GOL.mut * KAP.golod.mut.a).toFixed(3); } // П85: голод — вода мутнеет
   { const T = $('kten') || Object.assign(document.body.appendChild(document.createElement('div')), { id: 'kten' }); if (!T.style.position) Object.assign(T.style, { position: 'fixed', inset: '0', background: '#000', pointerEvents: 'none', transition: 'opacity 1.5s', opacity: '0', zIndex: '1' }); T.style.opacity = OBL.ten ? KAP.oblasti.ten.a : 0; } // П33: тень от облака
   { const g = sm.shag(SEM, world, world.me[0], KAP.semena, dt, radius); if (g) { world.genes[g] = true; say(KAP.semena.slova.vzyato.replace('{}', geneName(g)), 3000, g); } } // П76: коснулся семени — умение твоё
@@ -1155,13 +1155,14 @@ function paint(time) {
   for (const p of puffs) { p.x += p.vx / 60; p.y += p.vy / 60; p.vx *= 0.95; p.vy *= 0.95; const [x, y] = scr(p.x, p.y); wake.put(x, y, (5 + 9 * p.t) * z, 0.8, 0.92, 1, 0.07 * (1 - p.t / 1.4)); } // мягкие широкие завихрения, а не цепочка бусин за кормой (отзыв 25.11: «пунктирные следы за клеткой»)
   for (const f of world.food) { // еда трёх видов (Е2, Е4): жёлтые крошки, белые искры глюкозы, розовый белковый сок
     const [x, y] = scr(f.x, f.y); if (!on(x, y, 20)) continue;
-    const F = cfg.food_kinds[f.kind || 'bits'], k = Math.sqrt(f.s || 1) * F.size * (f.rot ? f.rotk || 1 : 1), tw = F.twinkle ? 0.75 + 0.25 * Math.sin(time * 7 + f.x * 0.3 + f.y) : 1;
+    const F = cfg.food_kinds[f.kind || 'bits'], k = Math.sqrt(f.s || 1) * F.size, tw = F.twinkle ? 0.75 + 0.25 * Math.sin(time * 7 + f.x * 0.3 + f.y) : 1;
     const dm = rost.dim(world, f.kind || 'bits'); if (z > KAP.lod.eda_z) glow.put(x, y, 9 * z * k * F.halo_r, ...F.halo, 0.14 * tw * dm); // большая клетка: у крупинок без ореола (лаги)
     glow.put(x, y, 3.2 * z * k + 0.6, ...F.core, 0.9 * tw * dm); // ценность видна размером и ореолом: крошка меньше всех, сок крупнее (дизайнер); искры мерцают
   }
   { const K = KAP.kislota; for (const g of KIS.grozdi) { const k = kis.krug(g, world, K); if (!k) continue; const [x, y] = scr(k.x, k.y), R = k.r * z; if (!on(x, y, R)) continue; // П26: бледно-жёлтая муть с мелкими пузырьками у грозди шариков
     for (let j = 0; j < 7; j++) { const t = j * 2.399 + time * 0.1, rr = R * 0.7 * Math.sqrt((j + 0.5) / 7); glow.put(x + Math.cos(t) * rr, y + Math.sin(t) * rr, R * 0.6, ...K.cvet, K.a); }
     for (let j = 0; j < K.puzyrki; j++) { const t = j * 2.399, f = (time * 0.25 + j / K.puzyrki) % 1, rr = R * 0.8 * Math.sqrt((j + 0.5) / K.puzyrki); ink.put(x + Math.cos(t) * rr, y + Math.sin(t) * rr - f * R * 0.3, (1.2 + j % 2) * Math.max(1, z), ...K.cvet, 0.5 * (1 - f)); } } }
+  { const K = KAP.rot; for (const k of ROT.kuski) { const F = cfg.food_kinds[k.f.kind || 'bits']; for (const t of vdv.tochki(k, K, radius)) { if (t.p >= 1) continue; const [x, y] = scr(t.x, t.y); if (!on(x, y, 10)) continue; const r = K.r_tochki * (1 - 0.45 * t.p) * Math.max(1, z * 0.6); glow.put(x, y, r * 2.6, ...F.halo, 0.22 * K.a); glow.put(x, y, r, ...F.core, K.a); } } } /* Ш2: кусок рассыпался на точки, они воронкой бегут в рот */
   { const K = KAP.virus_znak, me = world.me[0]; VIR = me ? vir.muti(world.phages, me, K, radius(me.m), cfg.speed / rost.hod(world, me)) : []; for (const q of VIR) { const [x, y] = scr(q.x, q.y); if (!on(x, y, 80)) continue; const ob = q.vid === 'oblako'; glow.put(x, y, (ob ? K.r_oblako : K.r_blizko) * z, ...K.cvet, ob ? K.a_oblako : K.a_blizko); } } // П7: вирус опасен водой — серая муть рядом и в облаке, без красного и розового
   for (const g of world.phages) { // фаг T4: головка позади, хвостом вперёд — садится хвостом
     const [x, y] = scr(g.x, g.y); if (!on(x, y)) continue;

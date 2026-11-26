@@ -1,22 +1,31 @@
-// Ш2 (design/partii/kolonia_eda_boy.md, закон З6): водоворот у рта. Рот — передний конец клетки по оси a.
-// Конус вперёд от рта: длина dlina своих радиусов, полуугол ugol. Еда в конусе идёт к рту по спирали: расстояние до рта
-// уменьшается на v радиусов в секунду, а вокруг рта она обходит со скоростью krut рад/с (у самого рта быстрее, как в воронке),
-// и к рту видно уменьшается до umen своего размера. Съедает её ручное касание (pravila_mira), как раньше.
-// «Пищевой магнит» (ручной, mutacii.js) делает конус длиннее и шире: K.magnit по уровням; еду, которую тянет сам магнит, водоворот не трогает.
-// Числа — kaplya.json «rot». Рисования здесь нет: main.js берёт f.rotk как множитель размера.
+// Ш2 (design/partii/kolonia_eda_boy.md, закон З6) — водоворот у рта. Роман 26.11 21:34: «еда распадается на атому по частям и эти атомы водоворотиком тебе в рот бегут».
+// Рот — одна точка: кончик носа по оси a (когда движок даст рот, он встанет туда же). Кусок еды в конусе перед ртом (длина dlina радиусов, полуугол ugol)
+// уходит из воды и рассыпается на n точек своего цвета. Каждая точка бежит в рот по сужающейся воронке: вдоль оси к рту, а поперёк качается
+// с размахом, который сходит на нет у рта (krut — сколько оборотов в секунду). Весь кусок проходит за t секунд (последняя точка позже на (n−1)·zaderzhka).
+// Когда добежала последняя, кусок кладётся у рта — его съедает ручное касание (pravila_mira) с прежней прибавкой. Числа — kaplya.json «rot».
+// Рисования здесь нет: main.js берёт tochki() и рисует точки цветом еды.
 export const konus = (K, lvl) => lvl > 0 ? K.magnit[Math.min(lvl, K.magnit.length) - 1] : { dlina: K.dlina, ugol: K.ugol };
 export const rot = (a, R) => [a.x + Math.cos(a.a) * R, a.y + Math.sin(a.a) * R];
-export const vKonuse = (a, R, f, C) => { const [mx, my] = rot(a, R), dx = f.x - mx, dy = f.y - my, d = Math.hypot(dx, dy);
-  if (d > C.dlina * R) return false; if (C.ugol >= 180 || d < 1e-6) return true;
-  return (dx * Math.cos(a.a) + dy * Math.sin(a.a)) / d >= Math.cos(C.ugol * Math.PI / 180); };
-export function shag(w, dt, K, radius, lvl) {
-  for (const a of w.me) { const R = radius(a.m), C = konus(K, lvl), [mx, my] = rot(a, R);
-    for (const f of w.food) { if (f.gone || f.pull) { if (f.rot === a) f.rot = null; continue; }
-      if (f.rot !== a) { if (f.rot && w.me.includes(f.rot)) continue; if (!vKonuse(a, R, f, C)) continue; f.rot = a; f.rot0 = Math.hypot(f.x - mx, f.y - my) || 1; f.rotS = w.r ? (w.r() < 0.5 ? 1 : -1) : 1; }
-      const dx = f.x - mx, dy = f.y - my, d = Math.hypot(dx, dy);
-      if (d > C.dlina * R * K.otpusk) { f.rot = null; f.rotk = 1; continue; } // клетка отвернула далеко: еда отпущена
-      const nd = Math.max(0, d - K.v * R * dt), fi = Math.atan2(dy, dx) + f.rotS * K.krut * dt * Math.min(K.krut_max, K.dlina * R / Math.max(d, 1e-3));
-      f.x = mx + Math.cos(fi) * nd; f.y = my + Math.sin(fi) * nd; f.vx = f.vy = 0;
-      f.rotk = K.umen + (1 - K.umen) * Math.min(1, nd / f.rot0);
-      if (nd < K.u_rta * R) { f.x = a.x; f.y = a.y; } } } // у рта: в клетку, касание её съест
-}
+const mest = (a, R, x, y) => { const [mx, my] = rot(a, R), dx = x - mx, dy = y - my, c = Math.cos(a.a), s = Math.sin(a.a); return [dx * c + dy * s, -dx * s + dy * c]; }; // вдоль оси (вперёд +), поперёк
+export const vKonuse = (a, R, f, C) => { const [u, v] = mest(a, R, f.x, f.y), d = Math.hypot(u, v);
+  if (d > C.dlina * R) return false; if (C.ugol >= 180 || d < 1e-6) return true; return u / d >= Math.cos(C.ugol * Math.PI / 180); };
+export const sozdat = () => ({ kuski: [] });
+export const dlitsya = K => K.t + (K.n - 1) * K.zaderzhka;
+export function shag(S, w, dt, K, radius, lvl) {
+  for (const a of w.me) { const R = radius(a.m), C = konus(K, lvl);
+    for (const f of w.food) { if (f.gone || f.pull || !(vKonuse(a, R, f, C) || Math.hypot(f.x - a.x, f.y - a.y) < R * K.bok + K.bok_zazor)) continue; // и та, что у бока: раньше касания она тоже рассыпается и обтекает тело к рту // еду, которую тянет ручной «Пищевой магнит», он ведёт сам
+      const [u, v] = mest(a, R, f.x, f.y), rnd = w.r ? w.r : Math.random; f.vzyat = true;
+      S.kuski.push({ f, a, t: 0, u, v, faza: [...Array(K.n)].map(() => rnd() * 6.283), raz: [...Array(K.n)].map(() => [(rnd() - 0.5) * K.razbros * R, (rnd() - 0.5) * K.razbros * R]) }); } }
+  if (S.kuski.length) w.food = w.food.filter(f => !f.vzyat);
+  for (const k of S.kuski) { k.t += dt;
+    if (!w.me.includes(k.a) || k.t >= dlitsya(K)) { k.gotov = true; const a = w.me.includes(k.a) ? k.a : null; k.f.vzyat = false;
+      if (a) { const R = radius(a.m); k.f.x = a.x + Math.cos(a.a) * R * K.v_telo; k.f.y = a.y + Math.sin(a.a) * R * K.v_telo; } w.food.push(k.f); } }
+  S.kuski = S.kuski.filter(k => !k.gotov); }
+// точки куска сейчас: [{x, y, p}] — p от 0 (только рассыпалась) до 1 (во рту)
+export function tochki(k, K, radius) { const a = k.a, R = radius(a.m), [mx, my] = rot(a, R), c = Math.cos(a.a), s = Math.sin(a.a), out = [];
+  for (let j = 0; j < K.n; j++) { const p = Math.max(0, Math.min(1, (k.t - j * K.zaderzhka) / K.t)), q = 1 - p, sh = q * q * (3 - 2 * q); // плавно: рассыпалась, разогналась, втекла
+    const u = (k.u + k.raz[j][0] * Math.min(1, p * 6)) * sh, sir = Math.max(0, u) * Math.tan(K.vor_ugol * Math.PI / 180) * Math.min(1, p * 4); // ширина воронки на этой глубине
+    let v = (k.v + k.raz[j][1] * Math.min(1, p * 6)) * sh + sir * Math.sin(k.faza[j] + 6.283 * K.krut * k.t);
+    if (u < 0) { const hw = Math.sqrt(Math.max(0, R * R - (u + R) ** 2)) * K.obtekat; if (Math.abs(v) < hw) v = (Math.sign(k.v) || 1) * hw; } // позади рта точка не идёт сквозь тело, а обтекает его по боку
+    out.push({ x: mx + u * c - v * s, y: my + u * s + v * c, p, u, v }); }
+  return out; }
