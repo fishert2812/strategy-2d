@@ -248,6 +248,16 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
 #goal i { display: block; font-style: normal; font-size: 24px; line-height: 24px; width: 24px; }
 #goal b { display: block; font-weight: 500; white-space: nowrap; margin-left: -12px; }
 #cabinet.inpause { padding-top: 8px; }
+/* «Режимы» сеткой в две колонки: плитки не налезают и не уходят за край на любом экране (0.105: линия через «Ночь рода», «Селекция» обрезана, плитка спрятана) */
+#mscene .mband { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 8px; height: auto; padding: 10px 4px 14px; align-items: start; }
+#mscene .mfilm { display: none; }
+#mscene .mo { position: relative; left: auto !important; top: auto !important; transform: none; min-width: 0; box-sizing: border-box; }
+#mscene .mo.sel { transform: scale(1.04); }
+#mscene .mo img { width: 76px; height: 76px; } #mscene .mo .art { transform: scale(0.8); margin: -7px -10px; }
+#mscene .mo b { max-width: 100%; box-sizing: border-box; overflow-wrap: anywhere; text-align: center; }
+#mscene .mo small { display: block; max-width: 100%; text-align: center; overflow-wrap: anywhere; }
+#mscene .mband.past { border-top: 1px solid rgba(200, 235, 240, 0.3); }
+#mscene { -webkit-mask-image: linear-gradient(#000 calc(100% - 28px), transparent); mask-image: linear-gradient(#000 calc(100% - 28px), transparent); } /* низ сцены гаснет — видно, что список листается (О104) */
 </style>
 </head>
 <body>
