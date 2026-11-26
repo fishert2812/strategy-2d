@@ -35,6 +35,10 @@ const say = t => console.log('ПАСПОРТ: ' + t);
     for (let j = 0; j < 8; j++) { await p.mouse.move(box.width / 2 + 140 * Math.sin(i + j / 8), box.height * 0.25); await p.waitForTimeout(110); }
     await p.mouse.up(); await p.mouse.click(box.width / 2, box.height / 2); await kolonia(); // касание может поделить или клетку съедят: колония снова из KLETOK
   }
+  // проба пишет клеток по кадру: сразу после kolonia() в ней ещё прошлый кадр (касание поделило или клетку съели).
+  // Читаем после трёх новых кадров, нагрузка остаётся ровно KLETOK.
+  await kolonia(); const f1 = await p.evaluate(() => zaplyvProbe.frames);
+  await p.waitForFunction(f => zaplyvProbe.frames > f + 3, f1, { timeout: 10000 }).catch(() => {});
   const g = await p.evaluate(() => zaplyvProbe);
   say(`${process.argv[3]}: кадров ${g.frames}, клеток ${g.cells}, точек ${g.dots}, расчёт кадра ${g.js.toFixed(2)} мс (худший ${g.jsWorst.toFixed(1)}), кадр ${g.avg.toFixed(1)} мс, проплыл ${Math.round(g.path)}, ошибок ${bad + g.errors}`);
   await b.close();
