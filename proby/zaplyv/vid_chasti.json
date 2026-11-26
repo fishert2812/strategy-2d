@@ -19,7 +19,7 @@
     "nukleoid": { "porog": 18, "dlina": 0.6, "shirina": 0.42, "petli": 4, "zvenya": 170, "tolsh": 0.05, "temp": 0.25, "cvet": [1.0, 0.6, 0.25], "a": 1 },
     "ribosomy": { "porog": 18, "n": 120, "r": 0.045, "drozh": 0.012, "cvet": [1.0, 0.5, 0.9], "kromka": [1, 0.85, 1] },
     "vklyucheniya": { "porog": 18, "n": 4, "r": 0.1, "cvet": [1.0, 0.8, 0.45], "kromka": [1, 0.9, 0.7] },
-    "zhgutiki": { "n": 5, "moshch": 1, "dlina": 7.5, "dlina_tela": 1.3, "tolsh": 0.032, "suzh": 0.3, "zagib": 2.6, "nazad": 0.65, "min_tolsh": 0.5, "porog_melko": 18, "izdali_razmah": 0.85, "izdali_tolsh": 0.75, "izdali_svet": 0.35, "izdali_a_konec": 0.5, "izdali_shag": 1.35, "izdali_n": 2, "shag": 2.3, "razmah": 0.3, "oboroty": 2.5, "zvenya": 56, "sbor": 2.5, "puchok": 0.16, "cvet": [0.7, 0.92, 1.0], "a": 1 },
+    "zhgutiki": { "n": 5, "moshch": 1, "dlina": 7.5, "dlina_tela": 1.3, "tolsh": 0.032, "suzh": 0.3, "zagib": 2.6, "nazad": 0.65, "min_tolsh": 0.5, "porog_melko": 18, "izdali_razmah": 0.85, "izdali_tolsh": 0.75, "izdali_svet": 0.35, "izdali_a_konec": 0.5, "izdali_shag": 1.35, "izdali_n": 2, "shag": 2.3, "razmah": 0.3, "oboroty": 2.5, "zvenya": 56, "sbor": 2.5, "puchok": 0.16, "veer": 0.6, "cvet": [0.7, 0.92, 1.0], "a": 1 },
     "zhgutik_vint": { "n": 1, "razlet": 0.25, "dlina": 3.5, "shag": 0.9, "razmah": 0.22, "oboroty": 1.5, "zvenya": 40, "tolsh": 0.06, "cvet": [0.75, 0.8, 0.9], "a": 1 }
   },
   "zony": {

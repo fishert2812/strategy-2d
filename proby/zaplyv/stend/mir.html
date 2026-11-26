@@ -53,7 +53,7 @@ window.stend = dt => { time += dt; for (let i = 0; i < skor; i++) shag(M, dt);
   if (o && vybr && kadr % 15 === 0) kartochka(o);
   bodies.begin();
   for (const s of M.sv) { const ob = oblik(M, s), w = ob.tolshchina * z, sx = (s.x - x0) * z, sy = (s.y - y0) * z, kr = w * 4; if (sx < -kr || sx > W + kr || sy < -kr || sy > H + kr) continue; vidno++;
-    sobrat(ob.zapis, { x: sx, y: sy, a: s.a + (s.kach || 0), gnut: s.gnut_vid, tolshchina: w, z, time, id: s.id, vetki: PR ? PR.kp.vetki(ob.zapis) : undefined, beg: (s.vb = (s.vb ?? s.plyvet) + (s.plyvet - (s.vb ?? s.plyvet)) * Math.min(1, dt * 12)) }, bodies); }
+    sobrat(ob.zapis, { x: sx, y: sy, a: s.a + (s.kach || 0), gnut: s.gnut_vid, tolshchina: w, z, time, id: s.id, zh: s.zh, vetki: PR ? PR.kp.vetki(ob.zapis) : undefined, beg: (s.vb = (s.vb ?? s.plyvet) + (s.plyvet - (s.vb ?? s.plyvet)) * Math.min(1, dt * 12)) }, bodies); }
   if (SPOSOB) (PR ??= new Proigryvatel(W, H, SPOSOB)).vMire(dt, M, oblik, x0, y0, z, W, H, bodies, za);
   bodies.end(time);
   if (kadr++ % 6 === 0) { const d = tex.image.data; for (let i = 0; i < d.length; i++) d[i] = Math.min(255, P.C[i] * 255); tex.needsUpdate = true; }
