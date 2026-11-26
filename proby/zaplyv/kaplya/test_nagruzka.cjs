@@ -16,6 +16,8 @@ check('test_nagruzka_sud: судья краснеет на придуманно�
   const b = await pw.chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME, args: ['--no-sandbox'] } : {}), p = await b.newPage({ viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   await p.goto(`http://127.0.0.1:${srv.address().port}/kaplya/`); await p.waitForFunction(() => window.zaplyvWorld && zaplyvWorld() && zaplyvWorld().stats.time > 2, null, { timeout: 90000 });
+  const start = await p.evaluate(() => ({ bodo: (zaplyvWorld().bodos || []).length, glava: window.kaplyaGlava && kaplyaGlava() })); // урок 26.11: комментарий съел строку, и хозяин бодо пропал со старта
+  check('test_kaplya_start: на старте главы 1 есть хозяин бодо', start.glava === 1 && start.bodo >= 1 ? '' : JSON.stringify(start));
   await p.evaluate(() => { zaplyvWorld().lose = () => {}; });
   const zamer = async m => { await p.evaluate(m => { const w = zaplyvWorld(); w.me.forEach(a => a.m = m); w.me.length = 1; }, m);
     for (let i = 0; i < 8; i++) { await p.evaluate(i => { const a = zaplyvWorld().me[0]; a.x += Math.cos(i) * 80; a.y += Math.sin(i) * 80; }, i); await p.waitForTimeout(400); }
