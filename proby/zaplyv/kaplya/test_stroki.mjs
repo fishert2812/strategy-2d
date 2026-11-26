@@ -9,5 +9,5 @@ const teksty = (kj, mj) => { const out = []; const walk = (o, k) => { if (typeof
 const sud = (kj, mj) => { const plohie = teksty(kj, mj).filter(t => PRO_IGROKA.test(t)); return plohie.length ? 'строки с родом про игрока: ' + plohie.slice(0, 4).join(' | ') : ''; };
 check('test_stroki_bez_roda: в строках «Капли» нет глаголов прошедшего времени про игрока (П125)', sud(KJ, MJ));
 check('test_stroki_samoproverka: «Ты съела бодо!» в строках — судья краснеет', sud(KJ, MJ + "\nsay('Ты съела бодо!', 1);") ? '' : 'судья не заметил');
-check('test_stroki_samoproverka_json: «Уснула!» в данных — судья краснеет', sud(KJ.replace('"Бодо внутри тебя!"', '"Уснула!"'), MJ) ? '' : 'судья не заметил');
+check('test_stroki_samoproverka_json: «Уснула!» в данных — судья краснеет', sud(KJ.replace('"Бодо съеден: ты растёшь"', '"Уснула!"'), MJ) ? '' : 'судья не заметил');
 process.exit(bad ? 1 : 0);
