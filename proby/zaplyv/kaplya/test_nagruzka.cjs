@@ -35,7 +35,8 @@ check('test_nagruzka_sud: судья краснеет на придуманно�
   check('test_kaplya_lineyka: у линейки силуэты из кадра игры и ты между ними (П5, П87)', !sil.s.length ? 'ни одного силуэта' : !sil.ty ? 'нет метки «ты»' : Math.max(...ya) < 60 ? `силуэты тёмные: ${ya}` : '');
   const chern = await yarko('data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><rect width="24" height="24" fill="#051018"/></svg>'));
   check('test_kaplya_lineyka_samoproverka: тёмный кадр судья ловит', chern < 60 ? '' : 'судья не отличает тёмное');
-  const s = await zamer(1.4), v = await zamer(150); console.log('  малышка', JSON.stringify(s), 'большая', JSON.stringify(v));
+  const med3 = A => Object.fromEntries(Object.keys(A[0]).map(k => [k, A.map(x => x[k]).sort((a, b) => a - b)[1]])); // урок 26.11: один замер мира скачет (кадр 67 против 100, частей 210 против 1289) — медиана трёх попеременных замеров
+  const S3 = [], V3 = []; for (let i = 0; i < 3; i++) { S3.push(await zamer(1.4)); V3.push(await zamer(150)); } const s = med3(S3), v = med3(V3); console.log('  малышка', JSON.stringify(s), 'большая', JSON.stringify(v));
   check('test_nagruzka_rost: большая клетка (масса 150) не тяжелее малышки больше чем в 1,5 раза', sud(s, v));
   await p.evaluate(() => { window.kaplyaBezLod = true; }); const v0 = await zamer(150); await p.evaluate(() => { window.kaplyaBezLod = false; });
   check('test_nagruzka_samoproverka: без взвеси сторож краснеет', sud(s, v0) ? '' : `без взвеси всё равно зелёный: ${JSON.stringify(v0)}`);
