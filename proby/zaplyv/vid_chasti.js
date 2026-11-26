@@ -124,7 +124,10 @@ const RIS = {
       B.sphere(px, py, w * st.r * (0.7 + 0.6 * hash(P.id, k + 802)), st.cvet, st.kromka, P.id + k + 90, 0.8); } },
   // Жгутики по всему телу (перитрих): моторы на боках. Покой (P.beg = 0): нити расходятся вбок и назад, вяло колышутся.
   // Ход (P.beg = 1): каждая нить огибает тело и уходит в общий пучок-штопор за кормой, по пучку бежит винтовая волна.
-  zhgutiki(st, F, P, B, at) { const w = P.tolshchina, beg = P.beg ?? 0, ph = P.time * st.oboroty * 6.283, izd = w < (st.porog_melko ?? 0), kr = izd ? st.izdali_razmah ?? 1 : 1, ksh = izd ? st.izdali_shag ?? 1 : 1, nf = izd ? Math.min(st.n, st.izdali_n ?? st.n) : st.n; // izd — издали: волна мягче, нить толще и светлее, иначе тонкая тёмная зубчатая линия читается схемой
+  // Кувырок (P.zh.fan = 1): нити расходятся из пучка веером, каждая в свою сторону, у части спираль сворачивается полукольцом: шаг и размах вдвое меньше
+  // (Turner, Ryu, Berg 2000: нормальная форма — левый винт, шаг ~2,3 мкм; в кувырке — полусвёрнутая и кудрявая). Поза P.zh — состояние из hod.js
+  // shag_zhgutikov (b — пучок, fan — веер, ph — накопленный угол моторов: смена скорости не даёт скачка волны); без неё — по P.beg и часам, как раньше.
+  zhgutiki(st, F, P, B, at) { const w = P.tolshchina, Zh = P.zh, beg = Zh ? Zh.b : P.beg ?? 0, veer = Zh ? Zh.fan : 0, ph = Zh ? Zh.ph : P.time * st.oboroty * 6.283, izd = w < (st.porog_melko ?? 0), kr = izd ? st.izdali_razmah ?? 1 : 1, ksh = izd ? st.izdali_shag ?? 1 : 1, nf = izd ? Math.min(st.n, st.izdali_n ?? st.n) : st.n; // izd — издали: волна мягче, нить толще и светлее, иначе тонкая тёмная зубчатая линия читается схемой
     const [kx, ky] = at(-1, 0), [k2x, k2y] = at(-0.9, 0), kl = Math.hypot(kx - k2x, ky - k2y) || 1, bx = (kx - k2x) / kl, by = (ky - k2y) / kl, hv = P.hvost || 0; // кончик кормы и куда она смотрит: там собирается пучок
     // gde: korma — жгутики пучком на заднем полюсе, иначе по всему телу
     for (let j = 0; j < nf; j++) { const f = Math.floor(j * st.n / nf), t = st.gde === 'korma' && F.O ? F.O.korma_t + (f - (st.n - 1) / 2) * (st.razlet ?? 0.1) : (f + 0.5) / st.n * 6.283 + P.id, e = F.kray(t), [x0, y0] = at(e.u * 0.97, e.o * 0.97), na = P.a + e.n, nx0 = Math.cos(na), ny0 = Math.sin(na), L = (st.dlina_tela ? P.dlina * st.dlina_tela : w * st.dlina) * (0.8 + 0.4 * hash(P.id, f + 61)); // длина по цветным образцам: 1–1,5 длины тела (Роман 25.11: «зачем нам такие длинные жгуты?»)
@@ -132,13 +135,17 @@ const RIS = {
       let rx = nx0 * 0.75 + bx * (st.nazad ?? 0.65), ry = ny0 * 0.75 + by * (st.nazad ?? 0.65); const rl = Math.hypot(rx, ry) || 1, pv = (hash(P.id, f + 60) - 0.5) * 0.7, cp = Math.cos(pv), sp = Math.sin(pv); [rx, ry] = [(rx * cp - ry * sp) / rl, (rx * sp + ry * cp) / rl]; // покой: от оболочки наружу и назад; nazad — насколько нить в покое клонится к корме (меньше — отходит от тела по нормали, не лежит на оболочке)
       const slow = P.time * 0.6 + f * 1.7, faza = f / st.n * 6.283, tk = F.O ? F.O.korma_t : Math.PI, ob = (F.O ? F.O.obvod : 6.283) * w, tn = ((t % 6.283) + 6.283) % 6.283; let dt = tk - tn; if (dt > 3.1416) dt -= 6.283; if (dt < -3.1416) dt += 6.283; // до кончика кормы по обводу, короткой дорогой
       const D0 = Math.abs(dt) / 6.283 * ob + hv, kriv = (hash(P.id, f + 62) - 0.5) * (st.zagib ?? 2.6) + Math.sign(rx * by - ry * bx || 1) * -0.5; let pxr = x0, pyr = y0; const pts = [];
+      const vl = Math.hypot(bx + nx0 * st.veer, by + ny0 * st.veer) || 1, vdx = (bx + nx0 * st.veer) / vl, vdy = (by + ny0 * st.veer) / vl, ug = (hash(P.id, f + 64) - 0.5) * st.veer, cu = Math.cos(ug), su = Math.sin(ug), kud = veer * (f % 3 === 1 ? 1 : 0.25); // куда нить смотрит в кувырке
       for (let i = 0; i <= Z; i++) { const s = i / Z, d = s * L, grow = Math.min(1, s * 5);
         // покой: нить плавно загибается назад дугой (у каждой свой загиб) и по ней идёт вялая волна
         const zg = kriv * s * (1 - 0.35 * s) + 0.25 * Math.sin(s * 2.4 + slow), cz = Math.cos(zg), sz = Math.sin(zg), dx = rx * cz - ry * sz, dy = rx * sz + ry * cz; if (i) { pxr += dx * L / Z * 0.85; pyr += dy * L / Z * 0.85; }
         const hs = 0.8 + 0.4 * hash(P.id, f + 63), wr = Math.sin(d / (w * st.shag * ksh * hs) * 6.283 - ph * 0.15 + f * 2.1 + 0.6 * Math.sin(s * 4.1 + f)) * w * st.razmah * kr * (1.2 - 0.4 * hs) * 0.8 * grow, xr = pxr - dy * wr, yr = pyr + dx * wr;
         // ход: нить ложится на оболочку и идёт по обводу тела к корме, за кормой нити свиты в общий пучок-канат (у каждой своя фаза по кругу)
         let xb, yb; if (d < D0 - hv) { const e = F.kray(tn + dt * d / ((D0 - hv) || 1)), [ex, ey] = at(e.u, e.o), pod = w * 0.07 * Math.min(1, d / (w * 0.5)), en = P.a + e.n; xb = ex + Math.cos(en) * pod; yb = ey + Math.sin(en) * pod; }
-        else { const za = d - (D0 - hv), k = sm(0, w * st.sbor, za), obk = k * w * (st.razmah * kr * Math.sin(za / (w * st.shag * ksh) * 6.283 - ph) + st.puchok * Math.sin(za / (w * st.shag * ksh) * 3.1416 - ph * 0.5 + faza)) * (1 - 0.3 * s); xb = kx + bx * za - by * obk; yb = ky + by * za + bx * obk; }
+        else { const za = d - (D0 - hv), k = sm(0, w * st.sbor, za), obk = k * w * (st.razmah * kr * Math.sin(za / (w * st.shag * ksh) * 6.283 - ph) + st.puchok * Math.sin(za / (w * st.shag * ksh) * 3.1416 - ph * 0.5 + faza)) * (1 - 0.3 * s); xb = kx + bx * za - by * obk; yb = ky + by * za + bx * obk;
+}
+        if (veer > 0.005) { const vx = vdx * cu - vdy * su, vy = vdx * su + vdy * cu, shv = w * st.shag * ksh * (1 - 0.5 * kud); // веер: каждая нить от своего мотора в свою сторону назад-наружу, кудрявые — частой спиралью
+          const vo = Math.sin(d / shv * 6.283 - ph) * w * st.razmah * kr * (1 - 0.5 * kud) * grow, xf = x0 + vx * d - vy * vo, yf = y0 + vy * d + vx * vo; xb += (xf - xb) * veer; yb += (yf - yb) * veer; }
         const nx = xr + (xb - xr) * beg, ny = yr + (yb - yr) * beg;
         pts.push(nx, ny); }
       const sv = izd ? st.izdali_svet ?? 0 : 0, c = st.cvet.map(v => v + (1.2 - v) * sv); // издали светлее: на тёмной воде видна светлая нить, а не тёмный штрих
