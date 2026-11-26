@@ -340,16 +340,18 @@ if (await tap('#mscene [data-m=mut]', 'объект «Мутации»') && awai
 // test_L062 (прогон 0.102, О112: «красные кольца затягивания сплошные, но в людном кадре и на зелёном фоне очень бледные, почти не видны»):
 // в людном кадре (10 клеток, 6 амёб, зелёные нити) кольцо зоны заметно меняет цвет кадра там, где оно лежит. Мир на замер стоит;
 // тот же кадр снимаем с кольцами и без колец и сравниваем точки на самом кольце.
-{ const geo = await p.evaluate(async () => { const w = zaplyvWorld(), a = w.me[0]; w.tidy = 1e9;
+{ await p.evaluate(async () => { const w = zaplyvWorld(), a = w.me[0]; w.tidy = 1e9;
     for (let i = 0; i < 9; i++) w.me.push({ ...a, id: 700 + i, x: a.x + (i % 3) * 30, y: a.y + Math.floor(i / 3) * 30, vx: 0, vy: 0 });
     for (let i = 0; i < 6; i++) { const t = i / 6 * 6.283 + 0.5; w.amoebas.push({ x: a.x + Math.cos(t) * 150, y: a.y + Math.sin(t) * 190, m: 6, hunt: true, id: 900 + i, vx: 0, vy: 0, a: 0 }); }
     for (let i = 0; i < 4; i++) w.plants.push({ x: a.x - 60 + i * 45, y: a.y + 120, m: 5, id: 950 + i }); // зелёные нити под кольцами: фон пестрее
     const wait = n => { const f0 = zaplyvProbe.frames; return new Promise(r => { const k = () => zaplyvProbe.frames >= f0 + n ? r() : requestAnimationFrame(k); k(); }); };
-    await wait(6); w.stoit = w.step; w.step = () => {}; await wait(60); const out = []; // мир стоит, кадр рисуется; камера успевает доехать
-    for (const [x, y, R, who] of w.zones()) if (who === 'amoeba') { const c = zaplyvScr(x, y), e = zaplyvScr(x + R, y); out.push([c[0], c[1], Math.hypot(e[0] - c[0], e[1] - c[1])]); }
-    return out; });
+    await wait(6); w.stoit = w.step; w.step = () => {}; await wait(60); return 1; }); // мир стоит, кадр рисуется; камера доезжает
+  // где кольца на экране сейчас (CSS): берём только когда кадр устоялся — в медленном WebKit камера ещё едет после 60 кадров, и кольцо на снимке уже не там, где меряем
+  const geoNow = () => p.evaluate(() => { const w = zaplyvWorld(), out = []; for (const [x, y, R, who] of w.zones()) if (who === 'amoeba') { const c = zaplyvScr(x, y), e = zaplyvScr(x + R, y); out.push([c[0], c[1], Math.hypot(e[0] - c[0], e[1] - c[1])]); } return out; });
+  const sdvig = (a, b) => a.length !== b.length ? 1e9 : Math.max(0, ...a.map((q, i) => Math.hypot(q[0] - b[i][0], q[1] - b[i][1], q[2] - b[i][2])));
   const shot = async () => { const f = await p.evaluate(() => zaplyvProbe.frames); await p.waitForFunction(f => zaplyvProbe.frames > f + 2, f, { timeout: 5000 }).catch(() => {}); return (await p.screenshot()).toString('base64'); };
-  const s1 = await shot(); await p.evaluate(() => { const w = zaplyvWorld(); w.zony = w.zones; w.zones = () => []; }); const s0 = await shot();
+  let geo = await geoNow(), s1; for (let k = 0; k < 40; k++) { await p.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))); const g = await geoNow(); const d = sdvig(g, geo); geo = g; if (d < 0.2) break; }
+  for (let k = 0; k < 5; k++) { s1 = await shot(); const g = await geoNow(), d = sdvig(g, geo); geo = g; if (d < 0.5) break; } /* снимок принят, только если кольца за время снимка не сдвинулись */ await p.evaluate(() => { const w = zaplyvWorld(); w.zony = w.zones; w.zones = () => []; }); const s0 = await shot();
   const r = await p.evaluate(async ([b1, b0, geo]) => { const read = async b64 => { const im = new Image(); im.src = 'data:image/png;base64,' + b64; await im.decode(); const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
       const x = c.getContext('2d'); x.drawImage(im, 0, 0); return { d: x.getImageData(0, 0, c.width, c.height).data, w: c.width, k: im.width / innerWidth }; };
     const A = await read(b1), B = await read(b0), px = (I, u, v) => { const i = (Math.round(v * I.k) * I.w + Math.round(u * I.k)) * 4; return [I.d[i], I.d[i + 1], I.d[i + 2]]; }, all = [];
