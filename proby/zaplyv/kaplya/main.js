@@ -29,7 +29,15 @@ import * as zh from './zhiteli.js'; // спирилла, каулобактер,
 const KAP = await (await fetch('kaplya/kaplya.json')).json(), ZH = KAP.zhiteli, ZAP = {};
 for (const [k, v] of Object.entries(ZH)) if (v && VC.vidy[v.zapis]) ZAP[k] = { ...VC.vidy[v.zapis], gruppa: undefined };
 // нарисовать жителя записью: x, y — экран, a — куда смотрит, mera — ручная мера тела (длина, радиус, толщина) на экране
-const zhitel = (k, q, x, y, a, mera, time, z) => { const Z = ZAP[k]; if (!Z) return false; sobrat(Z, { x, y, a, tolshchina: mera * ZH[k].tolshchina, z, time, id: q.id || 1, beg: 1 }, bodies); return true; };
+// Лаги на большой клетке (Роман 26.11: «Лагать и нагреваться телефон стал… большим стал»): камера отъезжает, и в кадр входят сотни жителей,
+// каждый собран полной записью. Книга П35: что мельче тебя в десятки раз, сливается во взвесь. Житель мельче KAP.lod.px точек экрана рисуется
+// одной мягкой точкой своего цвета, а не телом из частей; крупных рядом с тобой это не касается.
+const LODC = {}; for (const [k, Z] of Object.entries(ZAP)) { const c = Z.chasti?.obolochka?.sloi?.[0]?.cvet || Z.chasti?.telo?.cvet || [0.8, 0.85, 0.9]; LODC[k] = c.map(v => Math.min(1, v)); }
+const lod = { tel: 0, tochek: 0 };
+const zhitel = (k, q, x, y, a, mera, time, z) => { const Z = ZAP[k]; if (!Z) return false; const t = mera * ZH[k].tolshchina;
+  if (t < KAP.lod.px || (q.m || 1) < lod.ya * KAP.lod.dolya) { lod.tochek++; glow.put(x, y, t * KAP.lod.razmer + 1, ...LODC[k], KAP.lod.a); return true; }
+  lod.tel++; sobrat(Z, { x, y, a, tolshchina: t, z, time, id: q.id || 1, beg: 1 }, bodies); return true; };
+window.kaplyaLod = () => ({ ...lod }); // для замера: сколько жителей в кадре телом и сколько точкой
 const DL = cfg.delenie; // деление по физике (design/zaplyv_fizika_kak_v_zhizni.md, п. 14)
 const NJ = await (await fetch('night.json')).json(); // «Ночь рода»: числа ночи
 const cards = await (await fetch('cards.json')).json(); cards.bodo = KAP.bodo.karta; // карточка гибели от бодо
@@ -421,7 +429,7 @@ function geneShot0(g, NW, NH, crop = 0) {
 }
 const geneColor = g => { for (const a of genomeData.arcs) if (a.slots.some(x => x.id === g)) return a.color; const p = genomeData.plasmids.find(x => x.id === g); return p ? p.color : '#7cc8ff'; }; // рамка значка — цвет группы гена
 function icon(g) {
-  if (!icons.has(g)) { let url = ''; try { url = geneShot(g, 320, 320, 128); } catch (e) { url = ""; } icons.set(g, url); }
+  if (!icons.has(g)) { let url = ''; try { url = geneShot(g, 320, 320, 128); } catch (e) { url = ""; console.error("icon " + g + ": " + e.message); } icons.set(g, url); }
   return icons.get(g);
 }
 const idle = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 2000 }) : setTimeout(f, 300));
@@ -773,7 +781,9 @@ function events() {
 
 function tick(dt) {
   offer(dt);
-  world.step(dt, pad.value()); if (!world.genes.gulp && world.stats.time >= KAP.glotat_s) { world.genes.gulp = true; say(KAP.slova_glotat, 4000); } // книга П2, П16: глотать с 10-й секунды, а не после первого роста
+  { const H = KAP.hod, me = world.me[0]; if (me) { const zb = view.z / (1 + cfg.close_up * (view.calm || 0)), k = Math.max(1, H.z0 / zb); // Роман 26.11: «чтобы при росте моем не замедлялась клетка»
+    cfg.speed = H.v * rost.hod(world, me) * k ** H.stepen / (me.chew && me.m > (me.chew.m || 4) * H.gryzt_bolshe ? rost.R.stoit : 1); } } // большую клетку крошечный комок под ней не тормозит: «встать и грызть» только у комка не мельче тебя в gryzt_bolshe раз // скорость на экране не падает: тяжесть не тормозит, а отъезд камеры возмещается ходом в мире
+  world.step(dt, pad.value()); if (!world.genes.gulp && world.stats.time >= KAP.glotat_s) { world.genes.gulp = true; world.choice = world.choice.filter(g => g !== 'gulp'); say(KAP.slova_glotat, 4000); } // книга П2, П16: глотать с 10-й секунды, а не после первого роста
   { const B = KAP.bodo, um = !!world.genes.gulp; bodo.shag(world, dt, B, radius, slyshuBodo); bodo.glotat(world, B, radius, evo.E.glotat.syt, 0, um, slyshuBodo); zh.shag(world, dt, KAP.novye); zh.glotat(world, evo.E.glotat.bolshe, radius, um, v => say(KAP.slova_glotka[v], 1600)); } // джойстик: направление и сила из сдвига пальца
   { const [fx, fy] = world.flow(view.x, view.y); cur[0] += fx * dt; cur[1] += fy * dt; } // течение несёт взвесь
   events();
@@ -828,13 +838,13 @@ const ball = (x, y, r, side, seed) => bodies.sphere(x, y, r, BALL[side], BRIM[si
 function paint(time) {
   const pdt = Math.min(0.05, Math.max(0, time - (paint.t ?? time))); paint.t = time; // шаг для плавных состояний рисунка
   const z = view.z, big = world.biggest();
-  bodies.begin();
+  bodies.begin(); lod.tel = lod.tochek = 0; lod.ya = world.biggest();
   const znaki = []; // знаки у края кадра для кругов, которые ещё за краем (рисуются после колец)
   const on = (x, y, pad = 80) => x > -pad && x < W + pad && y > -pad && y < H + pad;
   for (const g of world.slime) { // тяж слизи: прозрачный гель с налипшими крупинками; в нём плыть вязко
     const [x, y] = scr(g.x, g.y); if (!on(x, y, g.len * z)) continue;
-    const ca = Math.cos(g.a), sa = Math.sin(g.a), n = Math.ceil(g.len / 9);
-    for (let i = 0; i <= n; i++) {
+    const ca = Math.cos(g.a), sa = Math.sin(g.a), n = Math.ceil(g.len / 9), mel = g.w * z < KAP.lod.px; // слизь издалека: реже точки и без кромки (лаги на большой клетке)
+    for (let i = 0; i <= n; i += mel ? KAP.lod.sliz_shag : 1) {
       const u = (i / n - 0.5) * g.len, v = Math.sin(u / g.len * 6.283 + g.id) * g.w * 0.8 + Math.sin(time * 0.4 + i * 0.3) * 2;
       const px = x + (ca * u - sa * v) * z, py = y + (sa * u + ca * v) * z, edge = 1 - Math.abs(i / n - 0.5) * 2;
       const S = g.nest ? cfg.bdello_nest.look : cfg.slime_look, fade = Math.min(1, edge * 3); // гель прозрачный: внутри едва заметен, видна только граница — тонкая светлая кромка, а не пелена (Роман 25.11: «мутнота… фильтр»)
@@ -842,6 +852,7 @@ function paint(time) {
 
       if (i % 3 === 0) ink.put(px + Math.sin(i * 7.1) * g.w * 0.5 * z, py + Math.cos(i * 5.3) * g.w * 0.5 * z, 0.8 * z + 0.3, 0.8, 0.9, 1, 0.35);
     }
+    if (mel) continue;
     const S = g.nest ? cfg.bdello_nest.look : cfg.slime_look, m = Math.ceil(g.len * z / (g.nest ? Math.min(S.rim_step, S.rim * z * 0.8 + 0.2) : S.rim_step)); // у гнезда кромка внахлёст — сплошная // кромка геля сплошной тонкой линией с двух сторон
     for (let j = 0; j <= m; j++) { const u = (j / m - 0.5) * g.len, v = Math.sin(u / g.len * 6.283 + g.id) * g.w * 0.8 + Math.sin(time * 0.4 + j / m * n * 0.3) * 2, f = Math.min(1, (1 - Math.abs(j / m - 0.5) * 2) * 3);
       for (const sd of [-1, 1]) { const vv = v + sd * g.w * 0.5 * S.core, px = x + (ca * u - sa * vv) * z, py = y + (sa * u + ca * vv) * z, k = sd + 1; // кромка геля сплошной трубкой, а не точками (Роман: пунктир — провал)
@@ -926,6 +937,7 @@ function paint(time) {
     const [x, y] = scr(p.x, p.y); if (!on(x, y, 220)) continue;
     const r = radius(p.m) * z, a0 = p.id * 1.7;
     glow.put(x, y, r * 3.2, 1, 0.85, 0.45, 0.11 + 0.03 * Math.sin(time * 0.8 + p.id)); // ореол: водоросль кормит сахаром вокруг себя
+    if (ZAP.plants && (r * ZH.plants.tolshchina < KAP.lod.px || p.m < lod.ya * KAP.lod.dolya)) { const a = p.id * 1.7, L = r * KAP.lod.nit; lod.tochek++; bodies.seg(x - Math.cos(a) * L, y - Math.sin(a) * L, x + Math.cos(a) * L, y + Math.sin(a) * L, Math.max(0.8, r * ZH.plants.tolshchina), [0.45, 0.85, 0.35], 0.8); continue; } // нить издалека: одна зелёная чёрточка, не бусины
     if (ZAP.plants) { const Z = ZAP.plants, G = KAP.nit, n = G.n[0] + p.id % (G.n[1] - G.n[0] + 1), a = p.id * 1.7 + Math.sin(time * 0.5 + p.id) * 0.08, t = r * ZH.plants.tolshchina; // анабена записью движка: нить бусин, посередине гетероциста
       sobrat_gruppu({ ...Z, gruppa: { ...VC.vidy.anabena.gruppa, n: n | 1 } }, { x, y, a, tolshchina: t, z, time, id: p.id, beg: 0 }, bodies);
       if (VC.vidy.geterocista) sobrat(VC.vidy.geterocista, { x, y, a, tolshchina: t * G.geterocista, z, time, id: p.id + 5, beg: 0 }, bodies); continue; }
@@ -994,7 +1006,7 @@ function paint(time) {
     if (!zhitel('amoebas', m, x, y, head, r, time, z)) vid.amoeba({ m, x, y, r, head, sp, side, time, z, glow, ink, bubbles, col: side === 2 ? BALL[2] : null });
   }
   { const me = world.me.reduce((q, a) => a.m > q.m ? a : q, world.me[0] || { m: 1 }), umeet = !!world.genes.gulp, sv = KAP.cel.svet; // П7: можно съесть — тёплый свет, который медленно дышит
-    if (umeet) for (const [list, who] of cel.SPIS) for (const q of world[list]) { const m = q.m || evo.E.glotat.razmer[who] || 1; if (q.gone || !cel.eda(CEL, me, m, evo.E.glotat.bolshe, umeet)) continue;
+    if (umeet) for (const [list, who] of cel.SPIS) for (const q of world[list] || []) { const m = q.m || evo.E.glotat.razmer[who] || 1; if (q.gone || !cel.eda(CEL, me, m, evo.E.glotat.bolshe, umeet)) continue;
       const [x, y] = scr(q.x, q.y); if (!on(x, y, 40)) continue; glow.put(x, y, radius(m) * z * 1.7 + 4, ...sv, 0.12 + 0.07 * Math.sin(time * 2.5 + (q.id || 0))); } }
   for (const [k, list] of Object.entries(zh.SPISKI)) for (const q of world[list] || []) { const [x, y] = scr(q.x, q.y), r = radius(q.m) * z; if (!on(x, y, r * 4)) continue; // жители книги: тела — записи конструктора
     if (q.dom) { const [dx, dy] = scr(q.dom.x, q.dom.y); bodies.seg(x, y, x + (dx - x) * 0.5, y + (dy - y) * 0.5, 0.5 * z + 0.3, [0.85, 0.8, 0.6], 0.7); } // стебелёк к комку
@@ -1064,7 +1076,8 @@ function paint(time) {
   for (const f of world.food) { // еда трёх видов (Е2, Е4): жёлтые крошки, белые искры глюкозы, розовый белковый сок
     const [x, y] = scr(f.x, f.y); if (!on(x, y, 20)) continue;
     const F = cfg.food_kinds[f.kind || 'bits'], k = Math.sqrt(f.s || 1) * F.size, tw = F.twinkle ? 0.75 + 0.25 * Math.sin(time * 7 + f.x * 0.3 + f.y) : 1;
-    const dm = rost.dim(world, f.kind || 'bits'); glow.put(x, y, 9 * z * k * F.halo_r, ...F.halo, 0.14 * tw * dm); glow.put(x, y, 3.2 * z * k + 0.6, ...F.core, 0.9 * tw * dm); // ценность видна размером и ореолом: крошка меньше всех, сок крупнее (дизайнер); искры мерцают
+    const dm = rost.dim(world, f.kind || 'bits'); if (z > KAP.lod.eda_z) glow.put(x, y, 9 * z * k * F.halo_r, ...F.halo, 0.14 * tw * dm); // большая клетка: у крупинок без ореола (лаги)
+    glow.put(x, y, 3.2 * z * k + 0.6, ...F.core, 0.9 * tw * dm); // ценность видна размером и ореолом: крошка меньше всех, сок крупнее (дизайнер); искры мерцают
   }
   for (const g of world.phages) { // фаг T4: головка позади, хвостом вперёд — садится хвостом
     const [x, y] = scr(g.x, g.y); if (!on(x, y)) continue;
@@ -1112,6 +1125,7 @@ function paint(time) {
     const n = $('sicknotch'); n.style.width = (ill.length ? 4 + 18 * k : 0) + '%'; n.style.left = Math.max(0, g * 100 - (ill.length ? 4 + 18 * k : 0)).toFixed(1) + '%'; probe.sickNotch = ill.length ? k : -1; }
   U.tint.value.set(...view.tint);
   U.drift.value.set(view.x * view.z / W, -view.y * view.z / W); // в ширинах экрана: слои сзади сдвигаются медленнее
+  lod.glow = glow.n; lod.ink = ink.n; lod.chastey = bodies.all.reduce((n, m) => n + (m.count || 0), 0); lod.po = bodies.all.map(m => m.count || 0).join(','); // для замера: сколько всего рисуется в кадре
   for (const d of [far, glow, ink, near, dust, bubbles, wake]) d.done();
 }
 
