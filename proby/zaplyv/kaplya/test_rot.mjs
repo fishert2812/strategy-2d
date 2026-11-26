@@ -8,7 +8,7 @@ const KAP = JSON.parse(fs.readFileSync(new URL('./kaplya.json', import.meta.url)
 let bad = 0; const check = (n, e) => { console.log((e ? '  ПРОВАЛ ' : '  ок ') + n + (e ? ': ' + e : '')); if (e) bad++; };
 const M = 1.5, R = radius(M), dt = 1 / 60; let zerno = 1; const rnd = () => (zerno = (zerno * 16807) % 2147483647) / 2147483647;
 const mir = (fx, fy) => ({ me: [{ x: 0, y: 0, a: 0, m: M }], food: [{ x: fx, y: fy, s: 1, kind: 'bits' }], r: rnd });
-const voronka = K => { const w = mir(R + 1.6 * R, 0.3 * R), S = rt.sozdat(); rt.shag(S, w, 0, K, radius, 0); if (!S.kuski.length) return 'кусок перед носом не взят';
+const voronka = K => { const w = mir(R + 0.8 * R, 0.15 * R), S = rt.sozdat(); rt.shag(S, w, 0, K, radius, 0); if (!S.kuski.length) return 'кусок перед носом не взят';
   const k = S.kuski[0], put = []; if (w.food.length) return 'кусок остался в воде целым';
   let t = 0; while (S.kuski.length && t < 5) { put.push(rt.tochki(k, K, radius)); rt.shag(S, w, dt, K, radius, 0); t += dt; }
   if (t < 1 || t > 2.5) return `кусок ушёл в рот за ${t.toFixed(2)} с, а надо 1–2,5 (глазу видно)`;
@@ -27,11 +27,15 @@ const bokom = K => { const w = mir(-0.4 * R, 1.15 * R), S = rt.sozdat(); rt.shag
 check('test_rot_bok: кусок у бока тоже рассыпается и обтекает тело к рту, а не съедается боком (Роман: «падает куда то на тело сбоку»)', bokom(K0));
 check('test_rot_bok_samoproverka: без обтекания (obtekat 0) судья краснеет', bokom({ ...K0, obtekat: 0 }) ? '' : 'судья не заметил');
 check('test_rot_szadi: еда за спиной и поодаль сбоку у кормы не тянется', !vzyat(0, -2 * R, 0) && !vzyat(0, -0.5 * R, 2.2 * R) ? '' : 'тянется');
-const dal = R + (K0.dlina + 0.5) * R;
+const dal = R + (K0.dlina + K0.magnit[0].dlina) / 2 * R;
 check('test_rot_magnit: с «Магнитом 1» кусок дальше конуса втянут, без него нет', vzyat(1, dal, 0) && !vzyat(0, dal, 0) ? '' : `с магнитом ${vzyat(1, dal, 0)}, без ${vzyat(0, dal, 0)}`);
 { const cfg = JSON.parse(JSON.stringify(base)); cfg.sense_idle = 0; cfg.sense_pull = 0; const w = new World(cfg, 7); w.mode = 'evo'; w.step(1 / 30, null);
   for (const k of ['amoebas', 'phages', 'bdellos', 'slippers', 'bells', 'rotis', 'pseudos', 'prey', 'food', 'crumbs', 'plants', 'slime', 'donors']) w[k] = []; w.me = [w.me[0]]; const a = w.me[0]; Object.assign(a, { vx: 0, vy: 0, a: 0 });
   const Ra = radius(a.m), f = { x: a.x + Ra * 2.5, y: a.y, s: 1, kind: 'bits' }, x0 = a.x, y0 = a.y; w.food.push(f); const m0 = a.m, S = rt.sozdat(); let t = 0;
   for (; t < 3 && !f.gone; t += 1 / 30) { w.step(1 / 30, null); a.x = x0; a.y = y0; a.vx = a.vy = 0; a.a = 0; rt.shag(S, w, 1 / 30, K0, radius, 0); }
   check('test_rot_mir: в настоящем мире кусок прошёл воронкой и съеден, клетка выросла', f.gone && a.m > m0 ? '' : `съеден ${!!f.gone} за ${t.toFixed(2)} с, масса ${m0}→${a.m}`); }
+/* Роман 26.11 22:09: «конус сдлеать меньше… радиус очень большой… читерская штука… точки визуально тоже меньше сильно меньше но точек можно больше». Судья: даже с «Магнитом 3» конус не длиннее 3 радиусов и не шире 45°, точка не крупнее 1,2 экранной точки, точек не меньше 20. Самопроверка: прежние числа (7 радиусов, 180°, 12 точек по 2,2) — красное. */
+const chit = K => { const M3 = rt.konus(K, 9); return M3.dlina > 3 || M3.ugol > 45 ? `с «Магнитом» конус ${M3.dlina} радиуса и ${M3.ugol}° — читерски` : K.r_tochki > 1.2 ? `точка ${K.r_tochki} — крупная` : K.n < 20 ? `точек ${K.n}` : ''; };
+check('test_rot_malenkiy: конус маленький, как всасывание ртом, точки мелкие и их много (Роман 22:09)', chit(K0));
+check('test_rot_malenkiy_samoproverka: прежний большой конус судья ловит', chit({ ...K0, magnit: [{ dlina: 4, ugol: 50 }, { dlina: 5.5, ugol: 70 }, { dlina: 7, ugol: 180 }], n: 12, r_tochki: 2.2 }) ? '' : 'судья не заметил');
 process.exit(bad ? 1 : 0);
