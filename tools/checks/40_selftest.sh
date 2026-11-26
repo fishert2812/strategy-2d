@@ -129,6 +129,7 @@ ONLY=L020 case_ "test_L020: зелёные жгутики" 50_zaplyv.sh red "sed
 # Слой «вид и анимации» «Заплыва» (53_zaplyv_vid.sh): событие без анимации и умение, не видное на теле, обязаны дать красное.
 case_ "test_vid_events: удар о капсулу без анимации" 53_zaplyv_vid.sh red "sed -i \"s/if (k === 'bump') { R(0, 24); poke(x, y); }//\" $Z/fx.js"
 case_ "test_L064: жгутик снова из 73 звеньев" 53_zaplyv_vid.sh red "sed -i 's/Math.max(V.whip.seg, Math.ceil(nW \\/ V.whip.zven_max))/V.whip.seg/' $Z/vid.js"
+case_ "test_zakony_bok: боком как вдоль" 67_zakony.sh red "sed -i 's/R_bok = R + k.bok \\* Math.max(0, L - d)/R_bok = R/' $Z/zakony.js"
 case_ "test_vid_skills_seen: капсулу не видно" 53_zaplyv_vid.sh red "sed -i 's/if (lk.halo) {/if (false) {/' $Z/vid.js"
 # Остановка: открытая issue stop делает PR красным, метка fix пропускает.
 GITHUB_BASE_REF=main STOP_ISSUES="#0 проба" PR_LABELS= bash tools/checks/05_stop.sh >/dev/null 2>&1 &&
