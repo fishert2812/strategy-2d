@@ -10,6 +10,7 @@ import { razvesti, SK } from './stolknovenie.js';
 import * as pole from './pole.js';
 import { hochet, anketa, P as POV } from './povedenie.js';
 import { kasanie as po_tablice } from './pravila_zon.js';
+import { hod, pasport_hoda, shag_tela, techenie } from './hod.js';
 const url = new URL('./mir.json', import.meta.url);
 export const MR = url.protocol === 'file:' ? JSON.parse((await import('node:fs')).readFileSync(url, 'utf8')) : await (await fetch(url)).json();
 
@@ -68,11 +69,15 @@ export function shag(M, dt) { M.n = (M.n || 0) + 1; const Z = M.K.zhizn, S = M.s
       const d = M.pole.shag_setki, e0 = chuet_edu(M, q), gx = chuet_edu(M, q, d, 0) - e0, gy = chuet_edu(M, q, 0, d) - e0, gl = Math.hypot(gx, gy);
       const H = hochet({ x: q.x, y: q.y, m: B, a: q.a, vid: q.vid }, vokrug, { ...A, chuet: R, blizko_rodnya: A.blizko_rodnya * w / Z.tolshchina }, { sytost: q.syt > 0 ? 1 : 0, pole: gl > 1e-9 ? { gx: gx / gl, gy: gy / gl } : null }, M.rnd());
       q.svoih = svoih; q.cel_a = H.skorost > 0 ? Math.atan2(H.uy, H.ux) : q.a; q.sk = sk = H.skorost; q.zanyatie = H.zanyatie; }
-    { let d = q.cel_a - q.a; d = Math.atan2(Math.sin(d), Math.cos(d)); const mx = Z.povorot0 * Math.min(4, p.h.k_povorot) * dt; q.a += Math.max(-mx, Math.min(mx, d)); }
-    if (q.pokoy) sk = 0; // в покое не плывёт
-    q.plyvet = v > 0 && sk > 0 ? 1 : 0;
-    if (v > 0) { q.x += Math.cos(q.a) * v * sk * dt; q.y += Math.sin(q.a) * v * sk * dt; } else { q.x += (M.rnd() - 0.5) * Z.drozh * Math.sqrt(dt) * 2; q.y += (M.rnd() - 0.5) * Z.drozh * Math.sqrt(dt) * 2; }
-    if (q.x < w || q.x > M.W - w) { q.a = Math.PI - q.a; q.x = Math.max(w, Math.min(M.W - w, q.x)); } if (q.y < w || q.y > M.H - w) { q.a = -q.a; q.y = Math.max(w, Math.min(M.H - w, q.y)); }
+    // ход (hod.js, mir.json «hod»): движитель из записи (бег и кувырок, задний ход и щелчок, винт инфузории, дрожь) и тело в вязкой воде
+    // (поворот с разгоном, тяга, боковое сопротивление); без «hod» в записи мира тело скользит ровно, как раньше (самопроверка сторожа)
+    const HD = M.K.hod; let d = q.cel_a - q.a; d = Math.atan2(Math.sin(d), Math.cos(d)); if (q.pokoy) sk = 0; // в покое не плывёт
+    if (HD) { const PHd = pasport_hoda(q.zapis, HD, p.rz), X = hod(q, PHd, HD, dt, M.rnd, sk > 0 ? d : 0); q.plyvet = v > 0 && sk > 0 ? X.beg : 0; q.kach = X.kach;
+      shag_tela(q, HD, dt, sk > 0 ? d : 0, v * sk, X, p.h.k_povorot, w, v > 0 ? PHd.sdvig : Z.drozh * 0.577, M.rnd); } // 0,577 — тот же средний уход, что давал прежний равномерный снос неподвижных
+    else { const mx = Z.povorot0 * Math.min(4, p.h.k_povorot) * dt; q.a += Math.max(-mx, Math.min(mx, d)); q.plyvet = v > 0 && sk > 0 ? 1 : 0;
+      if (v > 0) { q.x += Math.cos(q.a) * v * sk * dt; q.y += Math.sin(q.a) * v * sk * dt; } else { q.x += (M.rnd() - 0.5) * Z.drozh * Math.sqrt(dt) * 2; q.y += (M.rnd() - 0.5) * Z.drozh * Math.sqrt(dt) * 2; } }
+    if (HD?.techenie) { const [tx, ty] = techenie(HD, q.x, q.y, M.t); q.x += tx * dt; q.y += ty * dt; }
+    if (q.x < w || q.x > M.W - w) { q.a = Math.PI - q.a; q.udar = 1; q.x = Math.max(w, Math.min(M.W - w, q.x)); } if (q.y < w || q.y > M.H - w) { q.a = -q.a; q.udar = 1; q.y = Math.max(w, Math.min(M.H - w, q.y)); }
     // питание всей оболочкой (у кого нет рта) и цена жизни: прибыль уходит в рост, убыток худит
     const g = godnost(M, q, p), e = Z.eda * p.h.k_eda * p.rz * g * dt; let prihod = 0; // где виду не место (нет кислорода, света), ест хуже: приход × пригодность (pole.js godnost, как сводно)
     if (p.pishcha.sahar) prihod += M.pole.vzyat(q.x, q.y, e * p.pishcha.sahar * M.pole.tut(q.x, q.y)) * Z.kpd; if (p.pishcha.kuski) prihod += M.pole.vzyat_kuski(q.x, q.y, e * p.pishcha.kuski * M.pole.kuski(q.x, q.y)) * Z.kpd;
@@ -87,7 +92,7 @@ export function shag(M, dt) { M.n = (M.n || 0) + 1; const Z = M.K.zhizn, S = M.s
     // чужие расходятся по настоящим обводам (stolknovenie.js: оболочка ↔ оболочка, лёгкий уходит дальше); круг — только грубый отбор пар
     // каждое тело расталкивается раз в razvodit_cherez шагов (тела движутся медленно против шага, а расчёт обводов самый дорогой)
     if ((q.id + M.n) % (Z.razvodit_cherez || 1) === 0) ryadom(q, w * (p.L + 2), o => { if (o.id < q.id) return; const wo = tolshchina(M, o), po = pasport(o.zapis); if (!blizko(q, p, w, o, po, wo)) return;
-      const r = razvesti(q.zapis, { x: q.x, y: q.y, a: q.a, tolshchina: w }, o.zapis, { x: o.x, y: o.y, a: o.a, tolshchina: wo }, M.SK); if (!r.pary) return; q.x += r.A.dx; q.y += r.A.dy; q.a += r.A.da; o.x += r.B.dx; o.y += r.B.dy; o.a += r.B.da; });
+      const r = razvesti(q.zapis, { x: q.x, y: q.y, a: q.a, tolshchina: w }, o.zapis, { x: o.x, y: o.y, a: o.a, tolshchina: wo }, M.SK); if (!r.pary) return; if (!p.oruzhie.length || !beret(q, o)) q.udar = 1; if (!po.oruzhie.length || !beret(o, q)) o.udar = 1; q.x += r.A.dx; q.y += r.A.dy; q.a += r.A.da; o.x += r.B.dx; o.y += r.B.dy; o.a += r.B.da; });
     // встречи: у кого есть рот или удар, тот проверяет касание зон с соседями другого вида
     if (p.oruzhie.length && !q.syt && !q.pokoy) ryadom(q, w * (p.L + 1) + kl * 0.5, o => { if (q.mertv || o.mertv || o.vid === q.vid) return; const wo = tolshchina(M, o), po = pasport(o.zapis); if (Math.hypot(q.x - o.x, q.y - o.y) > w * (p.L / 2 + 1) + wo * (po.L / 2 + 1)) return;
       const K = kasanie(obvod_zon(q.zapis, { x: q.x, y: q.y, a: q.a, tolshchina: w }, 32), obvod_zon(o.zapis, { x: o.x, y: o.y, a: o.a, tolshchina: wo }, 32), w * 0.15);
