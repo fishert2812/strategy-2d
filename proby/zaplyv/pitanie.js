@@ -55,6 +55,6 @@ export function vytolknut(q, veshchi, T, w) { const kh = T.kh * w, kr = T.kr * w
 // Кусок, который едят, держится на оболочке там, где коснулся. Звать ещё раз после шага тела: тело сдвинулось и повернулось, кусок с ним.
 export function prizhat(q, T, w, K) { const e = q.est; if (!e) return; const kr = T.kr * w, c = Math.cos(q.a), s = Math.sin(q.a), k = (kr + e.r * (e.vd ?? K.vdavlen)) / (kr + e.r0 * K.vdavlen), u = e.u + e.du * k, v = e.v * k; e.x = q.x + u * c - v * s; e.y = q.y + u * s + v * c; }
 // Во сколько раз тело сейчас толще покоя: голодная тоньше (∛массы ниже 1; выше 1 тело растёт в длину: delenie.js telo), медленное дыхание, волна сытости после куска и отклик
-// оболочки на касание: тело вздрагивает и гасит дрожь (та же затухающая волна, что у вмятины капсулы в игре: exp(−4f)·cos(14f)).
-export function tolshche(q, K, t) { const p = q.puls || 0, f = (q.tolchok ?? 9) / K.tolchok.dlitsya, tk = f < 1 ? K.tolchok.razmah * Math.exp(-4 * f) * Math.cos(14 * f) : 0;
+// оболочки на касание: тело вздрагивает и гасит дрожь. Отклик на толчок начинается с нуля (exp(−4f)·sin(14f): так отвечает на удар осциллятор с затуханием), иначе толщина прыгает за один кадр.
+export function tolshche(q, K, t) { const p = q.puls || 0, f = (q.tolchok ?? 9) / K.tolchok.dlitsya, tk = f < 1 ? K.tolchok.razmah * Math.exp(-4 * f) * Math.sin(14 * f) * (1 - f) : 0;
   return Math.cbrt(Math.min(1, q.m)) * (1 + K.dyshit.razmah * Math.sin(t * 6.283 / K.dyshit.period + q.id) + K.puls.razmah * Math.sin(Math.PI * p) ** 2 - tk); }

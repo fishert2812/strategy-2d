@@ -56,6 +56,9 @@ export function hod(q, P, K, dt, rnd, d = 0) { dt = Math.max(dt, 1e-4); const ti
   const h = q.h || (q.h = { faza: 'beg', t: probeg(), T: 1, f: rnd() * 6.283, pov: 0, zh: 0 }); h.f += dt; const udar = q.udar; q.udar = 0;
   // дрожь воды плавная (скорость блуждает и гаснет за plavno секунд), а не скачок каждый кадр: на экране это снос и повод, не тряска
   const tau = K.drozh.plavno, kd = Math.min(1, dt / tau); h.bw = (h.bw || 0) * (1 - kd) + gauss(rnd) * P.vert / tau * Math.sqrt(dt) * kd / (dt / tau); o.da = h.bw * dt;
+  // общий закон плавности: любой разворот (кувырок, щелчок, отскок) идёт не быстрее telo.razvorot рад/с в среднем, большой угол дольше малого;
+  // иначе тело поворачивает на десятки градусов за кадр, и глаз видит скачок, а не движение
+  const plavno = (T0, pov) => Math.max(T0, Math.abs(pov) / (K.telo.razvorot || 99));
   if (tip === 'polzet' && !q.pokoy) { const N = K.nozhki, z = h.nz || (h.nz = { ang: 0, r: 0, st: znak(), rost: 1, t: N.rastet * rnd() }); o.rul = 0; o.beg = 0;
     const novyy = ot => { z.st = rnd() < N.zigzag ? -z.st : z.st; z.ang = lim(z.st * N.ugol * (0.6 + rnd() * 0.8) + lim(d, -N.k_celi, N.k_celi) + (ot || 0), -2.6, 2.6); z.r = 0; z.rost = 1; z.t = N.rastet * (0.7 + rnd() * 0.6); };
     // ест (оболочка обхватывает кусок: pitanie.js obhvat): ходовой вырост втягивается, вещество тела уходит в губы вокруг куска, тело стоит
@@ -66,16 +69,16 @@ export function hod(q, P, K, dt, rnd, d = 0) { dt = Math.max(dt, 1e-4); const ti
     o.vyp = [{ ot_nosa: z.ang, vysota: N.vysota * z.r, shirina: N.shirina }]; return o; }
   if (q.pokoy || tip === 'drozh') { o.sk = q.pokoy ? 0 : 1; o.beg = 0; o.rul = 0; return o; }
   if (tip === 'spiral') { const S = K.spiral, w = 6.283 / S.period, O = S.otskok;
-    if (h.faza === 'nazad') { o.sk = -O.skorost; o.rul = 0; if ((h.t -= dt) <= 0) { h.faza = 'povorot'; h.t = h.T = O.povorot_t; h.pov = znak() * O.povorot * (0.6 + rnd() * 0.8); } }
+    if (h.faza === 'nazad') { o.sk = -O.skorost; o.rul = 0; if ((h.t -= dt) <= 0) { h.faza = 'povorot'; h.pov = znak() * O.povorot * (0.6 + rnd() * 0.8); h.t = h.T = plavno(O.povorot_t, h.pov); } }
     else if (h.faza === 'povorot') { o.sk = O.v_povorote; o.rul = 0; o.da += h.pov * dt / h.T * (1 - Math.cos(6.283 * (1 - h.t / h.T))); if ((h.t -= dt) <= 0) { h.faza = 'beg'; h.zh = 0; } }
     else { h.zh += dt; if (udar && h.zh > O.ne_chashche) { h.faza = 'nazad'; h.t = O.nazad * (0.7 + rnd() * 0.6); } }
     o.bok = S.razmah * w * Math.cos(h.f * w); o.kach = S.kachanie * Math.cos(h.f * w); o.sk *= 1 + S.pulsaciya * Math.sin(h.f * w * 0.5 + q.id); return o; }
   o.kach = P.kach * Math.sin(h.f * B.chastota + q.id);
   if (h.faza === 'beg') { h.zh += dt; o.sk = 1 + B.pulsaciya * Math.sin(h.f * 2.3 + q.id * 1.7) * Math.sin(h.f * 0.9 + q.id);
     // цель оказалась сзади: резкий разворот кувырком в её сторону (как у клетки игрока в игре: data.json swim.tumble_angle)
-    if (Math.abs(d) > B.ugol_kuvyrka && h.zh > B.ne_chashche && tip === 'beg') { h.faza = 'kuvyrok'; h.t = h.T = B.kuvyrok; h.pov = d * B.dolya_razvorota; }
-    else if ((q.vedut ? 1 : (h.t -= dt)) <= 0 || udar && h.zh > B.ne_chashche) { if (tip === 'polus') { h.faza = 'nazad'; h.t = B.nazad * (0.5 + rnd()); } else { h.faza = 'kuvyrok'; h.t = h.T = B.kuvyrok * (0.6 + rnd() * 0.8); h.pov = znak() * P.ugol * (0.3 + rnd() * 1.4); } } }
-  else if (h.faza === 'nazad') { o.sk = -B.nazad_skorost; o.rul = 0; if ((h.t -= dt) <= 0) { h.faza = 'kuvyrok'; h.t = h.T = B.shchelchok_t; h.pov = znak() * B.shchelchok * (0.6 + rnd() * 0.8); } }
+    if (Math.abs(d) > B.ugol_kuvyrka && h.zh > B.ne_chashche && tip === 'beg') { h.faza = 'kuvyrok'; h.pov = d * B.dolya_razvorota; h.t = h.T = plavno(B.kuvyrok, h.pov); }
+    else if ((q.vedut ? 1 : (h.t -= dt)) <= 0 || udar && h.zh > B.ne_chashche) { if (tip === 'polus') { h.faza = 'nazad'; h.t = B.nazad * (0.5 + rnd()); } else { h.faza = 'kuvyrok'; h.pov = znak() * P.ugol * (0.3 + rnd() * 1.4); h.t = h.T = plavno(B.kuvyrok * (0.6 + rnd() * 0.8), h.pov); } } }
+  else if (h.faza === 'nazad') { o.sk = -B.nazad_skorost; o.rul = 0; if ((h.t -= dt) <= 0) { h.faza = 'kuvyrok'; h.pov = znak() * B.shchelchok * (0.6 + rnd() * 0.8); h.t = h.T = plavno(B.shchelchok_t, h.pov); } }
   else { o.sk = B.v_kuvyrke; o.beg = 0; o.rul = 0; o.da += h.pov * dt / h.T * (1 - Math.cos(6.283 * (1 - h.t / h.T))); o.kach *= 2; if ((h.t -= dt) <= 0) { h.faza = 'beg'; h.t = probeg(); h.zh = 0; } }
   return o; }
 // Течение: вода в капле медленно ходит кругами и несёт всех одинаково (бездивергентное поле из двух волн, еду не сминает в кучи).
