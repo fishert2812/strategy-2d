@@ -21,6 +21,7 @@ import { sobrat, VC } from '../vid_chasti.js';
 import { plyt, pasport_hoda } from '../hod.js';
 import { kontakt, tolshche, prizhat, vytolknut, vmyat } from '../pitanie.js';
 import { kasanie } from '../kasanie.js';
+import { flazhok } from './flazhok.js';
 import { obvod_zon } from '../zony.js';
 import { telo as telo_rosta } from '../delenie.js';
 const q0 = new URLSearchParams(location.search), MR = await (await fetch('../mir.json')).json(), K = MR.hod, KK = MR.kontakt, Z = MR.zhizn, S = K.stend, vid = VC.vidy[q0.get('sushchestvo')] ? q0.get('sushchestvo') : 'nasha';
@@ -52,12 +53,14 @@ document.getElementById('kn').addEventListener('click', () => r.classList.toggle
 // выбор существа из готовых записей движка (без записей живой игры): страница открывается заново с ?sushchestvo=
 { const d = document.getElementById('vs'); for (const [k, z] of Object.entries(VC.vidy)) { if (z.igra) continue; const a = document.createElement('option'); a.value = k; a.textContent = (z._ || k).split(/[:(,]/)[0].trim(); a.selected = k === vid; d.appendChild(a); } d.addEventListener('change', () => { location.search = '?sushchestvo=' + d.value; }); }
 // инструменты проверяющего: пауза, замедление, готовые ситуации одним касанием (кусок еды и комок перед носом), метка сборки для снимков экрана
-let pauza = false, medl = false; const kn = (id, f) => document.getElementById(id).addEventListener('click', e => { f(e.currentTarget); }), pered = k => ({ x: q.x + Math.cos(q.a) * S.tolshchina * k, y: q.y + Math.sin(q.a) * S.tolshchina * k });
+let pauza = false, medl = false, zamer = false; const kn = (id, f) => document.getElementById(id).addEventListener('click', e => { f(e.currentTarget); }), pered = k => ({ x: q.x + Math.cos(q.a) * S.tolshchina * k, y: q.y + Math.sin(q.a) * S.tolshchina * k });
 kn('k_pauza', b => { pauza = !pauza; b.classList.toggle('vkl', pauza); }); kn('k_medl', b => { medl = !medl; b.classList.toggle('vkl', medl); });
 // вторая клетка той же записи: плывёт своим ходом, тела не проходят друг сквозь друга (kasanie.js), в месте касания обе оболочки сминаются (та же вмятина vmyat)
 let q2 = null; kn('k_kletka', () => { q2 = { id: 2, ...pered(S.knopki.kletka), a: q.a + Math.PI / 2, m: 1, pokoy: 0, udar: 0, zhestkost: q.zhestkost }; });
 const myat = (A, B, nx, ny, gl, w) => { const c = Math.cos(A.a), s = Math.sin(A.a), kh = TL.kh * w, dx = B.x - A.x, dy = B.y - A.y, u = Math.max(-kh, Math.min(kh, dx * c + dy * s)) * 0.5; vmyat(A, B, u / w, nx * c + ny * s, ny * c - nx * s, gl, TL.kr, TL.kr, KK); };
 kn('k_eda', () => palec.push({ ...pered(S.knopki.eda), m: E.m[1], r: S.tolshchina * E.r })); kn('k_komok', () => palec.push({ ...pered(S.knopki.komok), m: 1, r: S.tolshchina * S.knopki.r_komka, tverd: true }));
+window.hodFlazhok = flazhok({ panel: document.getElementById('t'), canvas: document.getElementById('c'), vyrez: S.flazhok_vyrez, zamri: v => { zamer = v; }, svezhiy: () => { gl.clear(); gl.render(back, cam); gl.render(bodies.scene, bodies.cam); },
+  gde: () => 'движок · ' + document.getElementById('sb').textContent + ' · ' + h.innerText.replace(/\s+/g, ' ') + (q2 ? ' · две клетки' : '') + (pauza ? ' · пауза' : '') + (medl ? ' · медленно' : '') });
 fetch('../version.json').then(v => v.json()).then(v => { document.getElementById('sb').textContent = 'версия ' + v.number + ' · сборка движка ' + S.sborka; });
 polzunok('Жгутиков', 'zhg', 0, S.zhgutikov_do, 1); polzunok('Длина тела', 'dl', S.dlina[0], S.dlina[1], 0.05); polzunok('Жгутик на корме', 'korma', 0, 1, 1); sobrat_zapis();
 window.hodZapis = (kl, v) => { PZ[kl] = v; sobrat_zapis(); }; window.hodSost = () => ({ vm: q.vm_vid && q.vm_vid.map(m => [+m.u.toFixed(2), +m.nu.toFixed(2), +m.d.toFixed(2), +m.a.toFixed(2)]), m: q.m, est: !!q.est, x: q.x, y: q.y, a: q.a, kach: q.kach, faza: q.h?.faza, vmax, PH });
@@ -97,7 +100,7 @@ window.stend = dt => { time += dt; const w = S.tolshchina * tolshche(q, KK, time
   gl.clear(); gl.render(back, cam); gl.render(bodies.scene, bodies.cam);
   if (kadr++ % 6 === 0) { const dl = 2 * (TL.kh + TL.kr); h.innerHTML = '<b>' + (zapis._ || vid).split(/[:(]/)[0].trim() + '</b><br>' + (q.est ? (q.obhvat ? (q.est.ob >= 1 ? 'ест: кусок тает внутри тела' : 'обхватывает кусок оболочкой') : 'ест: кусок тает на оболочке') : q.upor > 0 ? (vedet && nazhal?.tych ? 'палец давит на оболочку' : 'упёрлась в комок') : PH.tip === 'drozh' ? 'дрожит на месте' : PH.tip === 'polzet' ? (q.h?.nz?.rost ? 'тянет вырост' : 'перетекает в вырост') : SLOVA[q.h.faza]) + ' · ' + (sk_sred / (2 * w * dl)).toFixed(1).replace('.', ',') + ' длины тела в секунду';
     document.getElementById('iz').textContent = 'Из записи движок вывел: ' + TIP[PH.tip] + '; быстрее всего ' + (vmax / (2 * w * dl)).toFixed(1).replace('.', ',') + ' длины тела в секунду; нос качает на ' + (PH.kach * 57.3).toFixed(0) + '°; в кувырке разворот до ' + (PH.ugol * 1.7 * 57.3).toFixed(0) + '°.'; } };
-if (!q0.get('zapis')) { let last = performance.now(); const go = now => { if (!pauza) window.stend(Math.max(0.001, Math.min(0.05, (now - last) / 1000)) * (medl ? S.medlenno : 1)); last = now; requestAnimationFrame(go); }; requestAnimationFrame(go); }
+if (!q0.get('zapis')) { let last = performance.now(); const go = now => { if (!pauza && !zamer) window.stend(Math.max(0.001, Math.min(0.05, (now - last) / 1000)) * (medl ? S.medlenno : 1)); last = now; requestAnimationFrame(go); }; requestAnimationFrame(go); }
 window.hodDbg = () => { const e = q.est; return e && { est: 1, ob: e.ob, vd: e.vd, vd0: e.vd0, r: e.r, d: Math.hypot(e.x - q.x, e.y - q.y), TL, sled: q.sled && [q.sled.x - q.x, q.sled.y - q.y, q.sled.a - q.a], vyp: q.vyp_eda, nz: q.vyp }; };
 window.stendReady = true;
 </script></body></html>
