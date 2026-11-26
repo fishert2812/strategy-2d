@@ -19,7 +19,7 @@ export const E = url.protocol === 'file:' ? JSON.parse((await import('node:fs'))
 export const on = w => w.mode === 'evo';
 const has = (w, g) => on(w) && !!w.genes[g];
 // Что можно предложить: все гены мира и свои умения режима, которых у клетки ещё нет, кроме умений семьи.
-export const pool = w => [...Object.keys(w.cfg.genes), ...E.svoi].filter(g => !w.genes[g] && !E.bez.includes(g) && !ot(g));
+export const pool = w => [...Object.keys(w.cfg.genes), ...E.svoi].filter(g => (!w.genes[g] || (w.urovni && w.urovni(g))) && !E.bez.includes(g) && !ot(g) && !(w.ne_dat && w.ne_dat(g))); // «Капля» (kaplya/navyki.js): взятое умение приходит следующим уровнем, прежние гены — ступенями
 // Умение от добычи: заработано ли (съедено n тех, у кого оно есть).
 const ot = g => Object.values(E.dobycha).some(d => d.gene === g);
 export const earned = w => Object.entries(E.dobycha).filter(([who, d]) => (w.syel?.[who] || 0) >= d.n && !w.genes[d.gene]).map(([, d]) => d.gene);
