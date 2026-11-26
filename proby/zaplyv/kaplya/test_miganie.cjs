@@ -2,7 +2,7 @@
 // Роман 26.11: «Почему экран мигает? Что за проблема такая!?» Причина была в снимке для Альманаха: он рисуется на холсте игры, и если делался
 // вне кадра (встреча существа, карточка), телефон на кадр показывал студию с одним существом. Сторож каждый кадр читает весь холст
 // и ищет кадр, который резко ярче или темнее соседей с обеих сторон (вспышка или чёрный кадр). Самопроверка: снимок без защиты сторож обязан поймать.
-const { chromium } = require('playwright'), http = require('http'), fs = require('fs'), path = require('path');
+const http = require('http'), fs = require('fs'), path = require('path');
 const KOREN = path.resolve(__dirname, '..'), TIP = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg' };
 const PROVAL = 12; // насколько средняя яркость кадра (0–765) отличается от обоих соседей, чтобы считаться миганием
 // Ищет одиночные выбросы: кадр отличается от предыдущего и следующего в одну сторону больше чем на PROVAL
@@ -12,7 +12,8 @@ check('test_miganie_storozh_vidit: сторож ловит придуманну�
 (async () => {
   const srv = http.createServer((q, s) => { const f = path.join(KOREN, decodeURIComponent(q.url.split('?')[0])); const ff = fs.existsSync(f) && fs.statSync(f).isDirectory() ? path.join(f, 'index.html') : f;
     if (!ff.startsWith(KOREN) || !fs.existsSync(ff)) { s.writeHead(404); return s.end(); } s.writeHead(200, { 'Content-Type': TIP[path.extname(ff)] || 'application/octet-stream' }); fs.createReadStream(ff).pipe(s); }).listen(0);
-  const b = await chromium.launch(), p = await b.newPage({ viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  const pw = await import(process.env.PW || 'playwright').then(m => m.default || m); // на CI playwright не рядом с файлом: путь даёт шаг (tools/web/kaplya_pw.sh)
+  const b = await pw.chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME, args: ['--no-sandbox'] } : {}), p = await b.newPage({ viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
   await p.addInitScript(() => { const g = HTMLCanvasElement.prototype.getContext; HTMLCanvasElement.prototype.getContext = function (t, o) { if (t === 'webgl' || t === 'webgl2') o = { ...(o || {}), preserveDrawingBuffer: true }; return g.call(this, t, o); };
     window.__ryad = []; window.__zapis = false; const tick = () => { const c = document.querySelector('canvas'); if (window.__zapis && c) { const gl = c.getContext('webgl2') || c.getContext('webgl'), W = c.width, H = c.height, px = new Uint8Array(4 * W * H); gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px);
       let s = 0, n = 0; for (let i = 0; i < px.length; i += 28) { s += px[i] + px[i + 1] + px[i + 2]; n++; } window.__ryad.push(s / n); } requestAnimationFrame(tick); }; requestAnimationFrame(tick); });
