@@ -36,6 +36,7 @@ import * as sp from './sposoby.js'; // способы есть: «Присоск
 import * as ruka from './ruka.js'; // какой рукой ведут: линейка со стороны, которую не закрывает палец (книга П4)
 import * as zr from './zaraza.js'; // большая клетка заметнее: больше вирусов и запятых (книга П52)
 import * as vir from './virus.js'; // знак вируса водой: серая муть (книга П7)
+import * as vd from './vdoh.js'; // «вдох» клетки на каждый кусок (книга П13)
 import * as rod from './rod.js'; // род жив: раз за заплыв просыпаешься сестрой (П73)
 import * as sm from './semena.js'; // между заплывами: семена рода, рекорд размера (П76, П94)
 import * as glv from './glavy.js'; // главы 2–5 (П79–П83)
@@ -230,7 +231,7 @@ const beep = (f, dur, vol = 0.05, type = 'sine', slide = 0.6) => {
 
 const STICK = 56; // полный ход большого пальца (~30 точек экрана); дальше кольцо едет за пальцем
 const pad = new Stick(STICK);
-let GOL = gol.sozdat(); let POK = pkz.sozdat(); let ZAR = zr.sozdat(); let VIR = [];
+let GOL = gol.sozdat(); let POK = pkz.sozdat(); let ZAR = zr.sozdat(); let VIR = []; let VDOH = 0;
 let LIN = null, GL = null, SEM = [], ROD_K = rod.sozdat(), OBL = obl.sozdat(), LES = les.sozdat(), GLAVA = 1, CEL = cel.sozdat(), world, view, finger = null, down = null, moved = false, shake = 0, ended = false, lastEat = 0;
 const $ = id => document.getElementById(id);
 const ver = (await (await fetch('version.json')).json()).number; // свой номер «Заплыва», список — VERSIONS.md
@@ -791,6 +792,7 @@ function events() {
     if (k === 'zap') { beep(1500, 0.05, 0.05, 'square', 0.4); } // выстрел гарпуна синегнойки
     if (k === 'grab') { beep(240, 0.2, 0.05, 'sawtooth', 1.6); say('Схватили! Резко развернись — вырвешься', 2600); /* каждый раз, не один за заплыв (L043) */ }
     if (k === 'bore') { beep(180, 0.3, 0.05, 'sawtooth', 0.7); say('Прилипла запятая! Резко развернись — стряхнёшь', 2600); } // запятая вбуравливается
+    if (k === 'eat' || k === 'gulp') VDOH = vd.nachat(KAP.vdoh); // П13: проглочен кусок — вдох
     if (k === 'eat') { const n = performance.now(); if (n - lastEat > 60) { beep(300 + Math.random() * 200, 0.09, 0.04); lastEat = n; } }
     if (k === 'leave') { tell('leave', 'Дочка уплыла жить сама — мутации копятся дальше'); }
     if (k === 'meet') meet(x);
@@ -893,6 +895,7 @@ const BALL = [null, [0.55, 0.48, 0.8], [0.55, 0.95, 0.3]], BRIM = [null, [0.85, 
 const ball = (x, y, r, side, seed) => bodies.sphere(x, y, r, BALL[side], BRIM[side], seed);
 function paint(time) {
   const pdt = Math.min(0.05, Math.max(0, time - (paint.t ?? time))); paint.t = time; // шаг для плавных состояний рисунка
+  VDOH = vd.shag(VDOH, pdt); const VD = vd.sila(VDOH, KAP.vdoh); window.kaplyaVdoh = () => VD; // П13: клетка дышит кусками
   const z = view.z, big = world.biggest();
   bodies.begin(); lod.tel = lod.tochek = 0; lod.ya = world.biggest();
   const znaki = []; // знаки у края кадра для кругов, которые ещё за краем (рисуются после колец)
@@ -1113,7 +1116,7 @@ function paint(time) {
     const wm = w * Math.pow(2, rost.vid(world)); // мать: вдвое тяжелее, полудлина как у созревшей (см. half)
     const bo = vid.birth(a, time, world.me, body.ang, half / z, w / z, body.cx, body.cy, rost.on(world) ? wm * 2.6 / z : half * 2 / z, rost.on(world) ? wm / z : w / z); // мать ровно вдвое длиннее дочки той же толщины // деление: мать стягивается, дочки расходятся торец к торцу (vid.json split)
     if (bo) { probe.birth = time; if (bo.hide) continue; } // обход пальцем (test_L050) видит, что рождение рисуется; вторая дочка ещё часть матери
-    const [x0, y0] = scr(bo ? bo.x : body.cx, bo ? bo.y : body.cy), sag = Math.max(-w * DL.sag, Math.min(w * DL.sag, body.sag * z)) * (bo ? bo.sag : 1), /* стенка жёсткая: длинная палочка не гнётся бананом */ hl = bo ? half * bo.fl : half, wl = bo ? w * bo.fw : w;
+    const [x0, y0] = scr(bo ? bo.x : body.cx, bo ? bo.y : body.cy), sag = Math.max(-w * DL.sag, Math.min(w * DL.sag, body.sag * z)) * (bo ? bo.sag : 1), /* стенка жёсткая: длинная палочка не гнётся бананом */ hl = (bo ? half * bo.fl : half) * VD, wl = (bo ? w * bo.fw : w) * VD;
     const ang = (bo ? bo.ang : body.ang) + Math.sin(time * 18.8 + a.id) * wob, ax = Math.cos(ang), ay = Math.sin(ang);
     const x = x0 - ay * sag * 0.675, y = y0 + ax * sag * 0.675; // центр модели так, чтобы концы легли на хорду
     const along = (s, o = 0) => [x + ax * s - ay * o, y + ay * s + ax * o];
