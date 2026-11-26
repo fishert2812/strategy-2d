@@ -199,7 +199,7 @@ export function sobrat(zapis, poza, B) {
     // volna — ветка сама медленно вытягивается и втягивается (ложноножка)
     const vetki = [...(forma.vetki || []), ...(P.vetki || [])].map(v => { const k = Math.round(Math.max(0, Math.min(1, v.rost ?? (v.volna ? 0.6 + 0.4 * Math.sin((P.time || 0) * v.volna + v.t * 3 + (P.id || 0)) : 1))) * VC.vetka.stupeney) / VC.vetka.stupeney;
       if (k <= 0) return null; let m = VETKI.get(v); if (!m) VETKI.set(v, m = {}); if (m[k]) return m[k];
-      const vt = v.t === 'nos' ? O.nos_t : v.t === 'korma' ? O.korma_t : v.t; // место словом: нос или корма этого тела
+      const vt = (v.t === 'nos' ? O.nos_t : v.t === 'korma' ? O.korma_t : v.t) + (v.sdvig_t || 0); // место словом: нос или корма этого тела; sdvig_t — в сторону от него по обводу (шипы веером)
       // в начале роста толщины ветки не больше её длины: ветка проклёвывается низким бугорком и растёт из него, а не появляется сразу куполом
       // корень ветки сидит в теле на глубине VC.vetka.glubina и по самому телу идёт его же поверхностью (см. slit в obolochka): выпячивание самой оболочки, без шва у основания
       // rovno: насколько край тела под корнем ветки прямой (бок 1, круглый нос 0). На боку корень расходится вширь. Ветка с konus на носу: сам торец тела вытягивается в неё широким конусом (koren_nos, sheyka_nos)
@@ -219,7 +219,7 @@ export function sobrat(zapis, poza, B) {
     // или точкой в осях тела (u, o в полутолщинах): вырост растёт на ближайшем к ней месте обвода (губа, которой оболочка обхватывает еду: pitanie.js obhvat)
     const blizhe = v => { let bt = 0, bd = 1e9; for (let i = 0; i < 48; i++) { const t = i / 48 * 6.283, e = O.kray(t), d = (e.x - v.u) ** 2 + (e.y - v.o) ** 2; if (d < bd) { bd = d; bt = t; } } return bt; };
     if (P.vypuklosti) P.vypuklosti = P.vypuklosti.map(v => v.ot_nosa !== undefined ? { ...v, t: O.nos_t + v.ot_nosa } : v.u !== undefined ? { ...v, t: blizhe(v) } : v);
-    if (forma.vypuklosti) P.vypuklosti = [...forma.vypuklosti, ...(P.vypuklosti || [])];
+    if (forma.vypuklosti) P.vypuklosti = [...forma.vypuklosti.map(v => v.t === 'nos' ? { ...v, t: O.nos_t + (v.sdvig_t || 0) } : v), ...(P.vypuklosti || [])];
     // под веткой тело не выпучивается отдельным бугром: переход делает сама ветка (иначе бугор закрывает её корень, и край тела режет основание)
     if (vetki.length && P.vypuklosti) P.vypuklosti = P.vypuklosti.filter(b => !vetki.some(v => Math.abs(Math.atan2(Math.sin(b.t - v.t), Math.cos(b.t - v.t))) < 0.35));
     // выпуклости позы (см. obolochka): край тела в этом месте тоже выходит наружу, поэтому ворс, жгутики и всё, что сидит на краю, едет на бугре
@@ -233,6 +233,29 @@ export function sobrat(zapis, poza, B) {
   return n; // сколько частей нарисовано (тест: все части записи нашлись)
 }
 export const KLYUCHI = Object.keys(RIS);
+// Умения на теле (Роман 26.11: «Визуальное улучшение должно происходить- чтобы игрок понимал что ему дали»): запись клетки плюс набор { умение: уровень } даёт новую запись,
+// где уровень умения добавил свои части и выросты (числа в vid_chasti.json «navyki»). Запись новая на каждый зов: игра держит её, пока набор не сменился
+export function s_navykami(zapis, nabor, N = VC.navyki.spisok, zerno = 0) { const z = JSON.parse(JSON.stringify(zapis)), R = VC.navyki.ruchki;
+  // zerno — «другой вид» того же оружия: длина, число, толщина и цвет части сдвигаются жребием в пределах ручек (navyki.ruchki), уровень остаётся тем же
+  const vid = (o, i) => { if (!zerno || !o) return o; const n = { ...o }; for (const [k, [a, b]] of Object.entries(R.mnozh)) if (n[k] != null) { const m = a + (b - a) * hash(zerno, i * 7 + k.length); n[k] = Array.isArray(n[k]) ? n[k].map(v => v * m) : k === 'n' ? Math.round(n[k] * m) : n[k] * m; }
+    if (n.cvet) { const s = Math.floor(hash(zerno, i + 40) * R.cveta.length); n.cvet = R.cveta[s]; } return n; };
+  Object.entries(nabor || {}).forEach(([kl, ur], i) => { const U = N[kl] && N[kl].urovni[Math.min(ur, N[kl].urovni.length) - 1]; if (!U) return;
+    for (const [ch, p] of Object.entries(U.chasti || {})) z.chasti[ch] = { ...(z.chasti[ch] || {}), ...vid(p, i) };
+    // nos — точки оси, которыми тело вытягивается вперёд от носа (воронка рта), srez — ровный срез этого носа
+    if (U.nos) { const x0 = z.forma.tochki.at(-1)[0]; z.forma.tochki.push(...U.nos.map(([dx, y, r]) => [x0 + dx, y, r])); } if (U.srez) z.forma.srez = U.srez;
+    if (U.vetki) z.forma.vetki = [...(z.forma.vetki || []), ...U.vetki.map(v => vid(v, i))]; if (U.vypuklosti) z.forma.vypuklosti = [...(z.forma.vypuklosti || []), ...U.vypuklosti]; });
+  return z; }
+// Только части умений поверх чужого тела (ручная клетка «Капли»: тело рисует игра, движок дорисовывает жгутики, остриё, венец рта).
+// poza: { x, y, a, R — полутолщина тела, L — длина тела, z, time, id, beg }. Запись частей держится по набору и вытянутости тела
+const CHN = new Map();
+export function chasti_navykov(nabor, poza, B, N = VC.navyki) { const hl = Math.max(0.05, Math.round((poza.L / 2 / poza.R - 1) * 10) / 10), kl = JSON.stringify(nabor) + hl; let z = CHN.get(kl);
+  if (!z) { const s = s_navykami(VC.vidy[N.osnova], nabor, N.spisok), nuzhny = new Set(Object.entries(nabor).filter(([, u]) => u > 0).flatMap(([k]) => Object.keys(N.spisok[k]?.urovni[0].chasti || {})));
+    // ветка на носу (шип) поверх чужого тела — отдельное маленькое тело-конус: полудлина h в его толщинах, толщина r0 в радиусах большого тела
+    z = { forma: { tip: 'os', tochki: [[-hl, 0, 1], [hl, 0, 1]] }, chasti: Object.fromEntries(Object.entries(s.chasti).filter(([k]) => nuzhny.has(k))),
+      ostriya: (s.forma.vetki || []).filter(v => v.t === 'nos').map(v => { const h = v.dlina / v.r[0] / 2; return { r0: v.r[0], dl: v.dlina, zapis: { forma: { tip: 'os', tochki: N.ostrie.profil.map((r, i, m) => [-h + 2 * h * i / (m.length - 1), 0, r]) }, chasti: { obolochka: { sloi: N.ostrie.sloi.map(q => ({ ...q, cvet: v.cvet || q.cvet })) } } } }; }) }; CHN.set(kl, z); }
+  let n = sobrat(z, { ...poza, tolshchina: poza.R }, B); const c = Math.cos(poza.a), sn = Math.sin(poza.a);
+  for (const o of z.ostriya) { const d = poza.L / 2 + (o.dl / 2 - N.ostrie.vnutr) * poza.R; n += sobrat(o.zapis, { ...poza, x: poza.x + c * d, y: poza.y + sn * d, tolshchina: poza.R * o.r0 }, B) ? 1 : 0; }
+  return n; }
 const NUTRO = new Set(['nukleoid', 'ribosomy', 'vklyucheniya', 'zerna', 'yadro', 'puzyri_edy', 'sokr_puzyr']);
 // Группа клеток одной записью (zapis.gruppa: { n, uklad: grozd | cep, zazor }): гроздь кокков, цепочка палочек. Каждая клетка — та же запись.
 export function sobrat_gruppu(zapis, poza, B) { const G = zapis.gruppa; if (!G || G.n < 2) return sobrat(zapis, poza, B); const w = poza.tolshchina, O = os(zapis.forma.tochki), sh = O.dlina * w * (G.zazor ?? 0.9); let n = 0;

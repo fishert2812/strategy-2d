@@ -1,5 +1,5 @@
 {
- "_": "Стенд сравнения с образцом (stend/obrazec.html, tools/web/sravnenie.mjs). На каждую запись vid_chasti.json (раздел vidy) — цветной образец из design/referensy/ (папка и файл, лучший по README папки) и поза для кадра: dlina и tolshchina тела в толщинах экрана (720 по ширине), ugol в радианах. Новая запись в vidy без строки здесь — проверка красная. Записи с пометкой igra сравнению не подлежат: igra true — старое тело ручной игры, igra \"kaplya\" — жители игры «Капля» по книге, пометка осталась только у тех, кому образца ещё нет; сверка печатает их в паспорте. avtor — подпись под снимком на стенде (автор и права). Уменьшенные копии снимков для стенда лежат в stend/obrazcy/ под тем же именем файла.",
+ "_": "Стенд сравнения с образцом (stend/obrazec.html, tools/web/sravnenie.mjs). На каждую запись vid_chasti.json (раздел vidy) — цветной образец из design/referensy/ (папка и файл, лучший по README папки) и поза для кадра: dlina и tolshchina тела в толщинах экрана (720 по ширине), ugol в радианах. Новая запись в vidy без строки здесь — проверка красная. Записи с пометкой igra сравнению не подлежат: igra true — старое тело ручной игры, igra \"kaplya\" — жители игры «Капля» по книге, пометка осталась только у тех, кому образца ещё нет; сверка печатает их в паспорте. avtor — подпись под снимком на стенде (автор и права). Уменьшенные копии снимков для стенда лежат в stend/obrazcy/ под тем же именем файла. Раздел navyki: образец части тела, которую даёт умение (vid_chasti.json «navyki»), показывается на стенде при касании кнопки умения.",
  "vidy": {
   "nasha": {
    "papka": "nasha_palochka",
@@ -360,6 +360,73 @@
     "ugol": -1.0
    },
    "avtor": "no rights reserved, CC0"
+  },
+  "igrok": {
+   "papka": "nasha_palochka",
+   "fail": "cdc_23241_cre_rossow.jpg",
+   "poza": {
+    "dlina": 3.2,
+    "tolshchina": 85,
+    "ugol": -1.5708
+   },
+   "avtor": "Stephanie Rossow, CDC, общественное достояние"
+  }
+ },
+ "navyki": {
+  "tail": {
+   "papka": "nasha_palochka",
+   "fail": "cdc_23251_salmonella_typhi_archer.jpg",
+   "avtor": "James Archer, CDC, общественное достояние"
+  },
+  "ship": {
+   "papka": "chasti/ship",
+   "fail": "didiniy_hobotok_ostriyo.jpg",
+   "avtor": "crseaquist, CC-BY"
+  },
+  "gulp": {
+   "papka": "chasti/rot",
+   "fail": "inat_60804766_voronka_stentor.jpg",
+   "avtor": "zookanthos, CC-BY"
+  },
+  "igly": {
+   "papka": "oruzhie/1_kolyushchee",
+   "fail": "inat_388767403_igly_acanthocystis.jpg",
+   "avtor": "no rights reserved, CC0"
+  },
+  "trihocisty": {
+   "papka": "oruzhie/2_strelyayushchee",
+   "fail": "tufelka_trihocisty.jpg",
+   "avtor": "Picturepest, CC BY 2.0"
+  },
+  "toxin": {
+   "papka": "oruzhie/3_yadovitoe",
+   "fail": "wellcome_B0004800_ecoli_pili_krasnaya.jpg",
+   "avtor": "Wellcome Collection, CC BY 4.0"
+  },
+  "shchupalca": {
+   "papka": "oruzhie/4_hvatayushchee",
+   "fail": "inat_120557721_shchupaltsa_suktorii.jpg",
+   "avtor": "crseaquist, CC-BY"
+  },
+  "sheya": {
+   "papka": "oruzhie/4_hvatayushchee",
+   "fail": "inat_376111767_sheya_lebed.jpg",
+   "avtor": "Igor Shelpiakov, CC-BY"
+  },
+  "pancir": {
+   "papka": "oruzhie/5_zashchitnoe",
+   "fail": "inat_94700479_pancir_arcella.jpg",
+   "avtor": "Bruce Taylor, CC-BY"
+  },
+  "spore": {
+   "papka": "chasti/spora",
+   "fail": "cdc_21910_clostridium_oosthuizen.jpg",
+   "avtor": "Jennifer Oosthuizen, CDC PHIL, public domain"
+  },
+  "fim": {
+   "papka": "chasti/pili",
+   "fail": "wellcome_B0004797_palochka_vorsinki.jpg",
+   "avtor": "Wellcome Collection, CC BY 4.0"
   }
  }
 }
