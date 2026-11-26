@@ -246,7 +246,7 @@ function menuPick(m, quiet) {
   const M = MODES[m];
   if (M.lock) { // закрытое отвечает у самого объекта и гаснет через 3 с; выбор и кнопку не трогает
     const o = $('mscene').querySelector(`.mo[data-m=${m}]`); for (const t of $('mscene').querySelectorAll('.mtip')) t.remove();
-    const t = document.createElement('div'); t.className = 'mtip'; t.textContent = M.lock; o.appendChild(t); o.classList.add('peek'); // тронутое видно резко, даже когда выбран другой
+    const t = document.createElement('div'); t.className = 'mtip'; t.textContent = M.lock; o.appendChild(t); o.classList.add('peek'); { const sc = $('mscene').getBoundingClientRect(), r = t.getBoundingClientRect(), dx = r.right > sc.right - 6 ? sc.right - 6 - r.right : r.left < sc.left + 6 ? sc.left + 6 - r.left : 0; if (dx) { const x = t.offsetLeft + dx; Object.assign(t.style, { left: x + 'px', right: 'auto', transform: 'none' }); } } // подсказка целиком внутри экрана, в какой колонке ни стоит плитка (О119) // тронутое видно резко, даже когда выбран другой
     setTimeout(() => { t.style.opacity = 0; setTimeout(() => { t.remove(); if (!o.querySelector('.mtip')) o.classList.remove('peek'); }, 400); }, 3000); return;
   }
   $('mline').textContent = M.line;
