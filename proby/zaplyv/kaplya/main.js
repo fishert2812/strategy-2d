@@ -22,7 +22,7 @@ import * as karta from '../karta.js';
 
 const cfg = await (await fetch('data.json')).json();
 // Форк по книге: жители капли — записи конструктора (vid_chasti.json), кто чем рисуется — kaplya/kaplya.json
-import { sobrat, VC } from '../vid_chasti.js';
+import { sobrat, sobrat_gruppu, VC } from '../vid_chasti.js';
 import * as bodo from './bodo.js'; // бодо — хозяин главы 1 (книга П37, П39), руками
 import * as cel from './cel.js';
 import * as zh from './zhiteli.js'; // спирилла, каулобактер, хлорелла (книга П39), руками // строка цели, подпись линейки, «теперь еда» (книга П5–П7)
@@ -835,7 +835,8 @@ function paint(time) {
     }
     const S = g.nest ? cfg.bdello_nest.look : cfg.slime_look, m = Math.ceil(g.len * z / (g.nest ? Math.min(S.rim_step, S.rim * z * 0.8 + 0.2) : S.rim_step)); // у гнезда кромка внахлёст — сплошная // кромка геля сплошной тонкой линией с двух сторон
     for (let j = 0; j <= m; j++) { const u = (j / m - 0.5) * g.len, v = Math.sin(u / g.len * 6.283 + g.id) * g.w * 0.8 + Math.sin(time * 0.4 + j / m * n * 0.3) * 2, f = Math.min(1, (1 - Math.abs(j / m - 0.5) * 2) * 3);
-      for (const sd of [-1, 1]) { const vv = v + sd * g.w * 0.5 * S.core; ink.put(x + (ca * u - sa * vv) * z, y + (sa * u + ca * vv) * z, S.rim * z + 0.3, ...(S.rim_c || [0.75, 0.92, 1]), S.rim_a * f); } }
+      for (const sd of [-1, 1]) { const vv = v + sd * g.w * 0.5 * S.core, px = x + (ca * u - sa * vv) * z, py = y + (sa * u + ca * vv) * z, k = sd + 1; // кромка геля сплошной трубкой, а не точками (Роман: пунктир — провал)
+        if (j && bodies.seg) bodies.seg(g._p[k], g._p[k + 1], px, py, (S.rim * z + 0.3) * 0.5, S.rim_c || [0.75, 0.92, 1], S.rim_a * f * 0.6); else if (!bodies.seg) ink.put(px, py, S.rim * z + 0.3, ...(S.rim_c || [0.75, 0.92, 1]), S.rim_a * f); g._p = g._p || []; g._p[k] = px; g._p[k + 1] = py; } }
   }
   { const Zc = cfg.zone, wn = world.warning(); // край зоны затягивания: тонкая сплошная линия (точки — язык еды, их не занимаем), еле видна всегда, ярче в полутора радиусах, разгорается только у ближайшей (L030)
     probe.znak = 0; probe.tiho = 0; znaki.length = 0; probe.strelki = [];
@@ -916,6 +917,9 @@ function paint(time) {
     const [x, y] = scr(p.x, p.y); if (!on(x, y, 220)) continue;
     const r = radius(p.m) * z, a0 = p.id * 1.7;
     glow.put(x, y, r * 3.2, 1, 0.85, 0.45, 0.11 + 0.03 * Math.sin(time * 0.8 + p.id)); // ореол: водоросль кормит сахаром вокруг себя
+    if (ZAP.plants) { const Z = ZAP.plants, G = KAP.nit, n = G.n[0] + p.id % (G.n[1] - G.n[0] + 1), a = p.id * 1.7 + Math.sin(time * 0.5 + p.id) * 0.08, t = r * ZH.plants.tolshchina; // анабена записью движка: нить бусин, посередине гетероциста
+      sobrat_gruppu({ ...Z, gruppa: { ...VC.vidy.anabena.gruppa, n: n | 1 } }, { x, y, a, tolshchina: t, z, time, id: p.id, beg: 0 }, bodies);
+      if (VC.vidy.geterocista) sobrat(VC.vidy.geterocista, { x, y, a, tolshchina: t * G.geterocista, z, time, id: p.id + 5, beg: 0 }, bodies); continue; }
     for (let k = -2; k <= 2; k++) {
       const a = a0 + Math.sin(time * 0.5 + k * 0.6 + p.id) * 0.12, cx = x + Math.cos(a) * k * r * 0.72, cy = y + Math.sin(a) * k * r * 0.72;
       const het = k === (p.id % 3) - 1; // гетероциста: крупнее и бледнее, ловит азот воздуха
@@ -926,6 +930,8 @@ function paint(time) {
   for (const k of world.crumbs) { // детрит: бурый рыхлый комок отмершего растения, на нём колонии
     const [x, y] = scr(k.x, k.y); if (!on(x, y, 120)) continue;
     const r = radius(k.m) * z;
+    if (ZAP.crumbs) { const D = KAP.komok, n = D.n[0] + k.id % (D.n[1] - D.n[0] + 1); // детрит записью движка: 3–5 бурых кусков внахлёст
+      for (let i = 0; i < n; i++) { const t = i * 2.4 + k.id, d = i ? r * D.razbros : 0; zhitel('crumbs', { id: k.id * 7 + i }, x + Math.cos(t) * d, y + Math.sin(t) * d, k.id * 1.3 + i * 1.9, r * (i ? D.melkie : 1), time, z); } continue; }
     for (let i = 0; i < 6; i++) {
       const t = i * 2.4 + k.id, d = i ? r * 0.45 * (0.6 + 0.4 * ((i * 0.37) % 1)) : 0;
       bodies.sphere(x + Math.cos(t) * d, y + Math.sin(t) * d, r * (i ? 0.42 : 0.55), [0.42, 0.28, 0.16], [0.75, 0.55, 0.35], k.id + i, 0.6);
@@ -950,13 +956,14 @@ function paint(time) {
     const [x, y] = scr(d.x, d.y); if (!on(x, y)) continue;
     const w = 7 * z;
     if (d.held > 0) { bodies.sphere(x, y, w * 1.4, [1, 0.88, 0.55], [1, 0.5, 0.3], d.id); glow.put(x, y, w * 3, 1, 0.3, 0.1, 0.15); continue; }
+    if (zhitel('donors', d, x, y, d.a, w, time, z)) { if (d.to) { const [tx, ty] = scr(d.to.x, d.to.y), f = Math.min(1, d.link / cfg.conj); bodies.seg(x, y, x + (tx - x) * f, y + (ty - y) * f, 1.2 * z + 0.4, [1, 0.95, 0.7], 0.8); } continue; } // соседка записью движка; пиля-мостик сплошной трубкой
     bodies.rod(x, y, d.a, w * 2.1, w, 0, [1, 0.88, 0.55], [0.85, 0.6, 0.25], d.id, Math.sin(time * 1.5 + d.id) * w * 0.15);
     if (!(d.held > 0)) { const pr = 1.1 * z + 0.4, np = Math.max(14, Math.ceil(6.283 * w * 0.45 / (pr * 0.8))); for (let k = 0; k < np; k++) { const t = k / np * 6.283 + time * 0.8; glow.put(x + Math.cos(t) * w * 0.45, y + Math.sin(t) * w * 0.45, pr, 1, 0.95, 0.6, 0.7 * 14 / np); } } // плазмида: точки внахлёст — сплошное колечко, не бусы (L047)
     if (d.to) { const [tx, ty] = scr(d.to.x, d.to.y), f = Math.min(1, d.link / cfg.conj); // пиля-мостик тянется, по нему бежит ДНК
       const br = 1.2 * z + 0.4, nb = Math.max(14, Math.ceil(Math.hypot(tx - x, ty - y) * f / (br * 0.8))); for (let k = 0; k <= nb; k++) { const u = k / nb * f; ink.put(x + (tx - x) * u, y + (ty - y) * u, br, 1, 0.95, 0.6, 0.8); } // мостик сплошной нитью: шаг меньше точки (L047)
       glow.put(x + (tx - x) * ((time * 2) % 1) * f, y + (ty - y) * ((time * 2) % 1) * f, 3 * z, 1, 0.9, 0.5, 0.6); }
   }
-  for (const q of world.pseudos) { const [x, y] = scr(q.x, q.y); if (on(x, y)) dv.risuy(q, { x, y, z, time, bodies, glow }); } // палочки из анкет (vidy.json): тело, цепочка, цвет-метка, жгутики
+  for (const q of world.pseudos) { const [x, y] = scr(q.x, q.y); if (on(x, y) && !(!(q.held > 0) && zhitel('pseudos', q, x, y, q.a, 7 * z, time, z))) dv.risuy(q, { x, y, z, time, bodies, glow }); } // палочки из анкет (vidy.json): тело, цепочка, цвет-метка, жгутики
   for (const e of world.events) if (e[0] === 'split') vid.splitAt(e[3], e[4]); // деление касанием случилось между шагами: рисуем его с первого же кадра, а не после шага
   fx.drawUnder({ scr, z, time, glow, ink }); mut.drawWorld({ w: world, scr, z, glow, ink, kids }); // пузырьки-обманки
   for (const b of world.bdellos) { // бделловибрион: запятая вдвое мельче тебя, один толстый жгутик; на рывке — след
