@@ -24,7 +24,8 @@ const cfg = await (await fetch('data.json')).json();
 // Форк по книге: жители капли — записи конструктора (vid_chasti.json), кто чем рисуется — kaplya/kaplya.json
 import { sobrat, VC } from '../vid_chasti.js';
 import * as bodo from './bodo.js'; // бодо — хозяин главы 1 (книга П37, П39), руками
-import * as cel from './cel.js'; // строка цели, подпись линейки, «теперь еда» (книга П5–П7)
+import * as cel from './cel.js';
+import * as zh from './zhiteli.js'; // спирилла, каулобактер, хлорелла (книга П39), руками // строка цели, подпись линейки, «теперь еда» (книга П5–П7)
 const KAP = await (await fetch('kaplya/kaplya.json')).json(), ZH = KAP.zhiteli, ZAP = {};
 for (const [k, v] of Object.entries(ZH)) if (v && VC.vidy[v.zapis]) ZAP[k] = { ...VC.vidy[v.zapis], gruppa: undefined };
 // нарисовать жителя записью: x, y — экран, a — куда смотрит, mera — ручная мера тела (длина, радиус, толщина) на экране
@@ -214,7 +215,7 @@ function start(genes, mode) {
   world.posle = Object.fromEntries(Object.values(GENY.geny || {}).filter(q => q.klyuch).map(q => [q.klyuch, q.posle || []])); world.known = met; // ген от того, кого уже встречал
   if (Array.isArray(genes)) world.inherit(genes); // заплыв веткой рода после «Ночи рода»
   $('night').classList.remove('on'); $('menu').classList.remove('on');
-  view = { x: 0, y: 0, z: 2.2, tint: [...TINT[0]] }; CEL = cel.sozdat(); bodo.nachalo(world, KAP.bodo);
+  view = { x: 0, y: 0, z: 2.2, tint: [...TINT[0]] }; CEL = cel.sozdat(); zh.nachalo(world); bodo.nachalo(world, KAP.bodo);
   fx.reset(); fx.world = world; ended = false; // fx читает мир: сидящие вирусы, запятые, амёбы
   $('end').classList.remove('on');
   setTimeout(() => say(KAP.start, 5000), 700); // книга П1: цель одной фразой, длинная форма для первого экрана
@@ -764,7 +765,7 @@ function events() {
 
 function tick(dt) {
   offer(dt);
-  world.step(dt, pad.value()); { const B = KAP.bodo, um = !!world.genes.gulp; bodo.shag(world, dt, B, radius, slyshuBodo); bodo.glotat(world, B, radius, evo.E.glotat.syt, 0, um, slyshuBodo); } // джойстик: направление и сила из сдвига пальца
+  world.step(dt, pad.value()); { const B = KAP.bodo, um = !!world.genes.gulp; bodo.shag(world, dt, B, radius, slyshuBodo); bodo.glotat(world, B, radius, evo.E.glotat.syt, 0, um, slyshuBodo); zh.shag(world, dt, KAP.novye); zh.glotat(world, evo.E.glotat.bolshe, radius, um, v => say(KAP.slova_glotka[v], 1600)); } // джойстик: направление и сила из сдвига пальца
   { const [fx, fy] = world.flow(view.x, view.y); cur[0] += fx * dt; cur[1] += fy * dt; } // течение несёт взвесь
   events();
   if (!world.me.length) {
@@ -987,6 +988,9 @@ function paint(time) {
   { const me = world.me.reduce((q, a) => a.m > q.m ? a : q, world.me[0] || { m: 1 }), umeet = !!world.genes.gulp, sv = KAP.cel.svet; // П7: можно съесть — тёплый свет, который медленно дышит
     if (umeet) for (const [list, who] of cel.SPIS) for (const q of world[list]) { const m = q.m || evo.E.glotat.razmer[who] || 1; if (q.gone || !cel.eda(CEL, me, m, evo.E.glotat.bolshe, umeet)) continue;
       const [x, y] = scr(q.x, q.y); if (!on(x, y, 40)) continue; glow.put(x, y, radius(m) * z * 1.7 + 4, ...sv, 0.12 + 0.07 * Math.sin(time * 2.5 + (q.id || 0))); } }
+  for (const [k, list] of Object.entries(zh.SPISKI)) for (const q of world[list] || []) { const [x, y] = scr(q.x, q.y), r = radius(q.m) * z; if (!on(x, y, r * 4)) continue; // жители книги: тела — записи конструктора
+    if (q.dom) { const [dx, dy] = scr(q.dom.x, q.dom.y); bodies.seg(x, y, x + (dx - x) * 0.5, y + (dy - y) * 0.5, 0.5 * z + 0.3, [0.85, 0.8, 0.6], 0.7); } // стебелёк к комку
+    zhitel(list, q, x, y, q.a + (q.kach || 0), r, time, z); }
   for (const b of world.bodos || []) { const B = KAP.bodo, L = bodo.dlina(B, b.m) * z, [x, y] = scr(b.x, b.y); if (!on(x, y, L * 4)) continue; // бодо: фасолина, два жгутика, задний держит у комка
     const ux = Math.cos(b.a), uy = Math.sin(b.a), [dx, dy] = scr(b.dom.x, b.dom.y), zam = b.faza === 'zamah' ? b.t / B.ryvok.zamah : 0, me = world.me[0];
     if (me && me.m * B.bolshe <= b.m && !b.syt) { const [mx, my] = scr(bodo.rot(B, b).x, bodo.rot(B, b).y); glow.put(mx + ux * L * 0.8, my + uy * L * 0.8, L * 1.3, 1, 0.35, 0.25, 0.1); } // П7: может съесть тебя — красноватая муть перед ртом

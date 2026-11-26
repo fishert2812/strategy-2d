@@ -1,7 +1,7 @@
 // Книга, «Правила игры» П5–П7: строка цели («съешь того, кто выше тебя»), подпись линейки «ростом с …», вспышка «теперь еда»,
 // тёплый свет на тех, кого можно съесть. Считает только виденных в этом заплыве (П6: подсказки про невиданное запрещены).
 // Чистая логика без рисования: мир ручной игры (sim.js), масса и порог глотания — как в evo.js (evo.json glotat). Слова и числа — kaplya.json «cel».
-export const SPIS = [['prey', 'coccus'], ['pseudos', 'pseudo'], ['bdellos', 'bdello'], ['amoebas', 'amoeba'], ['bells', 'bell'], ['rotis', 'roti'], ['slippers', 'slipper'], ['bodos', 'bodo']];
+export const SPIS = [['prey', 'coccus'], ['pseudos', 'pseudo'], ['bdellos', 'bdello'], ['amoebas', 'amoeba'], ['bells', 'bell'], ['rotis', 'roti'], ['slippers', 'slipper'], ['bodos', 'bodo'], ['spirilly', 'spirilla'], ['kaulo', 'kaulo'], ['brodyazhki', 'brodyazhka'], ['hlorelly', 'hlorella']];
 const OPASNYE = ['bodos', 'bdellos', 'amoebas', 'bells', 'rotis', 'slippers'];
 export const sozdat = () => ({ videl: {}, eda: new Set(), stroka: '', rostom: '' });
 const blizh = (a, q) => Math.hypot(q.x - a.x, q.y - a.y);
