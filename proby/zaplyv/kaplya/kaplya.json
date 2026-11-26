@@ -1365,5 +1365,54 @@
     "daet": "Укол носом: ровня растекается едой, крупную только ранит."
    }
   }
+ },
+ "stolk": {
+  "_": "Столкновения (Роман 26.11 21:55: «могу проходить через всех - такого быть не должно… Из движка взять эту часть»): правило движка stolknovenie.js по контуру записей. vkl; igrok — запись клетки игрока и её полутолщина w·m^stepen (как ручное тело vid.js); spiski — с кем сталкиваешься (записи — kaplya.json «zhiteli»); ugol — какое поле у списка курс (толчок не в центр его поворачивает); dal — дальше скольких толщин контуры не считаем; vzdrog — сколько секунд житель помнит толчок; bez — хищники, которые берут ртом или обволакивают телом: столкновение не дало бы им поймать (test_stolk_ameba), их граница — их рот, это следующий шаг таблицы зон",
+  "vkl": true,
+  "igrok": {
+   "zapis": "nasha",
+   "w": 8.5,
+   "stepen": 0.3
+  },
+  "spiski": [
+   "pseudos",
+   "donors",
+   "prey",
+   "bdellos",
+   "spirilly",
+   "kaulo",
+   "brodyazhki",
+   "krohi",
+   "hlamido",
+   "hlorelly"
+  ],
+  "ugol": {
+   "pseudos": "a",
+   "donors": "a",
+   "slippers": "a",
+   "rotis": "a",
+   "bodos": "a",
+   "spirilly": "a",
+   "kaulo": "a",
+   "brodyazhki": "a",
+   "parafizo": "a",
+   "cerko": "a",
+   "spumelly": "a",
+   "hlamido": "a",
+   "ciklidii": "a"
+  },
+  "dal": 4,
+  "vzdrog": 0.3,
+  "bez": [
+   "amoebas",
+   "bodos",
+   "slippers",
+   "bells",
+   "rotis",
+   "parafizo",
+   "cerko",
+   "spumelly",
+   "ciklidii"
+  ]
  }
 }
