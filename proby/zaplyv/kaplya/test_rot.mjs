@@ -18,7 +18,7 @@ const voronka = K => { const w = mir(R + 1.6 * R, 0.3 * R), S = rt.sozdat(); rt.
     const shir = (lo, hi) => Math.max(...P.filter(q => q.p > lo && q.p <= hi).map(q => Math.abs(q.v)), 0); if (shir(0.8, 0.98) >= shir(0.1, 0.5)) return `у рта воронка не уже: ${shir(0.8, 0.98).toFixed(1)} против ${shir(0.1, 0.5).toFixed(1)}`; }
   return ''; };
 check('test_rot_vodovorot: кусок у носа рассыпается на точки, они воронкой бегут в одну точку — рот, за 1–2,5 с (Роман 21:34)', voronka(K0));
-check('test_rot_samoproverka_pryamaya: без закрутки (krut 0) судья краснеет', voronka({ ...K0, krut: 0 }) ? '' : 'судья не заметил');
+check('test_rot_samoproverka_pryamaya: без закрутки (oborotov 0) судья краснеет', voronka({ ...K0, oborotov: 0 }) ? '' : 'судья не заметил');
 check('test_rot_samoproverka_bystro: мгновенно (t 0,1) судья краснеет', voronka({ ...K0, t: 0.1, zaderzhka: 0 }) ? '' : 'судья не заметил');
 const vzyat = (lvl, fx, fy) => { const w = mir(fx, fy), S = rt.sozdat(); rt.shag(S, w, dt, K0, radius, lvl); return S.kuski.length > 0; };
 const bokom = K => { const w = mir(-0.4 * R, 1.15 * R), S = rt.sozdat(); rt.shag(S, w, 0, K, radius, 0); if (!S.kuski.length) return 'кусок у бока не взят — его съест касание боком';
