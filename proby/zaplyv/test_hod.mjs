@@ -12,11 +12,11 @@ let bad = 0; const check = (n, f) => { let e; try { e = f(); } catch (x) { e = '
 const K = MR.hod, Z = MR.zhizn, T = K.storozh, W = 22, kopiya = f => { const z = JSON.parse(JSON.stringify(VC.vidy.nasha)); f?.(z); return z; };
 const sluchay = sd => { let s = sd * 2654435761 % 2147483647 || 1; return () => (s = (s * 16807) % 2147483647) / 2147483647; };
 // Путь одной клетки: T.sekund секунд по 30 кадров, без цели. rovno — как было до закона хода: нос к цели, скорость постоянна.
-function put(zapis, sd = 1, rovno = false) { const q = { id: 1, x: 0, y: 0, a: 0 }, rnd = sluchay(sd), dt = 1 / 30, tr = []; let vmax = 0, P;
-  for (let t = 0; t < T.sekund; t += dt) { const x = q.x, y = q.y, a = q.a + (q.kach || 0);
+function put(zapis, sd = 1, rovno = false, K = MR.hod) { const q = { id: 1, x: 0, y: 0, a: 0 }, rnd = sluchay(sd), dt = 1 / 30, tr = []; let vmax = 0, P;
+  for (let t = 0; t < T.sekund; t += dt) { const x = q.x, y = q.y, a = q.a + (q.kach || 0); q.kach0 = q.kach || 0;
     if (rovno) { vmax = Z.v0 / Z.tolshchina * W * pasport_hoda(zapis, K, 1).k_skorost; q.x += Math.cos(q.a) * vmax * dt; q.y += Math.sin(q.a) * vmax * dt; P = pasport_hoda(zapis, K, 1); }
     else ({ vmax, P } = plyt(q, zapis, K, Z, dt, rnd, 0, W));
-    tr.push({ v: Math.hypot(q.x - x, q.y - y) / dt, w: (q.a + (q.kach || 0) - a) / dt, faza: q.h?.faza || 'beg' }); }
+    tr.push({ da: q.a - (a - (q.kach0 || 0)), v: Math.hypot(q.x - x, q.y - y) / dt, w: (q.a + (q.kach || 0) - a) / dt, faza: q.h?.faza || 'beg' }); }
   return { tr, vmax, P, q }; }
 const sr = a => a.reduce((s, x) => s + x, 0) / a.length, razbros = a => { const m = sr(a); return Math.sqrt(sr(a.map(x => (x - m) ** 2))); };
 // Мерки «живого хода» по пути: скорость гуляет, нос качается, бывают остановки, тряски нет.
@@ -33,6 +33,13 @@ check('test_hod_zhivoy: одна клетка плывёт как живая —
   for (const sd of [1, 2, 3]) { const e = sudit(merki(put(VC.vidy.nasha, sd))); if (e) return `случай ${sd}: ${e}`; } });
 check('test_hod_samoproverka: тот же сторож краснеет на прежнем ходе «нос к цели, скорость постоянна»', () => {
   return sudit(merki(put(VC.vidy.nasha, 1, true))) ? '' : 'сторож пропустил ровное скольжение'; });
+// Поворот на месте (совет биолога 26.11, пункт 1: «встал, повернулся, поехал»): в кувырке и щелчке клетка сначала встаёт, поворот идёт на месте.
+// Мерка: какая доля поворота в кувырках и щелчках пришлась на кадры, где клетка ещё едет быстрее 0,3 наибольшей скорости.
+const na_hodu = r => { let vse = 0, edet = 0; for (const p of r.tr) if (p.faza === 'kuvyrok') { vse += Math.abs(p.da); if (p.v > 0.3 * r.vmax) edet += Math.abs(p.da); } return vse ? edet / vse : 1; };
+const korma = kopiya(z => z.chasti.zhgutiki.gde = 'korma'), kak_bylo = (() => { const K1 = JSON.parse(JSON.stringify(K)); K1.beg.tormoz = 0; K1.telo.stop_tormoz = K1.telo.stop; K1.telo.razvorot_mesta = K1.telo.razvorot; K1.beg.na_meste = K1.beg.shchelchok_t = [0.3, 9]; return K1; })();
+check(`test_hod_povorot_na_meste: кувырок и щелчок идут на месте — на ходу не больше ${T.povorot_na_hodu_max * 100}% поворота (жгутики по телу и жгутик на корме, три случая)`, () => {
+  for (const [im, z] of [['жгутики по телу', VC.vidy.nasha], ['жгутик на корме', korma]]) for (const sd of [1, 2, 3]) { const d = na_hodu(put(z, sd)); if (d > T.povorot_na_hodu_max) return `${im}, случай ${sd}: на ходу ${(d * 100).toFixed(0)}% поворота, клетка поворачивает дугой, а не на месте`; } });
+check('test_hod_povorot_na_meste_samoproverka: тот же сторож краснеет на прежнем повороте без тормоза', () => na_hodu(put(VC.vidy.nasha, 1, false, kak_bylo)) > T.povorot_na_hodu_max ? '' : 'сторож пропустил поворот на ходу: ' + na_hodu(put(VC.vidy.nasha, 1, false, kak_bylo)).toFixed(2));
 check('test_hod_iz_zapisi: меняешь запись — ход меняется сам (таблица «параметр → ход»)', () => {
   const V = { 'образец (наша клетка)': kopiya(), 'жгутиков вдвое больше': kopiya(z => z.chasti.zhgutiki.n = (z.chasti.zhgutiki.n ?? VC.chasti.zhgutiki.n) * 2), 'один жгутик': kopiya(z => z.chasti.zhgutiki.n = 1),
     'тело вдвое длиннее': kopiya(z => z.forma.tochki = z.forma.tochki.map(([x, y, r]) => [x * 2, y, r])), 'жгутик на корме': kopiya(z => z.chasti.zhgutiki.gde = 'korma'), 'без жгутиков': kopiya(z => delete z.chasti.zhgutiki) };

@@ -102,7 +102,7 @@ fetch('obrazcy.json').then(v => v.json()).then(OB => { const f = document.getEle
     ris(); } });
 fetch('../version.json').then(v => v.json()).then(v => { document.getElementById('sb').textContent = 'версия ' + v.number + ' · сборка движка ' + S.sborka; });
 polzunok('Мягкость тела', 'myag', S.myagkost[0], S.myagkost[1], 0.1); polzunok('Жгутиков', 'zhg', 0, S.zhgutikov_do, 1); polzunok('Длина тела', 'dl', S.dlina[0], S.dlina[1], 0.05); polzunok('Жгутик на корме', 'korma', 0, 1, 1); sobrat_zapis();
-window.hodZapis = (kl, v) => { PZ[kl] = v; sobrat_zapis(); }; window.hodSost = () => ({ vm: q.vm_vid && q.vm_vid.map(m => [+m.u.toFixed(2), +m.nu.toFixed(2), +m.d.toFixed(2), +m.a.toFixed(2)]), m: q.m, est: !!q.est, x: q.x, y: q.y, a: q.a, kach: q.kach, faza: q.h?.faza, vmax, PH });
+window.hodZapis = (kl, v) => { PZ[kl] = v; sobrat_zapis(); }; window.hodSost = () => ({ vm: q.vm_vid && q.vm_vid.map(m => [+m.u.toFixed(2), +m.nu.toFixed(2), +m.d.toFixed(2), +m.a.toFixed(2)]), m: q.m, est: !!q.est, x: q.x, y: q.y, a: q.a, ris: (q.sled ? q.sled.a : q.a) + (q.kach || 0), rx: q.sled ? q.sled.x : q.x, ry: q.sled ? q.sled.y : q.y, gnut: q.gnut_vid, kach: q.kach, faza: q.h?.faza, vmax, PH });
 // Палец: короткое касание кладёт кусок еды; пока палец на воде, клетка идёт к нему (тем же ходом: дуга, кувырок на резком развороте).
 const cv = document.getElementById('c'), vmir = e => { const m = W / innerWidth; return { x: cx - W / 2 + e.clientX * m, y: cy - H / 2 + e.clientY * m }; }; let vedet = null, nazhal = null;
 // палец начал на самой клетке: это тычок, палец давит на оболочку как твёрдое тело (та же вмятина и тот же упор, что у комка), клетку можно толкать и мять
