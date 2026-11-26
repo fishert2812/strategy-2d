@@ -97,9 +97,12 @@ export function shag(M, dt) { M.n = (M.n || 0) + 1; const Z = M.K.zhizn, S = M.s
   }
     // теснота (отдельным проходом, когда все уже сдвинулись за шаг): тела не проходят друг сквозь друга (kasanie.js, mir.json «kasanie»): капсулы по оси тела, каким его видно (oblik: растущее перед делением тело длиннее), сдвиг по ближайшим точкам осей,
     // лёгкое уходит дальше, мягко, но глубже dopusk — сразу. После встреч: съеденного не расталкивают. Точка касания остаётся на теле (вмятина оболочки).
-  for (let k = 0; k < (M.K.kasanie.prohodov || 1); k++) for (const q of S) { if (q.mertv) continue; const p = pasport(q.zapis), w = tolshchina(M, q), B = massa(q), Oq = oblik(M, q); ryadom(q, w * (p.L + 2), o => { if (o.id < q.id || o.mertv) return; const Oo = oblik(M, o), r = kasanie_tel({ x: q.x, y: q.y, a: q.a, w: Oq.tolshchina, m: B, zapis: Oq.zapis }, { x: o.x, y: o.y, a: o.a, w: Oo.tolshchina, m: massa(o), zapis: Oo.zapis }, M.K.kasanie, dt / (M.K.kasanie.prohodov || 1)); if (!r) return; if (lovit(q, o) || lovit(o, q)) return; /* голодный охотник наползает на добычу ртом: её не отталкивают, встреча решит */
-      if (!p.oruzhie.length || !beret(q, o)) q.udar = 1; if (!pasport(o.zapis).oruzhie.length || !beret(o, q)) o.udar = 1;
-      q.x += r.A.dx; q.y += r.A.dy; o.x += r.B.dx; o.y += r.B.dy; q.kasanie = r.tochkaA; o.kasanie = r.tochkaB; }); }
+  const KS = M.K.kasanie, np = KS.prohodov || 1, pary = [], tl = q => ({ x: q.x, y: q.y, a: q.a, w: q.ob.tolshchina, m: q.mb, zapis: q.ob.zapis });
+  for (const q of S) if (!q.mertv) { q.ob = oblik(M, q); q.mb = massa(q); } // облик и масса раз за шаг, пары соседей раз за шаг: проходы считают только капсулы
+  for (const q of S) if (!q.mertv) ryadom(q, tolshchina(M, q) * (pasport(q.zapis).L + 2), o => { if (o.id > q.id && !o.mertv) pary.push(q, o, undefined); });
+  for (let k = 0; k < np; k++) for (let i = 0; i < pary.length; i += 3) { const q = pary[i], o = pary[i + 1], r = kasanie_tel(tl(q), tl(o), KS, dt / np); if (!r || (pary[i + 2] ??= lovit(q, o) || lovit(o, q))) continue; /* голодный охотник наползает на добычу ртом: её не отталкивают, встреча решит */
+    if (!k) { if (!pasport(q.zapis).oruzhie.length || !beret(q, o)) q.udar = 1; if (!pasport(o.zapis).oruzhie.length || !beret(o, q)) o.udar = 1; } /* упор отмечается раз за шаг */
+    q.x += r.A.dx; q.y += r.A.dy; o.x += r.B.dx; o.y += r.B.dy; q.kasanie = r.tochkaA; o.kasanie = r.tochkaB; }
   // гибель от голода, деление, уборка
   const novye = []; for (const q of S) { if (q.mertv) continue; const p = pasport(q.zapis);
     if (q.m < Z.smert) { q.mertv = 'golod'; M.schet.golod++; M.pole.prolit(q.x, q.y, massa(q) * Z.ostatki); M.sobytiya.push({ chto: 'golod', kogo: q.id, x: q.x, y: q.y }); continue; }
