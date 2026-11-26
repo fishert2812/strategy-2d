@@ -256,6 +256,7 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
 #mscene .mo img { width: 76px; height: 76px; } #mscene .mo .art { transform: scale(0.8); margin: -7px -10px; }
 #mscene .mo b { max-width: 100%; box-sizing: border-box; overflow-wrap: anywhere; text-align: center; }
 #mscene .mo small { display: block; max-width: 100%; text-align: center; overflow-wrap: anywhere; }
+#mscene .mo .mtip { position: static; transform: none; width: auto; max-width: 100%; box-sizing: border-box; margin-top: 6px; } /* подсказка запертого — внутри своей плитки, на соседей не ложится (0.110) */
 #mscene .mband.past { border-top: 1px solid rgba(200, 235, 240, 0.3); }
 #mscene { -webkit-mask-image: linear-gradient(#000 calc(100% - 28px), transparent); mask-image: linear-gradient(#000 calc(100% - 28px), transparent); } /* низ сцены гаснет — видно, что список листается (О104) */
 </style>
