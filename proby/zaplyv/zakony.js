@@ -25,7 +25,7 @@ export function tyaga(z, k = ZK, O = null, F = null) {
   O = O || os(z.forma?.tochki || iz_formy(z.forma?.tip || 'palochka', z.forma?.dlina || 2.14, 1, z.forma?.izgib || 0)); if (F === null) F = velichiny(z, k).F;
   const P = z.forma?.tochki || [[0, 0, 1]], hx = P[P.length - 1][0] - P[0][0], hy = P[P.length - 1][1] - P[0][1], hl = Math.hypot(hx, hy); // ось — хорда от кормы к носу (у изогнутой запятой тоже)
   const ax = hl > 1e-6 ? hx / hl : -O.korma[0], ay = hl > 1e-6 ? hy / hl : -O.korma[1], L = O.dlina, tochki = [], lomat = typeof process !== 'undefined' && process.env?.TYAGA_LOMAT;
-  const posadka = (st, n, cilia) => { for (let i = 0; i < n; i++) { const t = !cilia && st.gde === 'korma' ? O.korma_t + (i - (n - 1) / 2) * (st.razlet ?? 0.1)
+  const posadka = (st, n, cilia) => { for (let i = 0; i < n; i++) { const t = !cilia && (st.gde === 'korma' || st.gde === 'nos') ? (st.gde === 'nos' ? O.nos_t : O.korma_t) + (i - (n - 1) / 2) * (st.razlet ?? 0.1)
       : st.sektor ? O.nos_t + st.sektor[0] + (st.sektor[1] - st.sektor[0]) * (i + 0.5) / n : (i + 0.5) / n * 2 * Math.PI, e = O.kray(t);
     tochki.push([e.x * ax + e.y * ay, lomat || !(st.sektor || (!cilia && st.gde === 'korma')) ? 0 : -e.x * ay + e.y * ax]); } }; // ровно по телу — пучок ложится вдоль оси: вбок не тянет
   const zh = z.chasti?.zhgutiki ? chast(z, 'zhgutiki') : { n: 0 }, vr = z.chasti?.vorsinki ? chast(z, 'vorsinki') : {};
