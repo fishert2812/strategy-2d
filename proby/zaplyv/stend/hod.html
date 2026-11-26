@@ -43,8 +43,9 @@ let s = (+(q0.get('seed') || 1)) * 2654435761 % 2147483647 || 1; const rnd = () 
 // ?poverh=1 — как в игре с ручным телом: клетка без умений, части умений дорисованы поверх (chasti_navykov)
 const POVERH = !!q0.get('poverh'), NV = {}; let zerno = +(q0.get('vid') || 0); for (const p of (q0.get('navyki') || '').split(',')) { const [k, u] = p.split(':'); if (VC.navyki.spisok[k] && +u > 0) NV[k] = +u; }
 // Запись под ползунками: каждый раз новая копия записи вида, поэтому паспорт хода и величины считаются заново.
-const P0 = { zhg: VC.vidy[vid].chasti.zhgutiki ? VC.vidy[vid].chasti.zhgutiki.n ?? VC.chasti.zhgutiki.n : 0, dl: 1, korma: VC.vidy[vid].chasti.zhgutiki?.gde === 'korma' ? 1 : 0 }, PZ = { ...P0 }; let zapis, PH, vmax = 0, TL, zerna = -1, rost = 0;
+const P0 = { myag: +(1 / (VC.vidy[vid].forma.zhestkost || 1)).toFixed(2), zhg: VC.vidy[vid].chasti.zhgutiki ? VC.vidy[vid].chasti.zhgutiki.n ?? VC.chasti.zhgutiki.n : 0, dl: 1, korma: VC.vidy[vid].chasti.zhgutiki?.gde === 'korma' ? 1 : 0 }, PZ = { ...P0 }; let zapis, PH, vmax = 0, TL, zerna = -1, rost = 0;
 function sobrat_zapis() { let z = JSON.parse(JSON.stringify(VC.vidy[vid])); z.forma.tochki = z.forma.tochki.map(([x, y, r]) => [x * PZ.dl, y, r]);
+  z.forma.zhestkost = 1 / PZ.myag;
   if (PZ.zhg > 0) { z.chasti.zhgutiki = { ...(z.chasti.zhgutiki || {}), n: PZ.zhg }; if (PZ.korma) z.chasti.zhgutiki.gde = 'korma'; else delete z.chasti.zhgutiki.gde; } else delete z.chasti.zhgutiki;
   if (rost > 0) z.forma.tochki = telo_rosta({ ...z, rost: rost / S.rost_stupeney });
   if (zerna >= 0 && z.chasti.vklyucheniya) z.chasti.vklyucheniya = { ...z.chasti.vklyucheniya, n: zerna };
@@ -96,7 +97,7 @@ fetch('obrazcy.json').then(v => v.json()).then(OB => { const f = document.getEle
     const chitat = () => { try { return JSON.parse(localStorage.getItem(KL)) || []; } catch (e) { return []; } }, pisat = m => { try { localStorage.setItem(KL, JSON.stringify(m)); } catch (e) { } };
     ris(); } });
 fetch('../version.json').then(v => v.json()).then(v => { document.getElementById('sb').textContent = 'версия ' + v.number + ' · сборка движка ' + S.sborka; });
-polzunok('Жгутиков', 'zhg', 0, S.zhgutikov_do, 1); polzunok('Длина тела', 'dl', S.dlina[0], S.dlina[1], 0.05); polzunok('Жгутик на корме', 'korma', 0, 1, 1); sobrat_zapis();
+polzunok('Мягкость тела', 'myag', S.myagkost[0], S.myagkost[1], 0.1); polzunok('Жгутиков', 'zhg', 0, S.zhgutikov_do, 1); polzunok('Длина тела', 'dl', S.dlina[0], S.dlina[1], 0.05); polzunok('Жгутик на корме', 'korma', 0, 1, 1); sobrat_zapis();
 window.hodZapis = (kl, v) => { PZ[kl] = v; sobrat_zapis(); }; window.hodSost = () => ({ vm: q.vm_vid && q.vm_vid.map(m => [+m.u.toFixed(2), +m.nu.toFixed(2), +m.d.toFixed(2), +m.a.toFixed(2)]), m: q.m, est: !!q.est, x: q.x, y: q.y, a: q.a, kach: q.kach, faza: q.h?.faza, vmax, PH });
 // Палец: короткое касание кладёт кусок еды; пока палец на воде, клетка идёт к нему (тем же ходом: дуга, кувырок на резком развороте).
 const cv = document.getElementById('c'), vmir = e => { const m = W / innerWidth; return { x: cx - W / 2 + e.clientX * m, y: cy - H / 2 + e.clientY * m }; }; let vedet = null, nazhal = null;
