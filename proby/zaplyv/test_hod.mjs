@@ -2,6 +2,7 @@
 // Урок (Роман 26.11: «физика никакая… абсолютно не живая… одной бактерии — чтобы она двигалась. Это все должно в движке быть
 // прописано»): существа скользили ровно к цели. Сторож ловит «скользит ровно» на одной клетке и в мире, а таблица «параметр
 // записи → как изменился ход» доказывает, что ход следует из записи, а не подкручен под вид. Пороги — mir.json «hod.storozh».
+import fs from 'node:fs';
 import { plyt, pasport_hoda } from './hod.js';
 import { kontakt, tolshche, prizhat, vytolknut } from './pitanie.js';
 import { obvod_zon } from './zony.js';
@@ -88,6 +89,11 @@ function polzet(zapis) { const q = { id: 1, x: 0, y: 0, a: 0 }, rnd = sluchay(3)
   if (put < 3 * W) return `тело за 40 с проползло ${(put / W).toFixed(1)} полутолщины, выросты его не тащат`; if (Math.hypot(q.x, q.y) < put * T.nozhki_pryamo) return `путь не держит направление: ушла на ${(Math.hypot(q.x, q.y) / put).toFixed(2)} пути, нужно не меньше ${T.nozhki_pryamo}`; }
 check('test_nozhki: амёба идёт выростами — вырост вытягивается, тело перетекает в него, стороны чередуются, путь держит направление', () => polzet(VC.vidy.ameba));
 check('test_nozhki_samoproverka: тот же сторож краснеет на теле без выростов', () => { const z = JSON.parse(JSON.stringify(VC.vidy.ameba)); delete z.forma.nozhki; return polzet(z) ? '' : 'сторож пропустил тело без выростов'; });
+// Урок (26.11, слияния на адресе: «после 12 кусков тело пережалось посередине, как песочные часы»; Роман: «Деление пока оставь»): сытая клетка на
+// стенде одной клетки растёт в длину только до начала перетяжки, деление там не показываем.
+const DLN = JSON.parse(fs.readFileSync(new URL('./delenie.json', import.meta.url))), bez_del = do_ => do_ < DLN.peretyazhka.s ? '' : `рост на стенде до ${do_}, а перетяжка деления начинается с ${DLN.peretyazhka.s}`;
+check('test_stend_bez_deleniya: на стенде одной клетки рост от еды кончается раньше перетяжки', () => bez_del(K.stend.rost_do));
+check('test_stend_bez_deleniya_samoproverka: тот же сторож краснеет на росте до конца', () => bez_del(1) ? '' : 'сторож пропустил рост до деления');
 // Урок (26.11, стенд мира на адресе): первый кадр браузера приходит с шагом 0 или меньше нуля, из-за этого в ходе получалось «не число» и мир замирал.
 const celoe = q => ['x', 'y', 'a', 'gnut', 'gnut_vid', 'om'].find(k => !Number.isFinite(q[k])), nol = () => { const q = { id: 1, x: 0, y: 0, a: 0 }, rnd = sluchay(1); for (const dt of [0, -0.004, 1 / 60, 0, 1 / 60]) plyt(q, VC.vidy.nasha, K, Z, dt, rnd, 0.3, W); return q; };
 check('test_hod_nol: шаг времени 0 или меньше нуля не ломает клетку, все числа хода остаются числами', () => { const k = celoe(nol()); return k ? `после шага 0 поле ${k} перестало быть числом` : ''; });

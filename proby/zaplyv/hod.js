@@ -26,7 +26,26 @@ export function pasport_hoda(zapis, K, rz = zapis.zhizn?.razmer ?? 1) { let p = 
   const v = velichiny(zapis), e = velichiny(VC.vidy[ZK.etalon]), zh = zapis.chasti?.zhgutiki, n = zh ? zh.n ?? VC.chasti.zhgutiki.n : 0;
   p = { tip: pohodka(zapis), kach: K.beg.kachanie * lim(Math.sqrt(v.F / v.povorot / (e.F / e.povorot)), 0, 2), sdvig: K.drozh.sdvig * e.r / (v.r * rz),
     vert: K.drozh.povorot * Math.sqrt(e.kurs / (v.kurs * rz ** 3)), ugol: K.beg.ugol * lim(Math.sqrt(n / VC.chasti.zhgutiki.n), 0.5, 1.5) };
+  p.om = K.zhgutiki && n ? 6.283 * K.zhgutiki.oboroty * oboroty(zapis, v, e) : 0; // скорость моторов на бегу, рад/с (жгутики на экране)
   const k = schitay(zapis); p.k_skorost = p.tip === 'polzet' ? K.nozhki.skorost : k.k_skorost; p.k_povorot = k.k_povorot; p.k_eda = k.k_eda; p.duga = v.duga || 0; p.ugol *= lim(Math.sqrt(k.k_povorot), 0.3, 1.3); PH.set(zapis, p); return p; }
+// Во сколько раз моторы вида крутятся быстрее эталона. Тяга винтовой нити по теории тонкого тела (Lighthill 1976; Purcell 1997) F = c·ω·G:
+// сила линейна по скорости вращения ω, G — геометрия пучка (zakony.js: n^stepen_tyagi · длина^stepen_dliny). Значит ω = F / G относительно эталона,
+// частота берётся из той же тяги, что двигает тело (zakony.js velichiny F), а не отдельным числом.
+const zh_G = (z, L) => { const c = { ...VC.chasti.zhgutiki, ...(z.chasti?.zhgutiki || {}) }, zl = c.dlina_tela ? c.dlina_tela * L : c.dlina; return Math.pow(c.n, ZK.stepen_tyagi) * Math.pow(zl, ZK.stepen_dliny); };
+export function oboroty(zapis, v = velichiny(zapis), e = velichiny(VC.vidy[ZK.etalon])) { const vs = { ...VC.chasti.vorsinki, ...(zapis.chasti?.vorsinki || {}) }, vr = v.F - (zapis.chasti?.vorsinki && vs.grebut ? vs.n * vs.dlina * ZK.tyaga_resnichek : 0), g = zh_G(zapis, v.L); /* тяга одних жгутиков: реснички гребут сами */
+  return g > 0 ? lim((vr / g) / (e.F / zh_G(VC.vidy[ZK.etalon], e.L)), 0.2, 5) : 0; }
+// Жгутики между шагами (перенос whip.js ручной игры на любую запись; Berg, «E. coli in Motion», 2004; Turner, Ryu, Berg 2000, J. Bacteriol. 182:2793).
+// q.zh = { b — насколько нити собраны в пучок за кормой (0 врозь, 1 пучок), fan — насколько пучок разлетелся веером в кувырке,
+// om — скорость моторов, рад/с, ph — накопленный угол: сменилась скорость — волна не прыгает, t — часы нитей }.
+// Бег: моторы против часовой (левый винт нормальной формы, шаг ~2,3 мкм), нити свиты в пучок за ~полсекунды.
+// Кувырок: часть моторов переключается, нити за доли секунды расходятся веером и сворачиваются полукольцом (шаг и размах вдвое меньше).
+// Покой: моторы почти стоят, нити расходятся от боков и вяло колышутся. Задний ход полюсного жгутика: тот же пучок, мотор в обратную сторону.
+// X — что делает движитель (hod), P — паспорт хода (P.om), K — mir.json «hod», stoit — тяги нет (покой, дрожь, нечем грести).
+export function shag_zhgutikov(q, X, P, K, dt, stoit) { const S = K.zhgutiki, z = q.zh || (q.zh = { b: stoit ? 0 : 1, fan: 0, om: stoit ? S.pokoy : P.om, ph: 0, t: 0 });
+  const rezhim = stoit || !P.om ? 'pokoy' : X.beg ? 'beg' : 'kuvyrok', tb = rezhim === 'kuvyrok' ? S.v_kuvyrke_b : rezhim === 'beg' ? 1 : 0, tf = rezhim === 'kuvyrok' ? 1 : 0;
+  const to = rezhim === 'kuvyrok' ? P.om * S.v_kuvyrke_om : rezhim === 'beg' ? P.om * Math.sign(X.sk || 1) : S.pokoy;
+  z.b += (tb - z.b) * Math.min(1, dt * (tb > z.b ? S.sbor : S.razbor)); z.fan += (tf - z.fan) * Math.min(1, dt * (tf > z.fan ? S.veer : S.sveer));
+  z.om += (to - z.om) * Math.min(1, dt * S.raskrut); z.ph += z.om * dt; z.t += dt; return z; }
 const gauss = r => (r() + r() + r() - 1.5) * 2;
 // q — существо (id, pokoy, udar: в этот шаг упёрлось, vedut: курс держит рука или погоня, случайных кувырков нет, только упор и резкий разворот), P — паспорт хода, d — угол от носа до цели (0, если цели нет).
 // Возвращает: sk — доля скорости вдоль носа (меньше нуля — задний ход), da — поворот за шаг, bok — снос вбок в толщинах в секунду,
@@ -79,4 +98,4 @@ export function shag_tela(q, K, dt, d, vmax, X, kp, w, sdvig, rnd) { dt = Math.m
 // Z — общие числа жизни (mir.json zhizn: v0 и tolshchina эталона), w — полутолщина клетки на экране, d — угол до цели или 0,
 // tyaga — доля тяги (ест — почти стоит).
 export function plyt(q, zapis, K, Z, dt, rnd, d, w, tyaga = 1) { const P = pasport_hoda(zapis, K, 1), vmax = Z.v0 / Z.tolshchina * w * P.k_skorost * tyaga, X = hod(q, P, K, dt, rnd, d);
-  q.kach = X.kach; q.vyp = X.vyp; shag_tela(q, K, dt, d, vmax, X, P.k_povorot, w, P.sdvig / Z.tolshchina * w, rnd); return { X, P, vmax }; }
+  q.kach = X.kach; q.vyp = X.vyp; shag_tela(q, K, dt, d, vmax, X, P.k_povorot, w, P.sdvig / Z.tolshchina * w, rnd); shag_zhgutikov(q, X, P, K, dt, !(vmax > 0)); return { X, P, vmax }; }
