@@ -111,6 +111,9 @@ ONLY=L063 case_ "test_L063: сжатый колокольчик без круг�
 ONLY=L063 case_ "test_L063: венец бусами" 52_zaplyv_tap.sh red "sed -i 's/if (bodies.seg) { probe.venec/if (false) { probe.venec/' $Z/main.js"
 # L066: ссылка на конструктор после игры снова открывает меню
 ONLY=L066 case_ "test_L066: ?pesochnica под меню" 52_zaplyv_tap.sh red "sed -i \"s/!\\['pesochnica', 'stend'\\].some(/![].some(/\" $Z/main.js"
+# L067: панель конструктора снова на весь экран телефона, своя клетка выглядывает из-под панели
+ONLY=L067 case_ "test_L067: панель на весь экран" 52_zaplyv_tap.sh red "sed -i 's/\"vys\": 0.45/\"vys\": 1/' $Z/konstruktor.json"
+ONLY=L067 case_ "test_L067: своя клетка над панелью" 52_zaplyv_tap.sh red "sed -i 's/\"pod\": 70/\"pod\": -60/' $Z/konstruktor.json"
 # L047: след за клеткой снова бусами
 ONLY=L047 case_ "test_L047: след бусами" 53_zaplyv_vid.sh red "sed -i 's/wake.put(x, y, (5 + 9 \\* p.t)/wake.put(x, y, (1.1 + 9 * p.t)/' $Z/main.js"
 # L057: колония снова делится рывком, проходит сквозь себя и расплывается
