@@ -5,11 +5,15 @@
 //          наугад; к цели пробег длиннее (так бактерия и находит еду);
 //   polus  жгутик на заднем полюсе (вибрион, синегнойка): бег, короткий задний ход, щелчок в сторону;
 //   spiral реснички гребут (инфузория): ход по винту, тело качает носом; упёрлась, сдала назад, отвернула, пошла дальше;
-//   drozh  грести нечем (кокки, гроздья): только дрожь и медленный поворот.
+//   drozh  грести нечем (кокки, гроздья): только дрожь и медленный поворот;
+//   polzet тело течёт выростами-ножками (амёба, forma.nozhki): вырост вытягивается, цепляется, тело перетекает в него.
+//          Очередной вырост отходит от прежнего вбок, слева и справа по очереди, поэтому путь идёт зигзагом и держит общее направление
+//          (Bosgraaf, Van Haastert, PLoS ONE 4:e5253, 2009: упорядоченные ложноножки, расщепление под ~55°); скорость тела задаёт
+//          скорость роста выроста, а не тяга (Abercrombie 1980: выпячивание, сцепление, подтягивание).
 // Чистая математика: состояние в q.h, случай из rnd мира, поэтому мир повторяется в node и на экране.
 import { VC } from './vid_chasti.js';
 import { velichiny, schitay, ZK } from './zakony.js';
-export function pohodka(zapis) { const c = zapis.chasti || {};
+export function pohodka(zapis) { const c = zapis.chasti || {}; if (zapis.forma?.nozhki) return 'polzet';
   if (c.zhgutiki) return c.zhgutiki.gde === 'korma' ? 'polus' : 'beg';
   return c.vorsinki?.grebut || c.resnichki || c.venec ? 'spiral' : 'drozh'; }
 // Паспорт хода из записи (величины zakony.js: тяга F, сопротивление повороту povorot, радиус r, время потери курса kurs), всё отношением
@@ -22,7 +26,7 @@ export function pasport_hoda(zapis, K, rz = zapis.zhizn?.razmer ?? 1) { let p = 
   const v = velichiny(zapis), e = velichiny(VC.vidy[ZK.etalon]), zh = zapis.chasti?.zhgutiki, n = zh ? zh.n ?? VC.chasti.zhgutiki.n : 0;
   p = { tip: pohodka(zapis), kach: K.beg.kachanie * lim(Math.sqrt(v.F / v.povorot / (e.F / e.povorot)), 0, 2), sdvig: K.drozh.sdvig * e.r / (v.r * rz),
     vert: K.drozh.povorot * Math.sqrt(e.kurs / (v.kurs * rz ** 3)), ugol: K.beg.ugol * lim(Math.sqrt(n / VC.chasti.zhgutiki.n), 0.5, 1.5) };
-  const k = schitay(zapis); p.k_skorost = k.k_skorost; p.k_povorot = k.k_povorot; p.k_eda = k.k_eda; p.duga = v.duga || 0; p.ugol *= lim(Math.sqrt(k.k_povorot), 0.3, 1.3); PH.set(zapis, p); return p; }
+  const k = schitay(zapis); p.k_skorost = p.tip === 'polzet' ? K.nozhki.skorost : k.k_skorost; p.k_povorot = k.k_povorot; p.k_eda = k.k_eda; p.duga = v.duga || 0; p.ugol *= lim(Math.sqrt(k.k_povorot), 0.3, 1.3); PH.set(zapis, p); return p; }
 const gauss = r => (r() + r() + r() - 1.5) * 2;
 // q — существо (id, pokoy, udar: в этот шаг упёрлось, vedut: курс держит рука или погоня, случайных кувырков нет, только упор и резкий разворот), P — паспорт хода, d — угол от носа до цели (0, если цели нет).
 // Возвращает: sk — доля скорости вдоль носа (меньше нуля — задний ход), da — поворот за шаг, bok — снос вбок в толщинах в секунду,
@@ -32,6 +36,12 @@ export function hod(q, P, K, dt, rnd, d = 0) { dt = Math.max(dt, 1e-4); const ti
   const h = q.h || (q.h = { faza: 'beg', t: probeg(), T: 1, f: rnd() * 6.283, pov: 0, zh: 0 }); h.f += dt; const udar = q.udar; q.udar = 0;
   // дрожь воды плавная (скорость блуждает и гаснет за plavno секунд), а не скачок каждый кадр: на экране это снос и повод, не тряска
   const tau = K.drozh.plavno, kd = Math.min(1, dt / tau); h.bw = (h.bw || 0) * (1 - kd) + gauss(rnd) * P.vert / tau * Math.sqrt(dt) * kd / (dt / tau); o.da = h.bw * dt;
+  if (tip === 'polzet' && !q.pokoy) { const N = K.nozhki, z = h.nz || (h.nz = { ang: 0, r: 0, st: znak(), rost: 1, t: N.rastet * rnd() }); o.rul = 0; o.beg = 0;
+    const novyy = ot => { z.st = rnd() < N.zigzag ? -z.st : z.st; z.ang = lim(z.st * N.ugol * (0.6 + rnd() * 0.8) + lim(d, -N.k_celi, N.k_celi) + (ot || 0), -2.6, 2.6); z.r = 0; z.rost = 1; z.t = N.rastet * (0.7 + rnd() * 0.6); };
+    if (udar && z.rost) novyy(znak() * N.ot_upora);
+    if (z.rost) { z.r = Math.min(1, z.r + dt / N.rastet); o.sk = N.v_roste; if ((z.t -= dt) <= 0) { z.rost = 0; z.t = z.T = N.tyanet * (0.7 + rnd() * 0.6); } }
+    else { const kk = Math.min(1, dt / Math.max(dt, z.t)), sh = z.ang * kk; o.da += sh; z.ang -= sh; z.r = Math.max(0, z.r - dt / z.T); o.sk = 1 + N.pulsaciya * Math.sin(Math.PI * (1 - z.t / z.T)); if ((z.t -= dt) <= 0) novyy(); }
+    o.vyp = [{ ot_nosa: z.ang, vysota: N.vysota * z.r, shirina: N.shirina }]; return o; }
   if (q.pokoy || tip === 'drozh') { o.sk = q.pokoy ? 0 : 1; o.beg = 0; o.rul = 0; return o; }
   if (tip === 'spiral') { const S = K.spiral, w = 6.283 / S.period, O = S.otskok;
     if (h.faza === 'nazad') { o.sk = -O.skorost; o.rul = 0; if ((h.t -= dt) <= 0) { h.faza = 'povorot'; h.t = h.T = O.povorot_t; h.pov = znak() * O.povorot * (0.6 + rnd() * 0.8); } }
@@ -69,4 +79,4 @@ export function shag_tela(q, K, dt, d, vmax, X, kp, w, sdvig, rnd) { dt = Math.m
 // Z — общие числа жизни (mir.json zhizn: v0 и tolshchina эталона), w — полутолщина клетки на экране, d — угол до цели или 0,
 // tyaga — доля тяги (ест — почти стоит).
 export function plyt(q, zapis, K, Z, dt, rnd, d, w, tyaga = 1) { const P = pasport_hoda(zapis, K, 1), vmax = Z.v0 / Z.tolshchina * w * P.k_skorost * tyaga, X = hod(q, P, K, dt, rnd, d);
-  q.kach = X.kach; shag_tela(q, K, dt, d, vmax, X, P.k_povorot, w, P.sdvig / Z.tolshchina * w, rnd); return { X, P, vmax }; }
+  q.kach = X.kach; q.vyp = X.vyp; shag_tela(q, K, dt, d, vmax, X, P.k_povorot, w, P.sdvig / Z.tolshchina * w, rnd); return { X, P, vmax }; }
