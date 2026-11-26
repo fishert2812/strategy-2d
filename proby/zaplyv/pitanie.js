@@ -18,7 +18,7 @@ export function kontakt(q, veshchi, T, w, K, k_eda, dt) { const kh = T.kh * w, k
     if (zazor < (q.obhvat ? K.obhvat.dotyanetsya : K.prilip) * w && !q.est && q.m < K.m_max) { q.est = e; e.u = g.ou; if (q.obhvat) e.vd0 = Math.max(K.vdavlen, zazor / e.r + 1); { const R = kr + e.r * K.vdavlen, n = g.d || 1; e.du = (g.u - g.ou) / n * R; e.v = g.v / n * R; } e.m0 = e.m; e.r0 = e.r; o.sobytiya.push(['prilip', e]); q.tolchok = 0; }
     else if (zazor < best && q.m < K.m_max) { best = zazor; o.cel = [e.x, e.y]; } }
   q.upor = Math.max(0, (q.upor || 0) - dt);
-  if (q.est) { const e = q.est, vzyal = Math.min(e.m, K.skorost * (q.obhvat ? K.obhvat.k_eda : k_eda) * dt); e.m -= vzyal; q.m += vzyal * K.kpd; q.syel = (q.syel || 0) + vzyal;
+  if (q.est) { const e = q.est, vzyal = Math.min(e.m, K.skorost * (q.obhvat ? K.obhvat.k_eda * (e.ob >= 1 ? 1 : K.obhvat.snaruzhi) : k_eda) * dt); e.m -= vzyal; q.m += vzyal * K.kpd; q.syel = (q.syel || 0) + vzyal;
     // кусок держится на оболочке там, где коснулся, и тает ровно (радиус ∝ остатку: глаз видит, как он убывает, а не хлопок в конце), центр уходит в оболочку
     // обхват (тело с выростами, q.obhvat: амёба): оболочка не ждёт, пока кусок растает снаружи, а охватывает его двумя губами-выростами с боков, они смыкаются,
     // кусок уходит внутрь (фагоцитоз: чаша растёт вокруг частицы, пока не сомкнётся; Swanson, Nat. Rev. Mol. Cell Biol. 9, 2008) и тает уже там
