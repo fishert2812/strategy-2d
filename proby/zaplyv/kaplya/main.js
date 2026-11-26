@@ -5,7 +5,7 @@
 import * as THREE from '../three.module.min.js';
 import { World, radius } from '../sim.js';
 import * as mut from '../mutacii.js';
-import * as rost from '../rost.js'; import * as glk from './glotok.js';
+import * as rost from '../rost.js'; import * as glk from './glotok.js'; import { dnkPolosa } from './dnk_polosa.js';
 import * as dv from '../dvizhok.js'; // палочки-соседи рисуются по анкетам (vidy.json)
 import * as evo from '../evo.js'; // режим «Эволюция»: пока только по адресу ?rezhim=evo, плитка в меню — когда все умения нарисованы
 import { Stick } from '../controls.js';
@@ -236,7 +236,7 @@ const beep = (f, dur, vol = 0.05, type = 'sine', slide = 0.6) => {
 
 const STICK = 56; // полный ход большого пальца (~30 точек экрана); дальше кольцо едет за пальцем
 const pad = new Stick(STICK);
-let GOL = gol.sozdat(); let POK = pkz.sozdat(); let ZAR = zr.sozdat(); let VIR = []; let VDOH = 0; let KIS = kis.sozdat(); let ROT = vdv.sozdat();
+let GOL = gol.sozdat(); let POK = pkz.sozdat(); let ZAR = zr.sozdat(); let VIR = []; let VDOH = 0; let KIS = kis.sozdat(); const DNK = dnkPolosa(); let ROT = vdv.sozdat();
 let LIN = null, GL = null, SEM = [], ROD_K = rod.sozdat(), OBL = obl.sozdat(), LES = les.sozdat(), GLAVA = 1, CEL = cel.sozdat(), world, view, finger = null, down = null, moved = false, shake = 0, ended = false, lastEat = 0;
 const $ = id => document.getElementById(id);
 const ver = (await (await fetch('version.json')).json()).number; // свой номер «Заплыва», список — VERSIONS.md
@@ -894,7 +894,7 @@ function tick(dt) {
       if (!CEL.stroka.includes('!')) CEL.stroka = ab && cel.eda(CEL, b, ms(ab, 'amoeba'), evo.E.glotat.bolshe, umeet) ? G.eda : ab && Math.hypot(ab.x - b.x, ab.y - b.y) < KC.vidno ? G.rasti : G.ishchi; }
     if (!world.molodoySkazano && b.m >= KAP.bodo.molodoy && (world.bodos || []).some(q => !q.car)) { world.molodoySkazano = true; say(KAP.bodo.slova.molodoy, 3000); } // П78: молодой бодо больше не берёт
     { const B = KAP.bodo, car = (world.bodos || []).find(q => q.car); if (car && umeet && b.m >= car.m * B.prizhat && Math.hypot(car.x - b.x, car.y - b.y) < KC.vidno) CEL.stroka = bodo.prizhat(B, car, radius, b) || b.m >= car.m * B.bolshe ? B.slova.eda : B.slova.prizhmi; } // П78: «Прижми бодо к комку!», «Бодо теперь еда!»
-    $('count').textContent = (um < 100 ? um.toFixed(1) : um < 1000 ? String(Math.round(um)) : (um / 1000).toFixed(um < 10000 ? 2 : 1)).replace('.', ',') + (um < 1000 ? ' мкм' : ' мм'); $('kcel').innerHTML = CEL.stroka + '<small>' + CEL.rostom + '</small>'; $('kcel').style.visibility = $('offer').classList.contains('on') ? 'hidden' : ''; } // полоса выбора умения не ложится поверх строки цели
+    { const C = $('dnk'), me = world.me[0]; if (C && me) { const r = devicePixelRatio || 1, W = C.clientWidth, H = C.clientHeight; if (C.width !== Math.round(W * r)) { C.width = Math.round(W * r); C.height = Math.round(H * r); } const kc = $('kcel').getBoundingClientRect(); C.style.top = Math.round((kc.height ? kc.top : innerHeight - 90) - H - 4) + 'px'; const g = C.getContext('2d'); g.setTransform(r, 0, 0, r, 0, 0); g.clearRect(0, 0, W, H); DNK(g, 0, 0, W, H, me.gn ? me.gn.f : 1, performance.now() / 1000); } } /* Ш3: твой геном вверху; укололи — ступеньки осыпаются */ $('count').textContent = (um < 100 ? um.toFixed(1) : um < 1000 ? String(Math.round(um)) : (um / 1000).toFixed(um < 10000 ? 2 : 1)).replace('.', ',') + (um < 1000 ? ' мкм' : ' мм'); $('kcel').innerHTML = CEL.stroka + '<small>' + CEL.rostom + '</small>'; $('kcel').style.visibility = $('offer').classList.contains('on') ? 'hidden' : ''; } // полоса выбора умения не ложится поверх строки цели
   $('eaten').textContent = world.rush > 0.05 && !rost.on(world) ? 'рост ×' + (1 + world.rush).toFixed(1) : 'съедено ' + world.stats.eaten; // серия кусков подряд — рост быстрее
   if (world.readyToSplit() && !world.choice.length && !world.me.some(a => a.grab || a.held > 0) && !$('toast').classList.contains('on')) tell('split', 'Выросла! Коснись — поделишься. Или подожди'); // подсказка ждёт, пока на экране весть: не затирает «Сестра погибла за краем…» (L039)
 }
