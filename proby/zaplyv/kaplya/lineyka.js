@@ -12,7 +12,7 @@ export function sozdat(K) { const st = document.createElement('style');
 export function snyat(L, K, canvas, who, x, y, R, Wg) { if (L.sil[who]) return; const k = canvas.width / Wg, /* x, y, R — в единицах экрана игры (ширина Wg) */ s = Math.max(K.rez[0], Math.min(K.rez[1], R * 2.8)), c = document.createElement('canvas'); c.width = c.height = K.px * 2;
   try { c.getContext('2d').drawImage(canvas, (x - s / 2) * k, (y - s / 2) * k, s * k, s * k, 0, 0, c.width, c.height); L.sil[who] = c.toDataURL('image/jpeg', 0.8); } catch (_) {} }
 // Перестроить столбик: виденные виды с силуэтом по массе, ты — светлая черта между ними. eda — кого уже можно есть.
-export function obnovit(L, videl, eda, mojaM) { const vidy = Object.entries(videl).filter(([w]) => L.sil[w]).sort((a, b) => a[1] - b[1]);
+export function obnovit(L, videl, eda, mojaM, K = { nizhe: 3, vyshe: 3 }) { const vse = Object.entries(videl).filter(([w]) => L.sil[w]).sort((a, b) => a[1] - b[1]), i = vse.filter(([, m]) => m < mojaM).length, vidy = vse.slice(Math.max(0, i - K.nizhe), i + K.vyshe); // у линейки только ближние ступени: nizhe под тобой, vyshe над тобой
   const klyuch = vidy.map(([w]) => w + (eda.has(w) ? '+' : '')).join() + '|' + vidy.filter(([, m]) => m < mojaM).length; if (klyuch === L.klyuch) return; L.klyuch = klyuch;
   L.box.textContent = ''; let ty = false; for (const [w, m] of vidy) { if (!ty && m >= mojaM) { L.box.appendChild(document.createElement('i')); ty = true; } const im = new Image(); im.src = L.sil[w]; im.dataset.k = w; if (eda.has(w)) im.className = 'eda'; L.box.appendChild(im); }
   if (!ty) L.box.appendChild(document.createElement('i')); }
