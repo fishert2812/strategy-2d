@@ -100,7 +100,7 @@ check('test_rost_eda: еда открывается по ростам, у ком
   if (MODE === 'rost' && !(v3 < v4 * 0.7)) return 'у комка клетка не встаёт';
 });
 
-check('test_rost_bolshaya_ne_vyaznet: большая клетка у мелкого комка не тормозит, а у крупного встаёт', () => {
+check('test_L069 test_rost_bolshaya_ne_vyaznet: большая клетка у мелкого комка не тормозит, а у крупного встаёт', () => {
   const hod = (m, km) => { const w = empty(11, m), b = w.me[0]; w.crumbs.push({ x: 0, y: -10, m: km, id: 99 }); const w0 = empty(11, m); let v = 0, v0 = 0;
     for (let i = 0; i < 45; i++) { w.crumbs[0] && Object.assign(w.crumbs[0], { x: b.x, y: b.y - 5 }); w.step(1 / 30, { x: 0, y: -4000 }); w0.step(1 / 30, { x: 0, y: -4000 }); if (i > 20) { v += Math.hypot(b.vx, b.vy); v0 += Math.hypot(w0.me[0].vx, w0.me[0].vy); } }
     return v / v0; };
