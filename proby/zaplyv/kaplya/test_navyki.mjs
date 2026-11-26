@@ -47,4 +47,9 @@ const yadro = B => { const bil = lv => { const w = mir(); w.me = [w.me[0]]; cons
   const u1 = bil(1), u2 = bil(2); return u1 > 0 ? `«Яд» 1 уже травит амёбу (${u1.toFixed(2)})` : u2 <= 0 ? '«Яд» 2 не травит амёбу' : ''; };
 check('test_navyki_yadro: «Яд» 1 бьёт только бактерий, «Яд» 2 травит и клетки с ядром (П65)', yadro(KAP.boj));
 check('test_navyki_yadro_samoproverka: без порога уровня судья ловит', yadro({ ...KAP.boj, celi: { ...KAP.boj.celi, ameba: { ...KAP.boj.celi.ameba, s_urovnya: {} } } }) ? '' : 'судья не заметил');
+const rot = B => { const w = mir(); w.me = [w.me[0]]; const a = w.me[0]; a.m = 1.5; let umer = 0; w.lose = () => { umer++; }; boj.ohrana(w, B);
+  const am = { x: a.x + 30, y: a.y, vx: 0, vy: 0, m: 6, id: 996, oglush: w.stats.time + 5 }; w.amoebas = [am]; w._bojHod = false; w.lose(a, am.x, am.y, 'amoeba'); am.oglush = 0; w.lose(a, am.x, am.y, 'amoeba');
+  return umer !== 1 ? `гибелей ${umer} из 2 (оглушённая должна не взять, неоглушённая взять)` : ''; };
+check('test_navyki_rot: оглушённая шипом амёба тебя не берёт, рот закрыт (П65 «Гарпун»)', rot(KAP.boj));
+check('test_navyki_rot_samoproverka: без закрытого рта судья ловит', rot({ ...KAP.boj, oglush_kto: [] }) ? '' : 'судья не заметил');
 process.exit(bad ? 1 : 0);
