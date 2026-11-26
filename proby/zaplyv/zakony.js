@@ -15,7 +15,24 @@ export function velichiny(z, k = ZK) { const O = os(z.forma?.tochki || iz_formy(
   let chasti = 0; for (const [kl, [pole, cena]] of Object.entries(k.cena_chastey)) if (z.chasti?.[kl]) chasti += (chast(z, kl)[pole] || 0) * cena;
   chasti += stenka * k.cena_stenki; for (const [im, c] of Object.entries(k.cena_zon)) if (z.zony?.[im]) { const zn = { ...VC.zony[im], ...z.zony[im] }; chasti += zn.shirina * (zn.sila ?? 1) * c; } // оружие и толстая стенка не бесплатны
   const est_rot = !!z.zony?.rot, rot = est_rot ? dolya(z, 'rot') * O.obvod : 0;
-  return { L, d, r, obem: O.obem, ploshchad: O.ploshchad, R, F, v, povorot: Math.pow(L, k.stepen_povorota), kurs: r * r * r, eda_obolochkoy: r, est_rot, eda_rtom: rot * v, stenka, prochnost: stenka / (d / 2), telo: O.obem, hod: F * v, chasti }; }
+  const povorot = Math.pow(L, k.stepen_povorota), R_bok = R + k.bok * Math.max(0, L - d), T = tyaga(z, k, O, F), duga = v > 0 ? T.moment / povorot / v : 0; // боком тело упирается сильнее, у шара так же; несимметричная тяга даёт дугу
+  return { L, d, r, obem: O.obem, ploshchad: O.ploshchad, R, R_bok, F, v, povorot, tochka: { x: T.x, y: T.y }, moment: T.moment, duga, kurs: r * r * r, eda_obolochkoy: r, est_rot, eda_rtom: rot * v, stenka, prochnost: stenka / (d / 2), telo: O.obem, hod: F * v, chasti }; }
+// Куда приложена тяга: средняя точка посадки жгутиков (и гребущих ресничек) записи в осях тела — x вдоль оси от середины к носу, y вбок
+// (к стороне, где обвод идёт от носа к корме), обе в долях длины тела; moment — поворот, который даёт тяга вперёд, приложенная не на оси
+// (> 0 — нос уходит в сторону +y). gde жгутиков: korma — пучок на заднем полюсе (razlet — шаг по обводу), sektor [a, b] — полоса обвода от носа
+// (как у ворса), иначе ровно по всему телу. Чистая функция, без рисования.
+export function tyaga(z, k = ZK, O = null, F = null) {
+  O = O || os(z.forma?.tochki || iz_formy(z.forma?.tip || 'palochka', z.forma?.dlina || 2.14, 1, z.forma?.izgib || 0)); if (F === null) F = velichiny(z, k).F;
+  const P = z.forma?.tochki || [[0, 0, 1]], hx = P[P.length - 1][0] - P[0][0], hy = P[P.length - 1][1] - P[0][1], hl = Math.hypot(hx, hy); // ось — хорда от кормы к носу (у изогнутой запятой тоже)
+  const ax = hl > 1e-6 ? hx / hl : -O.korma[0], ay = hl > 1e-6 ? hy / hl : -O.korma[1], L = O.dlina, tochki = [], lomat = typeof process !== 'undefined' && process.env?.TYAGA_LOMAT;
+  const posadka = (st, n, cilia) => { for (let i = 0; i < n; i++) { const t = !cilia && st.gde === 'korma' ? O.korma_t + (i - (n - 1) / 2) * (st.razlet ?? 0.1)
+      : st.sektor ? O.nos_t + st.sektor[0] + (st.sektor[1] - st.sektor[0]) * (i + 0.5) / n : (i + 0.5) / n * 2 * Math.PI, e = O.kray(t);
+    tochki.push([e.x * ax + e.y * ay, lomat || !(st.sektor || (!cilia && st.gde === 'korma')) ? 0 : -e.x * ay + e.y * ax]); } }; // ровно по телу — пучок ложится вдоль оси: вбок не тянет
+  const zh = z.chasti?.zhgutiki ? chast(z, 'zhgutiki') : { n: 0 }, vr = z.chasti?.vorsinki ? chast(z, 'vorsinki') : {};
+  if (zh.n) posadka(zh, Math.min(zh.n, k.tochek_tyagi), false); if (vr.grebut && vr.n) posadka(vr, Math.min(vr.n, k.tochek_tyagi), true);
+  if (!tochki.length || !(F > 0)) return { F: F || 0, x: 0, y: 0, moment: 0 };
+  const u = tochki.reduce((s, p) => s + p[0], 0) / tochki.length, o = tochki.reduce((s, p) => s + p[1], 0) / tochki.length, oo = Math.abs(o) < k.os_dopusk * L ? 0 : o; // смещение меньше дрожи обвода (точки обвода дискретны) — это ось
+  return { F, x: u / L, y: oo / L, moment: -F * oo }; }
 // Характеристики записи отношением к эталону. etalon — запись (по умолчанию VC.vidy[ZK.etalon]).
 export function schitay(z, etalon = VC.vidy[ZK.etalon], k = ZK) { const a = velichiny(z, k), e = velichiny(etalon, k), o = (x, y) => y ? x / y : 0, C = k.cena;
   const cena = C.telo * o(a.telo, e.telo) + C.hod * o(a.hod, e.hod) + C.chasti * o(a.chasti, e.chasti);

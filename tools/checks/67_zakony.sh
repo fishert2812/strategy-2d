@@ -12,3 +12,10 @@ if grep -q 'ПРОВАЛ test_zakony_zhgutiki' <<<"$off"; then
 else
   echo "  САМОПРОВЕРКА: тяга не зависит от жгутиков, а test_zakony_zhgutiki зелёный — проверка ничего не доказывает"; exit 1
 fi
+# куда приложена тяга (25.11, хозяин движка): если тяга всегда на оси, жгутик сбоку не гнёт путь — test_zakony_tyaga_mesto обязан покраснеть
+off=$(TYAGA_LOMAT=1 timeout 60 node proby/zaplyv/test_zakony.mjs 2>&1)
+if grep -q 'ПРОВАЛ test_zakony_tyaga_mesto' <<<"$off"; then
+  echo "  самопроверка: тяга всегда на оси — test_zakony_tyaga_mesto красный (так и должно быть)"
+else
+  echo "  САМОПРОВЕРКА: тяга всегда на оси, а test_zakony_tyaga_mesto зелёный — проверка ничего не доказывает"; exit 1
+fi
