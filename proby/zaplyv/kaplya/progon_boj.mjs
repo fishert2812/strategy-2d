@@ -13,12 +13,12 @@ const obrazcy = (() => { const w = mir(), out = new Map(); w.lose = () => {}; w.
   for (let i = 0; i < 30 && out.size < 40; i++) { zh.shag(w, DT, KAP.novye, () => true, radius); for (const L of SPISKI) for (const q of w[L] || []) { const k = L + ':' + (q.vid || (q.strain ? 'strain' : '')); if (!out.has(k) && !q.gone) out.set(k, [L, JSON.parse(JSON.stringify(q, (key, v) => key === 'dom' || key === 'on' || key === 'gn' ? undefined : v))]); }
     if (!w.me[0]) break; w.me[0].x += 1600 * (i % 2 ? 1 : -1); w.me[0].y += 1100; w.step(DT, null); }
   return out; })();
-const boi = (geny, [L, obr]) => { const w = mir(); w.step(DT, null); let gibel = null; w.lose = (a, x, y, who) => { gibel = gibel ?? who ?? 'кто-то'; };
+const boi = (geny, [L, obr]) => { const w = mir(); w.step(DT, null); let gibel = null; w.lose = (a, x, y, who) => { gibel = gibel ?? who ?? 'кто-то'; }; boj.ohrana(w, B);
   for (const k of SPISKI) w[k] = []; for (const k of ['food', 'crumbs', 'plants', 'slime']) w[k] = []; w.me = [w.me[0]]; const a = w.me[0]; a.m = MAS;
   for (const [g, l] of geny) { w.genes[g] = true; (w.lvl ||= {})[g] = l; }
   const q = { ...obr, id: 9999, gone: false, x: a.x + radius(MAS) + 14, y: a.y }; if (L === 'kaulo') q.dom = { x: q.x + 30, y: q.y }; w[L].push(q);
   for (let t = 0; t < T; t += DT) { const d = Math.hypot(q.x - a.x, q.y - a.y) || 1, R = radius(a.m); a.a = Math.atan2(q.y - a.y, q.x - a.x); if (d > R + 8) { a.x = q.x - (q.x - a.x) / d * (R + 6); a.y = q.y - (q.y - a.y) / d * (R + 6); } a.vx = a.vy = 0;
-    const S = boj.do_hoda(w, B); w.step(DT, null); boj.posle_hoda(w, DT, B, radius, S);
+    const m0 = new Map(w.me.map(b => [b, b.m])), S = boj.do_hoda(w, B); w.step(DT, null); boj.posle_hoda(w, DT, B, radius, S); boj.po_tebe(w, DT, B, m0);
     if (gibel) return 'Ж ' + t.toFixed(1); if (q.gone || !w[L].includes(q)) return 'Т ' + t.toFixed(1); if (!w.me.includes(a)) return 'Ж ' + t.toFixed(1); }
   return q.gn && q.gn.f < 0.995 ? '·' + Math.max(0, q.gn.f).toFixed(1) : '·'; };
 const navyki = [['без навыков', []]], cfg0 = mir().cfg;
