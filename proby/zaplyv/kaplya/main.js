@@ -34,6 +34,7 @@ import * as mk from './mayak.js'; // маяк сестры у края экра�
 import * as pkz from './pokaz.js'; // показ нового мира после хозяина главы (книга П13, П84)
 import * as sp from './sposoby.js'; // способы есть: «Присоска» и «Общие соки» (книга П18, П19)
 import * as ruka from './ruka.js'; // какой рукой ведут: линейка со стороны, которую не закрывает палец (книга П4)
+import * as zr from './zaraza.js'; // большая клетка заметнее: больше вирусов и запятых (книга П52)
 import * as rod from './rod.js'; // род жив: раз за заплыв просыпаешься сестрой (П73)
 import * as sm from './semena.js'; // между заплывами: семена рода, рекорд размера (П76, П94)
 import * as glv from './glavy.js'; // главы 2–5 (П79–П83)
@@ -228,7 +229,7 @@ const beep = (f, dur, vol = 0.05, type = 'sine', slide = 0.6) => {
 
 const STICK = 56; // полный ход большого пальца (~30 точек экрана); дальше кольцо едет за пальцем
 const pad = new Stick(STICK);
-let GOL = gol.sozdat(); let POK = pkz.sozdat();
+let GOL = gol.sozdat(); let POK = pkz.sozdat(); let ZAR = zr.sozdat();
 let LIN = null, GL = null, SEM = [], ROD_K = rod.sozdat(), OBL = obl.sozdat(), LES = les.sozdat(), GLAVA = 1, CEL = cel.sozdat(), world, view, finger = null, down = null, moved = false, shake = 0, ended = false, lastEat = 0;
 const $ = id => document.getElementById(id);
 const ver = (await (await fetch('version.json')).json()).number; // свой номер «Заплыва», список — VERSIONS.md
@@ -240,7 +241,7 @@ function start(genes, mode) {
   world.posle = Object.fromEntries(Object.values(GENY.geny || {}).filter(q => q.klyuch).map(q => [q.klyuch, q.posle || []])); world.known = met; // ген от того, кого уже встречал
   if (Array.isArray(genes)) world.inherit(genes); // заплыв веткой рода после «Ночи рода»
   $('night').classList.remove('on'); $('menu').classList.remove('on');
-  if (GOL.zapas && world) { world.cfg.food_per_chunk = GOL.zapas.f; world.cfg.food_patches = GOL.zapas.p; } GOL = gol.sozdat(); // голод не переживает новый заход POK = pkz.sozdat();
+  if (GOL.zapas && world) { world.cfg.food_per_chunk = GOL.zapas.f; world.cfg.food_patches = GOL.zapas.p; } GOL = gol.sozdat(); POK = pkz.sozdat(); ZAR = zr.sozdat(); // голод, показ мира и заметность не переживают новый заход
   view = { x: 0, y: 0, z: 2.2, tint: [...TINT[0]] }; CEL = cel.sozdat(); GLAVA = 1; LES = les.sozdat(); OBL = obl.sozdat(); ROD_K = rod.sozdat(); zh.nachalo(world); { const P = sm.pamyat(), K = KAP.semena; SEM = P.zahodov && world.me[0] ? sm.posadit(world.me[0], K, sm.vybor(P, K, world.cfg.genes, world.genes)) : []; if (SEM.length) setTimeout(() => say(K.slova.start, 3000), 300); } // П76: семена рода
   { const sg = les.vkl() ? 1 : glv.sohranena(); if (sg >= 2 && KAP.glavy[sg] && world.me[0]) { GLAVA = sg; world.me[0].m = KAP.glavy[sg].massa; setTimeout(() => say(KAP.glavy[sg].nazvanie, 3500), 600); } GL = glv.nachat(world, GLAVA); } // П76, П83: заход с последней непройденной главы
   if (les.vkl() || VEHI.has('glotat') || GLAVA >= 2) world.genes.gulp = true; if (!les.vkl() && GLAVA === 1) bodo.nachalo(world, KAP.bodo); // П54: веха «Глотать: навсегда»; в «Лестнице» хозяина нет, «Глотать» с рождения (П86)
@@ -702,7 +703,7 @@ function dalee() { const t = performance.now(); while (OCHERED.length && t - OCH
 // П23: коснуться одного из двух вариантов при большом событии. Две кнопки поверх игры, мир не стоит.
 function vybor(V, otvet) { let el = $('kvybor'); if (!el) { el = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'kvybor' })); Object.assign(el.style, { position: 'fixed', left: '52px', right: '16px', bottom: 'calc(env(safe-area-inset-bottom) + 250px)', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: '5', textAlign: 'center' }); }
   el.innerHTML = '<p style="margin:0;font-weight:600;text-shadow:0 1px 4px #000"></p>'; el.firstChild.textContent = V.vopros; V.knopki.forEach((t, i) => { const B = document.createElement('button'); B.textContent = t; B.onclick = e => { e.stopPropagation(); el.remove(); otvet(i); }; el.appendChild(B); }); }
-window.kaplyaVybor = () => $('kvybor'); window.kaplyaGL = () => GL; window.kaplyaSposoby = () => world.sposoby; window.kaplyaPokazMira = () => POK; window.kaplyaMayak = () => $('kmayak'); window.kaplyaGol = () => GOL;
+window.kaplyaVybor = () => $('kvybor'); window.kaplyaGL = () => GL; window.kaplyaSposoby = () => world.sposoby; window.kaplyaPokazMira = () => POK; window.kaplyaMayak = () => $('kmayak'); window.kaplyaGol = () => GOL; window.kaplyaZaraza = () => ZAR;
 { const R = ruka.sozdat(); document.body.classList.toggle('levsha', R.ruka === 'leva'); addEventListener('pointerdown', e => { if (ruka.kasanie(R, e.clientX, innerWidth, KAP.ruka)) document.body.classList.toggle('levsha', R.ruka === 'leva'); }, { passive: true }); window.kaplyaRuka = () => R; } // П4: рука по первым 20 касаниям
 window.kaplyaSay = say; window.kaplyaPokaz = pokaz; window.kaplyaOchered = () => OCHERED.length; window.kaplyaLin = () => LIN;
 const told = new Set(); // подсказка — один раз и только в момент, когда она нужна
@@ -818,6 +819,7 @@ function tick(dt) {
   umn.plata(world, m0, KAP.umeniya); // П64: плата умений «растёшь медленнее»
   { const K = KAP.sposoby; if (!les.vkl()) for (const n of sp.poluchit(world, GLAVA)) say(K.slova[n], 4500); if (sp.prisoska(world, dt, K.prisoska, radius, cel.SPIS, ms0) && !world.pyotSkazano) { world.pyotSkazano = true; say(K.slova.pyot, 3000); } if (sp.soki(world, dt, K.soki, radius) && !world.sokiSkazano) { world.sokiSkazano = true; say(K.slova.oblako, 3000); } } // П18, П19
   mk.shag(world, dt, KAP.mayak); // П12: род помнит, где уплывшая сестра
+  zr.shag(ZAR, world, dt, KAP.zaraza, radius); // П52, ЛЭ26: на большую клетку садится больше вирусов, вокруг неё больше запятых
   { const t = les.vkl() ? '' : gol.shag(GOL, world, dt, KAP.golod, GLAVA, OBL.ten); if (t) say(t, 3500); const M = $('kmut') || Object.assign(document.body.appendChild(document.createElement('div')), { id: 'kmut' }); if (!M.style.position) Object.assign(M.style, { position: 'fixed', inset: '0', background: KAP.golod.mut.cvet, pointerEvents: 'none', zIndex: '1' }); M.style.opacity = (GOL.mut * KAP.golod.mut.a).toFixed(3); } // П85: голод — вода мутнеет
   { const T = $('kten') || Object.assign(document.body.appendChild(document.createElement('div')), { id: 'kten' }); if (!T.style.position) Object.assign(T.style, { position: 'fixed', inset: '0', background: '#000', pointerEvents: 'none', transition: 'opacity 1.5s', opacity: '0', zIndex: '1' }); T.style.opacity = OBL.ten ? KAP.oblasti.ten.a : 0; } // П33: тень от облака
   { const g = sm.shag(SEM, world, world.me[0], KAP.semena, dt, radius); if (g) { world.genes[g] = true; say(KAP.semena.slova.vzyato.replace('{}', geneName(g)), 3000, g); } } // П76: коснулся семени — умение твоё
