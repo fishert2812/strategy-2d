@@ -229,7 +229,8 @@ export function sobrat(zapis, poza, B) {
   // нутро — вязкая несжимаемая жидкость: где оболочку вдавило, содержимое оттекает от вмятины (поза plesk: сдвиг нутра в осях тела, в полутолщинах; считает pitanie.js)
   const pl = P.plesk && (P.plesk[0] || P.plesk[1]) ? P.plesk : null, at_nutra = pl ? (u, o) => { const [x, y] = at(u, o); return [x + (pl[0] * ux - pl[1] * uy) * w, y + (pl[0] * uy + pl[1] * ux) * w]; } : at;
   P.nad ??= w * 0.8; let n = 0;
-  for (const [kl, svoi] of Object.entries(zapis.chasti || {})) { const r = RIS[kl]; if (!r) continue; r({ ...VC.chasti[kl], ...svoi }, F, P, B, pl && NUTRO.has(kl) ? at_nutra : at); B.vyshe = 0; n++; }
+  // ключ «часть#имя» — ещё один экземпляр той же части со своими числами (ядовитый ворс умения рядом с ворсом самой клетки)
+  for (const [kl0, svoi] of Object.entries(zapis.chasti || {})) { const kl = kl0.split('#')[0], r = RIS[kl]; if (!r) continue; r({ ...VC.chasti[kl], ...svoi }, F, P, B, pl && NUTRO.has(kl) ? at_nutra : at); B.vyshe = 0; n++; }
   return n; // сколько частей нарисовано (тест: все части записи нашлись)
 }
 export const KLYUCHI = Object.keys(RIS);

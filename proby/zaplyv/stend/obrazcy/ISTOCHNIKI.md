@@ -47,3 +47,6 @@
 | `inat_94700479_pancir_arcella.jpg` | Bruce Taylor (CC BY) | CC-BY | https://www.inaturalist.org/observations/94700479 |
 | `cdc_21910_clostridium_oosthuizen.jpg` | Jennifer Oosthuizen | CDC PHIL, public domain | https://phil.cdc.gov/Details.aspx?pid=21910 |
 | `wellcome_B0004797_palochka_vorsinki.jpg` | Wellcome Collection | CC BY 4.0 | https://wellcomecollection.org/works/ngrhxakm |
+| `inat_138132594_krasnyy_glazok.jpg` | crseaquist | CC-BY | https://www.inaturalist.org/observations/138132594 |
+| `inat_41573296_pishchevarenie_cvetnoe.jpg` | Bruce Taylor | CC-BY | https://www.inaturalist.org/observations/41573296 |
+| `servier_plazmida_skruchennaya.jpg` | Servier Medical Art | CC BY 2.0 | https://www.flickr.com/photos/serviermedicalart/10085606774/ |
