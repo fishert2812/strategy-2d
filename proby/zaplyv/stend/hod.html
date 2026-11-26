@@ -54,8 +54,10 @@ window.stend = dt => { time += dt; const w = S.tolshchina * tolshche(q, KK, time
   const x0 = cx - W / 2, y0 = cy - H / 2; U.o.value.set(x0, y0); bodies.begin();
   // взвесь в воде: редкие мутные крупинки стоят на месте (сетка по воде), по ним видно ход и дрожь
   const gv = S.vzves.shag; for (let j = Math.floor(y0 / gv); j <= (y0 + H) / gv; j++) for (let i = Math.floor(x0 / gv); i <= (x0 + W) / gv; i++) { const px = (i + hash(i, j)) * gv - x0, py = (j + hash(j + 7, i)) * gv - y0; bodies.sphere(px, py, S.vzves.r * (0.5 + hash(i + 3, j)), S.vzves.cvet, S.vzves.cvet, i * 31 + j, 0.6, S.vzves.a); }
+  // кусок, который едят, тает: вокруг растекается бледный ореол (как melts в fx.js игры)
+  if (q.est) { const e = q.est, f = 1 - e.r / e.r0; bodies.sphere(e.x - x0, e.y - y0, e.r0 * (1 + E.oreol * f), E.cvet, E.kromka, 3, 0.4, E.oreol_a * (1 - f)); }
   for (const e of ryadom) if (e.r > 0.3) bodies.sphere(e.x - x0, e.y - y0, e.r, e.tverd ? E.cvet_komka : E.cvet, e.tverd ? E.kromka_komka : E.kromka, Math.round(e.x + e.y * 3), e.tverd ? 0.9 : 0.8, 1);
-  sobrat(zapis, { x: q.x - x0, y: q.y - y0, a: q.a + q.kach, tolshchina: w, z: 1, time, id: 1, beg: vb }, bodies); bodies.end(time);
+  sobrat(zapis, { x: q.x - x0, y: q.y - y0, a: q.a + q.kach, tolshchina: w, z: 1, time, id: 1, beg: vb, gnut: q.gnut }, bodies); bodies.end(time);
   gl.clear(); gl.render(back, cam); gl.render(bodies.scene, bodies.cam);
   if (kadr++ % 6 === 0) h.innerHTML = '<b>' + (zapis._ || vid).split(/[:(]/)[0].trim() + '</b> · ' + TIP[PH.tip] + '<br>Сейчас: ' + (q.est ? 'ест: кусок тает на оболочке' : q.upor > 0 ? 'упёрлась в комок' : PH.tip === 'drozh' ? 'дрожит' : SLOVA[q.h.faza]) + ' · масса ' + q.m.toFixed(2) + ' · скорость ' + (sk_sred / (2 * w)).toFixed(1) + ' толщин тела в секунду<br>Из записи: наибольшая ' + (vmax / (2 * w)).toFixed(1) + ' · качание носа ' + (PH.kach * 57.3).toFixed(0) + '° · кувырок до ' + (PH.ugol * 1.7 * 57.3).toFixed(0) + '° · дрожь ' + (PH.vert / K.drozh.povorot).toFixed(2) + ' от образца'; };
 if (!q0.get('zapis')) { let last = performance.now(); const go = now => { window.stend(Math.min(0.05, (now - last) / 1000)); last = now; requestAnimationFrame(go); }; requestAnimationFrame(go); }

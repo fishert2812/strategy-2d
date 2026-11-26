@@ -15,18 +15,19 @@ export function pohodka(zapis) { const c = zapis.chasti || {};
 // Паспорт хода из записи (величины zakony.js: тяга F, сопротивление повороту povorot, радиус r, время потери курса kurs), всё отношением
 // к эталону: kach — качание носа: момент вращающегося пучка против сопротивления тела повороту (длинное тело качает слабее);
 // sdvig и vert — тепловая дрожь: сдвиг ∝ 1/r, поворот ∝ 1/√(время потери курса), то есть мелкое трясёт и крутит сильнее;
+// duga — кривизна установившегося пути от тяги мимо центра (zakony.js: жгутик сбоку или кривое тело);
 // ugol — разворот в кувырке: чем больше нитей расплетается, тем он сильнее, а длинное тело (k_povorot мал) вода развернуть не даёт. rz — во сколько раз вид крупнее эталона (zhizn.razmer).
 const PH = new WeakMap(), lim = (x, a, b) => Math.max(a, Math.min(b, x));
 export function pasport_hoda(zapis, K, rz = zapis.zhizn?.razmer ?? 1) { let p = PH.get(zapis); if (p) return p;
   const v = velichiny(zapis), e = velichiny(VC.vidy[ZK.etalon]), zh = zapis.chasti?.zhgutiki, n = zh ? zh.n ?? VC.chasti.zhgutiki.n : 0;
   p = { tip: pohodka(zapis), kach: K.beg.kachanie * lim(Math.sqrt(v.F / v.povorot / (e.F / e.povorot)), 0, 2), sdvig: K.drozh.sdvig * e.r / (v.r * rz),
     vert: K.drozh.povorot * Math.sqrt(e.kurs / (v.kurs * rz ** 3)), ugol: K.beg.ugol * lim(Math.sqrt(n / VC.chasti.zhgutiki.n), 0.5, 1.5) };
-  const k = schitay(zapis); p.k_skorost = k.k_skorost; p.k_povorot = k.k_povorot; p.k_eda = k.k_eda; p.ugol *= lim(Math.sqrt(k.k_povorot), 0.3, 1.3); PH.set(zapis, p); return p; }
+  const k = schitay(zapis); p.k_skorost = k.k_skorost; p.k_povorot = k.k_povorot; p.k_eda = k.k_eda; p.duga = v.duga || 0; p.ugol *= lim(Math.sqrt(k.k_povorot), 0.3, 1.3); PH.set(zapis, p); return p; }
 const gauss = r => (r() + r() + r() - 1.5) * 2;
 // q — существо (id, pokoy, udar: в этот шаг упёрлось), P — паспорт хода, d — угол от носа до цели (0, если цели нет).
 // Возвращает: sk — доля скорости вдоль носа (меньше нуля — задний ход), da — поворот за шаг, bok — снос вбок в толщинах в секунду,
 // kach — на сколько нос качнуло от курса (только вид), beg — собран ли пучок жгутиков (0 в кувырке), rul — слушается ли руля.
-export function hod(q, P, K, dt, rnd, d = 0) { const tip = P.tip, B = K.beg, o = { sk: 1, da: 0, bok: 0, kach: 0, beg: 1, rul: 1 };
+export function hod(q, P, K, dt, rnd, d = 0) { const tip = P.tip, B = K.beg, o = { sk: 1, da: 0, bok: 0, kach: 0, beg: 1, rul: 1, duga: P.duga };
   const probeg = () => B.dlitsya * (0.3 + rnd() * 1.4) * (1 + B.po_celi * Math.max(0, Math.cos(d)) * (d ? 1 : 0)), znak = () => rnd() < 0.5 ? -1 : 1;
   const h = q.h || (q.h = { faza: 'beg', t: probeg(), T: 1, f: rnd() * 6.283, pov: 0, zh: 0 }); h.f += dt; const udar = q.udar; q.udar = 0;
   // дрожь воды плавная (скорость блуждает и гаснет за plavno секунд), а не скачок каждый кадр: на экране это снос и повод, не тряска
@@ -52,16 +53,18 @@ export function techenie(K, x, y, t) { const T = K.techenie, k = 6.283 / T.massh
 // и доводкой (угловая скорость меняется не быстрее spin_acc и гаснет к цели), тяга падает, пока нос смотрит мимо цели, вдоль оси
 // тело набирает ход быстро, боком почти не скользит, без тяги встаёт сразу. Разворот и разгон поворота умножаются на kp
 // (k_povorot zakony.js: длинное тело поворачивает медленнее). X — что сейчас делает движитель (hod), vmax — скорость из записи,
-// w — полутолщина тела, sdvig — тепловой снос: средний уход за секунду, ед./√с (порыв гаснет за plavno, но путь за долгое время тот же). Меняет q.a, q.om, q.vx, q.vy, q.x, q.y.
+// w — полутолщина тела, sdvig — тепловой снос: средний уход за секунду, ед./√с (порыв гаснет за plavno, но путь за долгое время тот же). Меняет q.a, q.om, q.vx, q.vy, q.x, q.y, q.gnut.
 export function shag_tela(q, K, dt, d, vmax, X, kp, w, sdvig, rnd) { const T = K.telo, k = Math.min(4, kp), turn = T.turn * k * X.rul, acc = T.spin_acc * k * dt;
   q.om = (q.om || 0) + lim(lim(d * T.ease, -turn, turn) - (q.om || 0), -acc, acc);
   q.a += (X.rul && d && Math.abs(q.om * dt) > Math.abs(d) ? d : q.om * dt) + X.da;
   const thrust = vmax * X.sk * (X.rul ? Math.max(T.v_povorote, Math.cos(d)) : 1), ux = Math.cos(q.a), uy = Math.sin(q.a);
   let fwd = (q.vx || 0) * ux + (q.vy || 0) * uy, side = -(q.vx || 0) * uy + (q.vy || 0) * ux;
   fwd += (thrust - fwd) * Math.min(1, (thrust ? T.drag_along : T.stop) * dt); side += ((thrust ? X.bok * w : 0) - side) * Math.min(1, T.drag_side * dt);
-  q.vx = ux * fwd - uy * side; q.vy = uy * fwd + ux * side; 
+  q.vx = ux * fwd - uy * side; q.vy = uy * fwd + ux * side; q.a += (X.duga || 0) * fwd / w * dt; 
   const tau = K.drozh.plavno, kd = Math.min(1, dt / tau), sg = sdvig / tau * Math.sqrt(dt) * kd / (dt / tau); q.bx = (q.bx || 0) * (1 - kd) + gauss(rnd) * sg; q.by = (q.by || 0) * (1 - kd) + gauss(rnd) * sg;
-  q.x += (q.vx + q.bx) * dt; q.y += (q.vy + q.by) * dt; }
+  q.x += (q.vx + q.bx) * dt; q.y += (q.vy + q.by) * dt;
+  // мягкое тело: в повороте ось ложится дугой по следу и сама выпрямляется (поза gnut для sobrat)
+  const wz = q.om + X.da / dt; q.gnut = (q.gnut || 0) + (lim(T.gnut * wz, -T.gnut_max, T.gnut_max) - (q.gnut || 0)) * Math.min(1, dt * T.gnut_bystro); }
 // Одна клетка целиком за шаг (стенд одной клетки и сторож хода зовут одно и то же): паспорт из записи, движитель, тело в воде.
 // Z — общие числа жизни (mir.json zhizn: v0 и tolshchina эталона), w — полутолщина клетки на экране, d — угол до цели или 0,
 // tyaga — доля тяги (ест — почти стоит).
