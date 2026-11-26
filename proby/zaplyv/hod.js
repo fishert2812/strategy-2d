@@ -53,7 +53,7 @@ export function techenie(K, x, y, t) { const T = K.techenie, k = 6.283 / T.massh
 // и доводкой (угловая скорость меняется не быстрее spin_acc и гаснет к цели), тяга падает, пока нос смотрит мимо цели, вдоль оси
 // тело набирает ход быстро, боком почти не скользит, без тяги встаёт сразу. Разворот и разгон поворота умножаются на kp
 // (k_povorot zakony.js: длинное тело поворачивает медленнее). X — что сейчас делает движитель (hod), vmax — скорость из записи,
-// w — полутолщина тела, sdvig — тепловой снос: средний уход за секунду, ед./√с (порыв гаснет за plavno, но путь за долгое время тот же). Меняет q.a, q.om, q.vx, q.vy, q.x, q.y, q.gnut.
+// w — полутолщина тела, sdvig — тепловой снос: средний уход за секунду, ед./√с (порыв гаснет за plavno, но путь за долгое время тот же). Меняет q.a, q.om, q.vx, q.vy, q.x, q.y, q.gnut (и q.gnut_vid: изгиб вместе с качанием, для позы).
 export function shag_tela(q, K, dt, d, vmax, X, kp, w, sdvig, rnd) { const T = K.telo, k = Math.min(4, kp), turn = T.turn * k * X.rul, acc = T.spin_acc * k * dt;
   q.om = (q.om || 0) + lim(lim(d * T.ease, -turn, turn) - (q.om || 0), -acc, acc);
   q.a += (X.rul && d && Math.abs(q.om * dt) > Math.abs(d) ? d : q.om * dt) + X.da;
@@ -64,7 +64,7 @@ export function shag_tela(q, K, dt, d, vmax, X, kp, w, sdvig, rnd) { const T = K
   const tau = K.drozh.plavno, kd = Math.min(1, dt / tau), sg = sdvig / tau * Math.sqrt(dt) * kd / (dt / tau); q.bx = (q.bx || 0) * (1 - kd) + gauss(rnd) * sg; q.by = (q.by || 0) * (1 - kd) + gauss(rnd) * sg;
   q.x += (q.vx + q.bx) * dt; q.y += (q.vy + q.by) * dt;
   // мягкое тело: в повороте ось ложится дугой по следу и сама выпрямляется (поза gnut для sobrat)
-  const wz = q.om + X.da / dt; q.gnut = (q.gnut || 0) + (lim(T.gnut * wz, -T.gnut_max, T.gnut_max) - (q.gnut || 0)) * Math.min(1, dt * T.gnut_bystro); }
+  const wz = q.om + X.da / dt; q.gnut = (q.gnut || 0) + (lim(T.gnut * wz, -T.gnut_max, T.gnut_max) - (q.gnut || 0)) * Math.min(1, dt * T.gnut_bystro); q.gnut_vid = q.gnut + T.gnut_kach * X.kach; }
 // Одна клетка целиком за шаг (стенд одной клетки и сторож хода зовут одно и то же): паспорт из записи, движитель, тело в воде.
 // Z — общие числа жизни (mir.json zhizn: v0 и tolshchina эталона), w — полутолщина клетки на экране, d — угол до цели или 0,
 // tyaga — доля тяги (ест — почти стоит).

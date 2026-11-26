@@ -16,8 +16,9 @@ import * as THREE from '../three.module.min.js';
 import { Bodies } from '../body3d.js';
 import { sobrat, VC } from '../vid_chasti.js';
 import { plyt, pasport_hoda } from '../hod.js';
-import { kontakt, tolshche } from '../pitanie.js';
+import { kontakt, tolshche, prizhat } from '../pitanie.js';
 import { obvod_zon } from '../zony.js';
+import { telo as telo_rosta } from '../delenie.js';
 const q0 = new URLSearchParams(location.search), MR = await (await fetch('../mir.json')).json(), K = MR.hod, KK = MR.kontakt, Z = MR.zhizn, S = K.stend, vid = VC.vidy[q0.get('sushchestvo')] ? q0.get('sushchestvo') : 'nasha';
 const W = 720, gl = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true }); gl.setPixelRatio(Math.min(devicePixelRatio, 2.5)); gl.autoClear = false;
 const H = W * innerHeight / innerWidth; gl.setSize(innerWidth, innerHeight, false);
@@ -30,9 +31,10 @@ const bg = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.ShaderMateria
 bg.position.set(W / 2, H / 2, 0); bg.scale.y = -1; back.add(bg);
 let s = (+(q0.get('seed') || 1)) * 2654435761 % 2147483647 || 1; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647, hash = (a, b) => { const x = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return x - Math.floor(x); };
 // Запись под ползунками: каждый раз новая копия записи вида, поэтому паспорт хода и величины считаются заново.
-const P0 = { zhg: VC.vidy[vid].chasti.zhgutiki ? VC.vidy[vid].chasti.zhgutiki.n ?? VC.chasti.zhgutiki.n : 0, dl: 1, korma: VC.vidy[vid].chasti.zhgutiki?.gde === 'korma' ? 1 : 0 }, PZ = { ...P0 }; let zapis, PH, vmax = 0, TL, zerna = -1;
+const P0 = { zhg: VC.vidy[vid].chasti.zhgutiki ? VC.vidy[vid].chasti.zhgutiki.n ?? VC.chasti.zhgutiki.n : 0, dl: 1, korma: VC.vidy[vid].chasti.zhgutiki?.gde === 'korma' ? 1 : 0 }, PZ = { ...P0 }; let zapis, PH, vmax = 0, TL, zerna = -1, rost = 0;
 function sobrat_zapis() { const z = JSON.parse(JSON.stringify(VC.vidy[vid])); z.forma.tochki = z.forma.tochki.map(([x, y, r]) => [x * PZ.dl, y, r]);
   if (PZ.zhg > 0) { z.chasti.zhgutiki = { ...(z.chasti.zhgutiki || {}), n: PZ.zhg }; if (PZ.korma) z.chasti.zhgutiki.gde = 'korma'; else delete z.chasti.zhgutiki.gde; } else delete z.chasti.zhgutiki;
+  if (rost > 0) z.forma.tochki = telo_rosta({ ...z, rost: rost / S.rost_stupeney });
   if (zerna >= 0 && z.chasti.vklyucheniya) z.chasti.vklyucheniya = { ...z.chasti.vklyucheniya, n: zerna };
   zapis = z; PH = pasport_hoda(z, K, 1); const O = obvod_zon(z, { x: 0, y: 0, a: 0, tolshchina: 1 }).O; TL = { kr: O.poperechnik / 2, kh: Math.max(0, O.dlina / 2 - O.poperechnik / 2) }; }
 const q = { id: 1, x: 0, y: 0, a: -1.2, m: 1, pokoy: 0, udar: 0 }, VM = new Map(), E = S.eda;
@@ -50,14 +52,15 @@ cv.addEventListener('pointerdown', e => { nazhal = { t: performance.now(), x: e.
 cv.addEventListener('pointermove', e => { if (vedet) vedet = { ...vmir(e), ex: e.clientX, ey: e.clientY }; });
 const otpustil = e => { if (nazhal && performance.now() - nazhal.t < S.kasanie_ms && Math.hypot(e.clientX - nazhal.x, e.clientY - nazhal.y) < 10) palec.push({ ...vmir(e), m: E.m[1], r: S.tolshchina * E.r }); vedet = nazhal = null; };
 cv.addEventListener('pointerup', otpustil); cv.addEventListener('pointercancel', () => { vedet = nazhal = null; });
-window.hodVedet = v => { vedet = v; };
+window.hodVedet = v => { vedet = v; }; window.hodKomok = () => ryadom.filter(e => e.tverd).sort((a, b) => Math.hypot(a.x - q.x, a.y - q.y) - Math.hypot(b.x - q.x, b.y - q.y))[0];
 window.stend = dt => { time += dt; const w = S.tolshchina * tolshche(q, KK, time), g = E.shag;
   ryadom = palec = palec.filter(e => e.m > 0); ryadom = ryadom.slice(); for (let j = Math.floor((cy - H) / g); j <= (cy + H) / g; j++) for (let i = Math.floor((cx - W) / g); i <= (cx + W) / g; i++) { const e = veshch(i, j); if (e && e.m > 0) ryadom.push(e); }
   const KT = kontakt(q, ryadom, TL, w, KK, PH.k_eda, dt); // палец держат: цель там, где палец на экране (камера идёт, палец стоит); иначе цель задаёт еда
   if (vedet && vedet.ex !== undefined) { const m = W / innerWidth; vedet.x = cx - W / 2 + vedet.ex * m; vedet.y = cy - H / 2 + vedet.ey * m; }
   const cel = vedet && !q.est && performance.now() - (nazhal ? nazhal.t : 0) >= S.kasanie_ms ? [vedet.x, vedet.y] : KT.cel; let d = 0; if (cel && Math.hypot(cel[0] - q.x, cel[1] - q.y) > w) { d = Math.atan2(cel[1] - q.y, cel[0] - q.x) - q.a; d = Math.atan2(Math.sin(d), Math.cos(d)); }
-  const zr = Math.round(S.zerna[0] + (S.zerna[1] - S.zerna[0]) * Math.max(0, Math.min(1, (q.m - 1) / (KK.m_max - 1)))); if (zr !== zerna) { zerna = zr; sobrat_zapis(); }
-  const { X, vmax: vm } = plyt(q, zapis, K, Z, dt, rnd, d, w, KT.sk); vmax = vm / (KT.sk || 1); const vv = Math.hypot(q.vx, q.vy); window.hodSobytiya = (window.hodSobytiya || 0) + KT.sobytiya.length;
+  const zr = Math.round(S.zerna[0] + (S.zerna[1] - S.zerna[0]) * Math.max(0, Math.min(1, (q.m - 1) / (KK.m_max - 1)))); // сытая клетка растёт в длину (тот же закон роста тела, что у деления: delenie.js telo), ступенями
+  const rs = Math.round(Math.max(0, Math.min(1, q.m - 1)) * S.rost_stupeney); if (zr !== zerna || rs !== rost) { zerna = zr; rost = rs; sobrat_zapis(); }
+  const { X, vmax: vm } = plyt(q, zapis, K, Z, dt, rnd, d, w, KT.sk); prizhat(q, TL, w, KK); vmax = vm / (KT.sk || 1); const vv = Math.hypot(q.vx, q.vy); window.hodSobytiya = (window.hodSobytiya || 0) + KT.sobytiya.length;
   cx += (q.x - cx) * Math.min(1, dt * S.kamera); cy += (q.y - cy) * Math.min(1, dt * S.kamera); vb += ((vmax > 0 ? X.beg : 0) - vb) * Math.min(1, dt * 12); sk_sred += (Math.abs(vv) - sk_sred) * Math.min(1, dt * 2); put += Math.abs(vv) * dt;
   const x0 = cx - W / 2, y0 = cy - H / 2; U.o.value.set(x0, y0); bodies.begin();
   // взвесь в воде: редкие мутные крупинки стоят на месте (сетка по воде), по ним видно ход и дрожь
@@ -65,7 +68,7 @@ window.stend = dt => { time += dt; const w = S.tolshchina * tolshche(q, KK, time
   // кусок, который едят, тает: вокруг растекается бледный ореол (как melts в fx.js игры)
   if (q.est) { const e = q.est, f = 1 - e.r / e.r0; bodies.sphere(e.x - x0, e.y - y0, e.r0 * (1 + E.oreol * f), E.cvet, E.kromka, 3, 0.4, E.oreol_a * (1 - f)); }
   for (const e of ryadom) if (e.r > 0.3) bodies.sphere(e.x - x0, e.y - y0, e.r, e.tverd ? E.cvet_komka : E.cvet, e.tverd ? E.kromka_komka : E.kromka, Math.round(e.x + e.y * 3), e.tverd ? 0.9 : 0.8, 1);
-  sobrat(zapis, { x: q.x - x0, y: q.y - y0, a: q.a + q.kach, tolshchina: w, z: 1, time, id: 1, beg: vb, gnut: q.gnut }, bodies); bodies.end(time);
+  sobrat(zapis, { x: q.x - x0, y: q.y - y0, a: q.a + q.kach, tolshchina: w, z: 1, time, id: 1, beg: vb, gnut: q.gnut_vid }, bodies); bodies.end(time);
   gl.clear(); gl.render(back, cam); gl.render(bodies.scene, bodies.cam);
   if (kadr++ % 6 === 0) h.innerHTML = '<b>' + (zapis._ || vid).split(/[:(]/)[0].trim() + '</b> · ' + TIP[PH.tip] + '<br>Сейчас: ' + (q.est ? 'ест: кусок тает на оболочке' : q.upor > 0 ? 'упёрлась в комок' : PH.tip === 'drozh' ? 'дрожит' : SLOVA[q.h.faza]) + ' · масса ' + q.m.toFixed(2) + ' · скорость ' + (sk_sred / (2 * w)).toFixed(1) + ' толщин тела в секунду<br>Из записи: наибольшая ' + (vmax / (2 * w)).toFixed(1) + ' · качание носа ' + (PH.kach * 57.3).toFixed(0) + '° · кувырок до ' + (PH.ugol * 1.7 * 57.3).toFixed(0) + '° · дрожь ' + (PH.vert / K.drozh.povorot).toFixed(2) + ' от образца'; };
 if (!q0.get('zapis')) { let last = performance.now(); const go = now => { window.stend(Math.min(0.05, (now - last) / 1000)); last = now; requestAnimationFrame(go); }; requestAnimationFrame(go); }
