@@ -1,5 +1,5 @@
 // Сторож крупных П40 «Капли»: node proby/zaplyv/kaplya/test_krupnye.mjs. Провал — код 1. Числа — kaplya.json «novye».
-import fs from 'fs'; import { nachalo, shag, SPISKI } from './zhiteli.js';
+import fs from 'fs'; import { nachalo, shag, SPISKI } from './zhiteli.js'; import { SPIS } from './cel.js';
 const K = JSON.parse(fs.readFileSync(new URL('./kaplya.json', import.meta.url))), radius = m => 13 * Math.sqrt(m);
 let bad = 0; const check = (n, e) => { console.log((e ? '  ПРОВАЛ ' : '  ок ') + n + (e ? ': ' + e : '')); if (e) bad++; };
 const mir = (m) => { let s = 1; const w = { cfg: { chunk: 1000 }, r: () => (s = (s * 16807) % 2147483647) / 2147483647, ids: 0, crumbs: [], plants: [], biome: () => 1, me: [{ x: 0, y: 0, m }], poteri: [] };
@@ -13,6 +13,7 @@ const sud = N => { const S = N.spumella;
   w = mir(20); w.me[0].x = 5000; gon(w, N, 0.1); if (SPISKI && Object.values(SPISKI).some(k => w[k].length && ['parafizo', 'cerko', 'spumelly', 'hlamido', 'ciklidii'].includes(k))) return 'крупные появились без записи движка';
   return ''; };
 check('test_krupnye: спумелла хватает лёгкую тебя рывком, тяжёлую нет; хламидомонада не опасна; циклидиум тянет потоком; без записи движка их нет (П40)', sud(K.novye));
+{ const net = ['parafizo', 'cerko', 'spumelly', 'hlamido', 'ciklidii'].filter(k => !SPIS.some(s => s[0] === k)); check('test_krupnye_znaki: крупных видят тёплый свет «еда», «рядом! уходи» и линейка (П5, П7)', net.length ? 'нет в списке целей: ' + net.join(', ') : ''); }
 check('test_krupnye_samoproverka: спумелла слепая — судья краснеет', sud({ ...K.novye, spumella: { ...K.novye.spumella, chutyo: 0 } }) ? '' : 'судья не заметил');
 check('test_krupnye_samoproverka2: хламидомонада-охотник — судья краснеет', sud({ ...K.novye, hlamido: { ...K.novye.spumella, massa: [200, 200] } }) ? '' : 'судья не заметил');
 process.exit(bad ? 1 : 0);
