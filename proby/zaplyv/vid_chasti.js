@@ -40,6 +40,13 @@ const RIS = {
     for (let k = 0; k < st.n; k++) { const t = k / st.n * 6.283, e = F.kray(t), [px, py] = at(e.u * st.osnova, e.o * st.osnova);
       const len = w * st.dlina * (e.g > 0.3 ? st.v_borozde : 1) * (0.75 + 0.5 * hash(P.id, k + 700));
       B.spine(px, py, P.a + e.n, len, w * st.tolsh, st.cvet, st.cvet, P.id * 13 + k, Math.sin(t * st.volny - P.time * st.temp) * w * st.tolsh * 6, 0); } },
+  // шипы-акантоподии амёбы (перенос vid.js amoeba3d из ручной игры): десятки сужающихся стеклянных пальцев по всему краю, длина вразнобой,
+  // медленно гнутся и дышат, часть ветвится
+  shipy(st, F, P, B, at) { const w = P.tolshchina;
+    for (let k = 0; k < st.n; k++) { const t = (k + 0.9 * hash(P.id, k + 800)) / st.n * 6.283, e = F.kray(t), [px, py] = at(e.u * st.koren, e.o * st.koren), ang = P.a + e.n, tw = w * st.tolsh;
+      const L = w * (st.dlina[0] + (st.dlina[1] - st.dlina[0]) * hash(P.id, k + 840)) * (0.85 + 0.15 * Math.sin(P.time * st.temp + k * 2.1)), bend = ((hash(P.id, k + 870) - 0.5) * st.izgib + 0.12 * Math.sin(P.time * st.temp * 0.7 + k)) * L * 0.5;
+      B.spine(px, py, ang, L, tw, st.cvet, st.kromka, P.id * 17 + k, bend, st.volna * (hash(P.id, k + 880) - 0.3));
+      if (hash(P.id, k + 855) < st.vilka) { const side = hash(P.id, k + 856) < 0.5 ? -1 : 1, f = 0.55; B.spine(px + Math.cos(ang) * L * f - Math.sin(ang) * bend * f * f, py + Math.sin(ang) * L * f + Math.cos(ang) * bend * f * f, ang + side * 0.55, L * 0.4, tw * 0.6, st.cvet, st.kromka, P.id * 17 + k + 500, 0, st.volna * 0.5); } } },
   // ядро-боб: вытянутый зернистый шар; в теле по оси (F.O) нутро рисуется над плотным слоем
   yadro(st, F, P, B, at) { if (F.O) B.vyshe = P.nad; const w = P.tolshchina, [u, o] = st.gde, [px, py] = at(u, o);
     B.put(B.ball, px, py, P.a + st.povorot, w * st.r * st.boby, w * st.r, w * st.r * 0.45, [...st.cvet, 1], st.kromka, [0, P.id + 0.3, 0, 0]); },
