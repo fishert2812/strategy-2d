@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Заплыв · микромир на конструкторе</title>
+<style>html, body { margin: 0; height: 100%; background: #04101a; overflow: hidden; font-family: -apple-system, system-ui, sans-serif; color: #dff; -webkit-user-select: none; user-select: none; }
+canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; touch-action: none; }
+#t { position: fixed; left: 10px; right: 10px; top: max(10px, env(safe-area-inset-top)); display: flex; gap: 8px; align-items: flex-start; pointer-events: none; }
+#cel { flex: 1; padding: 8px 12px; border-radius: 14px; background: rgba(4, 16, 26, 0.75); font-size: 15px; line-height: 1.3; } #cel b { font-size: 17px; } #cel small { opacity: 0.75; display: block; }
+#t button { pointer-events: auto; min-height: 44px; min-width: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid rgba(200, 240, 255, 0.35); background: rgba(4, 16, 26, 0.8); color: inherit; font: inherit; font-size: 15px; } #t button.vkl { background: rgba(200, 240, 255, 0.3); }
+#v { position: fixed; left: 0; right: 0; bottom: calc(max(10px, env(safe-area-inset-bottom)) + 44px); text-align: center; font-size: 17px; font-weight: 600; text-shadow: 0 1px 4px #000; pointer-events: none; transition: opacity 0.4s; }
+#n { position: fixed; left: 10px; right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); padding: 8px 12px; border-radius: 12px; background: rgba(4, 16, 26, 0.7); font-size: 13px; line-height: 1.3; pointer-events: none; display: flex; justify-content: space-between; } #sb { opacity: 0.7; }</style></head>
+<body><canvas id="c"></canvas><div id="t"><div id="cel"></div><button id="k_pauza">Пауза</button></div><div id="v"></div><div id="n"><span id="sch"></span><span id="sb"></span></div>
+<script type="module">
+// Игра-микромир на конструкторе (Роман 26.11: «собери весь микромир — используя наш конструктор… Пускай криво будет»).
+// Капля и все её жители — записи движка (mir.json, vid_chasti.json), живут по mir_zhizn.js; своя клетка — igra.js, числа — igra.json.
+// Держишь палец — клетка плывёт к нему; убрал — встала. ?zapis=1 — без своего цикла, шаг зовётся window.stend(dt); ?seed=2 — другая капля.
+import * as THREE from '../three.module.min.js';
+import { Bodies } from '../body3d.js';
+import { sobrat } from '../vid_chasti.js';
+import { oblik, massa } from '../mir_zhizn.js';
+import { IG, nachat, shag_igry, razmer, cel, car, imya } from './igra.js';
+const q0 = new URLSearchParams(location.search), G = nachat(+(q0.get('seed') || 1)), M = G.M, P = M.pole, KM = IG.kamera;
+const W = 720, gl = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true }); gl.setPixelRatio(Math.min(devicePixelRatio, 2.5)); gl.autoClear = false;
+const H = W * innerHeight / innerWidth; gl.setSize(innerWidth, innerHeight, false);
+const cam = new THREE.OrthographicCamera(0, W, 0, H, -1, 1), back = new THREE.Scene(), bodies = new Bodies(); bodies.resize(W, H);
+// вода и сахар: тот же фон, что у стенда живого мира (mir.html): еда светится тёплым там, где её больше
+const tex = new THREE.DataTexture(new Uint8Array(P.nx * P.ny), P.nx, P.ny, THREE.RedFormat); tex.magFilter = THREE.LinearFilter; tex.minFilter = THREE.LinearFilter;
+const U = { eda: { value: tex }, okno: { value: new THREE.Vector4() } };
+const bg = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.ShaderMaterial({ depthTest: false, side: THREE.DoubleSide, uniforms: U,
+  vertexShader: 'varying vec2 v; void main(){ v = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: 'uniform sampler2D eda; uniform vec4 okno; varying vec2 v; void main(){ vec2 m = okno.xy + v * okno.zw; float e = texture2D(eda, m).r; float d = length(v - 0.5); vec3 c = mix(vec3(0.012, 0.05, 0.085), vec3(0.03, 0.13, 0.17), v.y) * (1.0 - 0.5 * smoothstep(0.3, 0.8, d)); c += vec3(0.20, 0.15, 0.05) * smoothstep(0.03, 0.5, e); if (m.x < 0.0 || m.y < 0.0 || m.x > 1.0 || m.y > 1.0) c *= 0.35; gl_FragColor = vec4(c, 1.0); }' }));
+bg.position.set(W / 2, H / 2, 0); bg.scale.y = -1; back.add(bg);
+let cx = G.igrok.x, cy = G.igrok.y, z = 2, time = 0, kadr = 0, pauza = false, palec = null, vest_t = -9;
+const cv = document.getElementById('c'), km = () => W / innerWidth;
+cv.addEventListener('pointerdown', e => { palec = [e.clientX, e.clientY]; }); cv.addEventListener('pointermove', e => { if (palec) palec = [e.clientX, e.clientY]; });
+cv.addEventListener('pointerup', () => { palec = null; }); cv.addEventListener('pointercancel', () => { palec = null; });
+document.getElementById('k_pauza').addEventListener('click', e => { pauza = !pauza; e.currentTarget.classList.toggle('vkl', pauza); });
+fetch('../version.json').then(v => v.json()).then(v => { document.getElementById('sb').textContent = 'версия ' + v.number + (window.SHA ? ' · ' + window.SHA : ''); });
+const SL = { syela: v => 'Съела: ' + nm(v), syeli: v => 'Тебя съела ' + nm(v).toLowerCase(), golod: () => 'Умерла от голода', sestra: () => 'Ты родная сестра, вдвое мельче. Плыви!', rost: () => 'Ты выросла', teper_eda: v => nm(v) + ': теперь еда!', car: () => 'Ты съела царя капли! Идёт новый, крупнее' };
+const nm = v => v === 'car' ? 'Царь капли' : imya(v), vk = document.getElementById('v'), ce = document.getElementById('cel'), sch = document.getElementById('sch'); let vest_n = 0;
+window.igra = G; window.igraVedet = p => { palec = p; };
+window.stend = dt => { time += dt; const q = G.igrok, w = oblik(M, q).tolshchina;
+  const pw = palec && [cx - W / z / 2 + palec[0] * km() / z, cy - H / z / 2 + palec[1] * km() / z]; shag_igry(G, dt, pw);
+  // камера идёт за своей клеткой; чем крупнее клетка, тем дальше камера (клетка на экране примерно одного размера)
+  const zc = Math.max(KM.z_min, Math.min(KM.z_max, KM.na_ekrane / (w ** KM.stepen * 7 ** (1 - KM.stepen)))); z += (zc - z) * Math.min(1, dt); cx += (G.igrok.x - cx) * Math.min(1, dt * KM.sled); cy += (G.igrok.y - cy) * Math.min(1, dt * KM.sled);
+  const vw = W / z, vh = H / z, x0 = cx - vw / 2, y0 = cy - vh / 2; bodies.begin();
+  for (const s of M.sv) { const ob = oblik(M, s), ww = ob.tolshchina * z, sx = (s.x - x0) * z, sy = (s.y - y0) * z, kr = ww * 5; if (sx < -kr || sx > W + kr || sy < -kr || sy > H + kr) continue;
+    sobrat(ob.zapis, { x: sx, y: sy, a: s.a + (s.kach || 0), gnut: s.gnut_vid, vypuklosti: s.vyp, tolshchina: ww, z, time, id: s.id, zh: s.zh, beg: (s.vb = (s.vb ?? s.plyvet) + (s.plyvet - (s.vb ?? s.plyvet)) * Math.min(1, dt * 12)) }, bodies); }
+  bodies.end(time);
+  if (kadr++ % 6 === 0) { const d = tex.image.data; for (let i = 0; i < d.length; i++) d[i] = Math.min(255, P.C[i] * 255); tex.needsUpdate = true; }
+  U.okno.value.set(x0 / (P.nx * P.shag_setki), y0 / (P.ny * P.shag_setki), vw / (P.nx * P.shag_setki), vh / (P.ny * P.shag_setki));
+  gl.clear(); gl.render(back, cam); gl.render(bodies.scene, bodies.cam);
+  if (G.vesti.length && G.vesti.length !== vest_n || G.vesti.length && G.vesti[G.vesti.length - 1].t !== vest_t) { const v = G.vesti[G.vesti.length - 1]; vest_n = G.vesti.length; vest_t = v.t; vk.textContent = SL[v.chto](v.vid); vk.style.opacity = 1; }
+  if (G.t - vest_t > 2.5) vk.style.opacity = 0;
+  if (kadr % 10 === 1) { const c = cel(G), cr = car(G); // ЦВ22: цель одной фразой — съешь того, кто выше тебя
+    ce.innerHTML = c ? '<b>Съешь: ' + nm(c.vid) + '</b><small>' + (c.vo < 1.15 ? 'почти можно!' : 'вырасти ещё в ' + c.vo.toFixed(1).replace('.', ',') + ' раза') + (cr && cr !== c.s ? ' · царь капли крупнее тебя в ' + Math.round(massa(cr) / razmer(G)) + ' раз' : '') + '</small>' : '<b>Ты крупнее всех в капле</b>';
+    sch.textContent = 'размер ' + razmer(G).toFixed(1).replace('.', ',') + ' · съела ' + G.schet.syela + ' · рекорд ' + G.schet.rekord.toFixed(1).replace('.', ',') + (G.schet.gibeley ? ' · гибелей ' + G.schet.gibeley : '') + (G.schet.carey ? ' · царей ' + G.schet.carey : ''); } };
+if (!q0.get('zapis')) { let last = performance.now(); const go = now => { if (!pauza) window.stend(Math.max(0.001, Math.min(0.05, (now - last) / 1000))); last = now; requestAnimationFrame(go); }; requestAnimationFrame(go); }
+window.stendReady = true;
+</script></body></html>
