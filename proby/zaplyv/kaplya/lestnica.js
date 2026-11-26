@@ -8,7 +8,9 @@ function vybrat(L, w, me, mass, K) { for (const okno of [K.okno, K.okno2, K.okno
     for (const [list, who] of K.plyvut) for (const q of w[list] || []) { if (q.gone) continue; const m = mass(q, who), k = m / me.m, dd = d(q, me);
       if (k >= okno[0] && k <= okno[1] && dd >= bl && dd < bd) { bd = dd; best = { q, list, who }; } }
     if (best) return best; }
-  return null; }
+  if (!K.zapas) return null; let best = null, bm = 0; // zapas (хозяин глав): крупнее нет — самый крупный из имеющихся, чтобы глава не проходила сама
+  for (const [list, who] of K.plyvut) for (const q of w[list] || []) { if (q.gone) continue; const m = mass(q, who); if (m > bm) { bm = m; best = { q, list, who }; } }
+  return best; }
 // Шаг: жив ли царь, не съела ли его ты (глоток в его точке), нужен ли новый. Возвращает 'syela', если царь только что съеден тобой.
 export function shag(L, w, me, mass, K) { let sobytie = '';
   if (L.car) { const { q, list } = L.car, zhiv = !q.gone && (w[list] || []).includes(q);
