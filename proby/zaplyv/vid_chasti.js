@@ -153,12 +153,13 @@ const VETKI = new WeakMap();
 const mestnyy_r = (O, t) => { const e = O.kray(t), R = O.poperechnik / 2; let g = 0.05; for (let i = 1; i <= 10; i++) { const d = R * i / 10; g = Math.max(g, O.glubina(e.x - Math.cos(e.n) * d, e.y - Math.sin(e.n) * d)); } return Math.min(R, g); };
 // Мягкое тело в повороте (перенос soft.js ручной игры на любую ось): поза gnut — прогиб в долях половины длины, больше нуля — концы
 // уходят влево от носа. Ось ложится дугой: y += gnut · half · (u² − 1/3), u от −1 на корме до 1 на носу (середина тяжести на месте).
+// Длинное тело гнётся слабее в долях своей длины (размах ∝ √(длина · длина образца)), иначе палочка сенной складывалась бы подковой.
 // Прогиб берётся ступенями (VC.gnut.stupeney на единицу), у каждой ступени свои точки, поэтому осевая линия считается один раз на ступень.
 const GNUT = new WeakMap();
 function gnutye(t, g) { const st = Math.round(g * VC.gnut.stupeney); if (!st || t.length < 2) return t; let m = GNUT.get(t); if (!m) GNUT.set(t, m = new Map()); let r = m.get(st); if (r) return r;
   const a = t[0], b = t[t.length - 1], x0 = (a[0] + b[0]) / 2, hl = Math.max(1e-6, (b[0] - a[0]) / 2), s = st / VC.gnut.stupeney;
   const baza = t.length >= 4 ? t : Array.from({ length: 5 }, (_, i) => { const f = i / 4 * (t.length - 1), j = Math.min(t.length - 2, Math.floor(f)), k = f - j; return t[j].map((v, n) => v + (t[j + 1][n] - v) * k); });
-  r = baza.map(([x, y, rr]) => [x, y + s * hl * (((x - x0) / hl) ** 2 - 1 / 3), rr]); m.set(st, r); return r; }
+  const razmah = s * Math.sqrt(hl * Math.min(hl, VC.gnut.dlina_obrazca)); r = baza.map(([x, y, rr]) => [x, y + razmah * (((x - x0) / hl) ** 2 - 1 / 3), rr]); m.set(st, r); return r; }
 export function sobrat(zapis, poza, B) {
   if (!B || !B.sphere) return 0;
   const forma = zapis.forma || { tip: 'palochka' }, tip = forma.tip, P = { ...poza, tip }, ux = Math.cos(P.a), uy = Math.sin(P.a), w = P.tolshchina; let F, at;

@@ -5,8 +5,9 @@
 canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; touch-action: none; }
 #p { position: fixed; left: 10px; right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); padding: 10px 12px; border-radius: 14px; background: rgba(4, 16, 26, 0.8); font-size: 14px; line-height: 1.35; }
 #p label { display: flex; align-items: center; gap: 8px; margin-top: 6px; } #p label span { flex: 0 0 46%; } #p input[type=range] { flex: 1; }
-#h { opacity: 0.85; min-height: 3.9em; } #h b { font-size: 16px; }</style></head>
-<body><canvas id="c"></canvas><div id="p"><div id="h"></div><div id="r"></div></div>
+#h { opacity: 0.9; } #h b { font-size: 16px; } #r { display: none; margin-top: 6px; } #r.otkryto { display: block; } #r small { opacity: 0.7; display: block; }
+#kn { float: right; margin: -2px 0 0 8px; padding: 6px 12px; border-radius: 10px; border: 1px solid rgba(200, 240, 255, 0.35); background: none; color: inherit; font: inherit; }</style></head>
+<body><canvas id="c"></canvas><div id="p"><button id="kn">Запись</button><div id="h"></div><div id="r"><small id="iz"></small></div></div>
 <script type="module">
 // Стенд хода одной клетки: существо из записи (vid_chasti.json) плывёт по закону хода движка (hod.js, числа mir.json «hod»), ничего
 // не подкручено под вид. Ползунки меняют запись (число жгутиков, длина тела, жгутик на корме), ход пересчитывается сам из величин
@@ -44,6 +45,7 @@ const veshch = (i, j) => { const kl = i + ',' + j; let e = VM.get(kl); if (e ===
 const SLOVA = { beg: 'бежит, пучок собран', kuvyrok: 'кувырок, пучок распался', nazad: 'задний ход', povorot: 'отворачивает' }, TIP = { beg: 'жгутики по телу: бег и кувырок', polus: 'жгутик на корме: бег, задний ход, щелчок', spiral: 'реснички: ход по винту', drozh: 'грести нечем: только дрожь воды' };
 const h = document.getElementById('h'), r = document.getElementById('r');
 const polzunok = (imya, kl, ot, do_, shag) => { const l = document.createElement('label'); l.innerHTML = '<span>' + imya + '</span><input type="range" min="' + ot + '" max="' + do_ + '" step="' + shag + '" value="' + PZ[kl] + '">'; l.firstChild.nextSibling.addEventListener('input', e => { PZ[kl] = +e.target.value; sobrat_zapis(); }); r.appendChild(l); };
+document.getElementById('kn').addEventListener('click', () => r.classList.toggle('otkryto'));
 polzunok('Жгутиков', 'zhg', 0, S.zhgutikov_do, 1); polzunok('Длина тела', 'dl', S.dlina[0], S.dlina[1], 0.05); polzunok('Жгутик на корме', 'korma', 0, 1, 1); sobrat_zapis();
 window.hodZapis = (kl, v) => { PZ[kl] = v; sobrat_zapis(); }; window.hodSost = () => ({ m: q.m, est: !!q.est, x: q.x, y: q.y, a: q.a, kach: q.kach, faza: q.h?.faza, vmax, PH });
 // Палец: короткое касание кладёт кусок еды; пока палец на воде, клетка идёт к нему (тем же ходом: дуга, кувырок на резком развороте).
@@ -69,7 +71,8 @@ window.stend = dt => { time += dt; const w = S.tolshchina * tolshche(q, KK, time
   for (const e of ryadom) if (e.r > 0.15) bodies.sphere(e.x - x0, e.y - y0, e.r, e.tverd ? E.cvet_komka : E.cvet, e.tverd ? E.kromka_komka : E.kromka, Math.round(e.x + e.y * 3), e.tverd ? 0.9 : 0.8, 1);
   sobrat(zapis, { x: q.x - x0, y: q.y - y0, a: q.a + q.kach, tolshchina: w, z: 1, time, id: 1, beg: vb, gnut: q.gnut_vid }, bodies); bodies.end(time);
   gl.clear(); gl.render(back, cam); gl.render(bodies.scene, bodies.cam);
-  if (kadr++ % 6 === 0) h.innerHTML = '<b>' + (zapis._ || vid).split(/[:(]/)[0].trim() + '</b> · ' + TIP[PH.tip] + '<br>Сейчас: ' + (q.est ? 'ест: кусок тает на оболочке' : q.upor > 0 ? 'упёрлась в комок' : PH.tip === 'drozh' ? 'дрожит' : SLOVA[q.h.faza]) + ' · масса ' + q.m.toFixed(2) + ' · скорость ' + (sk_sred / (2 * w)).toFixed(1) + ' толщин тела в секунду<br>Из записи: наибольшая ' + (vmax / (2 * w)).toFixed(1) + ' · качание носа ' + (PH.kach * 57.3).toFixed(0) + '° · кувырок до ' + (PH.ugol * 1.7 * 57.3).toFixed(0) + '° · дрожь ' + (PH.vert / K.drozh.povorot).toFixed(2) + ' от образца'; };
-if (!q0.get('zapis')) { let last = performance.now(); const go = now => { window.stend(Math.min(0.05, (now - last) / 1000)); last = now; requestAnimationFrame(go); }; requestAnimationFrame(go); }
+  if (kadr++ % 6 === 0) { const dl = 2 * (TL.kh + TL.kr); h.innerHTML = '<b>' + (zapis._ || vid).split(/[:(]/)[0].trim() + '</b><br>' + (q.est ? 'ест: кусок тает на оболочке' : q.upor > 0 ? 'упёрлась в комок' : PH.tip === 'drozh' ? 'дрожит на месте' : SLOVA[q.h.faza]) + ' · ' + (sk_sred / (2 * w * dl)).toFixed(1).replace('.', ',') + ' длины тела в секунду';
+    document.getElementById('iz').textContent = 'Из записи движок вывел: ' + TIP[PH.tip] + '; быстрее всего ' + (vmax / (2 * w * dl)).toFixed(1).replace('.', ',') + ' длины тела в секунду; нос качает на ' + (PH.kach * 57.3).toFixed(0) + '°; в кувырке разворот до ' + (PH.ugol * 1.7 * 57.3).toFixed(0) + '°.'; } };
+if (!q0.get('zapis')) { let last = performance.now(); const go = now => { window.stend(Math.max(0.001, Math.min(0.05, (now - last) / 1000))); last = now; requestAnimationFrame(go); }; requestAnimationFrame(go); }
 window.stendReady = true;
 </script></body></html>

@@ -75,4 +75,8 @@ function povorot(Kx) { const q = { id: 1, x: 0, y: 0, a: 0, vedut: true }, rnd =
   return mx < T.gnut_min ? `в повороте на 90° тело прогнулось всего на ${mx.toFixed(3)} половины длины, нужно не меньше ${T.gnut_min}` : konec > T.gnut_pryamo ? `на прямой тело осталось согнутым: ${konec.toFixed(3)}` : mx > Kx.telo.gnut_max + 1e-9 ? 'прогиб больше предела' : ''; }
 check('test_gnut: в повороте тело ложится дугой, на прямой выпрямляется, прогиб не больше предела', () => povorot(K));
 check('test_gnut_samoproverka: тот же сторож краснеет на жёстком теле', () => povorot({ ...K, telo: { ...K.telo, gnut: 0 } }) ? '' : 'сторож пропустил жёсткое тело');
+// Урок (26.11, стенд мира на адресе): первый кадр браузера приходит с шагом 0 или меньше нуля, из-за этого в ходе получалось «не число» и мир замирал.
+const celoe = q => ['x', 'y', 'a', 'gnut', 'gnut_vid', 'om'].find(k => !Number.isFinite(q[k])), nol = () => { const q = { id: 1, x: 0, y: 0, a: 0 }, rnd = sluchay(1); for (const dt of [0, -0.004, 1 / 60, 0, 1 / 60]) plyt(q, VC.vidy.nasha, K, Z, dt, rnd, 0.3, W); return q; };
+check('test_hod_nol: шаг времени 0 или меньше нуля не ломает клетку, все числа хода остаются числами', () => { const k = celoe(nol()); return k ? `после шага 0 поле ${k} перестало быть числом` : ''; });
+check('test_hod_nol_samoproverka: тот же сторож краснеет на клетке с «не числом» в курсе', () => celoe({ ...nol(), a: NaN }) ? '' : 'сторож пропустил «не число»');
 process.exit(bad);
