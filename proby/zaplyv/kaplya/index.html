@@ -14,6 +14,8 @@ html, body { margin: 0; height: 100%; background: #02040a; overflow: hidden; tou
 canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 #hud { position: fixed; top: calc(env(safe-area-inset-top) + 10px); left: 68px; right: 68px; font-size: 17px;
   opacity: 0.75; pointer-events: none; display: flex; justify-content: space-between; }
+#kcel { position: fixed; bottom: calc(env(safe-area-inset-bottom) + 44px); left: 16px; right: 16px; text-align: center; font-size: 17px; font-weight: 600; text-shadow: 0 1px 4px #000; pointer-events: none; }
+#kcel small { display: block; font-size: 13px; font-weight: 400; opacity: 0.8; }
 #scalebox { position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 24px); opacity: 0.75; pointer-events: none; }
 /* Полоса роста (Роман 25.11: «Здоровье и опыт можешь показать полосой… линию… заменить на опыт. Размер оставить только числом»):
    заполняется к делению, голод и яд отъедают её назад, заражение — красная засечка с отсчётом на конце. */
@@ -264,7 +266,7 @@ body.paused #hud, body.paused #toast, body.paused #scalebox, body.paused #ver { 
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="hud"><span id="count"></span><span id="eaten"></span></div>
+<div id="hud"><span id="count"></span><span id="eaten"></span></div><div id="kcel"></div>
 <div id="ver"></div>
 <button id="pause" aria-label="Пауза: геном"><i></i><i></i></button>
 <button id="flag" aria-label="Не так: коснись — отметка, тяни на место — отметка с картинкой">⚑</button>
