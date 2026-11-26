@@ -355,7 +355,9 @@ function shotDensity() {
 // Мигание (Роман 26.11: «Почему экран мигает?», найдено в «Капле», #390): снимок для Альманаха и значков рисуется на холсте игры. Вне кадра игры
 // (встреча существа, карточка, таймер) телефон успевал показать студию с одним существом вместо мира. После снимка мир сразу перерисовывается.
 let vKadre = false, igraT = null;
-function posleSnimka() { if (vKadre || igraT == null) return; if (shotLow) { shotLow = false; gl.setPixelRatio(dprNow); resize(); } vKadre = true; try { render(igraT); } finally { vKadre = false; } }
+let zhdyot = false; // снимков за одно действие бывает два десятка (плитки меню): мир перерисовываем один раз, в микрозадаче — она идёт до показа кадра
+function posleSnimka() { if (vKadre || igraT == null || zhdyot) return; zhdyot = true;
+  queueMicrotask(() => { zhdyot = false; if (shotLow) { shotLow = false; gl.setPixelRatio(dprNow); resize(); } vKadre = true; try { render(igraT); } finally { vKadre = false; } }); }
 function snap(k, it) { const r = snap0(k, it); posleSnimka(); return r; }
 window.zaplyvSnimok = (k, bez) => (bez ? snap0 : snap)(k, KAB.items[k]); // для сторожа мигания (tools/web/test_miganie.cjs): bez — без защиты, сторож обязан поймать
 function snap0(k, it) {
