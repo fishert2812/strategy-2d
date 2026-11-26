@@ -647,7 +647,7 @@ function say(text, ms, gene) { $('toast').textContent = text; if (gene) { const 
 const told = new Set(); // подсказка — один раз и только в момент, когда она нужна
 function tell(k, text) { if (told.has(k)) return; told.add(k); say(text, 2600); }
 start(null, new URLSearchParams(location.search).get('rezhim') === 'evo' ? 'evo' : undefined); // скрытый режим «Эволюция»
-if ((ROD.visits || ROD.deaths) && !evo.on(world)) menuOpen(); // со второго запуска игра открывается меню режимов (Роман: «почему нет меню выбора режима»); самый первый — сразу заплыв, без непонятных слов (дизайнер)
+if ((ROD.visits || ROD.deaths) && !evo.on(world) && !['pesochnica', 'stend'].some(k => new URLSearchParams(location.search).has(k))) menuOpen(); // ссылка на конструктор или стенд меню не открывает (L066) // со второго запуска игра открывается меню режимов (Роман: «почему нет меню выбора режима»); самый первый — сразу заплыв, без непонятных слов (дизайнер)
 ROD.visits = (ROD.visits || 0) + 1; saveRod();
 
 const toWorld = (sx, sy) => ({ x: (sx - W / 2) / view.z + view.x, y: (sy - H / 2) / view.z + view.y });
