@@ -387,6 +387,36 @@
    "papka": "chasti/rot",
    "fail": "inat_60804766_voronka_stentor.jpg",
    "avtor": "zookanthos, CC-BY"
+  },
+  "igly": {
+   "papka": "oruzhie/1_kolyushchee",
+   "fail": "inat_388767403_igly_acanthocystis.jpg",
+   "avtor": "no rights reserved, CC0"
+  },
+  "trihocisty": {
+   "papka": "oruzhie/2_strelyayushchee",
+   "fail": "tufelka_trihocisty.jpg",
+   "avtor": "Picturepest, CC BY 2.0"
+  },
+  "toxin": {
+   "papka": "oruzhie/3_yadovitoe",
+   "fail": "wellcome_B0004800_ecoli_pili_krasnaya.jpg",
+   "avtor": "Wellcome Collection, CC BY 4.0"
+  },
+  "shchupalca": {
+   "papka": "oruzhie/4_hvatayushchee",
+   "fail": "inat_120557721_shchupaltsa_suktorii.jpg",
+   "avtor": "crseaquist, CC-BY"
+  },
+  "sheya": {
+   "papka": "oruzhie/4_hvatayushchee",
+   "fail": "inat_376111767_sheya_lebed.jpg",
+   "avtor": "Igor Shelpiakov, CC-BY"
+  },
+  "pancir": {
+   "papka": "oruzhie/5_zashchitnoe",
+   "fail": "inat_94700479_pancir_arcella.jpg",
+   "avtor": "Bruce Taylor, CC-BY"
   }
  }
 }

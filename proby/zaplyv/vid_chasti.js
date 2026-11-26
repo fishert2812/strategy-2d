@@ -235,12 +235,15 @@ export function sobrat(zapis, poza, B) {
 export const KLYUCHI = Object.keys(RIS);
 // Умения на теле (Роман 26.11: «Визуальное улучшение должно происходить- чтобы игрок понимал что ему дали»): запись клетки плюс набор { умение: уровень } даёт новую запись,
 // где уровень умения добавил свои части и выросты (числа в vid_chasti.json «navyki»). Запись новая на каждый зов: игра держит её, пока набор не сменился
-export function s_navykami(zapis, nabor, N = VC.navyki.spisok) { const z = JSON.parse(JSON.stringify(zapis));
-  for (const [kl, ur] of Object.entries(nabor || {})) { const U = N[kl] && N[kl].urovni[Math.min(ur, N[kl].urovni.length) - 1]; if (!U) continue;
-    for (const [ch, p] of Object.entries(U.chasti || {})) z.chasti[ch] = { ...(z.chasti[ch] || {}), ...p };
+export function s_navykami(zapis, nabor, N = VC.navyki.spisok, zerno = 0) { const z = JSON.parse(JSON.stringify(zapis)), R = VC.navyki.ruchki;
+  // zerno — «другой вид» того же оружия: длина, число, толщина и цвет части сдвигаются жребием в пределах ручек (navyki.ruchki), уровень остаётся тем же
+  const vid = (o, i) => { if (!zerno || !o) return o; const n = { ...o }; for (const [k, [a, b]] of Object.entries(R.mnozh)) if (n[k] != null) { const m = a + (b - a) * hash(zerno, i * 7 + k.length); n[k] = Array.isArray(n[k]) ? n[k].map(v => v * m) : k === 'n' ? Math.round(n[k] * m) : n[k] * m; }
+    if (n.cvet) { const s = Math.floor(hash(zerno, i + 40) * R.cveta.length); n.cvet = R.cveta[s]; } return n; };
+  Object.entries(nabor || {}).forEach(([kl, ur], i) => { const U = N[kl] && N[kl].urovni[Math.min(ur, N[kl].urovni.length) - 1]; if (!U) return;
+    for (const [ch, p] of Object.entries(U.chasti || {})) z.chasti[ch] = { ...(z.chasti[ch] || {}), ...vid(p, i) };
     // nos — точки оси, которыми тело вытягивается вперёд от носа (воронка рта), srez — ровный срез этого носа
     if (U.nos) { const x0 = z.forma.tochki.at(-1)[0]; z.forma.tochki.push(...U.nos.map(([dx, y, r]) => [x0 + dx, y, r])); } if (U.srez) z.forma.srez = U.srez;
-    for (const pole of ['vetki', 'vypuklosti']) if (U[pole]) z.forma[pole] = [...(z.forma[pole] || []), ...U[pole]]; }
+    if (U.vetki) z.forma.vetki = [...(z.forma.vetki || []), ...U.vetki.map(v => vid(v, i))]; if (U.vypuklosti) z.forma.vypuklosti = [...(z.forma.vypuklosti || []), ...U.vypuklosti]; });
   return z; }
 // Только части умений поверх чужого тела (ручная клетка «Капли»: тело рисует игра, движок дорисовывает жгутики, остриё, венец рта).
 // poza: { x, y, a, R — полутолщина тела, L — длина тела, z, time, id, beg }. Запись частей держится по набору и вытянутости тела
