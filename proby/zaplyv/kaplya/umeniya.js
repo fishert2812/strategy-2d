@@ -14,3 +14,6 @@ export function tech(w, dt, K, radius) { if (!vampir(w)) return 0; let n = 0;
 export function nuh(w, a, K, radius) { if (!w.genes.sense) return null; const r = radius(a.m) * K.nuh.r, r2 = r * r; let sx = 0, sy = 0, n = 0;
   for (const f of w.food) if (d2(a, f) < r2) { sx += f.x - a.x; sy += f.y - a.y; n++; }
   if (!n) return null; return { ugol: Math.atan2(sy, sx), sila: Math.min(1, n / K.nuh.gusto) }; }
+// П64, П65: плата «растёшь медленнее» — у Капсулы и Яда (у Замка своя, ручная: lock_food). m0 — массы до хода мира; прибавка за ход × K.plata.rost[умение]
+export function plata(w, m0, K) { let k = 1; for (const [g, x] of Object.entries(K.plata.rost)) if (g !== '_' && w.genes[g]) k *= x;
+  if (k < 1) for (const a of w.me) { const was = m0.get(a); if (was != null && a.m > was) a.m -= (a.m - was) * (1 - k); } return k; }
