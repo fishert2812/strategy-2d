@@ -28,4 +28,15 @@ check('test_zhgutiki_motor: частота моторов из тяги zakony.j
   if (Math.abs(e - 6.283 * K.zhgutiki.oboroty) > 1e-6) return 'эталон ' + f2(e); if (Math.abs(v / e - (VC.vidy.zapyataya.chasti.zhgutiki.moshch ?? 1)) > 0.01) return 'вибрион ' + f2(v / e); if (k) return 'у кокков ' + f2(k); });
 check('test_zhgutiki_polus: полюсный жгутик (синегнойка) тоже собирается за кормой на бегу и даёт веер в щелчке', () => { const r = proplyt('sinegnoyka', 40), b = r.kadry.filter(k => k.b > 0.9 && k.fan < 0.05);
   if (!b.length) return 'бега нет'; const m = med(b.map(k => k.razb)); if (m > S.beg_max) return 'на бегу разброс ' + f2(m); });
+// покой: нити дрейфуют каждая сама — концы не ходят вместе (средняя связь движений пар нитей меньше soglasie_max) и медленно (конец нити не быстрее skorost_max длины нити в секунду)
+check(`test_zhgutiki_drejf: в покое каждая нить дрейфует сама, медленно и вразнобой (связь пар нитей меньше ${S.soglasie_max}, конец не быстрее ${S.skorost_max} длины нити в секунду)`, () => {
+  const z0 = VC.vidy.nasha, zapis = { forma: z0.forma, chasti: { zhgutiki: z0.chasti.zhgutiki } }, P = pasport_hoda(z0, K), q = { id: 7 }, ryad = []; let L = 0;
+  for (let i = 0; i < 20 * 30; i++) { shag_zhgutikov(q, { beg: 0, sk: 0 }, P, K, dt, true); const niti = []; sobrat(zapis, { x: 0, y: 0, a: 0, tolshchina: w, z: 1, time: i * dt, id: 7, zh: q.zh }, { sphere() {}, niti(p) { niti.push(p); } });
+    if (!L) L = Math.max(...niti.map(p => { let l = 0; for (let k = 2; k < p.length; k += 2) l += Math.hypot(p[k] - p[k - 2], p[k + 1] - p[k - 1]); return l; })); ryad.push(niti.map(p => [p[p.length - 2], p[p.length - 1]])); }
+  const n = ryad[0].length, sk = [], v = j => ryad.slice(1).map((r, i) => [r[j][0] - ryad[i][j][0], r[j][1] - ryad[i][j][1]]);
+  const V = [...Array(n).keys()].map(v); for (const a of V) for (const d of a) sk.push(Math.hypot(...d) * 30 / L);
+  const kor = (a, b) => { let ab = 0, aa = 0, bb = 0; for (let i = 0; i < a.length; i++) { ab += a[i][0] * b[i][0] + a[i][1] * b[i][1]; aa += a[i][0] ** 2 + a[i][1] ** 2; bb += b[i][0] ** 2 + b[i][1] ** 2; } return ab / Math.sqrt(aa * bb || 1); };
+  let ks = 0, kn = 0; for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) { ks += Math.abs(kor(V[i], V[j])); kn++; } const sv = ks / kn, m = med(sk);
+  console.log('    паспорт: нитей', n, '· связь пар', f2(sv), '· скорость конца', f2(m), 'длины нити в секунду');
+  if (sv > S.soglasie_max) return 'нити ходят вместе: связь ' + f2(sv); if (m > S.skorost_max) return 'конец нити бегает: ' + f2(m); });
 console.log(bad ? 'ЖГУТИКИ: провалов ' + bad : 'ЖГУТИКИ: все проверки прошли'); process.exit(bad ? 1 : 0);
