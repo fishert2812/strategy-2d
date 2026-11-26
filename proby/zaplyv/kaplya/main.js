@@ -23,6 +23,7 @@ import * as karta from '../karta.js';
 const cfg = await (await fetch('data.json')).json();
 // Форк по книге: жители капли — записи конструктора (vid_chasti.json), кто чем рисуется — kaplya/kaplya.json
 import { sobrat, VC } from '../vid_chasti.js';
+import * as bodo from './bodo.js'; // бодо — хозяин главы 1 (книга П37, П39), руками
 import * as cel from './cel.js'; // строка цели, подпись линейки, «теперь еда» (книга П5–П7)
 const KAP = await (await fetch('kaplya/kaplya.json')).json(), ZH = KAP.zhiteli, ZAP = {};
 for (const [k, v] of Object.entries(ZH)) if (v && VC.vidy[v.zapis]) ZAP[k] = { ...VC.vidy[v.zapis], gruppa: undefined };
@@ -30,7 +31,7 @@ for (const [k, v] of Object.entries(ZH)) if (v && VC.vidy[v.zapis]) ZAP[k] = { .
 const zhitel = (k, q, x, y, a, mera, time, z) => { const Z = ZAP[k]; if (!Z) return false; sobrat(Z, { x, y, a, tolshchina: mera * ZH[k].tolshchina, z, time, id: q.id || 1, beg: 1 }, bodies); return true; };
 const DL = cfg.delenie; // деление по физике (design/zaplyv_fizika_kak_v_zhizni.md, п. 14)
 const NJ = await (await fetch('night.json')).json(); // «Ночь рода»: числа ночи
-const cards = await (await fetch('cards.json')).json();
+const cards = await (await fetch('cards.json')).json(); cards.bodo = KAP.bodo.karta; // карточка гибели от бодо
 const genomeData = await (await fetch('genome.json')).json();
 const W = 720; // ширина экрана в единицах игры
 const canvas = document.getElementById('c');
@@ -213,7 +214,7 @@ function start(genes, mode) {
   world.posle = Object.fromEntries(Object.values(GENY.geny || {}).filter(q => q.klyuch).map(q => [q.klyuch, q.posle || []])); world.known = met; // ген от того, кого уже встречал
   if (Array.isArray(genes)) world.inherit(genes); // заплыв веткой рода после «Ночи рода»
   $('night').classList.remove('on'); $('menu').classList.remove('on');
-  view = { x: 0, y: 0, z: 2.2, tint: [...TINT[0]] }; CEL = cel.sozdat();
+  view = { x: 0, y: 0, z: 2.2, tint: [...TINT[0]] }; CEL = cel.sozdat(); bodo.nachalo(world, KAP.bodo);
   fx.reset(); fx.world = world; ended = false; // fx читает мир: сидящие вирусы, запятые, амёбы
   $('end').classList.remove('on');
   setTimeout(() => say(KAP.start, 5000), 700); // книга П1: цель одной фразой, длинная форма для первого экрана
@@ -648,6 +649,8 @@ $('mflag').onclick = e => armFlag('Режимы', e.currentTarget);
 $('eno').onclick = e => flag('экран гибели', e.currentTarget);
 $('esend').onclick = openMarks;
 showMarks();
+function slyshuBodo(k, b) { const S = KAP.bodo.slova; // события бодо словами книги (П6: «Бодо разделился: он легче»)
+  if (k === 'bodo_delenie' && b.car) say(S.delenie, 2400); if (k === 'bodo_syela') { say(b.car ? S.car : S.syela, 4000); beep(420, 0.4, 0.06, 'sine', 1.5); } }
 function meet(k) { // первая встреча в заплыве: имя и что делать (книга, «значит»), у опасных — в каждом заплыве, а не только в первый раз (L043)
   const t = TEKSTY[k] || {}, name = t.imya || cards[k]?.name, fresh = !met.has(k) && !!cards[k]; if (!name) return;
   if (fresh) { met.add(k); saveMet(); cabLabel(); beep(990, 0.12, 0.03, 'sine', 1.3); }
@@ -761,7 +764,7 @@ function events() {
 
 function tick(dt) {
   offer(dt);
-  world.step(dt, pad.value()); // джойстик: направление и сила из сдвига пальца
+  world.step(dt, pad.value()); { const B = KAP.bodo, um = !!world.genes.gulp; bodo.shag(world, dt, B, radius, slyshuBodo); bodo.glotat(world, B, radius, evo.E.glotat.syt, 0, um, slyshuBodo); } // джойстик: направление и сила из сдвига пальца
   { const [fx, fy] = world.flow(view.x, view.y); cur[0] += fx * dt; cur[1] += fy * dt; } // течение несёт взвесь
   events();
   if (!world.me.length) {
@@ -984,6 +987,16 @@ function paint(time) {
   { const me = world.me.reduce((q, a) => a.m > q.m ? a : q, world.me[0] || { m: 1 }), umeet = !!world.genes.gulp, sv = KAP.cel.svet; // П7: можно съесть — тёплый свет, который медленно дышит
     if (umeet) for (const [list, who] of cel.SPIS) for (const q of world[list]) { const m = q.m || evo.E.glotat.razmer[who] || 1; if (q.gone || !cel.eda(CEL, me, m, evo.E.glotat.bolshe, umeet)) continue;
       const [x, y] = scr(q.x, q.y); if (!on(x, y, 40)) continue; glow.put(x, y, radius(m) * z * 1.7 + 4, ...sv, 0.12 + 0.07 * Math.sin(time * 2.5 + (q.id || 0))); } }
+  for (const b of world.bodos || []) { const B = KAP.bodo, L = bodo.dlina(B, b.m) * z, [x, y] = scr(b.x, b.y); if (!on(x, y, L * 4)) continue; // бодо: фасолина, два жгутика, задний держит у комка
+    const ux = Math.cos(b.a), uy = Math.sin(b.a), [dx, dy] = scr(b.dom.x, b.dom.y), zam = b.faza === 'zamah' ? b.t / B.ryvok.zamah : 0, me = world.me[0];
+    if (me && me.m * B.bolshe <= b.m && !b.syt) { const [mx, my] = scr(bodo.rot(B, b).x, bodo.rot(B, b).y); glow.put(mx + ux * L * 0.8, my + uy * L * 0.8, L * 1.3, 1, 0.35, 0.25, 0.1); } // П7: может съесть тебя — красноватая муть перед ртом
+    for (let k = 0; k < 10; k++) { const u0 = k / 10, u1 = (k + 1) / 10, w0 = Math.sin(u0 * 9 - time * 6) * L * 0.08, w1 = Math.sin(u1 * 9 - time * 6) * L * 0.08, ax0 = x - ux * L + (dx - x + ux * L) * u0, ay0 = y - uy * L + (dy - y + uy * L) * u0, ax1 = x - ux * L + (dx - x + ux * L) * u1, ay1 = y - uy * L + (dy - y + uy * L) * u1;
+      bodies.seg(ax0 - uy * w0, ay0 + ux * w0, ax1 - uy * w1, ay1 + ux * w1, 0.6 * z + 0.3, B.cvet, 0.7); } // задний жгутик-привязь до комка
+    for (let k = 0; k < 8; k++) { const u0 = k / 8, u1 = (k + 1) / 8, s = Math.sin(time * 14 + b.id), w0 = Math.sin(u0 * 5 + time * 12) * L * 0.25 * u0, w1 = Math.sin(u1 * 5 + time * 12) * L * 0.25 * u1;
+      bodies.seg(x + ux * L * (1 + u0 * 0.9) - uy * w0, y + uy * L * (1 + u0 * 0.9) + ux * w0, x + ux * L * (1 + u1 * 0.9) - uy * w1, y + uy * L * (1 + u1 * 0.9) + ux * w1, 0.5 * z + 0.3, B.cvet, 0.6); } // передний жгутик бьёт
+    if (!zhitel('bodos', b, x, y, b.a, L * 2, time, z)) { bodies.rod(x, y, b.a, L, L * 0.55, 0, B.cvet, B.yadro, b.id, L * 0.18 + zam * L * 0.15); bodies.sphere(x - ux * L * 0.2, y - uy * L * 0.2, L * 0.28, B.yadro, B.cvet, b.id + 1, 0.6, 0.7); }
+    if (b.syt > 0) bodies.sphere(x + ux * L * 0.25, y + uy * L * 0.25, L * 0.22, [0.35, 0.25, 0.2], [0.5, 0.4, 0.3], b.id + 2, 0.6, 0.8); // пузырёк: в нём тает добыча, рот сомкнут
+    if (zam > 0) glow.put(x + ux * L, y + uy * L, L * (0.3 + 0.3 * zam), ...B.nos, 0.25 + 0.4 * zam); } // замах: нос наливается красным
   const [cr, cg, cb] = [CELL[0].r, CELL[0].g, CELL[0].b], fc = cfg.flag.color;
   const b = genome.blink, lkAll = look(b && Math.sin(time * 9) > 0 ? { ...world.genes, [b]: !world.genes[b] } : world.genes, cfg.look, world.spacers.size); // на паузе мигает часть клетки, которую меняет выбранный ген
   if (kids) kids.forEach((a, i) => { a.x = view.x + (i ? 1 : -1) * W * 0.24 / z; a.y = view.y - 20 / z; a.a = -Math.PI / 2 + Math.sin(time * 0.8 + i * 2) * 0.12; a.m = 1.7 + 0.1 * Math.sin(time * 1.3 + i); }); // дочки покачиваются на месте
