@@ -22,7 +22,7 @@ import * as karta from '../karta.js';
 
 const cfg = await (await fetch('data.json')).json();
 // Форк по книге: жители капли — записи конструктора (vid_chasti.json), кто чем рисуется — kaplya/kaplya.json
-import { sobrat, sobrat_gruppu, VC } from '../vid_chasti.js';
+import { sobrat, sobrat_gruppu, VC, chasti_navykov } from '../vid_chasti.js';
 import * as bodo from './bodo.js'; // бодо — хозяин главы 1 (книга П37, П39), руками
 import * as cel from './cel.js';
 import * as zh from './zhiteli.js';
@@ -374,7 +374,7 @@ const saveMet = () => { try { localStorage.setItem('zaplyv.met', JSON.stringify(
 const KAB = await (await fetch('almanah.json')).json();
 const GENY = await fetch('kniga/teksty_genov.json').then(r => r.ok ? r.json() : {}).catch(() => ({})); // гены: имена и тексты книги
 mut.addGenes(cfg); mut.names(cfg, GENY); // новые мутации: имена из книги
-for (const [id, t] of [...Object.entries(KAP.upravlenie.teksty || {}), ...Object.entries(KAP.boj.teksty || {})]) if (id !== '_') { GENY.geny ||= {}; GENY.geny[id] = { ...(GENY.geny[id] || {}), ...t }; }; /* Ш1: «Нюх» в «Капле» не обещает плыть к еде сам */
+for (const [id, t] of [...Object.entries(KAP.upravlenie.teksty || {}), ...Object.entries(KAP.boj.teksty || {})]) if (id !== '_') { GENY.geny ||= {}; GENY.geny[id] = { ...(GENY.geny[id] || {}), ...t }; }; for (const g of KAP.boj.novye_geny || []) if (!evo.E.svoi.includes(g)) evo.E.svoi.push(g); /* Ш25: «Шип» и другое новое оружие приходит карточкой только в «Капле» */ /* Ш1: «Нюх» в «Капле» не обещает плыть к еде сам */
 const SVYAZI = await fetch('kniga/kto_s_kem.json').then(r => r.ok ? r.json() : {}).catch(() => ({})); // кто кого ест — связи карточек Альманаха
 const KNIGA = await fetch('kniga/teksty_sushchestv.json').then(r => r.ok ? r.json() : {}).catch(() => ({})), TEKSTY = KNIGA.sushchestva || {}, PODPISI = KNIGA.podpisi || {}; // тексты книги
 // Снимок модели: на миг подменяем мир студией с одним существом в середине кадра, рисуем тем же paint и вырезаем середину.
@@ -1144,6 +1144,7 @@ function paint(time) {
     if (world.rush > 0.05) glow.put(x, y, half * (1.4 + world.rush * 0.6), 1, 0.75, 0.35, 0.08 + 0.1 * world.rush); // разгон роста: рибосомы работают на всю
     vid.skin({ a, lk, x, y, ang, ax, ay, half: hl, w: wl, z, along, arc, body, scr, time, pdt, run, phageNear, foodNear, spacers: world.spacers.size, plasmid: world.plasmid, cfg, alive: world.me, glow, ink });
     if (a.sick >= 0) glow.put(x, y, half, 1, 0.2, 0.3, 0.25 + 0.2 * Math.sin(time * 20));
+    { const NT = KAP.boj.na_tele || {}, nb = {}; for (const g in NT) if (g !== '_' && world.genes[g]) nb[NT[g]] = Math.max(1, mut.lvl(world, g)); if (Object.keys(nb).length) chasti_navykov(nb, { x, y, a: ang, R: wl, L: 2 * hl, z: 1, time, id: a.id, beg: run ? 1 : 0 }, bodies); } /* Ш25: оружие видно на теле частью из движка */
   }
   for (const b of world.away) { // уплывшая дочка: уходит своим курсом и тает в толще
     const [x, y] = scr(b.x, b.y), w = 8.5 * Math.pow(b.m, 0.3) * z, f = b.t / cfg.away_time; if (!on(x, y)) continue;

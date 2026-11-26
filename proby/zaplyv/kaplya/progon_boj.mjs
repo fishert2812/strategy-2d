@@ -21,7 +21,7 @@ const boi = (geny, [L, obr]) => { const w = mir(); w.step(DT, null); let gibel =
     const m0 = new Map(w.me.map(b => [b, b.m])), S = boj.do_hoda(w, B); w.step(DT, null); boj.posle_hoda(w, DT, B, radius, S); boj.po_tebe(w, DT, B, m0);
     if (gibel) return 'Ж ' + t.toFixed(1); if (q.gone || !w[L].includes(q)) return 'Т ' + t.toFixed(1); if (!w.me.includes(a)) return 'Ж ' + t.toFixed(1); }
   return q.gn && q.gn.f < 0.995 ? '·' + Math.max(0, q.gn.f).toFixed(1) : '·'; };
-const navyki = [['без навыков', []]], cfg0 = mir().cfg;
+for (const g of B.novye_geny || []) if (!evo.E.svoi.includes(g)) evo.E.svoi.push(g); /* как в main.js: новое оружие «Капли» */ const navyki = [['без навыков', []]], cfg0 = mir().cfg;
 for (const g of [...new Set([...Object.keys(cfg0.genes), ...evo.E.svoi])]) { if (evo.E.bez.includes(g)) continue; const n = (B.oruzhie[g] || {}).sila?.length || M.levels[g] || 1; for (let l = 1; l <= n; l++) navyki.push([g + (n > 1 ? ' ' + l : ''), [[g, l]]]); }
 const kto = [...obrazcy.entries()], shir = 9, row = (a, cells) => a.padEnd(17) + cells.map(c => c.padEnd(shir)).join('');
 const lines = ['Прогон боя «Капли»: клетка массы ' + MAS + ', один на один, ' + T + ' с вплотную. Т — житель погиб, Ж — погибла ты, · — оба живы (число — геном жителя).', '', row('навык \\ житель', kto.map(([k]) => k.split(':').pop() || k.split(':')[0]))];
