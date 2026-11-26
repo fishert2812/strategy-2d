@@ -33,9 +33,9 @@ for (const [k, v] of Object.entries(ZH)) if (v && VC.vidy[v.zapis]) ZAP[k] = { .
 // каждый собран полной записью. Книга П35: что мельче тебя в десятки раз, сливается во взвесь. Житель мельче KAP.lod.px точек экрана рисуется
 // одной мягкой точкой своего цвета, а не телом из частей; крупных рядом с тобой это не касается.
 const LODC = {}; for (const [k, Z] of Object.entries(ZAP)) { const c = Z.chasti?.obolochka?.sloi?.[0]?.cvet || Z.chasti?.telo?.cvet || [0.8, 0.85, 0.9]; LODC[k] = c.map(v => Math.min(1, v)); }
-const lod = { tel: 0, tochek: 0 };
+const lod = { tel: 0, tochek: 0 }; // window.kaplyaBezLod выключает взвесь — только для самопроверки сторожа нагрузки (test_nagruzka.cjs)
 const zhitel = (k, q, x, y, a, mera, time, z) => { const Z = ZAP[k]; if (!Z) return false; const t = mera * ZH[k].tolshchina;
-  if (t < KAP.lod.px || (q.m || 1) < lod.ya * KAP.lod.dolya) { lod.tochek++; glow.put(x, y, t * KAP.lod.razmer + 1, ...LODC[k], KAP.lod.a); return true; }
+  if (!window.kaplyaBezLod && (t < KAP.lod.px || (q.m || 1) < lod.ya * KAP.lod.dolya)) { lod.tochek++; glow.put(x, y, t * KAP.lod.razmer + 1, ...LODC[k], KAP.lod.a); return true; }
   lod.tel++; sobrat(Z, { x, y, a, tolshchina: t, z, time, id: q.id || 1, beg: 1 }, bodies); return true; };
 window.kaplyaLod = () => ({ ...lod }); // для замера: сколько жителей в кадре телом и сколько точкой
 const DL = cfg.delenie; // деление по физике (design/zaplyv_fizika_kak_v_zhizni.md, п. 14)
@@ -212,7 +212,7 @@ const beep = (f, dur, vol = 0.05, type = 'sine', slide = 0.6) => {
 
 const STICK = 56; // полный ход большого пальца (~30 точек экрана); дальше кольцо едет за пальцем
 const pad = new Stick(STICK);
-let CEL = cel.sozdat(), world, view, finger = null, down = null, moved = false, shake = 0, ended = false, lastEat = 0;
+let GLAVA = 1, CEL = cel.sozdat(), world, view, finger = null, down = null, moved = false, shake = 0, ended = false, lastEat = 0;
 const $ = id => document.getElementById(id);
 const ver = (await (await fetch('version.json')).json()).number; // свой номер «Заплыва», список — VERSIONS.md
 $('ver').textContent = 'Капля по книге · ' + ver;
@@ -223,7 +223,7 @@ function start(genes, mode) {
   world.posle = Object.fromEntries(Object.values(GENY.geny || {}).filter(q => q.klyuch).map(q => [q.klyuch, q.posle || []])); world.known = met; // ген от того, кого уже встречал
   if (Array.isArray(genes)) world.inherit(genes); // заплыв веткой рода после «Ночи рода»
   $('night').classList.remove('on'); $('menu').classList.remove('on');
-  view = { x: 0, y: 0, z: 2.2, tint: [...TINT[0]] }; CEL = cel.sozdat(); zh.nachalo(world); bodo.nachalo(world, KAP.bodo);
+  view = { x: 0, y: 0, z: 2.2, tint: [...TINT[0]] }; CEL = cel.sozdat(); GLAVA = 1; zh.nachalo(world); bodo.nachalo(world, KAP.bodo);
   fx.reset(); fx.world = world; ended = false; // fx читает мир: сидящие вирусы, запятые, амёбы
   $('end').classList.remove('on');
   setTimeout(() => say(KAP.start, 5000), 700); // книга П1: цель одной фразой, длинная форма для первого экрана
@@ -667,7 +667,7 @@ $('eno').onclick = e => flag('экран гибели', e.currentTarget);
 $('esend').onclick = openMarks;
 showMarks();
 function slyshuBodo(k, b) { const S = KAP.bodo.slova; // события бодо словами книги (П6: «Бодо разделился: он легче»)
-  if (k === 'bodo_delenie' && b.car) say(S.delenie, 2400); if (k === 'bodo_syela') { say(b.car ? S.car : S.syela, 4000); beep(420, 0.4, 0.06, 'sine', 1.5); } }
+  if (k === 'bodo_delenie' && b.car) say(S.delenie, 2400); if (k === 'bodo_syela') { say(b.car ? S.car : S.syela, 4000); if (b.car) { GLAVA = 2; setTimeout(() => say(KAP.glavy[2].nazvanie, 3500), 4200); } beep(420, 0.4, 0.06, 'sine', 1.5); } }
 function meet(k) { // первая встреча в заплыве: имя и что делать (книга, «значит»), у опасных — в каждом заплыве, а не только в первый раз (L043)
   const t = TEKSTY[k] || {}, name = t.imya || cards[k]?.name, fresh = !met.has(k) && !!cards[k]; if (!name) return;
   if (fresh) { met.add(k); saveMet(); cabLabel(); beep(990, 0.12, 0.03, 'sine', 1.3); }
@@ -823,6 +823,8 @@ function tick(dt) {
   { const b = world.me.reduce((q, a) => a.m > q.m ? a : q, world.me[0] || { m: 1 }), sp = world.split(); // размер числом: длина палочки в микрометрах (260 единиц — 10 мкм)
     const um = 2 * 8.5 * Math.pow(b.m, 0.3) * (1.6 + Math.min(b.m, sp) / sp) / 26; const umeet = !!world.genes.gulp, ms = (q, who) => q.m || evo.E.glotat.razmer[who] || 1, KC = KAP.cel; // книга П5–П7
     for (const who of cel.shag(CEL, world, b, KC, ms, evo.E.glotat.bolshe, umeet, evo.E.glotat.syt)) say(KC.slova.teper.replace('{}', KC.imena[who][0]), 2200);
+    if (GLAVA === 2 && !world.me.some(a => a.grab)) { const G = KAP.glavy[2], ab = world.amoebas.reduce((q, x) => !q || Math.hypot(x.x - b.x, x.y - b.y) < Math.hypot(q.x - b.x, q.y - b.y) ? x : q, null); // П79: глава 2 «Хищник» — цель амёба
+      if (!CEL.stroka.includes('!')) CEL.stroka = ab && cel.eda(CEL, b, ms(ab, 'amoeba'), evo.E.glotat.bolshe, umeet) ? G.eda : ab && Math.hypot(ab.x - b.x, ab.y - b.y) < KC.vidno ? G.rasti : G.ishchi; }
     { const B = KAP.bodo, car = (world.bodos || []).find(q => q.car); if (car && umeet && b.m >= car.m * B.prizhat && Math.hypot(car.x - b.x, car.y - b.y) < KC.vidno) CEL.stroka = bodo.prizhat(B, car, radius, b) || b.m >= car.m * B.bolshe ? B.slova.eda : B.slova.prizhmi; } // П78: «Прижми бодо к комку!», «Бодо теперь еда!»
     $('count').textContent = um.toFixed(1).replace('.', ',') + ' мкм'; $('kcel').innerHTML = CEL.stroka + '<small>' + CEL.rostom + '</small>'; $('kcel').style.visibility = $('offer').classList.contains('on') ? 'hidden' : ''; } // полоса выбора умения не ложится поверх строки цели
   $('eaten').textContent = world.rush > 0.05 && !rost.on(world) ? 'рост ×' + (1 + world.rush).toFixed(1) : 'съедено ' + world.stats.eaten; // серия кусков подряд — рост быстрее
