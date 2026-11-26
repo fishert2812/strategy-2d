@@ -126,6 +126,7 @@ ONLY=L023 case_ "test_L023: флажок не вырезает кадр" 52_zapl
 ONLY=L020 case_ "test_L020: зелёные жгутики" 50_zaplyv.sh red "sed -i 's/\"color\": \[0.74, 0.87, 1.0\]/\"color\": [0.3, 1.0, 0.4]/' $Z/data.json"
 # Слой «вид и анимации» «Заплыва» (53_zaplyv_vid.sh): событие без анимации и умение, не видное на теле, обязаны дать красное.
 case_ "test_vid_events: удар о капсулу без анимации" 53_zaplyv_vid.sh red "sed -i \"s/if (k === 'bump') { R(0, 24); poke(x, y); }//\" $Z/fx.js"
+case_ "test_L064: жгутик снова из 73 звеньев" 53_zaplyv_vid.sh red "sed -i 's/Math.max(V.whip.seg, Math.ceil(nW \\/ V.whip.zven_max))/V.whip.seg/' $Z/vid.js"
 case_ "test_vid_skills_seen: капсулу не видно" 53_zaplyv_vid.sh red "sed -i 's/if (lk.halo) {/if (false) {/' $Z/vid.js"
 # Остановка: открытая issue stop делает PR красным, метка fix пропускает.
 GITHUB_BASE_REF=main STOP_ISSUES="#0 проба" PR_LABELS= bash tools/checks/05_stop.sh >/dev/null 2>&1 &&

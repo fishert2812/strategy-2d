@@ -304,6 +304,19 @@ check('test_vid_ameba_obyom: амёба в игре — объёмное тел�
   if (got.sphere < 1 + vid.V.amoeba.vac) return 'внутри нет ядра и пузырьков'; if (dots.length > 1) return 'амёба всё ещё рисует точки: ' + dots.length;
   return '';
 });
+check('test_L064: жгутики своей клетки не дороже кадра — на нить не больше whip.zven_max звеньев трубки даже вблизи, нить гладкая и сплошная (проба скорости: 5 клеток, 6,10 мс при пороге 6)', () => {
+  const segs = [], fc = cfgD.flag.color, B = { seg: (x0, y0, x1, y1, r, col) => { if (col === fc) segs.push([x0, y0, x1, y1]); } };
+  globalThis.zaplyvBodies = B; const lk = look({ flagellum: true }, cfgD.look, 0);
+  try { const brush = { put: () => {} }, a = { id: 1, x: 0, y: 0, m: 1, a: 0, vx: 0, vy: 0 };
+    vid.skin({ a, lk, x: 0, y: 0, ang: 0, ax: 1, ay: 0, half: 60, w: 26, z: 3, along: (u, o) => [u, o], arc: () => 0, body: { at: () => [0, 0] }, scr: (x, y) => [x, y], /* вблизи: точек на нить по самому большому счёту */
+      time: 1, pdt: 0.03, run: false, phageNear: false, foodNear: false, spacers: 0, plasmid: false, cfg: cfgD, alive: [a], glow: brush, ink: brush });
+  } finally { delete globalThis.zaplyvBodies; }
+  const na = segs.length / lk.flagella, Z = vid.V.whip.zven_max; if (!(Z > 0)) return "в vid.json нет предела звеньев whip.zven_max";
+  if (na > Z) return `звеньев на нить ${na}, а нужно не больше ${Z}: 5 клеток не укладываются в кадр`;
+  if (na < 16) return `звеньев на нить ${na}: нить ломаная`;
+  for (let i = 1; i < segs.length; i++) { const p = segs[i - 1], q = segs[i], d = Math.hypot(p[2] - q[0], p[3] - q[1]); if (d > 1e-6 && d < 0.5) return 'щель между звеньями нити'; }
+  return '';
+});
 check('test_vid_niti_trubki: в игре жгутики и ворсинки своей клетки — сплошные стеклянные трубки встык, без точек-бус (Роман: пунктир — халтура)', () => {
   const segs = [], B = { seg: (x0, y0, x1, y1, r) => segs.push([x0, y0, x1, y1, r]) }, fl = ',' + cfgD.flag.color.join() + ',';
   globalThis.zaplyvBodies = B; let pts; try { pts = []; const brush = { put: (...q) => pts.push(q.map(v => Math.round(v * 100) / 100).join()) };

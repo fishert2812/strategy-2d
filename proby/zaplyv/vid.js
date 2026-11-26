@@ -172,7 +172,8 @@ export function skin(c) {
     const ph = F.ph + f * 0.5, slow = F.t * 0.6 + f * 1.7;
     const Bw = globalThis.zaplyvBodies; let lx = NaN, ly = NaN; // начало нити — у мотора (первая точка)
     const nW = Math.min(V.whip.max, Math.max(V.whip.n, Math.ceil(w * V.whip.len / (V.whip.step * (0.8 * Math.max(z, 0.7) + 0.3) * 0.55)))); // точек столько, чтобы шаг был меньше самой тонкой точки и вблизи: не бусы (L047)
-    for (let k = 1; k <= nW; k++) { // нить сплошная: точки гуще своего размера, не бусы (L047)
+    const kus = Bw && Bw.seg ? Math.max(V.whip.seg, Math.ceil(nW / V.whip.zven_max)) : 1; // трубкой считаем только концы звеньев, звеньев не больше zven_max на нить: трубка гладкая и так, а 5 клеток укладываются в кадр (проба скорости, L064)
+    for (let k = 1; k <= nW; k = k === 1 && kus > 1 ? Math.min(nW, kus) : k === nW ? k + 1 : Math.min(nW, k + kus)) { // нить сплошная: точки гуще своего размера, не бусы (L047)
       const s = k / nW, grow = Math.min(1, s * 3);
       // покой: от бока наружу, медленная волна + броуновская дрожь
       let xr = 0, yr = 0, xt = 0, yt = 0;
@@ -189,7 +190,7 @@ export function skin(c) {
       const xf = sx0 + fdx * bs - fdy * wf, yf = sy0 + fdy * bs + fdx * wf;
       xt = xb + (xf - xb) * P; yt = yb + (yf - yb) * P; }
       const qx2 = xr + (xt - xr) * B, qy2 = yr + (yt - yr) * B, rr = (0.8 * Math.max(z, 0.7) + 0.3) * (1 - s * 0.45), al = cfg.flag.alpha * V.whip.a * (1 - s * 0.6);
-      if (Bw && Bw.seg) { if (Number.isNaN(lx)) { lx = qx2; ly = qy2; } else if (k % V.whip.seg === 0 || k === nW) { Bw.seg(lx, ly, qx2, qy2, rr * V.whip.tube, fc, Math.min(1, al * V.whip.tube_a)); lx = qx2; ly = qy2; } } // нить сплошная: стеклянная трубка из звеньев встык (body3d rope)
+      if (Bw && Bw.seg) { if (Number.isNaN(lx)) { lx = qx2; ly = qy2; } else { Bw.seg(lx, ly, qx2, qy2, rr * V.whip.tube, fc, Math.min(1, al * V.whip.tube_a)); lx = qx2; ly = qy2; } } // нить сплошная: стеклянная трубка из звеньев встык (body3d rope)
       else glow.put(qx2, qy2, rr, fc[0], fc[1], fc[2], al * Math.sqrt(V.whip.n / nW)); // нить в цвете оболочки: светло-голубая, тоньше и прозрачнее к концу
     }
   }
