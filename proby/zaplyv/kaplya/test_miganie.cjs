@@ -22,9 +22,9 @@ check('test_miganie_storozh_vidit: сторож ловит придуманну�
   const zapis = async (bez) => { await p.evaluate(() => { window.__ryad = []; window.__zapis = true; }); // снимки вне кадра, как при встрече существа: по таймеру
     await p.evaluate(bez => { for (let i = 0; i < 6; i++) setTimeout(() => window.kaplyaSnimok(['coccus', 'amoeba', 'bell', 'phage', 'roti', 'slipper'][i], bez), 250 + i * 400); }, bez);
     await p.waitForTimeout(3200); return p.evaluate(() => { window.__zapis = false; return window.__ryad; }); };
-  const s = await zapis(false), v = vybrosy(s);
+  let s, v; for (let i = 0; i < 3; i++) { s = await zapis(false); v = vybrosy(s); if (s.length >= 10 && !v.length) break; } // до трёх записей: настоящая поломка мигает при каждом снимке, а случайная вспышка игры (загрузка на медленном CI) — один раз (слияния 26.11: шаг 78 краснел сам)
   check('test_miganie_net: шесть снимков Альманаха во время игры, экран не мигает', s.length < 10 ? `записано кадров ${s.length}` : v.length ? `мигнуло ${v.length} раз: ${v.map(i => s[i - 1].toFixed(0) + '→' + s[i].toFixed(0) + '→' + s[i + 1].toFixed(0)).join(', ')}` : '');
-  const s0 = await zapis(true), v0 = vybrosy(s0);
+  let s0, v0; for (let i = 0; i < 3; i++) { s0 = await zapis(true); v0 = vybrosy(s0); if (v0.length) break; } // и самопроверке три попытки: без защиты мигает почти каждый снимок
   check('test_miganie_samoproverka: снимок без защиты сторож ловит', v0.length ? '' : `без защиты мигания не видно (кадров ${s0.length}): сторож слепой`);
   check('test_miganie_oshibki: игра без ошибок', errs.length ? errs.join('; ') : '');
   await b.close(); srv.close(); process.exit(bad ? 1 : 0); })();
