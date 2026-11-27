@@ -9,7 +9,7 @@ const KOREN = path.resolve(__dirname, '..'), TIP = { '.html': 'text/html', '.js'
 let bad = 0; const check = (n, e) => { console.log((e ? '  ПРОВАЛ ' : '  ок ') + n + (e ? ': ' + e : '')); if (e) bad++; };
 async function scena(pw, port, flag) {
   const b = await pw.chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME, args: ['--no-sandbox'] } : {}), p = await b.newPage({ viewport: { width: 390, height: 664 }, isMobile: true, hasTouch: true });
-  const errs = []; p.on('pageerror', e => errs.push(e.message)); if (flag) await p.addInitScript(f => { window[f] = true; }, flag);
+  const errs = []; p.on('pageerror', e => errs.push(e.message)); if (flag) await p.addInitScript(f => { window[f] = true; if (f === 'kaplyaBezMetkiYad') window.kaplyaYadKartoy = true; /* L123: яд и так с первой секунды — метку проверяем без него */ }, flag);
   await p.goto(`http://127.0.0.1:${port}/kaplya/?yad`); await p.waitForFunction(() => window.zaplyvWorld && zaplyvWorld() && zaplyvWorld().me.length && zaplyvWorld().stats.time > 1, null, { timeout: 90000 });
   const yad = await p.evaluate(() => { const k = document.getElementById('kyad'), r = k ? k.getBoundingClientRect() : { width: 0 }; return { gen: !!zaplyvWorld().genes.toxin, knopka: !!k && getComputedStyle(k).display !== 'none' && r.width > 20 && r.top < innerHeight }; });
   await p.evaluate(() => { const w = zaplyvWorld(); setInterval(() => { w.choice = []; const M = window.kaplyaMut && kaplyaMut(); if (M) M.vopros = null; }, 30); w.me.push({ ...w.me[0], id: 77001, x: w.me[0].x + 30, grab: null });
