@@ -13,7 +13,7 @@ Object.assign(rost.R, KAP.temp); // рост «Капли», как в main.js
 // список мира → вид; великаны после объятия — тот же вид, что обычные
 const VIDY = { slippers: 'туфелька', tufelki3: 'туфелька', bells: 'колокольчик', rotis: 'коловратка', kolovratki3: 'коловратка', prey: 'кокки', bdellos: 'запятая', amoebas: 'амёба', ameby3: 'амёба', phages: 'вирус', bodos: 'бодо',
   spirilly: 'спирилла', kaulo: 'каулобактер', brodyazhki: 'каулобактер', hlorelly: 'хлорелла', plants: 'анабена', donors: 'соседка-донор', pseudos: 'соперница', parafizo: 'парафизомонада', cerko: 'церкомонада',
-  spumelly: 'спумелла', hlamido: 'хламидомонада', ciklidii: 'циклидиум', krohi: 'кроха', sinegnoyki: 'синегнойка', didinii: 'дидиний', trubachi: 'трубач', nematody: 'нематода', griby: 'грибок' };
+  spumelly: 'спумелла', hlamido: 'хламидомонада', ciklidii: 'циклидиум', krohi: 'кроха', sinegnoyki: 'синегнойка', didinii: 'дидиний', trubachi: 'трубач', nematody: 'нематода', griby: 'грибок', 'amoebas:bolshaya': 'большая амёба', 'pseudos:seno': 'сенная палочка' }; // «список:вид» — вариант в списке ручного мира
 // N — novye (самопроверка подменяет); вернёт { вид: секунда первой встречи }
 function partiya(seed, N) {
   let s0 = seed; Math.random = () => { s0 = s0 + 0x6D2B79F5 | 0; let t = Math.imul(s0 ^ s0 >>> 15, 1 | s0); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; // повтор партии один в один
@@ -29,7 +29,7 @@ function partiya(seed, N) {
     zn.shag(ZON, w, DT, KAP.zona, ZM, radius, r); sob.shag(SOB, w, DT, KAP.sobytiya, ZON.zona || 'tihaya', radius, r);
     const z = Math.min(2.3, 2.45 - 0.17 * Math.sqrt(w.biggest())), hw = 360 / z, hh = hw * 844 / 390; // main.js: камера у малой клетки, W = 720
     kaulo = Math.max(kaulo, w.kaulo.length + w.brodyazhki.length); if (N.kaulo.tesno > 1e6 && kaulo > KAP.perepis.kaulo_max) break; // самопроверка: предел пройден — дальше мерить нечего
-    for (const [L, vid] of Object.entries(VIDY)) { if (vstrecha[vid] != null) continue; for (const q of w[L] || []) if (!q.gone && Math.abs(q.x - a.x) < hw && Math.abs(q.y - a.y) < hh) { vstrecha[vid] = t; break; } } }
+    for (const [L, vid] of Object.entries(VIDY)) { if (vstrecha[vid] != null) continue; const [l, v] = L.split(':'); for (const q of w[l] || []) if ((v ? q.vid === v : !(q.vid && VIDY[l + ':' + q.vid])) && !q.gone && Math.abs(q.x - a.x) < hw && Math.abs(q.y - a.y) < hh) { vstrecha[vid] = t; break; } } }
   return { vstrecha, kaulo }; }
 const bezPredela = () => ({ ...KAP.novye, kaulo: { ...KAP.novye.kaulo, na_kome: 1e9, tesno: 1e9 }, brodyazhka: { ...KAP.novye.brodyazhka, zhivyot: 1e9 } });
 const bez = () => Object.fromEntries(Object.entries(KAP.novye).map(([k, v]) => [k, v && typeof v === 'object' ? { ...v, ranshe: undefined, shans: [0, 0, 0] } : v]));

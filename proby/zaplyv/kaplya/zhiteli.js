@@ -2,7 +2,7 @@
 // Сделаны руками (Роман 26.11: «не получается — доводи руками»); тела — записи конструктора (kaplya.json «zhiteli»). Мир ручной игры:
 // квадраты по cfg.chunk, область по world.biome (0 глубина, 1 мелководье, 2 ил) — шансы книги идут в этом же порядке. Числа — kaplya.json «novye».
 const d = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-export const SPISKI = { spirilla: 'spirilly', kaulo: 'kaulo', brodyazhka: 'brodyazhki', hlorella: 'hlorelly', kroha: 'krohi', ameba3: 'ameby3', kolovratka3: 'kolovratki3', tufelka3: 'tufelki3', parafizo: 'parafizo', cerko: 'cerko', spumella: 'spumelly', hlamido: 'hlamido', ciklidium: 'ciklidii', sinegnoyka: 'sinegnoyki', didiniy: 'didinii', trubach: 'trubachi', nematoda: 'nematody', gribok: 'griby' };
+export const SPISKI = { spirilla: 'spirilly', kaulo: 'kaulo', brodyazhka: 'brodyazhki', hlorella: 'hlorelly', kroha: 'krohi', ameba3: 'ameby3', kolovratka3: 'kolovratki3', tufelka3: 'tufelki3', parafizo: 'parafizo', cerko: 'cerko', spumella: 'spumelly', hlamido: 'hlamido', ciklidium: 'ciklidii', sinegnoyka: 'sinegnoyki', didiniy: 'didinii', trubach: 'trubachi', nematoda: 'nematody', gribok: 'griby', bolshaya_ameba: 'amoebas:bolshaya' }; // «список:вид» — житель живёт в списке ручного мира (novye.*.v_spisok) вариантом со своей записью
 // П40 «Существа следующих размеров»: парафизомонада, церкомонада, спумелла (хватают рывком, как бодо), хламидомонада (рывками, не опасна), циклидиум (тянет потоком мелочь).
 // Повадка — N[вид].povadka: 'oxotnik' | 'ryvki' | 'potok'. Появляются с главы N[вид].glava и только если у движка есть запись (mozhno).
 const KRUPNYE = ['parafizo', 'cerko', 'spumella', 'hlamido', 'ciklidium', 'didiniy', 'trubach', 'nematoda', 'gribok', 'ameba3', 'kolovratka3', 'tufelka3']; // ameba3… — великаны после объятия (П53), их ставит velikany в main.js
@@ -14,7 +14,7 @@ function zaselit(w, N, cx, cy, mozhno) { const C = w.cfg.chunk, r = w.r, x0 = cx
     if (yg != null ? !(yg + S.u_granicy > y0 && yg - S.u_granicy < y0 + C) : r() >= sh[b]) continue; const n = S.po[0] + Math.floor(r() * (S.po[1] - S.po[0] + 1));
     const oc = S.ochag ? pt() : null; for (let i = 0; i < n; i++) { const p = oc ? { x: oc.x + (r() - 0.5) * 2 * S.ochag.r, y: oc.y + (r() - 0.5) * 2 * S.ochag.r } : pt(); if (S.zona && !(w.zonaGde && w.zonaGde(p.x, p.y) === S.zona)) continue; /* синегнойка: только в злой воде */ if (yg != null) p.y = yg + (r() - 0.5) * 2 * S.u_granicy; const m = S.massa[0] + r() * (S.massa[1] - S.massa[0]), q = { id: ++w.ids, ...p, a: r() * 6.283, m, t: r() * 2, faza: 'beg' };
       if (vid === 'kaulo') { let dom = [...w.crumbs, ...w.plants].filter(o => d(o, p) < C).sort((a, b) => d(a, p) - d(b, p))[0]; if (!dom) { dom = { id: ++w.ids, ...p, m: 4 }; w.crumbs.push(dom); } q.dom = dom; q.x = dom.x + Math.cos(q.a) * 30; q.y = dom.y + Math.sin(q.a) * 30; q.korma = r() * S.otryv[0]; }
-      if (oc) q.oc = oc; w[SPISKI[vid]].push(q); } } }
+      if (oc) q.oc = oc; if (S.v_spisok) { Object.assign(q, { vid: S.vid, vx: 0, vy: 0, cool: 0 }); w[S.v_spisok].push(q); } else w[SPISKI[vid]].push(q); } } }
 export function shag(w, dt, N, mozhno, radius) { const C = w.cfg.chunk, me = w.me[0];
   if (me) for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) { const cx = Math.floor(me.x / C) + i, cy = Math.floor(me.y / C) + j, k = cx + ',' + cy; if (!w.novyeKv.has(k)) { w.novyeKv.add(k); zaselit(w, N, cx, cy, mozhno); } }
   if (radius) for (const vid of KRUPNYE) if (N[vid]) for (const q of w[SPISKI[vid]]) krupny(w, q, N[vid], dt, radius, vid);
