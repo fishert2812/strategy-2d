@@ -19,7 +19,7 @@ export function do_hoda(w, B) { const S = { geny: {}, gde: new Map() }; if (!B.v
 // Отказ оружия (Д.3 п. 2): цель рядом, а не берёт — причина daleko, stenka или uroven. Не чаще раза в otkaz_pokaz секунд на цель; событие ['otkaz', x, y, кто, причина].
 function otkaz(w, q, ck, p, now, B) { if (q.otkaz && q.otkaz.t > now) return; q.otkaz = { p, t: now + B.otkaz_pokaz }; w.events.push(['otkaz', q.x, q.y, ck, p]); }
 export function posle_hoda(w, dt, B, radius, S) { for (const g in S.geny) w.genes[g] = S.geny[g]; w._bojHod = false; if (!B.vkl) return [];
-  const now = w.stats.time, ubity = [], lvl = g => Math.max(1, (w.lvl || {})[g] || 0), O = Object.entries(B.oruzhie).filter(([g]) => g !== '_' && w.genes[g]);
+  const now = w.stats.time, ubity = [], lvl = g => Math.max(1, (w.lvl || {})[g] || 0), O = Object.entries(B.oruzhie).filter(([g, X]) => g !== '_' && w.genes[g] && !(X.knopka && !(w.knopka || {})[g])); /* Н: яд бьёт, только пока держишь кнопку */
   for (const [q, [x, y]] of S.gde) if (!q.gone) { q.x = x + (q.x - x) * B.medlenno; q.y = y + (q.y - y) * B.medlenno; } // отравленная плывёт медленнее
   for (const [q, [x, y]] of S.stoit || []) if (!q.gone) { q.x = x; q.y = y; } // оглушённая стоит на месте
   for (const a of w.me) { const R = radius(a.m), ax = Math.cos(a.a), ay = Math.sin(a.a);
@@ -35,6 +35,12 @@ export function posle_hoda(w, dt, B, radius, S) { for (const g in S.geny) w.gene
     for (const q of L) if (!q.gone && gm.shag(q, dt, B.genom)) { q.gone = byl = true; if (w.lopnut) w.lopnut(ck, q); else w.spill(q.x, q.y); w.events.push(['pop', q.x, q.y, ck]); /* Ш4: лопается точками своих частей */ ubity.push([ck, q]); }
     if (byl) w[C.spisok] = L.filter(q => !q.gone); }
   return ubity; }
+// Облако яда с кнопки (Д.10 п. 3, knopki.js): кто в облаке — получает дозу по таблице (стенка, уровень, здоровье), не чаще pauza; сила облака тает к oblako_t.
+export function oblako(w, B, g, vOblake, radius) { const X = B.oruzhie[g], a = w.me[0]; if (!X || !a || !w.genes[g]) return; const now = w.stats.time, l = Math.max(1, (w.lvl || {})[g] || 0);
+  for (const [ck, C] of spiski(B)) for (const q of w[C.spisok] || []) { if (q.gone || q.held > 0) continue; const s = vOblake(q.x, q.y); if (s <= 0) continue;
+    const k = (C.stenka || {})[g] ?? 1; if (k <= 0) { otkaz(w, q, ck, 'stenka', now, B); continue; } if (((C.s_urovnya || {})[g] || 1) > l) { otkaz(w, q, ck, 'uroven', now, B); continue; }
+    const dol = gm.dolya(X.sila[Math.min(l, X.sila.length) - 1] * k * s, a.m, q.m || C.massa) / zdorove(C);
+    if (gm.yad(q, dol, 'oblako', now, X.pauza, X.dlitsya)) { w.events.push([X.sobytie, q.x, q.y, ck]); q.ranen = now; } } }
 // Д.10 п. 2 «Живое не съесть, пока здоровье не 0»: одно правило для всех жителей. Растворение и «Глотать» (evo.js, zhiteli.js, bodo.js) спрашивают w.zhivoe(q):
 // живой житель из таблицы с геномом больше 0 — не берётся. Убитый лопается точками еды (posle_hoda), их и ешь.
 export const zdorove = C => C.zdorove ?? 1;

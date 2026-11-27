@@ -16,7 +16,7 @@ const obrazcy = (() => { const w = mir(), out = new Map(); w.lose = () => {}; w.
   return out; })();
 const boi = (geny, [L, obr]) => { const w = mir(); w.step(DT, null); let gibel = null; w.lose = (a, x, y, who) => { gibel = gibel ?? who ?? 'кто-то'; }; boj.ohrana(w, B);
   for (const k of SPISKI) w[k] = []; for (const k of ['food', 'crumbs', 'plants', 'slime']) w[k] = []; w.me = [w.me[0]]; const a = w.me[0]; a.m = MAS;
-  for (const [g, l] of geny) { w.genes[g] = true; (w.lvl ||= {})[g] = l; }
+  for (const [g, l] of geny) { w.genes[g] = true; (w.lvl ||= {})[g] = l; (w.knopka ||= {})[g] = true; } /* кнопочное оружие в прогоне держим нажатым */
   const q = { ...obr, id: 9999, gone: false, x: a.x + radius(MAS) + 14, y: a.y }; if (L === 'kaulo') q.dom = { x: q.x + 30, y: q.y }; w[L].push(q);
   for (let t = 0; t < T; t += DT) { const d = Math.hypot(q.x - a.x, q.y - a.y) || 1, R = radius(a.m); a.a = Math.atan2(q.y - a.y, q.x - a.x); if (d > R + 8) { a.x = q.x - (q.x - a.x) / d * (R + 6); a.y = q.y - (q.y - a.y) / d * (R + 6); } a.vx = a.vy = 0;
     const m0 = new Map(w.me.map(b => [b, b.m])), S = boj.do_hoda(w, B); w.step(DT, null); boj.posle_hoda(w, DT, B, radius, S); boj.po_tebe(w, DT, B, m0);

@@ -9,7 +9,7 @@ let bad = 0; const check = (n, e) => { console.log((e ? '  ПРОВАЛ ' : '  �
 const boy = (K, geny, mMe, mCel, T = 60) => { const cfg = JSON.parse(JSON.stringify(base)); cfg.sense_idle = 0; cfg.sense_pull = 0; const w = new World(cfg, 5); w.mode = 'evo'; w.lose = () => {}; w.step(1 / 30, null); /* первый ход мир строит воду вокруг — после него ставим бой */
   for (const k of ['amoebas', 'phages', 'bdellos', 'slippers', 'bells', 'rotis', 'prey', 'food', 'crumbs', 'plants', 'slime', 'donors']) w[k] = [];
   w.pseudos = w.pseudos.slice(0, 1); if (!w.pseudos.length) return { err: 'в мире нет соперниц' }; const q = w.pseudos[0]; q.x = w.me[0].x + 40; q.y = w.me[0].y; q.m = mCel;
-  w.me = [w.me[0]]; const a = w.me[0]; a.m = mMe; for (const g of geny) w.genes[g] = true; let zhiva1 = null;
+  w.me = [w.me[0]]; const a = w.me[0]; a.m = mMe; for (const g of geny) { w.genes[g] = true; (w.knopka ||= {})[g] = true; } /* кнопочный яд держим */ let zhiva1 = null;
   for (let t = 0; t < T; t += 1 / 30) { const R = radius(a.m), d = Math.hypot(q.x - a.x, q.y - a.y) || 1; a.a = Math.atan2(q.y - a.y, q.x - a.x); q.x = a.x + (q.x - a.x) / d * (R + 2); q.y = a.y + (q.y - a.y) / d * (R + 2); a.vx = a.vy = 0; a.m = mMe; /* бот держится вплотную: соперницу ставим к тебе, чтобы мир не убрал её как дальнюю */
     const S = boj.do_hoda(w, K); w.step(1 / 30, null); boj.posle_hoda(w, 1 / 30, K, radius, S);
     if (t >= 1 && zhiva1 === null) zhiva1 = !q.gone; if (q.gone || !w.pseudos.includes(q)) return { t, zhiva1: zhiva1 ?? false, f: 0 }; }
@@ -30,7 +30,7 @@ const tablica = B => { for (const [g, X] of Object.entries(B.oruzhie)) { if (g =
   for (const [k, C] of Object.entries(B.celi)) { if (k === '_') continue; if (!C.spisok || !(C.massa > 0) || !(C.k_r > 0)) return `цель ${k}: неполная строка`; } return ''; };
 check('test_boj_tablica: у каждой строки таблицы боя есть всё, чем она бьёт или кого', tablica(K0));
 check('test_boj_tablica_samoproverka: строка без силы судья ловит', tablica({ ...K0, oruzhie: { ...K0.oruzhie, ship: { sposob: 'udar', gde: 'nos' } } }) ? '' : 'судья не заметил');
-{ const w = { genes: { toxin: true }, lvl: {}, me: [{ x: 0, y: 0, a: 0, m: 1 }], stats: { time: 0 }, events: [], spill() {}, spirilly: [{ x: 16, y: 0, m: 1 }] }, rad = m => 13 * Math.sqrt(m);
+{ const w = { genes: { toxin: true }, knopka: { toxin: true }, lvl: {}, me: [{ x: 0, y: 0, a: 0, m: 1 }], stats: { time: 0 }, events: [], spill() {}, spirilly: [{ x: 16, y: 0, m: 1 }] }, rad = m => 13 * Math.sqrt(m);
   for (let i = 0; i < 400 && w.spirilly.length; i++) { const S = boj.do_hoda(w, K0); w.stats.time += 1 / 30; boj.posle_hoda(w, 1 / 30, K0, rad, S); if (w.spirilly[0]) w.spirilly[0].x = 16; }
   check('test_boj_stroka: житель из таблицы (спирилла) тоже бьётся ядом — новый житель добавляется строкой', w.spirilly.length ? 'спирилла жива' : ''); }
 process.exit(bad ? 1 : 0);

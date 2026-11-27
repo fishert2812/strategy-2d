@@ -6,7 +6,7 @@ const base = JSON.parse(fs.readFileSync(new URL('../data.json', import.meta.url)
 let bad = 0; const check = (n, e) => { console.log((e ? '  ПРОВАЛ ' : '  ок ') + n + (e ? ': ' + e : '')); if (e) bad++; };
 function opyt(B, mKokk) { const cfg = boj.v_mir(JSON.parse(JSON.stringify(base)), B); mut.addGenes(cfg); const w = new World(cfg, 5); w.mode = 'evo'; zh.nachalo(w); w.step(DT, null); w.lose = () => {}; boj.ohrana(w, B);
   for (const k of ['pseudos', 'donors', 'bdellos', 'prey', 'amoebas', 'phages', 'bells', 'rotis', 'slippers', ...Object.values(zh.SPISKI), 'food', 'crumbs', 'plants', 'slime']) w[k] = [];
-  const a = w.me[0]; a.m = 1; w.genes.toxin = true; (w.lvl ||= {}).toxin = 1; const q = { id: 9999, x: a.x + 40, y: a.y, a: 0, m: mKokk, vx: 0, vy: 0 }; w.prey.push(q);
+  const a = w.me[0]; a.m = 1; w.genes.toxin = true; w.knopka = { toxin: true }; (w.lvl ||= {}).toxin = 1; const q = { id: 9999, x: a.x + 40, y: a.y, a: 0, m: mKokk, vx: 0, vy: 0 }; w.prey.push(q);
   let kolco = null, ukol = null, gibel = null;
   for (let t = 0; t < 20 && gibel == null; t += DT) { const d = Math.hypot(q.x - a.x, q.y - a.y) || 1, zhmus = radius(a.m) + radius(q.m) * 0.5; /* клетка жмётся к кокку, а не стоит в нём */
     if (d > zhmus) { const s = Math.min(d - zhmus, 120 * DT); a.x += (q.x - a.x) / d * s; a.y += (q.y - a.y) / d * s; } a.vx = a.vy = 0; a.a = Math.atan2(q.y - a.y, q.x - a.x);
@@ -21,7 +21,7 @@ check('test_yad_dostaet: яд достаёт дальше касания по у
 // test_yad_radius (Д.6): кокк на dostaet−1 от касания — яд берёт; на dostaet+1 — отказ «daleko»; цель, чья стенка не пускает яд, — отказ «stenka». Клетка и кокк стоят.
 function stoyat(B, zazor, stenka = null) { const cfg = boj.v_mir(JSON.parse(JSON.stringify(base)), B); mut.addGenes(cfg); const w = new World(cfg, 5); w.mode = 'evo'; zh.nachalo(w); w.step(DT, null); w.lose = () => {};
   for (const k of ['pseudos', 'donors', 'bdellos', 'prey', 'amoebas', 'phages', 'bells', 'rotis', 'slippers', ...Object.values(zh.SPISKI), 'food', 'crumbs', 'plants', 'slime']) w[k] = [];
-  const BB = JSON.parse(JSON.stringify(B)); if (stenka != null) BB.celi.kokk.stenka.toxin = stenka; const a = w.me[0]; a.m = 1; w.genes.toxin = true; (w.lvl ||= {}).toxin = 1;
+  const BB = JSON.parse(JSON.stringify(B)); if (stenka != null) BB.celi.kokk.stenka.toxin = stenka; const a = w.me[0]; a.m = 1; w.genes.toxin = true; w.knopka = { toxin: true }; (w.lvl ||= {}).toxin = 1;
   const C = BB.celi.kokk, q = { id: 9999, x: 0, y: 0, a: 0, m: 1, vx: 0, vy: 0 }, d = radius(1) + radius(1) * C.k_r + boj.dosyag(BB.oruzhie.toxin, 1, BB) + zazor; w.prey.push(q); const ev = [];
   for (let t = 0; t < 1; t += DT) { q.x = a.x + d; q.y = a.y; a.vx = a.vy = 0; w.events.length = 0; const S = boj.do_hoda(w, BB); w.step(DT, null); q.x = a.x + d; q.y = a.y; boj.posle_hoda(w, DT, BB, radius, S); ev.push(...w.events.filter(e => e[0] === 'yad' || e[0] === 'otkaz').map(e => e[0] === 'otkaz' ? 'otkaz:' + e[4] : e[0])); }
   return [...new Set(ev)]; }
