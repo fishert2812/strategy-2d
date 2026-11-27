@@ -21,12 +21,12 @@ const sud = K => { const m = 1.2;
   const t3 = boy(K, ['igla'], m, 3 * m, 0.9); if (t3.t < 0.9) return '«Нить-игла» одним уколом убила втрое тяжёлую';
   return ''; };
 check('test_boj_oruzhie: «Яд» и «Нить-игла» убивают ровню не дольше 10 с, без оружия ровня жива 60 с (Роман 21:05)', sud(K0));
-check('test_boj_samoproverka: яд мгновенный (dlitsya 0) судья ловит', sud({ ...K0, oruzhie: { ...K0.oruzhie, toxin: { ...K0.oruzhie.toxin, dlitsya: 0, sila: [5, 5, 5] } } }) ? '' : 'судья не заметил');
+check('test_boj_samoproverka: яд мгновенный (dlitsya 0) судья ловит', sud({ ...K0, min_ubit: 0, min_ubit_rovnya: 0, min_ubit_krupnyj: 0, oruzhie: { ...K0.oruzhie, toxin: { ...K0.oruzhie.toxin, dlitsya: 0, sila: [5, 5, 5] } } }) ? '' : 'судья не заметил');
 check('test_boj_samoproverka_ruchnoe: оружие мимо генома (vkl false, ручной яд по одной родне) судья ловит', sud({ ...K0, vkl: false }) ? '' : 'судья не заметил');
 { const q = { m: 1 }; gm.yad(q, 0.3, 'a', 0, 0.5, 5); let t = 0; for (; t < 5 - 1e-9; t += 0.1) gm.shag(q, 0.1, K0.genom); const q3 = { m: 1 }; gm.yad(q3, gm.dolya(0.3, 1, 3), 'a', 0, 0.5, 5); for (let i = 0; i < 60; i++) gm.shag(q3, 0.1, K0.genom);
   check('test_genom_doza: укол ровни ядом 1 отнимает 30 % ровно за 5 с, втрое тяжёлой 10 %', Math.abs(q.gn.f - 0.7) < 1e-6 && Math.abs(q3.gn.f - 0.9) < 1e-6 ? '' : `ровня ${q.gn.f}, тяжёлая ${q3.gn.f}`); }
 // таблица полна: у каждого оружия способ, место, сила по уровням и пауза; у каждой цели список и масса — иначе строка молча ничего не делает
-const tablica = B => { for (const [g, X] of Object.entries(B.oruzhie)) { if (g === '_') continue; if (!['yad', 'udar'].includes(X.sposob) || !['kasanie', 'nos'].includes(X.gde) || !(X.sila || []).length || !(X.pauza >= 0) || (X.sposob === 'yad' && !(X.dlitsya >= 0))) return `оружие ${g}: неполная строка`; }
+const tablica = B => { for (const [g, X] of Object.entries(B.oruzhie)) { if (g === '_' || (X.sposob === 'svoy' && X.kod)) continue; /* своё оружие: код назван в строке */ if (!['yad', 'udar'].includes(X.sposob) || !['kasanie', 'nos'].includes(X.gde) || !(X.sila || []).length || !(X.pauza >= 0) || (X.sposob === 'yad' && !(X.dlitsya >= 0))) return `оружие ${g}: неполная строка`; }
   for (const [k, C] of Object.entries(B.celi)) { if (k === '_') continue; if (!C.spisok || !(C.massa > 0) || !(C.k_r > 0)) return `цель ${k}: неполная строка`; } return ''; };
 check('test_boj_tablica: у каждой строки таблицы боя есть всё, чем она бьёт или кого', tablica(K0));
 check('test_boj_tablica_samoproverka: строка без силы судья ловит', tablica({ ...K0, oruzhie: { ...K0.oruzhie, ship: { sposob: 'udar', gde: 'nos' } } }) ? '' : 'судья не заметил');

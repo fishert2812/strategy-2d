@@ -15,11 +15,11 @@ function para(g, l, ck) { const C = B.celi[ck], cfg = boj.v_mir(JSON.parse(JSON.
     for (const e of w.events) { if (e[0] === 'otkaz') { prichina ||= e[4]; if (otvet == null && t <= 0.3) otvet = 'щит'; } else if (g && e[0] === B.oruzhie[g].sobytie && otvet == null && t <= 0.3) otvet = 'боль'; }
     if (q.gone || !w[C.spisok].includes(q)) gibel = t; }
   return { otvet, prichina, gibel: gibel == null ? null : +gibel.toFixed(1) }; }
-const oruzhie = [[null, 0], ...Object.keys(B.oruzhie).filter(g => g !== '_').flatMap(g => [[g, 1], [g, 3]])], celi = Object.keys(B.celi).filter(k => k !== '_');
+const oruzhie = [[null, 0], ...Object.keys(B.oruzhie).filter(g => g !== '_' && B.oruzhie[g].sposob !== 'svoy') /* кусалку и сверло гоняют test_kusalka и test_sverlo */.flatMap(g => [[g, 1], [g, 3]])], celi = Object.keys(B.celi).filter(k => k !== '_');
 const stroki = [], ploho = [];
 for (const [g, l] of oruzhie) for (const ck of celi) { const r = [para(g, l, ck), para(g, l, ck), para(g, l, ck)], x = r[0], povtor = r.every(y => y.gibel === x.gibel && y.otvet === x.otvet);
   const imya = g ? `${B.oruzhie[g].imya} ${l}` : 'без оружия', itog = x.gibel != null ? `убит за ${x.gibel} с` : 'жив', pr = x.prichina ? PRICHINA[x.prichina] || x.prichina : x.gibel != null ? '' : 'не видна';
-  const beda = [!x.otvet && 'нет ответа за 0,3 с', x.gibel == null && !x.prichina && 'причина не видна', !povtor && 'повторы разошлись'].filter(Boolean);
+  const beda = [!x.otvet && 'нет ответа за 0,3 с', x.gibel == null && !x.prichina && 'причина не видна', x.gibel != null && x.gibel < B.min_ubit - 0.05 && `убит быстрее ${B.min_ubit} с`, !povtor && 'повторы разошлись'].filter(Boolean);
   stroki.push(`| ${imya} | ${ck} | ${x.otvet || '—'} | ${itog} | ${pr} | ${povtor ? 'да' : 'нет'} | ${beda.length ? beda.join('; ') : 'годится'} |`); if (beda.length) ploho.push(`${imya} × ${ck}: ${beda.join('; ')}`); }
 const md = `# Прогон всех взаимодействий «Капли»\n\nСобрано \`kaplya/progon_vzaimodeystviy.mjs\` (pravki_po_blokam.md Д.11). Житель вплотную у носа, клетка вдвое тяжелее его, ${T} с; кнопочный яд держим. Ответ мира: «боль» — укол прошёл, «щит» — отказ с причиной (видно серой обводкой и щитом).\n\n| Оружие | Житель | Ответ за 0,3 с | Итог | Почему не берёт | 3 повтора | Отметка |\n|---|---|---|---|---|---|---|\n${stroki.join('\n')}\n\nПар: ${stroki.length}, не прошли стандарт: ${ploho.length}.\n`;
 const i = process.argv.indexOf('--md'); if (i > 0) fs.writeFileSync(process.argv[i + 1], md); else console.log(md);

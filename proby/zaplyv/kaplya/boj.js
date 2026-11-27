@@ -19,7 +19,7 @@ export function do_hoda(w, B) { const S = { geny: {}, gde: new Map() }; if (!B.v
 // Отказ оружия (Д.3 п. 2): цель рядом, а не берёт — причина daleko, stenka или uroven. Не чаще раза в otkaz_pokaz секунд на цель; событие ['otkaz', x, y, кто, причина].
 function otkaz(w, q, ck, p, now, B) { if (q.otkaz && q.otkaz.t > now) return; q.otkaz = { p, t: now + B.otkaz_pokaz }; w.events.push(['otkaz', q.x, q.y, ck, p]); }
 export function posle_hoda(w, dt, B, radius, S) { for (const g in S.geny) w.genes[g] = S.geny[g]; w._bojHod = false; if (!B.vkl) return [];
-  const now = w.stats.time, ubity = [], lvl = g => Math.max(1, (w.lvl || {})[g] || 0), O = Object.entries(B.oruzhie).filter(([g, X]) => g !== '_' && w.genes[g] && !(X.knopka && !(w.knopka || {})[g])); /* Н: яд бьёт, только пока держишь кнопку */
+  const now = w.stats.time, ubity = [], lvl = g => Math.max(1, (w.lvl || {})[g] || 0), O = Object.entries(B.oruzhie).filter(([g, X]) => g !== '_' && w.genes[g] && X.sposob !== 'svoy' && !(X.knopka && !(w.knopka || {})[g])); /* «Сверло», «Кусалка» бьют своим кодом (sverlo.js, kusalka.js) */ /* Н: яд бьёт, только пока держишь кнопку */
   for (const [q, [x, y]] of S.gde) if (!q.gone) { q.x = x + (q.x - x) * B.medlenno; q.y = y + (q.y - y) * B.medlenno; } // отравленная плывёт медленнее
   for (const [q, [x, y]] of S.stoit || []) if (!q.gone) { q.x = x; q.y = y; } // оглушённая стоит на месте
   for (const a of w.me) { const R = radius(a.m), ax = Math.cos(a.a), ay = Math.sin(a.a);
@@ -28,7 +28,7 @@ export function posle_hoda(w, dt, B, radius, S) { for (const g in S.geny) w.gene
       let beret = false; for (const [g, X] of O) { const k = (C.stenka || {})[g] ?? 1, dos = X.gde === 'nos' ? X.dlina : dosyag(X, lvl(g), B), vNosu = X.gde !== 'nos' || (dx * ax + dy * ay) / d >= X.nos;
         if (d > R + rq + dos) { if (vNosu && d <= R + rq + dos + (B.otkaz_daleko || 0)) otkaz(w, q, ck, 'daleko', now, B); continue; } if (!vNosu) continue; /* Д.3 п. 2: почему не берёт — видно */
         if (k <= 0) { otkaz(w, q, ck, 'stenka', now, B); continue; } if (((C.s_urovnya || {})[g] || 1) > lvl(g)) { otkaz(w, q, ck, 'uroven', now, B); continue; }
-        beret = true; const dol = gm.dolya(X.sila[Math.min(lvl(g), X.sila.length) - 1] * k, a.m, m) / zdorove(C); /* Д.10 п. 1: здоровье жителя в единицах ровни */
+        beret = true; const dol = Math.min(gm.dolya(X.sila[Math.min(lvl(g), X.sila.length) - 1] * k, a.m, m) / zdorove(C), potolok(B, C, X, a.m, m)); /* Д.10 п. 1: здоровье жителя в единицах ровни */
         if (X.sposob === 'yad' ? gm.yad(q, dol, a, now, X.pauza, X.dlitsya) : gm.udar(q, dol, a, now, X.pauza)) { w.events.push([X.sobytie, q.x, q.y, ck]); q.ranen = now; if (X.oglush) q.oglush = now + X.oglush; } }
         if (!beret && q.m != null && q.m < a.m && d < R + rq + B.zazor) { otkaz(w, q, ck, 'zhivoe', now, B); const s = R + rq + B.zazor - d; q.x += dx / d * s * B.otskok; q.y += dy / d * s * B.otskok; } } } /* Д.10 п. 2: живое не съесть — отскок с серым щитом */
   for (const [ck, C] of spiski(B)) { const L = w[C.spisok]; if (!L) continue; let byl = false;
@@ -39,8 +39,12 @@ export function posle_hoda(w, dt, B, radius, S) { for (const g in S.geny) w.gene
 export function oblako(w, B, g, vOblake, radius) { const X = B.oruzhie[g], a = w.me[0]; if (!X || !a || !w.genes[g]) return; const now = w.stats.time, l = Math.max(1, (w.lvl || {})[g] || 0);
   for (const [ck, C] of spiski(B)) for (const q of w[C.spisok] || []) { if (q.gone || q.held > 0) continue; const s = vOblake(q.x, q.y); if (s <= 0) continue;
     const k = (C.stenka || {})[g] ?? 1; if (k <= 0) { otkaz(w, q, ck, 'stenka', now, B); continue; } if (((C.s_urovnya || {})[g] || 1) > l) { otkaz(w, q, ck, 'uroven', now, B); continue; }
-    const dol = gm.dolya(X.sila[Math.min(l, X.sila.length) - 1] * k * s, a.m, q.m || C.massa) / zdorove(C);
+    const dol = Math.min(gm.dolya(X.sila[Math.min(l, X.sila.length) - 1] * k * s, a.m, q.m || C.massa) / zdorove(C), potolok(B, C, X, a.m, q.m || C.massa));
     if (gm.yad(q, dol, 'oblako', now, X.pauza, X.dlitsya)) { w.events.push([X.sobytie, q.x, q.y, ck]); q.ranen = now; } } }
+// Не мгновенно (отметки геймдизайна к Д.11): один удар снимает не больше 1/n генома, где n — сколько уколов влезает в min_ubit секунд (+1):
+// мелочь гибнет не быстрее min_ubit, ровня (не легче rovnya твоей массы) — min_ubit_rovnya, крупные (есть s_urovnya) — min_ubit_krupnyj.
+export function potolok(B, C, X, mA, mQ) { const t = C.s_urovnya ? B.min_ubit_krupnyj : mQ >= mA * B.rovnya ? B.min_ubit_rovnya : B.min_ubit; if (!t) return 1;
+  return 1 / (Math.ceil(t / Math.max(X.pauza, 1e-3)) + 1); }
 // Д.10 п. 2 «Живое не съесть, пока здоровье не 0»: одно правило для всех жителей. Растворение и «Глотать» (evo.js, zhiteli.js, bodo.js) спрашивают w.zhivoe(q):
 // живой житель из таблицы с геномом больше 0 — не берётся. Убитый лопается точками еды (posle_hoda), их и ешь.
 export const zdorove = C => C.zdorove ?? 1;
