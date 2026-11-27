@@ -54,7 +54,7 @@ export function shag(w, dt, radius) {
   for (const pr of Object.values(P.pravila)) {
     const kto = w[pr.kto.spisok], kogo = w[pr.kogo.spisok], u = pr.uslovie, sp = SPOSOB[pr.sposob];
     if (!kto || !kogo || !sp) continue;
-    for (const a of kto) {
+    for (const a of kto) { if (w.derzhat && w.derzhat(a)) continue; // «Капля» (L092): пока тебя держит хищник, ты не ешь
       const r = radius(a.m) + u.zazor;
       for (const q of kogo) {
         if (q.gone || !(a.kasaetsya ? a.kasaetsya(q, u.k_r ? radius(q.m) * u.k_r : 0) : Math.hypot(a.x - q.x, a.y - q.y) < r + (u.k_r ? radius(q.m) * u.k_r : 0))) continue; // сначала касание: rost.can дорогой (ищет крупнейшую клетку)
