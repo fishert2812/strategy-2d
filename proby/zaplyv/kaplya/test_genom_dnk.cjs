@@ -35,6 +35,16 @@ const poteri = (ids, stroki) => { const est = new Set(stroki.flatMap(s => s.sp.m
   const v1 = await p.evaluate(() => ({ id: kaplyaGenomDnk.vybor?.id, s: kaplyaGenomDnk.cam.s, u: kaplyaGenomDnk.u, h2: document.querySelector('#gcard h2')?.textContent || '' }));
   check('test_genom_dnk_naezd: касание витка — наезд и расплетание', v1.id === 'flagellum' && v1.s > 1.8 && v1.u > 0.8 ? '' : JSON.stringify(v1));
   check('test_genom_dnk_kartochka: карточка внизу — того же гена', /flhDC/.test(v1.h2) ? '' : 'карточка: ' + v1.h2);
+  // Пост 27.11 (ролики треда постов): на наезде пропадала тёмная подложка, подсказка цели налезала на карточку, низ карточки был обрезан
+  const ekr = await p.evaluate(() => { const c = document.getElementById('gdnk'), g = c.getContext('2d'), W = c.width, H = c.height, min = cv => { let m = 255; const cx = cv.getContext('2d');
+      for (const [fx, fy] of [[0.03, 0.03], [0.97, 0.03], [0.03, 0.97], [0.97, 0.97], [0.5, 0.06], [0.06, 0.5]]) m = Math.min(m, cx.getImageData(Math.floor(fx * cv.width), Math.floor(fy * cv.height), 1, 1).data[3]); return m; };
+    const prob = document.createElement('canvas'); prob.width = 50; prob.height = 50; const pg = prob.getContext('2d'); pg.globalAlpha = 0.3; pg.fillStyle = 'rgba(3,10,18,0.95)'; pg.fillRect(0, 0, 50, 50); // самопроверка: полупрозрачная подложка ловится
+    const kc = document.getElementById('kcel'), gc = document.getElementById('gcard');
+    return { alfa: min(c), alfaProb: min(prob), kcel: kc ? getComputedStyle(kc).display : 'none', lishnee: gc.scrollHeight - gc.clientHeight }; });
+  check('test_genom_dnk_podlozhka_vidit: полупрозрачную подложку сторож ловит', ekr.alfaProb < 230 ? '' : 'не видно');
+  check('test_genom_dnk_podlozhka: на наезде подложка спирали тёмная, мир сквозь неё не проступает', ekr.alfa >= 230 ? '' : 'прозрачность подложки ' + ekr.alfa + ' из 255');
+  check('test_genom_dnk_bez_celi: строка цели не налезает на экран генов', ekr.kcel === 'none' ? '' : 'строка цели видна');
+  check('test_genom_dnk_kartochka_vlezla: текст карточки гена виден целиком', ekr.lishnee <= 2 ? '' : 'не влезло ' + ekr.lishnee + ' точек');
   await tap('flagellum', () => !kaplyaGenomDnk.vybor && kaplyaGenomDnk.cam.s < 1.15);
   const v2 = await p.evaluate(() => ({ id: kaplyaGenomDnk.vybor?.id || null, s: kaplyaGenomDnk.cam.s }));
   check('test_genom_dnk_nazad: второе касание — снова весь геном', !v2.id && v2.s < 1.15 ? '' : JSON.stringify(v2));

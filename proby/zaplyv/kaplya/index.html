@@ -206,13 +206,14 @@ body.paused #hud, body.paused #dnk, body.paused #toast, body.paused #scalebox, b
 #ring .slot { cursor: pointer; }
 #gchips { display: flex; gap: 8px; align-items: center; z-index: 1; }
 #gchips span { white-space: nowrap; font-size: 14px; padding: 5px 12px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(2, 4, 10, 0.6); }
-#gcard { height: 16vh; overflow-y: auto; flex-shrink: 0; width: 100%; max-width: 420px; box-sizing: border-box; border-radius: 20px; padding: 10px 16px; background: rgba(8, 22, 34, 0.92); border: 1px solid rgba(120, 220, 255, 0.35); z-index: 1; }
+#gcard { height: 38vh; overflow-y: auto; flex-shrink: 0; width: 100%; max-width: 420px; box-sizing: border-box; border-radius: 20px; padding: 10px 16px; background: rgba(8, 22, 34, 0.92); border: 1px solid rgba(120, 220, 255, 0.35); z-index: 1; }
+body:has(#genome.on) #kcel, body:has(#genome.on) #klin, body:has(#genome.on) #kmayak { display: none; } /* пост 27.11: строка цели, линейка и маяк не налезают на экран генов */
 #gcard.no { border-style: dashed; }
 #gcard { -webkit-mask-image: linear-gradient(#000 calc(100% - 22px), rgba(0,0,0,0.35)); mask-image: linear-gradient(#000 calc(100% - 22px), rgba(0,0,0,0.35)); padding-bottom: 18px; } /* низ гаснет: видно, что карточка листается, а не обрезана */
 #gcard h2 { margin: 0; font-size: 21px; font-weight: 600; }
 #gcard h2 i { color: #9fe0ff; font-family: ui-monospace, Menlo, monospace; font-size: 17px; }
 #gcard .sub { font-size: 13px; opacity: 0.6; margin: 1px 0 6px; }
-#gcard p { margin: 0 0 4px; font-size: 14px; line-height: 1.3; text-align: left; opacity: 0.9; display: grid; grid-template-columns: 74px 1fr; gap: 8px; }
+#gcard p { margin: 0 0 4px; font-size: 13px; line-height: 1.25; text-align: left; opacity: 0.9; display: grid; grid-template-columns: 74px 1fr; gap: 8px; }
 #gcard p b { font-weight: 400; opacity: 0.6; }
 #gcard p.hint { display: block; opacity: 0.75; }
 #gon { min-height: 56px; }

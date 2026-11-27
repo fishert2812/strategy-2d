@@ -73,6 +73,7 @@ function kadr(now) {
 function risuy(t, w, dpr) {
   const W = S.w, H = S.h;
   g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+  g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; // пост 27.11: прозрачность прошлого кадра гасила подложку, сквозь гены проступал мир
   g.fillStyle = 'rgba(3,10,18,0.95)'; g.fillRect(0, 0, W, H);
   const c = S.cam;
   g.save(); g.translate(W / 2, H / 2); g.scale(c.s, c.s); g.translate(-c.x, -c.y);
@@ -106,7 +107,8 @@ function vitok(u, t, est, dolya) {
       g.beginPath(); g.moveTo(x, u.yc + A * Math.sin(a1)); g.lineTo(x + 2, u.yc + A * Math.sin(a2)); g.stroke();
     }
   };
-  if (est || sel) { g.globalAlpha = ten * (0.08 + 0.1 * raz); g.fillStyle = u.cvet; g.fillRect(u.x + 2, u.yc - A - 6, u.w - 4, 2 * A + 12); }
+  if (est || sel) { const rx = u.w / 2, ry = A + 8, cx = u.x + u.w / 2, gr = g.createRadialGradient(0, 0, 0, 0, 0, 1); gr.addColorStop(0, u.cvet); gr.addColorStop(1, 'rgba(0,0,0,0)'); // пост 27.11: свет витка мягким пятном, не прямоугольником
+    g.save(); g.translate(cx, u.yc); g.scale(rx, ry); g.globalAlpha = ten * (0.12 + 0.12 * raz); g.fillStyle = gr; g.beginPath(); g.arc(0, 0, 1, 0, 7); g.fill(); g.restore(); }
   nit(0, false); nit(SDVIG, false);
   const N = 7;
   for (let i = 0; i < N; i++) {
