@@ -21,4 +21,10 @@ function trubach(N, uhodit) { const w = mir(), a = w.me[0], S = N.trubach; a.m =
 const sudT = N => { const st = trubach(N, false), uh = trubach(N, true); if (!(st.d < -30)) return `стоишь — воронка подтянула на ${(-st.d).toFixed(0)} ед за 3 с, нужно 30`; if (uh.s || !(uh.d > 0)) return `гребёшь прочь — ${uh.s ? 'проглочена' : 'не ушла'}`; return ''; };
 check(`test_trubach_voronka: воронка трубача тянет к его рту, полным ходом от неё уходишь`, sudT(KAP.novye));
 check('test_trubach_voronka_samoproverka: воронка сильнее хода — судья краснеет', sudT({ ...KAP.novye, trubach: { ...KAP.novye.trubach, potok: { r: 220, v: 400 } } }) ? '' : 'не заметил');
+// test_bolshaya_ameba: большая амёба (вариант амёбы ручного мира со своей записью) охотится на подросшую клетку, которую обычная амёба уже не берёт.
+function bolshaya(N) { const w = mir(), a = w.me[0], S = N.bolshaya_ameba; a.m = 12; w.lose = () => {};
+  w.amoebas = [{ id: 704, x: a.x + 150, y: a.y, vx: 0, vy: 0, m: S.massa[0], vid: S.vid }, { id: 705, x: a.x - 150, y: a.y, vx: 0, vy: 0, m: 8 }]; w.step(DT, null);
+  const [b, m] = w.amoebas; return !b.hunt ? `большая (масса ${S.massa[0]}) не охотится на клетку массы 12` : m.hunt ? 'обычная тоже охотится — сравнение пустое' : ''; }
+check('test_bolshaya_ameba: большая амёба берёт подросшую клетку, обычная — нет', bolshaya(KAP.novye));
+check('test_bolshaya_ameba_samoproverka: большая размером с обычную — судья краснеет', bolshaya({ ...KAP.novye, bolshaya_ameba: { ...KAP.novye.bolshaya_ameba, massa: [8, 8] } }) ? '' : 'не заметил');
 process.exit(bad ? 1 : 0);
