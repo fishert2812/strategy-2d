@@ -206,13 +206,14 @@ body.paused #hud, body.paused #dnk, body.paused #toast, body.paused #scalebox, b
 #ring .slot { cursor: pointer; }
 #gchips { display: flex; gap: 8px; align-items: center; z-index: 1; }
 #gchips span { white-space: nowrap; font-size: 14px; padding: 5px 12px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(2, 4, 10, 0.6); }
-#gcard { height: 16vh; overflow-y: auto; flex-shrink: 0; width: 100%; max-width: 420px; box-sizing: border-box; border-radius: 20px; padding: 10px 16px; background: rgba(8, 22, 34, 0.92); border: 1px solid rgba(120, 220, 255, 0.35); z-index: 1; }
+#gcard { height: 38vh; overflow-y: auto; flex-shrink: 0; width: 100%; max-width: 420px; box-sizing: border-box; border-radius: 20px; padding: 10px 16px; background: rgba(8, 22, 34, 0.92); border: 1px solid rgba(120, 220, 255, 0.35); z-index: 1; }
+body:has(#genome.on) #kcel, body:has(#genome.on) #klin, body:has(#genome.on) #kmayak { display: none; } /* пост 27.11: строка цели, линейка и маяк не налезают на экран генов */
 #gcard.no { border-style: dashed; }
 #gcard { -webkit-mask-image: linear-gradient(#000 calc(100% - 22px), rgba(0,0,0,0.35)); mask-image: linear-gradient(#000 calc(100% - 22px), rgba(0,0,0,0.35)); padding-bottom: 18px; } /* низ гаснет: видно, что карточка листается, а не обрезана */
 #gcard h2 { margin: 0; font-size: 21px; font-weight: 600; }
 #gcard h2 i { color: #9fe0ff; font-family: ui-monospace, Menlo, monospace; font-size: 17px; }
 #gcard .sub { font-size: 13px; opacity: 0.6; margin: 1px 0 6px; }
-#gcard p { margin: 0 0 4px; font-size: 14px; line-height: 1.3; text-align: left; opacity: 0.9; display: grid; grid-template-columns: 74px 1fr; gap: 8px; }
+#gcard p { margin: 0 0 4px; font-size: 13px; line-height: 1.25; text-align: left; opacity: 0.9; display: grid; grid-template-columns: 74px 1fr; gap: 8px; }
 #gcard p b { font-weight: 400; opacity: 0.6; }
 #gcard p.hint { display: block; opacity: 0.75; }
 #gon { min-height: 56px; }
@@ -232,11 +233,15 @@ body.paused #hud, body.paused #dnk, body.paused #toast, body.paused #scalebox, b
 #gbar { display: flex; gap: 10px; width: 100%; max-width: 420px; flex-shrink: 0; z-index: 1; margin-top: auto; } #gbar #gback, #kbot #back { flex: 0 0 38%; width: auto; min-width: 0; min-height: 56px; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 12px; } /* «‹ куда» одной строкой */
 #gbar #gon { flex: 1; width: auto; } #genome.tab-hub #gbar { margin-top: 0; } #pnew.sure, #mnew.sure, #mgo.sure { border-color: #ff8a6a; color: #ffb4a0; }
 #gflag { width: 48px; min-height: 48px; height: 48px; padding: 0; border-radius: 50%; flex-shrink: 0; } .gsp { width: 48px; flex-shrink: 0; }
-#genome.tab-map, #genome.tab-alm { background: radial-gradient(120% 80% at 50% 0%, #0a2832, #02040a 60%); }
+#genome.tab-map, #genome.tab-alm, #genome.tab-staya { background: radial-gradient(120% 80% at 50% 0%, #0a2832, #02040a 60%); }
 #genome.tab-map #gsub, #genome.tab-map #ring, #genome.tab-map #gchips, #genome.tab-map #gcard, #genome.tab-map #grow,
 #genome.tab-alm #gsub, #genome.tab-alm #ring, #genome.tab-alm #gchips, #genome.tab-alm #gcard, #genome.tab-alm #grow { display: none; }
 #map { display: flex; flex-direction: column; width: 100%; max-width: 420px; flex: 1; min-height: 0; gap: 6px; z-index: 1; }
 #map[hidden] { display: none; }
+#stlist { width: 100%; max-width: 420px; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; z-index: 1; } #stlist[hidden] { display: none; }
+#stlist .st { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 12px; background: rgba(255,255,255,.06); font-size: 14px; } #stlist .st img { width: 44px; height: 44px; object-fit: contain; flex: none; }
+#stlist .st i { width: 10px; height: 10px; border-radius: 50%; flex: none; } #stlist p { margin: 8px 4px; opacity: .8; }
+#genome.tab-staya #gsub, #genome.tab-staya #ring, #genome.tab-staya #gchips, #genome.tab-staya #gcard, #genome.tab-staya #grow { display: none; }
 #mhead { margin: 0; font-size: 14px; color: rgba(207, 227, 230, 0.85); text-align: center; }
 #mbox { position: relative; flex: 1; min-height: 0; border-radius: 16px; overflow: hidden; background: #04141a; }
 #mcv { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
@@ -322,6 +327,7 @@ body.paused #hud, body.paused #dnk, body.paused #toast, body.paused #scalebox, b
     <button class="prow" data-t="genome"><img class="pico" alt=""><span><b>Геном</b><small id="pg"></small></span><i>›</i></button>
     <button class="prow" data-t="alm"><img class="pico" alt=""><span><b>Альманах</b><small id="pa"></small></span><i>›</i></button>
     <button class="prow" data-t="map"><img class="pico" alt=""><span><b>Карта</b><small id="pm"></small></span><i>›</i></button>
+    <button class="prow" data-t="staya"><img class="pico" alt=""><span><b>Стая</b><small id="pst"></small></span><i>›</i></button>
     <div id="pserv"><button id="psound" class="ghost"></button></div></div>
   <p id="gsub"></p>
   <svg id="ring" viewBox="-228 -190 468 375" preserveAspectRatio="xMidYMid meet"></svg>
@@ -329,6 +335,7 @@ body.paused #hud, body.paused #dnk, body.paused #toast, body.paused #scalebox, b
   <div id="gcard"></div>
   <div id="map" hidden><p id="mhead"></p><div id="mbox"><canvas id="mcv"></canvas><div id="mcard" hidden></div></div>
     <p id="mlegend"><span class="lg d"></span>гибель<span class="lg g"></span>ген<span class="lg y"></span>ты<span class="lg c"></span>цель</p></div>
+  <div id="stlist" hidden></div>
   <div id="grow"><button id="pnew" class="ghost">Новый заплыв</button><button id="gmenu" class="ghost">Режимы</button></div>
   <div id="gbar"><button id="gback" class="ghost">‹ Пауза</button><button id="gon">Продолжить</button></div>
 </div>

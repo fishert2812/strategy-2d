@@ -1,8 +1,8 @@
 // Книга, «Правила игры» П5–П7: строка цели («съешь того, кто выше тебя»), подпись линейки «ростом с …», вспышка «теперь еда»,
 // тёплый свет на тех, кого можно съесть. Считает только виденных в этом заплыве (П6: подсказки про невиданное запрещены).
 // Чистая логика без рисования: мир ручной игры (sim.js), масса и порог глотания — как в evo.js (evo.json glotat). Слова и числа — kaplya.json «cel».
-export const SPIS = [['prey', 'coccus'], ['pseudos', 'pseudo'], ['bdellos', 'bdello'], ['amoebas', 'amoeba'], ['bells', 'bell'], ['rotis', 'roti'], ['slippers', 'slipper'], ['bodos', 'bodo'], ['spirilly', 'spirilla'], ['kaulo', 'kaulo'], ['brodyazhki', 'brodyazhka'], ['hlorelly', 'hlorella'], ['krohi', 'kroha'], ['parafizo', 'parafizo'], ['cerko', 'cerko'], ['spumelly', 'spumella'], ['hlamido', 'hlamido'], ['ciklidii', 'ciklidium']];
-const OPASNYE = ['bodos', 'bdellos', 'amoebas', 'bells', 'rotis', 'slippers', 'parafizo', 'cerko', 'spumelly', 'ciklidii']; // крупные П40: охотники и поток
+export const SPIS = [['prey', 'coccus'], ['pseudos', 'pseudo'], ['bdellos', 'bdello'], ['amoebas', 'amoeba'], ['bells', 'bell'], ['rotis', 'roti'], ['slippers', 'slipper'], ['bodos', 'bodo'], ['spirilly', 'spirilla'], ['kaulo', 'kaulo'], ['brodyazhki', 'brodyazhka'], ['hlorelly', 'hlorella'], ['krohi', 'kroha'], ['parafizo', 'parafizo'], ['cerko', 'cerko'], ['spumelly', 'spumella'], ['hlamido', 'hlamido'], ['ciklidii', 'ciklidium'], ['ameby3', 'ameba3'], ['kolovratki3', 'kolovratka3'], ['tufelki3', 'tufelka3']];
+const OPASNYE = ['bodos', 'bdellos', 'amoebas', 'bells', 'rotis', 'slippers', 'parafizo', 'cerko', 'spumelly', 'ciklidii', 'ameby3', 'kolovratki3']; // крупные П40: охотники и поток
 export const sozdat = () => ({ videl: {}, eda: new Set(), stroka: '', rostom: '' });
 const blizh = (a, q) => Math.hypot(q.x - a.x, q.y - a.y);
 const vstav = (t, imya) => t.replace('{}', t.startsWith('{}') ? imya : imya.toLowerCase()); // имя в начале строки с большой буквы, в середине — с маленькой
@@ -23,8 +23,9 @@ export function shag(C, w, me, K, mass, bolshe, umeet, syt) { const I = K.imena,
   else if (vyshe.length && glotok > 0) { const [who, m] = vyshe[0], n = Math.ceil((m * bolshe - me.m) / glotok);
     C.stroka = n <= K.glotkov ? vstav(n === 1 ? K.slova.glotok : K.slova.glotkov.replace('{n}', n), I[who][0]) : hoz && !C.eda.has(hoz[0]) ? vstav(K.slova.hozyain, I[hoz[0]][0]) : vstav(K.slova.rasti, I[who][0]); }
   else if (hoz && !C.eda.has(hoz[0])) C.stroka = vstav(K.slova.hozyain, I[hoz[0]][0]);
-  else if (glotok > 0) C.stroka = K.slova.glotay;
+  else if (glotok > 0 || Date.now() - (C.glotokT || 0) < 3000) C.stroka = K.slova.glotay; // партия 26.11: строка не мигает «Плыви искать еду», когда добыча на миг вышла из кадра
   else C.stroka = K.slova.pusto;
+  if (glotok > 0) C.glotokT = Date.now();
   return teper; }
 // П7: можно съесть — тёплый ровный свет, который медленно «дышит»
 export const eda = (C, me, m, bolshe, umeet) => umeet && m * bolshe <= me.m;
