@@ -241,7 +241,8 @@ export function s_navykami(zapis, nabor, N = VC.navyki.spisok, zerno = 0) { cons
   const vid = (o, i) => { if (!zerno || !o) return o; const n = { ...o }; for (const [k, [a, b]] of Object.entries(R.mnozh)) if (n[k] != null) { const m = a + (b - a) * hash(zerno, i * 7 + k.length); n[k] = Array.isArray(n[k]) ? n[k].map(v => v * m) : k === 'n' ? Math.round(n[k] * m) : n[k] * m; }
     if (n.cvet) { const s = Math.floor(hash(zerno, i + 40) * R.cveta.length); n.cvet = R.cveta[s]; } return n; };
   Object.entries(nabor || {}).forEach(([kl, ur], i) => { const U = N[kl] && N[kl].urovni[Math.min(ur, N[kl].urovni.length) - 1]; if (!U) return;
-    for (const [ch, p] of Object.entries(U.chasti || {})) z.chasti[ch] = { ...(z.chasti[ch] || {}), ...vid(p, i) };
+    for (const [ch, p] of Object.entries({ ...U.chasti, ...U.chasti_tela })) z.chasti[ch] = { ...(z.chasti[ch] || {}), ...vid(p, i) };
+    // chasti_tela — части только для целой записи движка (толстый жгутик «Сверла»): поверх ручного тела игры их не рисуем, там свой жгутик
     // nos — точки оси, которыми тело вытягивается вперёд от носа (воронка рта), srez — ровный срез этого носа
     if (U.nos) { const x0 = z.forma.tochki.at(-1)[0]; z.forma.tochki.push(...U.nos.map(([dx, y, r]) => [x0 + dx, y, r])); } if (U.srez) z.forma.srez = U.srez;
     if (U.vetki) z.forma.vetki = [...(z.forma.vetki || []), ...U.vetki.map(v => vid(v, i))]; if (U.vypuklosti) z.forma.vypuklosti = [...(z.forma.vypuklosti || []), ...U.vypuklosti]; });
@@ -253,9 +254,11 @@ export function chasti_navykov(nabor, poza, B, N = VC.navyki) { const hl = Math.
   if (!z) { const s = s_navykami(VC.vidy[N.osnova], nabor, N.spisok), nuzhny = new Set(Object.entries(nabor).filter(([, u]) => u > 0).flatMap(([k]) => Object.keys(N.spisok[k]?.urovni[0].chasti || {})));
     // ветка на носу (шип) поверх чужого тела — отдельное маленькое тело-конус: полудлина h в его толщинах, толщина r0 в радиусах большого тела
     z = { forma: { tip: 'os', tochki: [[-hl, 0, 1], [hl, 0, 1]] }, chasti: Object.fromEntries(Object.entries(s.chasti).filter(([k]) => nuzhny.has(k))),
-      ostriya: (s.forma.vetki || []).filter(v => v.t === 'nos').map(v => { const h = v.dlina / v.r[0] / 2; return { r0: v.r[0], dl: v.dlina, zapis: { forma: { tip: 'os', tochki: N.ostrie.profil.map((r, i, m) => [-h + 2 * h * i / (m.length - 1), 0, r]) }, chasti: { obolochka: { sloi: N.ostrie.sloi.map(q => ({ ...q, cvet: v.cvet || q.cvet })) } } } }; }) }; CHN.set(kl, z); }
+      ostriya: (s.forma.vetki || []).filter(v => v.t === 'nos').map(v => { const h = v.dlina / v.r[0] / 2; return { r0: v.r[0], dl: v.dlina, sd: v.sdvig_t || 0, ug: v.ugol || 0, zapis: { forma: { tip: 'os', tochki: v.profil ? [[-h, 0, 1], ...v.profil.map(([t, r]) => [-h + 2 * h * t, 0, r / v.r[0]])] : N.ostrie.profil.map((r, i, m) => [-h + 2 * h * i / (m.length - 1), 0, r]) }, chasti: { obolochka: { sloi: N.ostrie.sloi.map(q => ({ ...q, cvet: v.cvet || q.cvet })) } } } }; }) }; z.O = os(z.forma.tochki); CHN.set(kl, z); }
   let n = sobrat(z, { ...poza, tolshchina: poza.R }, B); const c = Math.cos(poza.a), sn = Math.sin(poza.a);
-  for (const o of z.ostriya) { const d = poza.L / 2 + (o.dl / 2 - N.ostrie.vnutr) * poza.R; n += sobrat(o.zapis, { ...poza, x: poza.x + c * d, y: poza.y + sn * d, tolshchina: poza.R * o.r0 }, B) ? 1 : 0; }
+  // ветка стоит там же, где на целой записи: место на обводе носа со сдвигом sdvig_t, смотрит по нормали с поворотом ugol (ряд зубцов «Кусалки» расходится по дуге носа)
+  for (const o of z.ostriya) { const e = z.O.kray(z.O.nos_t + o.sd), u = e.n + o.ug, d = o.dl / 2 - N.ostrie.vnutr, px = (e.x + Math.cos(u) * d) * poza.R, py = (e.y + Math.sin(u) * d) * poza.R;
+    n += sobrat(o.zapis, { ...poza, x: poza.x + c * px - sn * py, y: poza.y + sn * px + c * py, a: poza.a + u, tolshchina: poza.R * o.r0 }, B) ? 1 : 0; }
   return n; }
 const NUTRO = new Set(['nukleoid', 'ribosomy', 'vklyucheniya', 'zerna', 'yadro', 'puzyri_edy', 'sokr_puzyr']);
 // Группа клеток одной записью (zapis.gruppa: { n, uklad: grozd | cep, zazor }): гроздь кокков, цепочка палочек. Каждая клетка — та же запись.

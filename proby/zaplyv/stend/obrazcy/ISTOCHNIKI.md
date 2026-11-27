@@ -50,3 +50,5 @@
 | `inat_138132594_krasnyy_glazok.jpg` | crseaquist | CC-BY | https://www.inaturalist.org/observations/138132594 |
 | `inat_41573296_pishchevarenie_cvetnoe.jpg` | Bruce Taylor | CC-BY | https://www.inaturalist.org/observations/41573296 |
 | `servier_plazmida_skruchennaya.jpg` | Servier Medical Art | CC BY 2.0 | https://www.flickr.com/photos/serviermedicalart/10085606774/ |
+| `bdj129622_kolovratka_chelyusti_zubcy_sem.jpg` | Hee-Min Yang, Gi-Sik Min | CC BY 4.0 | https://doi.org/10.3897/BDJ.12.e129622 |
+| `pmc12843806_bdellovibrio_u_zhertvy_tem.jpg` | Shorokhova A.P. и др. | CC BY 4.0 | https://doi.org/10.3390/microorganisms14010190 |
