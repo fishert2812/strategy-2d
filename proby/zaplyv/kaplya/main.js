@@ -845,7 +845,7 @@ function events() {
     if (k === 'shrug') beep(1100, 0.05, 0.03); // новая дверь сработала: вирус отброшен
     if (k === 'bump') { beep(880, 0.05, 0.03); } // капсула: хищник отскочил
     if (k === 'pop') { beep(260, 0.25, 0.06, 'triangle', 0.6); } // чужая клетка лопнула
-    if (k === 'pinch') { beep(1400, 0.05, 0.03, 'square', 0.6); tell('pinch', 'Кокк щиплет своим ядом — отплыви'); }
+    if (k === 'pinch') { beep(1400, 0.05, 0.03, 'square', 0.6); tell('pinch', KAP.boj.slova_pinch); }
     if (k === 'sick') { beep(180, 0.3, 0.05, 'sawtooth', 0.7); }
     if (k === 'burst' || k === 'eaten') { shake = 0.35; beep(110, 0.45, 0.09, 'triangle', 0.5);
       const [sx, sy] = scr(x, y), who = k === 'burst' ? 'phage' : size; // погибла за краем экрана — говорим, кто её взял (урок L039)
@@ -1085,8 +1085,8 @@ function paint(time) {
     const [x, y] = scr(q.x, q.y); if (!on(x, y)) continue;
     const side = 1, r = radius(q.m) * z, kind = q.id % 4, a = q.a + time * 0.2;
     if (q.touch > 0) { probe.poison = (probe.poison || 0) + 1; const k = Math.min(1, q.touch / KAP.boj.celi.kokk.shchipok_t); // прижалась к кокку — вокруг него проступает его яд, к «щипку» облачко полное
-      for (let i = 0; i < 7; i++) { const f = (time * 0.7 + i / 7) % 1, t = i * 0.8976 + q.id + time * 0.3, d = r * (0.8 + f * (0.7 + 0.8 * k)); // яд сочится мягкими клубами наружу и тает, без точек по кругу (L047)
-        glow.put(x + Math.cos(t) * d, y + Math.sin(t) * d, r * (0.55 + 0.7 * f) + 2, 0.75, 0.95, 0.3, (0.1 + 0.3 * k) * (1 - f)); } }
+      const O = KAP.boj.celi.kokk.oblako; for (let i = 0; i < O.kluby; i++) { const f = (time * 0.7 + i / O.kluby) % 1, t = i * 6.283 / O.kluby + q.id + time * 0.3, d = r * (0.8 + f * (0.7 + O.razmah * k)); /* пачка 1 п. 2: облако заметное */ // яд сочится мягкими клубами наружу и тает, без точек по кругу (L047)
+        glow.put(x + Math.cos(t) * d, y + Math.sin(t) * d, r * (0.55 + 0.7 * f) + 2, 0.75, 0.95, 0.3, (O.a0 + (O.a - O.a0) * k) * (1 - f)); } }
     const ux = Math.cos(a), uy = Math.sin(a); if (zhitel('prey', q, x, y, a, r, time, z)) continue;
     if (kind === 0) ball(x, y, r * 0.9, side, q.id); // одиночный кокк: гладкий шарик, шипов у кокков нет (Роман 25.11: шипастый «похож на вирус»)
     else if (kind === 1) { ball(x + ux * r * 0.45, y + uy * r * 0.45, r * 0.6, side, q.id); ball(x - ux * r * 0.45, y - uy * r * 0.45, r * 0.6, side, q.id + 1); }
@@ -1207,6 +1207,7 @@ function paint(time) {
     for (const g of world.gulps || []) if (g.rv && g.a === a && g.tt) { const [gx, gy] = scr(g.x, g.y), f = 1 - Math.min(1, g.t / g.tt) * 0.75; zhitel(RSV_SPISKI[g.who], g.q || { id: 1, m: g.m }, gx, gy, (g.q && g.q.a) || 0, radius(g.m * f) * z, time, z); } // Ш29: растворяемое видно у оболочки, тает
     evo.draw({ w: world, a, x, y, z, glow, scr }); // «Эволюция»: нити глотания
     if (a.grab) glow.put(x, y, half * 1.8, 1, 0.25, 0.15, 0.22 + 0.15 * Math.sin(time * 14)); // схвачена: бьётся в пасти
+    { const V = KAP.boj.celi.kokk.vspyshka, u = a.ujalT != null ? world.stats.time - a.ujalT : 1e9; if (u < V.t) glow.put(x, y, half * V.r, ...KAP.boj.yad_vid.cvet, V.a * (1 - u / V.t)); } /* пачка 1 п. 2: щипок виден вспышкой */
     if (a === world.me[0] && a.zahvachen) { const K = KAP.zahvat.kolco, f = ZHV.ryvki / KAP.zahvat.ryvkov, r = half * K.r; for (let j = 0; j < K.tochek; j++) { const u = j / K.tochek, ug = -Math.PI / 2 + u * 6.283; glow.put(x + Math.cos(ug) * r, y + Math.sin(ug) * r, Math.max(2, half * 0.12), ...K.cvet, u < f ? K.a : K.a * 0.25); } } /* L074: кольцо «вырвись» заполняется рывками */
     if (world.rush > 0.05) glow.put(x, y, half * (1.4 + world.rush * 0.6), 1, 0.75, 0.35, 0.08 + 0.1 * world.rush); // разгон роста: рибосомы работают на всю
     vid.skin({ a, lk, x, y, ang, ax, ay, half: hl, w: wl, z, along, arc, body, scr, time, pdt, run, phageNear, foodNear, spacers: world.spacers.size, plasmid: world.plasmid, cfg, alive: world.me, glow, ink });
