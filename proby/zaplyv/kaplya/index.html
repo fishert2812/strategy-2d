@@ -186,7 +186,8 @@ button.flag { border-color: rgba(255, 170, 120, 0.55); color: #ffc9a8; backgroun
 #gchips button { white-space: nowrap; width: auto; min-height: 44px; font-size: 14px; padding: 5px 14px; border-radius: 22px; /* палец: не меньше 44 pt (урок L017) */ }
 #grow { display: flex; gap: 10px; width: 100%; max-width: 420px; flex-shrink: 0; z-index: 1; }
 #grow button { flex: 1; width: auto; min-height: 46px; font-size: 17px; }
-body.paused #flag { visibility: hidden; }
+/* L070: один флажок ⚑ поверх любого окна — тянуть на место или коснуться; кнопки флажков в шапках окон молчат, место держат */
+#flag { z-index: 59; } #gflag, #mflag, #nflag { visibility: hidden; pointer-events: none; }
 button { touch-action: manipulation; } /* касание — сразу нажатие, без ожидания двойного касания */
 #note { position: fixed; z-index: 60; right: 10px; top: calc(env(safe-area-inset-top) + 62px); max-width: 80vw; padding: 8px 14px; border-radius: 16px;
   background: rgba(60, 20, 10, 0.92); border: 1px solid rgba(255, 170, 120, 0.7); color: #ffd9c4; font-size: 15px; pointer-events: none;
