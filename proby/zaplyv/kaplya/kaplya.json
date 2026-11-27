@@ -1553,13 +1553,15 @@
     "yad_r": 12,
     "yad_pauza": 1.2,
     "_yad": "yad_r — докуда от твоего края бьёт ядом касанием соперница с ядом, yad_pauza — секунд между её уколами; сила укола — na_tebya",
-    "zdorove": 1
+    "zdorove": 1,
+    "otvet": "beg"
    },
    "zapyataya": {
     "spisok": "bdellos",
     "massa": 0.5,
     "k_r": 0.6,
-    "zdorove": 0.5
+    "zdorove": 0.5,
+    "otvet": "beg"
    },
    "kokk": {
     "spisok": "prey",
@@ -1575,37 +1577,43 @@
     "shchipok": 1.0,
     "shchipok_tormoz": 0.5,
     "_tolchok": "tolchok — как быстро кокк отодвигается, когда в него упираешься; shchipok_t — сколько секунд вплотную до щипка его ядом, shchipok — сколько секунд он тормозит, shchipok_tormoz — во сколько раз",
-    "zdorove": 0.5
+    "zdorove": 0.5,
+    "otvet": "szhat"
    },
    "spirilla": {
     "spisok": "spirilly",
     "massa": 5,
     "k_r": 0.7,
-    "zdorove": 1
+    "zdorove": 1,
+    "otvet": "beg"
    },
    "kaulo": {
     "spisok": "kaulo",
     "massa": 1.2,
     "k_r": 0.8,
-    "zdorove": 1
+    "zdorove": 1,
+    "otvet": "szhat"
    },
    "brodyazhka": {
     "spisok": "brodyazhki",
     "massa": 0.4,
     "k_r": 0.8,
-    "zdorove": 0.5
+    "zdorove": 0.5,
+    "otvet": "beg"
    },
    "kroha": {
     "spisok": "krohi",
     "massa": 0.4,
     "k_r": 0.8,
-    "zdorove": 0.5
+    "zdorove": 0.5,
+    "otvet": "beg"
    },
    "donor": {
     "spisok": "donors",
     "massa": 1.2,
     "k_r": 0.9,
-    "zdorove": 1
+    "zdorove": 1,
+    "otvet": "beg"
    },
    "ameba": {
     "spisok": "amoebas",
@@ -1614,7 +1622,8 @@
     "s_urovnya": {
      "toxin": 2
     },
-    "zdorove": 3
+    "zdorove": 3,
+    "otvet": "napad"
    },
    "tufelka": {
     "spisok": "slippers",
@@ -1623,7 +1632,8 @@
     "s_urovnya": {
      "toxin": 2
     },
-    "zdorove": 2
+    "zdorove": 2,
+    "otvet": "beg"
    },
    "kolokolchik": {
     "spisok": "bells",
@@ -1632,7 +1642,8 @@
     "s_urovnya": {
      "toxin": 2
     },
-    "zdorove": 2
+    "zdorove": 2,
+    "otvet": "szhat"
    },
    "kolovratka": {
     "spisok": "rotis",
@@ -1641,7 +1652,8 @@
     "s_urovnya": {
      "toxin": 2
     },
-    "zdorove": 2
+    "zdorove": 2,
+    "otvet": "beg"
    },
    "parafizo": {
     "spisok": "parafizo",
@@ -1650,7 +1662,8 @@
     "s_urovnya": {
      "toxin": 2
     },
-    "zdorove": 1
+    "zdorove": 1,
+    "otvet": "napad"
    },
    "cerko": {
     "spisok": "cerko",
@@ -1659,7 +1672,8 @@
     "s_urovnya": {
      "toxin": 2
     },
-    "zdorove": 1
+    "zdorove": 1,
+    "otvet": "napad"
    },
    "spumella": {
     "spisok": "spumelly",
@@ -1668,7 +1682,8 @@
     "s_urovnya": {
      "toxin": 2
     },
-    "zdorove": 1
+    "zdorove": 1,
+    "otvet": "napad"
    },
    "hlamido": {
     "spisok": "hlamido",
@@ -1677,7 +1692,8 @@
     "s_urovnya": {
      "toxin": 2
     },
-    "zdorove": 1
+    "zdorove": 1,
+    "otvet": "beg"
    },
    "ciklidium": {
     "spisok": "ciklidii",
@@ -1686,13 +1702,15 @@
     "s_urovnya": {
      "toxin": 2
     },
-    "zdorove": 1
+    "zdorove": 1,
+    "otvet": "beg"
    },
    "bodo": {
     "spisok": "bodos",
     "massa": 4,
     "k_r": 0.8,
-    "zdorove": 1
+    "zdorove": 1,
+    "otvet": "napad"
    },
    "virus": {
     "spisok": "phages",
@@ -1704,7 +1722,8 @@
      "ship": 0
     },
     "_": "вирус не живая клетка: яд, игла и шип его не берут (биолог, vzaimodeystviya_biolog.md; геймдизайн к Д.11)",
-    "zdorove": 1
+    "zdorove": 1,
+    "otvet": "net"
    },
    "hlorella": {
     "spisok": "hlorelly",
@@ -1715,7 +1734,8 @@
      "igla": 0
     },
     "_": "водоросль: бактериоцин её не трогает (биолог)",
-    "zdorove": 3
+    "zdorove": 3,
+    "otvet": "net"
    },
    "ameba3": {
     "spisok": "ameby3",
@@ -1724,7 +1744,8 @@
     "s_urovnya": {
      "toxin": 3
     },
-    "zdorove": 1
+    "zdorove": 1,
+    "otvet": "napad"
    },
    "kolovratka3": {
     "spisok": "kolovratki3",
@@ -1733,7 +1754,8 @@
     "s_urovnya": {
      "toxin": 3
     },
-    "zdorove": 1
+    "zdorove": 1,
+    "otvet": "beg"
    },
    "tufelka3": {
     "spisok": "tufelki3",
@@ -1742,7 +1764,8 @@
     "s_urovnya": {
      "toxin": 3
     },
-    "zdorove": 1
+    "zdorove": 1,
+    "otvet": "beg"
    }
   },
   "yad_vid": {
@@ -1893,7 +1916,13 @@
   "min_ubit_rovnya": 1.5,
   "min_ubit_krupnyj": 4,
   "rovnya": 0.8,
-  "_min_ubit": "отметки геймдизайна к прогону Д.11: никого не убить мгновенно — мелочь не быстрее min_ubit с, ровня (не легче rovnya твоей массы) — min_ubit_rovnya, крупные (у кого s_urovnya) — min_ubit_krupnyj; один удар снимает не больше доли, чтобы уколов было видно несколько (boj.potolok)"
+  "_min_ubit": "отметки геймдизайна к прогону Д.11: никого не убить мгновенно — мелочь не быстрее min_ubit с, ровня (не легче rovnya твоей массы) — min_ubit_rovnya, крупные (у кого s_urovnya) — min_ubit_krupnyj; один удар снимает не больше доли, чтобы уколов было видно несколько (boj.potolok)",
+  "otvet": {
+   "t": 2,
+   "beg": 1.4,
+   "napad": 0.9,
+   "_": "как раненый отвечает (Д.10 п. 4, геймдизайн к Д.11): строка celi.*.otvet — beg (бежит прочь со скоростью beg твоего хода), napad (идёт на тебя, napad хода), szhat (сжимается и стоит), net (не живой, не отвечает); длится t с после удара"
+  }
  },
  "stolk": {
   "_": "Столкновения (Роман 26.11 21:55: «могу проходить через всех - такого быть не должно… Из движка взять эту часть»): правило движка stolknovenie.js по контуру записей. vkl; igrok — запись клетки игрока и её полутолщина w·m^stepen (как ручное тело vid.js); spiski — с кем сталкиваешься (записи — kaplya.json «zhiteli»); ugol — какое поле у списка курс (толчок не в центр его поворачивает); dal — дальше скольких толщин контуры не считаем; vzdrog — сколько секунд житель помнит толчок; bez — хищники, которые берут ртом или обволакивают телом: столкновение не дало бы им поймать (test_stolk_ameba), их граница — их рот, это следующий шаг таблицы зон",

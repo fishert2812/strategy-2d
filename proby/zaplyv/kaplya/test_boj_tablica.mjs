@@ -8,6 +8,9 @@ const bezStroki = (K, B) => { const est = new Set(Object.entries(B.celi).filter(
   return Object.keys(K.zhiteli).filter(k => k !== '_' && !est.has(k) && !(B.ne_celi || {})[k]); };
 const sudZhiteli = B => { const L = bezStroki(KAP, B); return L.length ? `нет строки в boj.celi: ${L.join(', ')}` : ''; };
 check('test_boj_odna_tablica: каждый житель капли — строка в boj.celi (или назван в ne_celi с причиной)', sudZhiteli(KAP.boj));
+const sudOtvet = B => { const L = Object.entries(B.celi).filter(([k, C]) => k !== '_' && !['beg', 'napad', 'szhat', 'net'].includes(C.otvet)).map(([k]) => k); return L.length ? `нет ответа раненого (otvet): ${L.join(', ')}` : ''; };
+check('test_boj_otvet: у каждой строки celi есть ответ раненого (бежит, нападает, сжимается, не живой)', sudOtvet(KAP.boj));
+check('test_boj_otvet_samoproverka: строку без ответа судья ловит', sudOtvet({ ...KAP.boj, celi: { ...KAP.boj.celi, kokk: { ...KAP.boj.celi.kokk, otvet: undefined } } }) ? '' : 'не заметил');
 const B1 = JSON.parse(JSON.stringify(KAP.boj)); delete B1.celi.bodo; check('test_boj_odna_tablica_samoproverka_stroka: жителя без строки судья ловит', sudZhiteli(B1) ? '' : 'не заметил');
 // Мир слушается таблицы: кокк, в которого упёрлась клетка, отъезжает на tolchok; с tolchok 0 стоит.
 function sdvig(B) { const cfg = boj.v_mir(JSON.parse(JSON.stringify(base)), B); mut.addGenes(cfg); const w = new World(cfg, 5); w.mode = 'evo'; zh.nachalo(w); w.step(DT, null); w.lose = () => {};
