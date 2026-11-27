@@ -27,3 +27,5 @@ export const cvet = (c, K) => c.map((v, i) => v + ([0.95, 0.18, 0.12][i] - v) * 
 export const dosyag = (N, SPISKI) => Object.fromEntries(Object.entries(N).filter(([, v]) => v && v.povadka === 'potok' && v.potok).map(([k, v]) => [SPISKI[k], v.potok.r]));
 // Кого житель книги может съесть: список мира → bolshe из novye (ты тяжелее его массы / bolshe — он тебе не опасен).
 export const bolshe = (N, SPISKI) => Object.fromEntries(Object.entries(N).filter(([, v]) => v && v.bolshe).map(([k, v]) => [SPISKI[k], v.bolshe]));
+// Честный удар (В.3 п. 2): хватать можно, только если кромка у by горела не меньше za секунд. Ворота стоят на world.grab в main.js.
+export const mozhno_bit = (U, K, by) => (U.t.get(by) || 0) >= K.za;

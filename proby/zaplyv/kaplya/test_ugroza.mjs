@@ -22,4 +22,6 @@ check('test_net_udara_bez_znaka_samoproverka: кромка, что зажига�
   check('test_net_udara_bez_znaka_voronka_samoproverka: без досягаемости воронки судья краснеет', voronka(U).length ? '' : 'не заметил'); }
 { const stroka = (kto, spisok) => { const C = cel.sozdat(), me = { x: 0, y: 0, m: 1 }, w = Object.fromEntries(cel.SPIS.map(([l]) => [l, []])); w[spisok].push({ x: 900, y: 0, m: 200 }); C.videl[kto] = 200; cel.shag(C, w, me, KAP.cel, q => q.m, 1.8, true, 0.5); return C.stroka; }, ne = stroka('hlamido', 'hlamido'), da = stroka('amoeba', 'amoebas');
   check(`test_trevoga_po_delu_hozyain: «… ест таких, как ты» только про хищника — водоросль хламидомонада молчит («${ne}»), амёба названа («${da}»)`, /ест таких/.test(ne) || !/ест таких/.test(da) ? 'не так' : ''); }
+{ const Uu = ugr.sozdat(), q = { x: 60, y: 0, m: 6, a: Math.PI }, a = { x: 0, y: 0, m: 1 }, w = { amoebas: [q] }, ranee = ugr.mozhno_bit(Uu, U, q); shagi(Uu, w, a, Math.ceil(U.za / DT) + 2);
+  check(`test_net_udara_bez_znaka_vorota: пасть без кромки не хватает; после ${U.za} с горения — может`, !ranee && ugr.mozhno_bit(Uu, U, q) ? '' : `до: ${ranee}, после: ${ugr.mozhno_bit(Uu, U, q)}`); }
 process.exit(bad ? 1 : 0);
