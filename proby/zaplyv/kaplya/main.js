@@ -567,7 +567,10 @@ function evoModel() { const NW = 360, NH = 220, K = KAP.panel_evo, g = Object.fr
     chasti.push({ g: k, imya: geneName(k), daet: geneBook(k).daet || '', x, y }); }
   const c = document.createElement('canvas'); c.width = NW; c.height = NH; c.getContext('2d').putImageData(B, 0, 0); posleSnimka();
   const S = K.slova, lv = Object.keys(KAP.boj.oruzhie).filter(k => k !== '_' && g[k]).map(k => Math.max(1, (world.lvl || {})[k] || 0)), zash = K.zashchita.filter(k => g[k]).length, um = vh.dlina(KAP.rost, b ? b.m : 1);
-  return { src: c.toDataURL('image/jpeg', 0.88), chasti, cherty: [
+  const M = KAP.mutaciya, hex = c => '#' + c.map(v => Math.round(Math.min(1, v) * 255).toString(16).padStart(2, '0')).join(''), V = M.ves || Object.keys(M.spisok), bol = t => t.charAt(0).toUpperCase() + t.slice(1);
+  const shansy = Object.entries(M.spisok).map(([k, v]) => ({ k, imya: bol(v.imya), cvet: hex(v.cvet), baza: M.shans * V.filter(x => x === k).length / V.length, kus: (MUT.kus || {})[k] || 0, kto: Object.entries((MUT.kto || {})[k] || {}).map(([ot, n]) => [K.slova.nositeli[ot] || ot, n]) })); /* Э.3 п. 4: шанс у дочки — общий и прибавка от кусочков */
+  const rod = (world.staya || []).map(q => ({ id: q.id, ot: q.ot ?? 0, pok: q.pok || 1, cvet: q.mut && M.spisok[q.mut] ? hex(M.spisok[q.mut].cvet) : null })); /* Э.3 п. 5 */
+  return { src: c.toDataURL('image/jpeg', 0.88), chasti, shansy, rod, cherty: [
     { k: 'razmer', z: '📏', t: String(um.toFixed(1)).replace('.', ',') + ' ' + S.mkm, p: S.razmer }, { k: 'rod', z: '⏱', t: Math.round(STY.T ?? KAP.staya.T_max) + ' ' + S.sek, p: S.rod },
     { k: 'oruzhie', z: '⚔', t: lv.length ? S.ur + ' ' + Math.max(...lv) : S.net, p: S.oruzhie }, { k: 'zashchita', z: '🛡', t: zash ? String(zash) : S.net, p: S.zashchita },
     { k: 'skorost', z: '➶', t: '×' + String((cfg.speed / KAP.hod.v).toFixed(1)).replace('.', ','), p: S.skorost }] }; }
@@ -575,7 +578,7 @@ function evoZakryt() { evp.zakryt(EVP); paused = false; document.body.classList.
 function evoOtkryt() { if (ended || paused || EVP.otkryto || !world.me[0]) return; paused = true; document.body.classList.add('paused'); pad.end(0); down = null; finger = null; evp.otkryt(EVP, KAP.panel_evo, evoModel(), evoZakryt); }
 { const bt = document.body.appendChild(Object.assign(document.createElement('button'), { id: 'evobtn', className: 'ghost' })); bt.setAttribute('aria-label', KAP.panel_evo.slova.zagolovok); bt.onclick = e => { e.stopPropagation(); evoOtkryt(); };
   setInterval(() => { const r = $('dnk').getBoundingClientRect(), h = KAP.panel_evo.min_kasanie; Object.assign(bt.style, { top: (r.top + r.height / 2 - h / 2) + 'px', left: r.left + 'px', width: r.width + 'px', height: h + 'px' }); }, 400); } /* касание спирали ДНК — панель; зона касания не меньше min_kasanie */
-window.kaplyaEvo = () => ({ otkryto: EVP.otkryto, model: EVP.otkryto ? evoModel() : null, otkryt: evoOtkryt });
+window.kaplyaEvo = () => ({ otkryto: EVP.otkryto, model: EVP.otkryto ? evoModel() : null, otkryt: evoOtkryt, kusok: f => mtc.kusok(MUT, KAP.mutaciya, f) });
 function openTab() { tab('hub'); try { hubIcons(); } catch (e) {} }
 function leaveTabs() { const C = $('cabinet'); if (C.classList.contains('inpause')) { kab.close(); kab.back = null; C.classList.remove('inpause'); C.style.top = C.style.bottom = ''; } curTab = null; }
 for (const b of $('phub').querySelectorAll('.prow')) b.onclick = () => tab(b.dataset.t);

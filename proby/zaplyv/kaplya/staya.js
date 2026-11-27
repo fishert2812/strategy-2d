@@ -7,6 +7,7 @@
 import { rodit } from './mutaciya.js';
 export const sozdat = () => ({ t: 0, porc: 0, nachalo: null, T: null, pochka: null, px: null, py: null, v: 0, vsego: 0, polna: false, letopis: letopis() });
 // Летопись рода (Е.3 п. 14): поколений (дочка дочки +1), наибольшая стая с тобой, какие мутации родились, какие ты взял обменом, твои темпы по порядку. Итоги и панель эволюции только читают её.
+// ot — от кого родилась копия (0 — от тебя): дерево рода на панели «Эволюция» (блок Э).
 export const letopis = () => ({ pok: 0, max: 1, mutacii: [], vzyal: [], T: [] });
 const zapisat = (L, q) => { if (!L) return; L.pok = Math.max(L.pok, q.pok || 0); if (q.mut && !L.mutacii.includes(q.mut)) L.mutacii.push(q.mut); };
 const R = m => 13 * Math.sqrt(m);
@@ -22,7 +23,7 @@ export function shag(S, w, dt, K, m0, speed, rnd = Math.random, M = null, moya =
   if (!S.pochka && mesto && S.porc >= K.porciya * a.m * 0.999) { S.T = Math.max(K.T_min, Math.min(K.T_max, S.t - S.nachalo)); S.nachalo = null;
     S.pochka = { t: 0, ug: (rnd() * 2 - 1) * K.ugol * Math.PI / 180, m: S.porc, T: S.T }; S.porc = 0; ev.push('pochka'); if (S.letopis) S.letopis.T.push(+S.T.toFixed(1)); } /* копия — это порция: масса не из ниоткуда */
   if (S.pochka) { const P = S.pochka; P.t += dt; if (P.t >= K.t) { const ug = a.a + Math.PI + P.ug, d = (S.polu || R(a.m)) + R(P.m) * (1 + K.otskok); // натяжение порвалось: копия отскакивает
-      w.staya.push({ id: ++w.ids, x: a.x + Math.cos(ug) * d, y: a.y + Math.sin(ug) * d, a: ug, m: P.m, t: 0, sama: 0, T: P.T, pok: 1, ug: P.ug, mut: rodit(moya, M, rnd, kus), mt: 0 }); S.pochka = null; S.vsego++; ev.push('malyshka'); a.vzdrog = K.vzdrog; zapisat(S.letopis, w.staya[w.staya.length - 1]); } }
+      w.staya.push({ id: ++w.ids, x: a.x + Math.cos(ug) * d, y: a.y + Math.sin(ug) * d, a: ug, m: P.m, t: 0, sama: 0, T: P.T, pok: 1, ot: 0, ug: P.ug, mut: rodit(moya, M, rnd, kus), mt: 0 }); S.pochka = null; S.vsego++; ev.push('malyshka'); a.vzdrog = K.vzdrog; zapisat(S.letopis, w.staya[w.staya.length - 1]); } }
   const nov = [], R0 = R(a.m);
   w.staya.forEach((q, i) => { q.t += dt; const kol = Math.floor(i / 6), slot = Math.PI + ((i % 6) - 2.5) * 0.5, dist = R0 * (K.ryad0 + K.ryad * kol) + R(q.m); // места за кормой: кучкой по шесть
     const tx = a.x + Math.cos(a.a + slot) * dist, ty = a.y + Math.sin(a.a + slot) * dist, dx = tx - q.x, dy = ty - q.y, L = Math.hypot(dx, dy) || 1;
@@ -30,7 +31,7 @@ export function shag(S, w, dt, K, m0, speed, rnd = Math.random, M = null, moya =
     if (vm > cap) { vx *= cap / vm; vy *= cap / vm; } q.x += vx * dt; q.y += vy * dt; if (L > 3) q.a += Math.atan2(Math.sin(Math.atan2(dy, dx) - q.a), Math.cos(Math.atan2(dy, dx) - q.a)) * Math.min(1, dt * 4);
     q.T ??= K.T_max; q.pok ??= 1;
     if ((q.sama += dt) >= q.T) { if (w.staya.length + nov.length + (S.pochka ? 1 : 0) < n) { q.sama = 0; // копия не ест: делится по своему T, дочка той же массы, с тем же T и мутацией
-        nov.push({ id: ++w.ids, x: q.x - Math.cos(q.a) * R(q.m) * 1.5, y: q.y - Math.sin(q.a) * R(q.m) * 1.5, a: q.a, m: q.m, t: 0, sama: 0, T: q.T, pok: q.pok + 1, mut: rodit(q.mut, M, rnd, kus), mt: 0 }); ev.push('sama'); }
+        nov.push({ id: ++w.ids, x: q.x - Math.cos(q.a) * R(q.m) * 1.5, y: q.y - Math.sin(q.a) * R(q.m) * 1.5, a: q.a, m: q.m, t: 0, sama: 0, T: q.T, pok: q.pok + 1, ot: q.id, mut: rodit(q.mut, M, rnd, kus), mt: 0 }); ev.push('sama'); }
       else q.sama = q.T; } }); // стая полная — ждёт места
   w.staya.push(...nov); for (const q of nov) zapisat(S.letopis, q); w.staya = w.staya.filter(q => !q.gone); if (S.letopis) S.letopis.max = Math.max(S.letopis.max, w.staya.length + 1);
   return ev; }
