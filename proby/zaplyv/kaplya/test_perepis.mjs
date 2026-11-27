@@ -13,7 +13,7 @@ Object.assign(rost.R, KAP.temp); // рост «Капли», как в main.js
 // список мира → вид; великаны после объятия — тот же вид, что обычные
 const VIDY = { slippers: 'туфелька', tufelki3: 'туфелька', bells: 'колокольчик', rotis: 'коловратка', kolovratki3: 'коловратка', prey: 'кокки', bdellos: 'запятая', amoebas: 'амёба', ameby3: 'амёба', phages: 'вирус', bodos: 'бодо',
   spirilly: 'спирилла', kaulo: 'каулобактер', brodyazhki: 'каулобактер', hlorelly: 'хлорелла', plants: 'анабена', donors: 'соседка-донор', pseudos: 'соперница', parafizo: 'парафизомонада', cerko: 'церкомонада',
-  spumelly: 'спумелла', hlamido: 'хламидомонада', ciklidii: 'циклидиум', krohi: 'кроха', sinegnoyki: 'синегнойка' };
+  spumelly: 'спумелла', hlamido: 'хламидомонада', ciklidii: 'циклидиум', krohi: 'кроха', sinegnoyki: 'синегнойка', didinii: 'дидиний', trubachi: 'трубач', nematody: 'нематода', griby: 'грибок' };
 // N — novye (самопроверка подменяет); вернёт { вид: секунда первой встречи }
 function partiya(seed, N) {
   let s0 = seed; Math.random = () => { s0 = s0 + 0x6D2B79F5 | 0; let t = Math.imul(s0 ^ s0 >>> 15, 1 | s0); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; // повтор партии один в один
