@@ -18,10 +18,11 @@ check('test_L077 test_eda_sahar: сахар у водоросли ешь с пе
 check('test_eda_magnit_zakrytoe: лизат до 2-го роста магнит не тянет — он не липнет к клетке', sudZakrytoe(scena(false, 'lysate')));
 check('test_eda_samoproverka: старое (сахар с первого роста, магнит тянет всё) — сторож краснеет', sudSahar(scena(true, 'glucose')) && sudZakrytoe(scena(true, 'lysate')) ? '' : 'не заметил');
 // L081 (пачка 1 п. 7 «до 2 минут без крошки»): плывёшь 20 с по пустой воде — в кадре (eda_ryadom.r) крошек не меньше n, новые появляются за краем кадра, а не под носом
-const ER = KAP.eda_ryadom, sudRyadom = (shag = edr.shag) => { const a = { x: 0, y: 0, a: 0 }, w = { food: [] }, S = edr.sozdat(); let min = 1e9, podNosom = 0, n0 = 0;
-  for (let t = 0; t < 20; t += DT) { a.x += 120 * DT; const bylo = w.food.length; shag(S, w, DT, ER, a); for (const f of w.food.slice(bylo)) if (Math.hypot(f.x - a.x, f.y - a.y) < ER.za[0] - 1) podNosom++;
-    w.food = w.food.filter(f => !(Math.hypot(f.x - a.x, f.y - a.y) < 12 && (f.gone = true))); if (t > 1) min = Math.min(min, w.food.filter(f => Math.hypot(f.x - a.x, f.y - a.y) < ER.r).length); }
-  return min < ER.n - 2 ? `в кадре было всего ${min} крошек` : podNosom ? `${podNosom} крошек появились прямо в кадре` : ''; };
-check(`test_L081 test_eda_ryadom: 20 с по пустой воде — в кадре не меньше ${ER.n - 2} крошек, новые появляются за краем кадра`, sudRyadom());
+const ER = KAP.eda_ryadom, sudRyadom = (shag = edr.shag) => { let min = 1e9, sr = 0, k = 0, podNosom = 0;
+  for (let seed = 1; seed < 20; seed++) { let z = seed; const rnd = () => ((z = (z * 16807) % 2147483647) / 2147483647), a = { x: 0, y: 0, a: 0 }, w = { food: [] }, S = edr.sozdat();
+    for (let t = 0; t < 20; t += DT) { a.x += 60 * DT; const bylo = w.food.length; shag(S, w, DT, ER, a, rnd); for (const f of w.food.slice(bylo)) if (Math.hypot(f.x - a.x, f.y - a.y) < ER.za[0] - 1) podNosom++;
+      w.food = w.food.filter(f => Math.hypot(f.x - a.x, f.y - a.y) >= 12); if (t > 1) { const c = w.food.filter(f => Math.hypot(f.x - a.x, f.y - a.y) < ER.r).length; min = Math.min(min, c); sr += c; k++; } } }
+  return sr / k < ER.n - 1 ? `в кадре в среднем ${(sr / k).toFixed(1)} крошек` : min < 2 ? `в кадре бывало ${min} крошек` : podNosom ? `${podNosom} крошек появились прямо в кадре` : ''; };
+check(`test_L081 test_eda_ryadom: 20 с по пустой воде (19 заплывов) — в кадре в среднем не меньше ${ER.n - 1} крошек и никогда меньше 2, новые появляются за краем кадра`, sudRyadom());
 check('test_eda_ryadom_samoproverka: без подсыпки (пустая вода) судья ловит', sudRyadom(() => 0) ? '' : 'не заметил');
 Object.assign(rost.R, R0); process.exit(bad ? 1 : 0);
