@@ -13,14 +13,14 @@ Object.assign(rost.R, KAP.temp); // рост «Капли», как в main.js
 // список мира → вид; великаны после объятия — тот же вид, что обычные
 const VIDY = { slippers: 'туфелька', tufelki3: 'туфелька', bells: 'колокольчик', rotis: 'коловратка', kolovratki3: 'коловратка', prey: 'кокки', bdellos: 'запятая', amoebas: 'амёба', ameby3: 'амёба', phages: 'вирус', bodos: 'бодо',
   spirilly: 'спирилла', kaulo: 'каулобактер', brodyazhki: 'каулобактер', hlorelly: 'хлорелла', plants: 'анабена', donors: 'соседка-донор', pseudos: 'соперница', parafizo: 'парафизомонада', cerko: 'церкомонада',
-  spumelly: 'спумелла', hlamido: 'хламидомонада', ciklidii: 'циклидиум', krohi: 'кроха' };
+  spumelly: 'спумелла', hlamido: 'хламидомонада', ciklidii: 'циклидиум', krohi: 'кроха', sinegnoyki: 'синегнойка', didinii: 'дидиний', trubachi: 'трубач', nematody: 'нематода', griby: 'грибок', 'amoebas:bolshaya': 'большая амёба', 'pseudos:seno': 'сенная палочка' }; // «список:вид» — вариант в списке ручного мира
 // N — novye (самопроверка подменяет); вернёт { вид: секунда первой встречи }
 function partiya(seed, N) {
   let s0 = seed; Math.random = () => { s0 = s0 + 0x6D2B79F5 | 0; let t = Math.imul(s0 ^ s0 >>> 15, 1 | s0); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; // повтор партии один в один
   const cfg = boj.v_mir(JSON.parse(JSON.stringify(base)), KAP.boj); Object.assign(cfg, KAP.mir); mut.addGenes(cfg); cfg.sense_idle = KAP.upravlenie.sense_idle; cfg.sense_pull = KAP.upravlenie.sense_pull;
   const w = new World(cfg, seed), r = w.r; w.mode = 'evo'; zh.nachalo(w); bodo.nachalo(w, KAP.bodo); w.lose = () => {}; const vstrecha = {}; let kaulo = 0;
   const est = v => !!KAP.zhiteli[zh.SPISKI[v]], mozhno = v => est(v) && (1 >= (N[v].glava || 1) || (N[v].ranshe ? 'ranshe' : false)); // как в main.js при главе 1
-  const ZON = zn.sozdat(), SOB = sob.sozdat(); let dir = r() * 6.283, smena = 0, kEde = 0, best = null;
+  const ZON = zn.sozdat(), SOB = sob.sozdat(); w.zonaGde = (x, y) => zn.gde(ZON, KAP.zona, x, y); /* как в main.js */ let dir = r() * 6.283, smena = 0, kEde = 0, best = null;
   for (let t = 0; t < KAP.perepis.minut * 60; t += DT) { const a = w.me[0]; if (!a) break;
     if (t > smena) { dir += 1 + r() * 2.5; smena = t + 6 + r() * 4; }
     if (t > kEde) { kEde = t + 2; best = null; if (r() < 0.5) { let bd = 260; for (const f of w.food) { const d = Math.hypot(f.x - a.x, f.y - a.y); if (d < bd) { bd = d; best = f; } } } }
@@ -29,7 +29,7 @@ function partiya(seed, N) {
     zn.shag(ZON, w, DT, KAP.zona, ZM, radius, r); sob.shag(SOB, w, DT, KAP.sobytiya, ZON.zona || 'tihaya', radius, r);
     const z = Math.min(2.3, 2.45 - 0.17 * Math.sqrt(w.biggest())), hw = 360 / z, hh = hw * 844 / 390; // main.js: камера у малой клетки, W = 720
     kaulo = Math.max(kaulo, w.kaulo.length + w.brodyazhki.length); if (N.kaulo.tesno > 1e6 && kaulo > KAP.perepis.kaulo_max) break; // самопроверка: предел пройден — дальше мерить нечего
-    for (const [L, vid] of Object.entries(VIDY)) { if (vstrecha[vid] != null) continue; for (const q of w[L] || []) if (!q.gone && Math.abs(q.x - a.x) < hw && Math.abs(q.y - a.y) < hh) { vstrecha[vid] = t; break; } } }
+    for (const [L, vid] of Object.entries(VIDY)) { if (vstrecha[vid] != null) continue; const [l, v] = L.split(':'); for (const q of w[l] || []) if ((v ? q.vid === v : !(q.vid && VIDY[l + ':' + q.vid])) && !q.gone && Math.abs(q.x - a.x) < hw && Math.abs(q.y - a.y) < hh) { vstrecha[vid] = t; break; } } }
   return { vstrecha, kaulo }; }
 const bezPredela = () => ({ ...KAP.novye, kaulo: { ...KAP.novye.kaulo, na_kome: 1e9, tesno: 1e9 }, brodyazhka: { ...KAP.novye.brodyazhka, zhivyot: 1e9 } });
 const bez = () => Object.fromEntries(Object.entries(KAP.novye).map(([k, v]) => [k, v && typeof v === 'object' ? { ...v, ranshe: undefined, shans: [0, 0, 0] } : v]));
