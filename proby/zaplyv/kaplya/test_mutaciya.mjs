@@ -54,4 +54,8 @@ const sudKusok = (rod = mtc.rodit) => { const S = mtc.sozdat(), r = rnd(5);
   if (bez / N > M.shans) return `без кусочков капсула в ${(bez / N * 100).toFixed(1)} %`; return ''; };
 check(`test_kusok_shans: кокк даёт +${M.kusok} к капсуле, десять — потолок ${M.kusok_max}; с полной полоской капсула не реже ${M.kusok_max * 100} % делений, выпала — полоска на нуль (И27)`, sudKusok());
 check('test_kusok_shans_samoproverka: кусочки, что не влияют на деление, судья ловит', sudKusok((m, M0, r) => mtc.rodit(m, M0, r)) ? '' : 'не заметил');
+// Е.3 п. 13: погибла от вируса — просыпаешься самой крупной копией с замком, а не самой крупной; от другого — самой крупной.
+{ const mk = () => ({ me: [], ids: 9, genes: {}, staya: [{ id: 1, x: 0, y: 0, a: 0, m: 0.9, mut: null }, { id: 2, x: 5, y: 0, a: 0, m: 0.5, mut: M.zamok }] }), w1 = mk(), w2 = mk();
+  const v = mtc.prosnutsya(mtc.sozdat(), w1, M, true), d = mtc.prosnutsya(mtc.sozdat(), w2, M, false);
+  check('test_virus_probuzhdenie: от вируса просыпаешься копией с замком (0,5), от другого — самой крупной (0,9) (Е.3 п. 13)', v && v.a.m === 0.5 && v.zamok && d && d.a.m === 0.9 && !d.zamok ? '' : JSON.stringify({ v: v && v.a.m, d: d && d.a.m })); }
 process.exit(bad ? 1 : 0);

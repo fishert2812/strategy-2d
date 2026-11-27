@@ -34,4 +34,10 @@ check('test_temp_roda_samoproverka_T: темп не от времени порц
 { const n = [1, 2, 4, 8, 64].map(m => sty.mest(K0, m)), o = opyt(K0, K0.porciya / 5, 90);
   check(`test_mesto: мест в стае ${n.join(' / ')} при массе 1 / 2 / 4 / 8 / 64; полная стая (${o.max} при ${sty.mest(K0, o.a.m)}) не растёт дальше`, n.join() === '6,9,12,15,16' && o.max <= sty.mest(K0, o.a.m) ? '' : `места ${n.join()}, было ${o.max}`); }
 { const o = opyt(K0, K0.porciya / 5, 60, { v: 120 }); check(`test_kuchka: плывёшь, стая из ${o.w.staya.length} держится кучкой: дальняя копия в ${o.dalshe.toFixed(1)} твоих радиусов (не дальше ${K0.kuchka + 1})`, o.w.staya.length >= 6 && o.dalshe <= K0.kuchka + 1 ? '' : `копий ${o.w.staya.length}, дальняя ${o.dalshe.toFixed(1)}`); }
+// Е.3 п. 14, Е.6 test_letopis: летопись рода считает поколения (дочка дочки +1) и наибольшую стаю по миру; без обмена «взяла» пусто.
+const sudLetopis = (L, o) => { const pok = Math.max(0, ...o.w.staya.map(q => q.pok || 0)); if (L.pok !== pok) return `в летописи поколений ${L.pok}, а в стае до ${pok}`;
+  if (L.pok < 3) return `за 40 с поколений ${L.pok}`; if (L.max < o.max + 1) return `наибольшая стая ${L.max}, а была ${o.max + 1} с тобой`; if (L.vzyal.length) return `без обмена «взяла»: ${L.vzyal}`;
+  if (!L.T.length || L.T.some(T => Math.abs(T - 8) > 0.5)) return `темпы ${L.T}`; return ''; };
+{ const o = opyt(K0, K0.porciya / 8, 40, { korm: true }), L = o.S.letopis; check(`test_letopis: летопись — поколений ${L.pok}, стая до ${L.max} с тобой, темпы ${[...new Set(L.T)].join(', ')} с, «взяла» пусто (Е.3 п. 14)`, sudLetopis(L, o));
+  check('test_letopis_samoproverka: летопись, что не пишется, судья ловит', sudLetopis(sty.letopis(), o) ? '' : 'не заметил'); }
 process.exit(bad ? 1 : 0);
