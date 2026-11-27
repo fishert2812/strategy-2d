@@ -49,7 +49,7 @@ import * as fl from './flazhok.js'; /* L070: один флажок на всех
 const VEHI = vh.zagruzit();
 window.kaplyaLes = () => LES; window.kaplyaGlava = () => GLAVA; // спирилла, каулобактер, хлорелла (книга П39), руками // строка цели, подпись линейки, «теперь еда» (книга П5–П7)
 const KAP = await (await fetch('kaplya/kaplya.json')).json(), ZH = KAP.zhiteli, ZAP = {}; boj.v_mir(cfg, KAP.boj); /* Д.6: толчок и щипок кокка, укол соперницы — из таблицы боя */ Object.assign(rost.R, KAP.temp); /* Ш26, Роман 21:22 «вырастаешь… очень быстро»: в «Капле» рост реже, основной «Заплыв» не меняется */
-{ const U = KAP.upravlenie; cfg.sense_idle = U.sense_idle; cfg.sense_pull = U.sense_pull; } // Роман 26.11 20:39: клетку ведёт только палец; «Нюх» не везёт к еде
+Object.assign(cfg, KAP.mir); /* блок К (Роман 27.11 14:44: «нужно доабавиь много существ в каплю»): частоты жителей sim.js в «Капле», основной «Заплыв» не меняется */ { const U = KAP.upravlenie; cfg.sense_idle = U.sense_idle; cfg.sense_pull = U.sense_pull; } // Роман 26.11 20:39: клетку ведёт только палец; «Нюх» не везёт к еде
 for (const [k, v] of Object.entries(ZH)) if (v && VC.vidy[v.zapis]) ZAP[k] = { ...VC.vidy[v.zapis], gruppa: undefined };
 // нарисовать жителя записью: x, y — экран, a — куда смотрит, mera — ручная мера тела (длина, радиус, толщина) на экране
 // Лаги на большой клетке (Роман 26.11: «Лагать и нагреваться телефон стал… большим стал»): камера отъезжает, и в кадр входят сотни жителей,
@@ -878,7 +878,7 @@ function tick(dt) {
       if (e === 'otskok') { world.events.push(['bump', g.x, g.y]); if (!(MUT.zvon > world.stats.time)) { MUT.zvon = world.stats.time + 0.25; beep(1320, 0.08, 0.03, 'sine'); } } /* 12.5: вирус отскакивает от замка со звоном */
       if (e === 'spas') say(MS.spas.replace('{n}', q).replace('{iz}', g), 5000);
       if (e === 'umerla' && !MUT.s_umerla) { MUT.s_umerla = 1; say(MS.umerla, 3500); } if (e === 'zakrep') say(MS.zakrep.replace('{}', geneName(g)), 4000, g); } }
-  psh.shag(world, dt, KAP.pishcha, radius); { const B = KAP.bodo, um = !!world.genes.gulp; bodo.shag(world, dt, B, radius, slyshuBodo); bodo.glotat(world, B, radius, evo.E.glotat.syt, 0, um, slyshuBodo); zh.shag(world, dt, KAP.novye, v => !!ZAP[zh.SPISKI[v]] && (les.vkl() ? les.poyavitsya(KAP.lestnica, world.me[0] ? world.me[0].m : 1, KAP.novye[v].massa[0]) : GLAVA >= (KAP.novye[v].glava || 1)), radius); zh.glotat(world, evo.E.glotat.bolshe, radius, um, (v, mq, ma) => say(glk.slovo(KAP.slova_glotka, v === 'kaulo' && (world.syel.kaulo || 0) > 1 ? 'kaulo_snova' : v, mq, ma, evo.E.glotat.syt), 2600)); } // джойстик: направление и сила из сдвига пальца
+  psh.shag(world, dt, KAP.pishcha, radius); { const B = KAP.bodo, um = !!world.genes.gulp; bodo.shag(world, dt, B, radius, slyshuBodo); bodo.glotat(world, B, radius, evo.E.glotat.syt, 0, um, slyshuBodo); zh.shag(world, dt, KAP.novye, v => !!ZAP[zh.SPISKI[v]] && (les.vkl() ? les.poyavitsya(KAP.lestnica, world.me[0] ? world.me[0].m : 1, KAP.novye[v].massa[0]) : (GLAVA >= (KAP.novye[v].glava || 1) || (KAP.novye[v].ranshe ? 'ranshe' : false))), radius); zh.glotat(world, evo.E.glotat.bolshe, radius, um, (v, mq, ma) => say(glk.slovo(KAP.slova_glotka, v === 'kaulo' && (world.syel.kaulo || 0) > 1 ? 'kaulo_snova' : v, mq, ma, evo.E.glotat.syt), 2600)); } // джойстик: направление и сила из сдвига пальца
   { const [fx, fy] = world.flow(view.x, view.y); cur[0] += fx * dt; cur[1] += fy * dt; } // течение несёт взвесь
   events();
   if (!world.me.length) {
