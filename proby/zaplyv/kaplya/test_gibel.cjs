@@ -31,7 +31,7 @@ const sudKadr = (r, imya) => [r.imya !== imya && `имя «${r.imya}», нужн
       return { imya: document.getElementById('cname').textContent, snimok, zakryto }; });
     const sp = await p.evaluate(() => window.kaplyaUbiycy());
     if (process.env.KADR) await p.screenshot({ path: path.join(process.env.KADR, `gibel_${kto}${bez ? '_bez' : ''}.png`) }); await p.close(); return { ...r, osh, sp }; };
-  const imena = { slipper: 'Туфелька', trubach: KAP.gibel.kto.trubach.imya, parafizo: KAP.karty_krupnyh.parafizo.name };
+  const imena = { slipper: 'Туфелька', trubach: KAP.obitateli.kto.trubach.imya, parafizo: KAP.karty_krupnyh.parafizo.name };
   const vse = []; for (const k of Object.keys(imena)) vse.push([k, await gibel(k)]);
   const me = JSON.parse(fs.readFileSync(path.join(KOREN, 'cards.json'))).me.name, sp = vse[0][1].sp;
   check(`test_ubiyca_veren: у всех ${sp.length}, кто может убить, есть имя (не «${me}») и снимок`, sudUbiycy(sp, me));
