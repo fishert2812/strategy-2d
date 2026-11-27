@@ -24,7 +24,7 @@ const cfg = await (await fetch('data.json')).json();
 // Форк по книге: жители капли — записи конструктора (vid_chasti.json), кто чем рисуется — kaplya/kaplya.json
 import { sobrat, sobrat_gruppu, VC, chasti_navykov } from '../vid_chasti.js';
 import * as bodo from './bodo.js'; // бодо — хозяин главы 1 (книга П37, П39), руками
-import * as cel from './cel.js';
+import * as cel from './cel.js'; import * as prk from './perekras.js'; /* К п. 8: перекрас записи жителя только в «Капле» */
 import * as zh from './zhiteli.js';
 import * as les from './lestnica.js'; // аркада «Лестница» (П86–П89): ?lestnica
 import * as umn from './umeniya.js'; // умения по книге: «Вампир», шапка «Нюха» (П65, П71)
@@ -50,7 +50,7 @@ const VEHI = vh.zagruzit();
 window.kaplyaLes = () => LES; window.kaplyaGlava = () => GLAVA; window.kaplyaCel = () => CEL; window.kaplyaZon = () => ZON; window.kaplyaSem = () => SEM; /* для сторожа тревоги (test_trevoga.cjs) */ // спирилла, каулобактер, хлорелла (книга П39), руками // строка цели, подпись линейки, «теперь еда» (книга П5–П7)
 const KAP = await (await fetch('kaplya/kaplya.json')).json(), ZH = KAP.zhiteli, ZAP = {}; if (window.kaplyaStaryKokk) KAP.boj.celi.kokk.tolchok = KAP.boj.celi.kokk.tolchok_staryj; if (window.kaplyaStaryjZapas) { const X = KAP.boj.oruzhie.toxin; X.dostaet = X.dostaet_staryj; X.zapas_rashod = X.zapas_rashod_staryj; X.zapas_vosst = X.zapas_vosst_staryj; } /* L124: прежние кольцо и запас яда — для самопроверки */ if (window.kaplyaStaryjYad) { KAP.boj.oruzhie.toxin.dlitsya = KAP.boj.oruzhie.toxin.dlitsya_staryj; KAP.boj.celi.kokk.stenka.toxin = KAP.boj.celi.kokk.stenka.toxin_staryj; } /* L113: прежние числа яда — для самопроверки test_yad_palec */ boj.v_mir(cfg, KAP.boj); /* Д.6: толчок и щипок кокка, укол соперницы — из таблицы боя */ Object.assign(rost.R, KAP.temp); if (window.kaplyaStaryMagnit) rost.R.eda = { ...rost.R.eda, glucose: 1 }; /* L077: самопроверка — сахар как раньше, с первого роста */ /* Ш26, Роман 21:22 «вырастаешь… очень быстро»: в «Капле» рост реже, основной «Заплыв» не меняется */
 Object.assign(cfg, KAP.mir); /* блок К (Роман 27.11 14:44: «нужно доабавиь много существ в каплю»): частоты жителей sim.js в «Капле», основной «Заплыв» не меняется */ { const U = KAP.upravlenie; cfg.sense_idle = U.sense_idle; cfg.sense_pull = U.sense_pull; } // Роман 26.11 20:39: клетку ведёт только палец; «Нюх» не везёт к еде
-for (const [k, v] of Object.entries(ZH)) if (v && VC.vidy[v.zapis]) ZAP[k] = { ...VC.vidy[v.zapis], gruppa: undefined };
+for (const [k, v] of Object.entries(ZH)) if (v && VC.vidy[v.zapis]) ZAP[k] = { ...VC.vidy[v.zapis], gruppa: undefined }; prk.perekrasit(ZAP, KAP.perekras); /* К п. 8: синегнойка сине-зелёная, не розовая, как ты */
 // нарисовать жителя записью: x, y — экран, a — куда смотрит, mera — ручная мера тела (длина, радиус, толщина) на экране
 // Лаги на большой клетке (Роман 26.11: «Лагать и нагреваться телефон стал… большим стал»): камера отъезжает, и в кадр входят сотни жителей,
 // каждый собран полной записью. Книга П35: что мельче тебя в десятки раз, сливается во взвесь. Житель мельче KAP.lod.px точек экрана рисуется
