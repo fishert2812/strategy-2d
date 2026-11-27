@@ -35,7 +35,7 @@ export function shag(S, w, dt, M) { const ev = [], st = w.staya || [], zamok = q
 // Ты погибла, а в стае есть живые: просыпаешься самой крупной из них (Ш13), её мутация закрепляется. Вернёт новую тебя или null.
 // virus — погибла от вируса: просыпаешься самой крупной с замком (Е.3 п. 13; без замка копии всё равно гибнут), если такая есть.
 export function prosnutsya(S, w, M, virus = false) { const st0 = w.staya || []; if (w.me.length || !st0.length) return null; const zam = virus ? st0.filter(x => x.mut === M.zamok && x.bol == null) : [], st = zam.length ? zam : st0, q = st.reduce((b, x) => x.m > b.m ? x : b);
-  w.staya = st.filter(x => x !== q); const a = { x: q.x, y: q.y, vx: 0, vy: 0, a: q.a, m: q.m, sick: -1, gen: 0, id: ++w.ids }; w.me.push(a); S.moya = q.mut || S.moya;
+  /* L078: копия 0,02 не дорастёт — просыпаешься не меньше prosnut_min */ w.staya = st.filter(x => x !== q); const a = { x: q.x, y: q.y, vx: 0, vy: 0, a: q.a, m: Math.max(q.m, M.prosnut_min || 0), sick: -1, gen: 0, id: ++w.ids }; w.me.push(a); S.moya = q.mut || S.moya;
   return { a, gene: zakrepit(S, w, M, q.mut), mut: q.mut, zamok: !!zam.length }; }
 // Стать мутанткой (карточка «Стать ею?»): ты на её месте и её размера, прежняя ты плывёт в стае; мутация закрепляется.
 export function statEyu(S, w, M, q) { const a = w.me[0]; if (!a || !(w.staya || []).includes(q)) return null;
