@@ -4,7 +4,7 @@
 export function tochki(K, cfg, kto, m, x, y, R, rnd = Math.random) {
   const n = Math.max(K.min, Math.min(K.max, Math.round(K.n0 + K.na_m * m))), F = cfg.food_kinds[K.kind], s = K.cennost * m / (n * cfg.food * F.gain), C = K.cveta[kto] || K.cveta._, out = [];
   for (let i = 0; i < n; i++) { const t = (i + rnd()) / n * 6.283, d0 = R * K.start * Math.sqrt(rnd()), d1 = R * K.dal * (0.35 + 0.65 * rnd()), v = (d1 - d0) * K.torm;
-    out.push({ x: x + Math.cos(t) * d0, y: y + Math.sin(t) * d0, vx: 0, vy: 0, kind: K.kind, s, cvet: C[i % C.length], lv: [Math.cos(t) * v, Math.sin(t) * v], zn: 1, ubit: 1 }); } /* zn — зона уже разложила (zona.js); ubit — точка убитого (Ж.3) */
+    out.push({ x: x + Math.cos(t) * d0, y: y + Math.sin(t) * d0, vx: 0, vy: 0, kind: K.kind, s, cvet: C[i % C.length], lv: [Math.cos(t) * v, Math.sin(t) * v], zn: 1, ubit: 1, ot: kto, n }); } /* zn — зона уже разложила (zona.js); ubit — точка убитого (Ж.3); ot, n — чей кусочек гена и на сколько точек он разбит (Е.3 п. 8) */
   return out; }
 // Вязкое торможение точек (своё, а не sim.js: те ползут секунду)
 export function shag(w, dt, K) { const k = Math.exp(-K.torm * dt);

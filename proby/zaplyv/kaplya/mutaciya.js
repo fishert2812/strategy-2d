@@ -2,9 +2,15 @@
 // «Выбирать клетки не нужно. Только если мутация. Нужно сделать мутацию шансом… вирус… какая то с шансом выжить»). Числа — kaplya.json «mutaciya».
 // Мутация принадлежит одной клетке стаи (q.mut), метка отрастает за otrast секунд (q.mt), потомки мутанта несут её. Ген мира даёт только закрепление.
 const R = m => 13 * Math.sqrt(m);
-// Какая мутация у новорождённой: мутант рождает мутанта, иначе шанс shans на случайную из spisok
-export function rodit(mut, M, rnd = Math.random) { if (!M) return null; if (mut) return mut; if (rnd() >= M.shans) return null; const v = M.ves || Object.keys(M.spisok); /* ves: замок в списке дважды (12.8) */ return v[Math.floor(rnd() * v.length) % v.length]; }
-export const sozdat = () => ({ tret: {}, est: {}, moya: null, sprosila: {}, volna: null });
+// Какая мутация у новорождённой: мутант рождает мутанта; иначе сперва кусочки съеденных генов (Е.3 п. 8, И27: kus[мутация] — шанс именно её, выпала — полоска обнуляется),
+// потом шанс shans на случайную из spisok
+export function rodit(mut, M, rnd = Math.random, kus = null) { if (!M) return null; if (mut) return mut;
+  if (kus) for (const k of Object.keys(kus)) if (kus[k] > 0 && rnd() < kus[k]) { kus[k] = 0; return k; }
+  if (rnd() >= M.shans) return null; const v = M.ves || Object.keys(M.spisok); /* ves: замок в списке дважды (12.8) */ const g = v[Math.floor(rnd() * v.length) % v.length]; if (kus && kus[g]) kus[g] = 0; return g; }
+// Съел точку убитого носителя гена (Е.3 п. 8): +kusok к шансу его мутации, не больше kusok_max. f.ot — кто это был (lopnut.js). Вернёт мутацию, если прибавилось.
+export function kusok(S, M, f) { const m = f && !f.kus && (M.nositeli || {})[f.ot]; if (!m) return null; f.kus = 1; S.kus ||= {}; const b = S.kus[m] || 0;
+  S.kus[m] = Math.min(M.kusok_max, b + M.kusok / Math.max(1, f.n || 1)); return S.kus[m] > b ? m : null; }
+export const sozdat = () => ({ tret: {}, est: {}, moya: null, sprosila: {}, volna: null, kus: {} });
 // Ген мутации стал умением уровня 1 (если его ещё нет). Возвращает имя гена, если закрепила сейчас.
 export function zakrepit(S, w, M, mut) { if (!mut || S.est[mut]) return null; S.est[mut] = true; const g = M.spisok[mut].gene; if (w.genes[g]) return null; w.genes[g] = true; return g; }
 // Шаг: метки отрастают, вирус касанием заражает малышек без замка (от замка отскакивает) и через sosed секунд соседей впритык, без замка гибнут через gibel секунд;
