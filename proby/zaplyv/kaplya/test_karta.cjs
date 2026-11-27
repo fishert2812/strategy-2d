@@ -25,9 +25,9 @@ let bad = 0; const check = (n, e) => { console.log((e ? '  ПРОВАЛ ' : '  �
     if (!vzyal) return `одно касание не взяло «${g}»`; if (t2 - t1 < 0.5) return 'после выбора мир не пошёл'; return ''; };
   // «Глотать» карточкой на glotat_s секунде (Р5)
   const G = await p.evaluate(() => { const K = kaplyaKarta(); return { glotat: K.glotat }; });
-  await p.waitForFunction(() => zaplyvWorld().choice.includes('gulp') || zaplyvWorld().genes.gulp, null, { timeout: 40000 }).catch(() => {});
-  const gl = await p.evaluate(() => ({ karta: zaplyvWorld().choice.includes('gulp'), est: !!zaplyvWorld().genes.gulp }));
-  check('test_karta_glotat: «Глотать» приходит карточкой, а не само', G.glotat && gl.karta && !gl.est ? await sud(2) : JSON.stringify(gl));
+  await p.waitForFunction(() => zaplyvWorld().choice.length, null, { timeout: 40000 }).catch(() => {}); // урок L072: первая карточка — выбор с оружием, а не одна «Глотать»
+  const gl = await p.evaluate(() => ({ v: zaplyvWorld().choice.slice(), est: !!zaplyvWorld().genes.gulp, t: +zaplyvWorld().stats.time.toFixed(1) }));
+  check('test_karta_pervaya: первая карточка — выбор из нескольких умений, «Глотать» среди них нет и само не пришло', gl.v.length > 1 && !gl.v.includes('gulp') && !gl.est ? await sud(2) : JSON.stringify(gl));
   const dat = () => p.evaluate(() => { const w = zaplyvWorld(); w.choice = Object.keys(w.cfg.genes).filter(g => !w.genes[g] && g !== 'gulp').slice(0, 3); });
   await dat(); check('test_karta_pauza: пока лежат карточки, мир стоит 5 с; на каждой снимок, имя, строка; одно касание берёт', await sud(5));
   await p.evaluate(() => { kaplyaKarta().pauza = false; }); await dat();
