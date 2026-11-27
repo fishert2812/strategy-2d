@@ -13,13 +13,13 @@
   },
   "seno": {
    "papka": "sennaya_palochka",
-   "fail": "cdc_23247_cdifficile_oosthuizen.jpg",
+   "fail": "plos_pgen1010696_bsubtilis_cepochka.jpg",
    "poza": {
-    "dlina": 4.0,
+    "dlina": 3.0,
     "tolshchina": 56,
-    "ugol": -1.5708
+    "ugol": 0.9
    },
-   "avtor": "Jennifer Oosthuizen, CDC, общественное достояние"
+   "avtor": "Kilb A., Burghard-Schrod M., Holtrup S., Graumann P.L., PLOS Genetics, CC BY 4.0"
   },
   "sinegnoyka": {
    "papka": "sinegnoyka",
@@ -313,13 +313,13 @@
   },
   "trubach": {
    "papka": "trubach",
-   "fail": "inat_104173623_truba_sine_zelenaya.jpg",
+   "fail": "inat_107445689_truba_na_nozhke.jpg",
    "poza": {
     "dlina": 5,
     "tolshchina": 60,
-    "ugol": -1.4
+    "ugol": -1.1
    },
-   "avtor": "Павлик Лисицын, CC-BY"
+   "avtor": "crseaquist, iNaturalist, CC BY"
   },
   "gribok": {
    "papka": "gribok",
