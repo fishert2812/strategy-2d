@@ -424,23 +424,30 @@ function snap0(k, it) {
   } finally { [world, view, kids, down, moved, puffs, paint.t] = keep; fx.load(fxs); }
   return out.toDataURL('image/jpeg', 0.86);
 }
+// Кадр студии: твоя клетка массы m с генами genes, время стоит — два кадра с разными генами отличаются только геном.
+function studioKadr(genes, NW, NH, m) {
+  const fxs = fx.save(), keep = [world, view, kids, down, moved, puffs, paint.t], c = document.createElement('canvas'); c.width = NW; c.height = NH;
+  try {
+    world = studio('me', { a: -0.5 }); world.genes = genes; if (m) world.me[0].m = m; kids = null; down = null; moved = true; fx.reset(); puffs = [];
+    const side = Math.min(W, H) * 0.9; view = { x: 0, y: 0, z: side * 0.62 / cfg.icon_span, tint: [...TINT[0]] };
+    for (let i = 0; i < 4; i++) { paint.t = 30; render(30); } // время стоит: оба снимка в одной позе, разница — только ген
+    const sx = canvas.width / W, cw = side * sx * 0.62 * Math.max(1, NW / NH), ch = cw * NH / NW;
+    c.getContext('2d').drawImage(canvas, (canvas.width - cw) / 2, (canvas.height - ch) / 2, cw, ch, 0, 0, NW, NH);
+  } finally { [world, view, kids, down, moved, puffs, paint.t] = keep; fx.load(fxs); }
+  return c.getContext('2d').getImageData(0, 0, NW, NH);
+}
+// Ворота «выданное видно на теле» (kolonia_eda_boy.md 13.4 Б4, сторож test_vorota_vidno.cjs): какие гены игра может выдать (карточки, мутации стаи, новое оружие)
+// и какая доля кадра студии меняется, когда ген у твоей клетки. Ген без части на теле даёт ноль.
+window.kaplyaVorota = { geny: () => [...new Set([...Object.keys(cfg.genes), ...evo.E.svoi, ...Object.values(KAP.mutaciya.spisok).map(x => x.gene)])].filter(g => !evo.E.bez.includes(g)),
+  raznica: (g, m) => { shotDensity(); const A = studioKadr({}, 240, 150, m).data, B = studioKadr({ [g]: true }, 240, 150, m).data; let n = 0;
+    for (let i = 0; i < A.length; i += 4) if (Math.abs(A[i] - B[i]) + Math.abs(A[i + 1] - B[i + 1]) + Math.abs(A[i + 2] - B[i + 2]) > 60) n++; posleSnimka(); return n / (A.length / 4); } };
 // Значок гена (макет дизайнера: круг, тело приглушено, часть, которую даёт ген, подсвечена). Снимаем клетку без гена и с геном
 // той же студией, что Альманах, и оставляем ярким только то, что изменилось: сам ген на теле. Кеш — снимаем один раз.
 const icons = new Map();
 function geneShot(g, NW, NH, crop = 0) { const r = geneShot0(g, NW, NH, crop); posleSnimka(); return r; }
 function geneShot0(g, NW, NH, crop = 0) {
   shotDensity();
-  const grab = genes => {
-    const fxs = fx.save(), keep = [world, view, kids, down, moved, puffs, paint.t], c = document.createElement('canvas'); c.width = NW; c.height = NH;
-    try {
-      world = studio('me', { a: -0.5 }); world.genes = genes; kids = null; down = null; moved = true; fx.reset(); puffs = [];
-      const side = Math.min(W, H) * 0.9; view = { x: 0, y: 0, z: side * 0.62 / cfg.icon_span, tint: [...TINT[0]] };
-      for (let i = 0; i < 4; i++) { paint.t = 30; render(30); } // время стоит: оба снимка в одной позе, разница — только ген
-      const sx = canvas.width / W, cw = side * sx * 0.62 * Math.max(1, NW / NH), ch = cw * NH / NW;
-      c.getContext('2d').drawImage(canvas, (canvas.width - cw) / 2, (canvas.height - ch) / 2, cw, ch, 0, 0, NW, NH);
-    } finally { [world, view, kids, down, moved, puffs, paint.t] = keep; fx.load(fxs); }
-    return c.getContext('2d').getImageData(0, 0, NW, NH);
-  };
+  const grab = genes => studioKadr(genes, NW, NH);
   const A = grab({}), B = grab({ [g]: true }), a = A.data, b = B.data;
   for (let i = 0; i < a.length; i += 4) {
     const d = Math.min(1, (Math.abs(b[i] - a[i]) + Math.abs(b[i + 1] - a[i + 1]) + Math.abs(b[i + 2] - a[i + 2])) / 90);
