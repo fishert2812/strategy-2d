@@ -1190,7 +1190,8 @@ function paint(time) {
   bodies.podnyat = window.kaplyaStaryjSloj ? 0 : KAP.sloi.ty; /* L082: ты всегда поверх жителей — не прячешься под анабеной и туфелькой (пачка 2, Т7) */
   for (const a of kids || world.me) { // палочка: мягкое тело
     if (a.spore > 0) continue; // перёд ведёт, корма и пучок жгутиков идут по его следу
-    const lk = a.g ? look({ ...world.genes, [a.g]: true }, cfg.look, world.spacers.size) : lkAll, w = (rost.on(world) ? 8.5 * Math.pow(a.m, rost.vid(world)) : DL.w) * z * (a.g ? 1.9 : 1), sp = Math.hypot(a.vx, a.vy); // толщина постоянная (физика п. 14), в «Росте» видно, что растёшь
+    const pzr = window.kaplyaStaryPuzyr ? null : (world.amoebas || []).find(m => m.ohv && m.ohv.faza === 'puzyr' && (m.ohv.kogo || a) === a), szh = pzr ? 1 - KAP.ameba.szhatie * Math.min(1, pzr.ohv.t / KAP.ameba.perevar) : 1; /* L095: в пузыре амёбы клетка сжимается — видно, что её переваривают */
+    const lk = a.g ? look({ ...world.genes, [a.g]: true }, cfg.look, world.spacers.size) : lkAll, w = (rost.on(world) ? 8.5 * Math.pow(a.m, rost.vid(world)) : DL.w) * z * (a.g ? 1.9 : 1) * szh, sp = Math.hypot(a.vx, a.vy); // толщина постоянная (физика п. 14), в «Росте» видно, что растёшь
     const fm = Math.min(a.m, world.split()) / world.split(), gr = vid.grow(fm, DL); // доля пути к делению: 0,5 у новорождённой, 1 у созревшей
     const run = sp > 25 && !a.tumble, wob = run ? 0.035 : 0.015; // встречное вращение тела к пучку: 3 раза в секунду
     const half = a.held > 0 ? w * (1.05 + 0.6 * a.held / cfg.bdello_kill) : rost.on(world) ? w * (1.6 + 1.0 * fm) : w * gr.half, tailW = w * 7.5 / z; // хищник внутри — клетка округляется в шарик
