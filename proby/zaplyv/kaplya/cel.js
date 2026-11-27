@@ -29,3 +29,5 @@ export function shag(C, w, me, K, mass, bolshe, umeet, syt) { const I = K.imena,
   return teper; }
 // П7: можно съесть — тёплый ровный свет, который медленно «дышит»
 export const eda = (C, me, m, bolshe, umeet) => umeet && m * bolshe <= me.m;
+// L085 (пачка 2, Т3: шарик одновременно «теперь еда!» и «жалит, не касайся»): живое (boj.zhivoe) сначала убить — строка teper_ubey, остальное — teper
+export const slovoTeper = (KC, who, spisok, zhivoe) => (zhivoe && zhivoe({}, spisok) ? KC.slova.teper_ubey : KC.slova.teper).replace('{}', KC.imena[who][0]);

@@ -36,6 +36,13 @@ async function kokk(pw, port, staryj) { const b = await pw.chromium.launch(proce
   for (let i = 0; i < 200; i++) { const s = await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; if (!a) return null; const dx = KQ.x - a.x, dy = KQ.y - a.y, n = Math.hypot(dx, dy) || 1; return { d: [dx / n, dy / n], f: a.gn ? a.gn.f : 1, t: w.stats.time }; });
     if (!s || s.t - t0 > 5) break; f = Math.min(f, s.f); await p.mouse.move(195 + s.d[0] * 60, 600 + s.d[1] * 60); await p.waitForTimeout(150); }
   await b.close(); return f; }
+// L088 (переигровка bac846d: «кокк трижды коснулся клетки и каждый раз сразу отскочил… полоска ДНК полная»): три коротких касания по 0,25 с игры — каждое жалит
+async function kokkKasanie(pw, port, staryj) { const b = await pw.chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME, args: ['--no-sandbox'] } : {}), p = await b.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  if (staryj) await p.addInitScript(() => { window.kaplyaStaryKokk2 = true; });
+  await p.goto(`http://127.0.0.1:${port}/kaplya/`); await p.waitForFunction(() => window.zaplyvWorld && zaplyvWorld() && zaplyvWorld().me.length && zaplyvWorld().stats.time > 0.5, null, { timeout: 90000 });
+  await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.choice = []; kaplyaKarta().pauza = false; for (const k of ['amoebas', 'bells', 'slippers', 'rotis', 'bdellos', 'phages', 'bodos', 'prey']) if (w[k]) w[k].length = 0; const q = { x: a.x + 200, y: a.y, vx: 0, vy: 0, m: 1, a: 0, id: ++w.ids }; w.prey.push(q);
+    const t0 = w.stats.time, st = w.step.bind(w); window.KK = { f: 1, konec: false }; w.step = (...r) => { const A = w.me[0], u = w.stats.time - t0, k = Math.floor(u / 1.5), faza = u - k * 1.5; if (A && k < 3) { const R = 13 * Math.sqrt(A.m) + 13 * 0.6; A.vx = A.vy = 0; if (faza < 0.25) { A.x = q.x - R + 2; A.y = q.y; } else { A.x = q.x - 120; A.y = q.y; } } else KK.konec = true; const v = st(...r); if (A && A.gn) KK.f = Math.min(KK.f, A.gn.f); return v; }; });
+  await p.waitForFunction(() => KK.konec, null, { timeout: 240000 }); const f = await p.evaluate(() => KK.f); await b.close(); return f; }
 (async () => {
   const srv = http.createServer((q, s) => { const f = path.join(KOREN, decodeURIComponent(q.url.split('?')[0])); const ff = fs.existsSync(f) && fs.statSync(f).isDirectory() ? path.join(f, 'index.html') : f;
     if (!ff.startsWith(KOREN) || !fs.existsSync(ff)) { s.writeHead(404); return s.end(); } s.writeHead(200, { 'Content-Type': TIP[path.extname(ff)] || 'application/octet-stream' }); fs.createReadStream(ff).pipe(s); }).listen(0);
@@ -46,6 +53,8 @@ async function kokk(pw, port, staryj) { const b = await pw.chromium.launch(proce
   check('test_L081 test_partiya_eda: «съедено» растёт не реже раза в 12 с игры (пачка 1 п. 7)', P.golod > 12 ? `${P.golod.toFixed(0)} с подряд без крошки` : '');
   check('test_partiya_oshibki: ни одной ошибки страницы', P.errs.length ? P.errs.slice(0, 3).join(' | ') : '');
   { const f = await kokk(pw, srv.address().port, false); check(`test_L075 test_kokk_v_igre: плывёшь в кокка 5 с игры — он жалит, жалит не реже раза в 2 с: геном-здоровье ${f.toFixed(2)} (нужно меньше 0,8)`, f < 0.8 ? '' : 'кокк почти не жалит: ' + f);
+  { const f = await kokkKasanie(pw, srv.address().port, false); check(`test_L088 test_kokk_kasanie: три коротких касания кокка по 0,25 с — полоска ДНК короче: ${f.toFixed(2)} (нужно меньше 0,9)`, f < 0.9 ? '' : 'касания не жалят');
+    if (!process.env.BEZ_SAMOPROVERKI) { const f0 = await kokkKasanie(pw, srv.address().port, true); check(`test_kokk_kasanie_samoproverka: старое (жалит только после 1,2 с упора) — сторож краснеет: ${f0.toFixed(2)}`, f0 >= 0.9 ? '' : 'не заметил'); } }
     if (!process.env.BEZ_SAMOPROVERKI) { const g = await kokk(pw, srv.address().port, true); check('test_kokk_v_igre_samoproverka: старый кокк катится от тебя и почти не жалит — сторож краснеет', g >= 0.8 ? '' : 'не заметил: ' + g); } }
   if (!process.env.BEZ_SAMOPROVERKI) { const Q = await partiya(pw, srv.address().port, true), T = sud(Q); check('test_partiya_samoproverka: старая выдача «Глотать» на 10-й секунде — сторож краснеет', T.gulp || T.kartochki ? '' : 'не заметил: ' + JSON.stringify(Q.karty.slice(0, 3))); }
   srv.close(); process.exit(bad ? 1 : 0); })();

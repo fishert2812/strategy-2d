@@ -19,4 +19,10 @@ check('test_glava_ochagi_samoproverka: убийства, что не снима�
   const H = glc.rasstavit(glc.sozdat(), K, 0, 0, rnd, gde); H.ochagi[0].sila = 0; for (let k = 0; k < 600; k++) glc.shag(H, w, 1, K, null, [], () => {});
   check(`test_glava_porazhenie: без чистки зараза занимает каплю за ${(t / 60).toFixed(1)} мин (ждали ${mins.toFixed(1)}), поражение с причиной; вычищенный очаг не оживает (Ц.4)`,
     G.konec === 'porazhenie' && ev.some(([e]) => e === 'porazhenie') && Math.abs(t / 60 - mins) < 0.2 && K.slova.porazh_tekst && H.ochagi[0].sila === 0 ? '' : JSON.stringify({ konec: G.konec, t, zhivoy: H.ochagi[0].sila })); }
+// L089 (переигровка bac846d: «+1 % за палочку съедается за 10 с, "очагов 4" стоит»): за минуту у одного очага съел 6 палочек (раз в 10 с) — чистота выросла на 6+ %, очагов стало меньше
+const sudObgon = K0 => { const G = glc.rasstavit(glc.sozdat(), K0, 0, 0, rnd, gde), w = { [K0.spisok]: [] }, c0 = glc.chistota(G, K0), o = G.ochagi[0], a = { x: o.x, y: o.y, m: 1 }; const spawn = (oc, n) => { for (let i = 0; i < n; i++) w[K0.spisok].push({ x: oc.x, y: oc.y, oc }); };
+  for (let t = 0; t < 60; t += 1) { let ub = []; if (t % 10 === 5) { const q = w[K0.spisok].find(q => q.oc === o && !q.gone); if (q) { q.gone = true; ub = [[K0.kto, q]]; w[K0.spisok] = w[K0.spisok].filter(x => !x.gone); } } glc.shag(G, w, 1, K0, a, ub, spawn); }
+  const c1 = glc.chistota(G, K0), n = G.ochagi.filter(x => x.sila > 0).length; return c1 - c0 < 0.06 ? `чистота ${Math.round(c0 * 100)} → ${Math.round(c1 * 100)} %` : n >= K0.n ? `очагов по-прежнему ${n}` : ''; };
+check('test_L089 test_glava_obgon: минута у очага, палочка раз в 10 с — чистота растёт на 6+ % и очагов меньше', sudObgon(K));
+check('test_glava_obgon_samoproverka: прежние числа (сила 6 из 16, рост 0,8 в минуту) судья ловит', sudObgon({ ...K, sila0: 6, sila_max: 16, rost_v_min: 0.8 }) ? '' : 'не заметил');
 process.exit(bad ? 1 : 0);

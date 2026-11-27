@@ -149,7 +149,7 @@ export class Bodies {
     if (m.count >= m.instanceMatrix.count) return;
     const i = m.count++;
     Q.setFromAxisAngle(Z, -ang - Math.PI / 2);
-    M.compose(V.set(x, -y, this.vyshe || 0), Q, S.set(sx, sy, sz));
+    M.compose(V.set(x, -y, (this.vyshe || 0) + (this.podnyat || 0)), Q, S.set(sx, sy, sz));
     m.setMatrixAt(i, M);
     const A = m.geometry.attributes;
     A.cA.array.set(ca, i * 4); A.cB.array.set(cb, i * 3); A.prm.array.set(prm, i * 4);
@@ -191,7 +191,7 @@ export class Bodies {
       m.setMatrixAt(0, new THREE.Matrix4()); m.kolec = R; if (old) { this.scene.remove(old); this.all[this.all.indexOf(old)] = m; P.m[P.n - 1] = m; } else { this.all.push(m); P.m.push(m); } this.scene.add(m); }
     // материал слоя (this.material: { bugry, blik } в долях обычного): матовая стенка без мокрого блика и крупных пятен
     m.material.uniforms.bump.value = (plotno ? 0.55 : 0.25) * (this.material?.bugry ?? 1); m.material.uniforms.blik.value = 0.55 * (this.material?.blik ?? 1);
-    const A = m.geometry.attributes, p = A.position.array, nr = A.normal.array, uv = A.uv.array, z0 = this.vyshe || 0; let i = 0;
+    const A = m.geometry.attributes, p = A.position.array, nr = A.normal.array, uv = A.uv.array, z0 = (this.vyshe || 0) + (this.podnyat || 0); let i = 0;
     let cg = -1;
     for (const q of kolca) for (let k = 0; k <= G; k++) { if (!k && slit && !slit.svet && !slit.telo) { const Tc = slit(q.x, q.y); cg = Tc ? Tc.g ?? -1 : -1; } const t = k / G * 6.2832, c = Math.cos(t), sn = Math.sin(t), nx = -q.ty * c, ny = q.tx * c; // радиус кольца: в плоскости экрана по нормали оси, из экрана по z
       p[i * 3] = q.x + nx * q.r; p[i * 3 + 1] = -(q.y + ny * q.r); p[i * 3 + 2] = sn * q.r + z0;
@@ -233,7 +233,7 @@ export class Bodies {
       for (let j = 0; j < R - 1; j++) for (let k = 0; k < G; k++) { const a0 = v0 + j * (G + 1) + k, b0 = a0 + G + 1; ix.set([a0, b0, a0 + 1, a0 + 1, b0, b0 + 1], T.i); T.i += 6; } }
   }
   // Нить: pts — точки экрана [x0, y0, x1, y1, …] вдоль нити; толщина и прозрачность плавно от корня (r, a) к кончику (r1, a1).
-  niti(pts, r, col, a = 1, r1 = r, a1 = a, rim = col, z = this.vyshe || 0, col1 = col) { // col1 — цвет кончика (светлые кончики ворса) // z — высота нити над плоскостью (к зрителю)
+  niti(pts, r, col, a = 1, r1 = r, a1 = a, rim = col, z = (this.vyshe || 0) + (this.podnyat || 0), col1 = col) { // col1 — цвет кончика (светлые кончики ворса) // z — высота нити над плоскостью (к зрителю)
     if (pts.length < 4) return; if (pts.length < 24) { const q = [], m = pts.length >> 1, X = j => pts[Math.max(0, Math.min(m - 1, j)) * 2], Y = j => pts[Math.max(0, Math.min(m - 1, j)) * 2 + 1]; // мало точек — сглаживаю (Катмулл — Ром): ворсинка гнётся дугой, а не ломаной
       for (let j = 0; j < m - 1; j++) for (let u = 0; u < 3; u++) { const t = u / 3, t2 = t * t, t3 = t2 * t, c = (p0, p1, p2, p3) => 0.5 * (2 * p1 + (p2 - p0) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 + (3 * p1 - p0 - 3 * p2 + p3) * t3);
         q.push(c(X(j - 1), X(j), X(j + 1), X(j + 2)), c(Y(j - 1), Y(j), Y(j + 1), Y(j + 2))); }
