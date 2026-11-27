@@ -45,7 +45,7 @@ import * as lin from './lineyka.js'; // линейка из живых силу�
 import * as vh from './vehi.js'; // рост по книге: длина П51, вехи П54, худение за умения П49
 import * as vdv from './rot.js'; /* Ш2: водоворот у рта */
 import * as stk from './stolk.js'; /* столкновения по контуру записей движка */
-import * as sob from './sobytiya.js'; /* Ш41: события объявлены заранее */ import * as svr from './sverlo.js'; /* Ш39: сверло руками */ import * as lop from './lopnut.js'; /* Ш4: убитый лопается точками */ import * as zn from './zona.js'; /* Ш40: тихая и злая вода */ import * as sty from './staya.js'; /* Ш32, Ш33: деление капелькой и стая */ import * as mtc from './mutaciya.js'; /* Ш34, Ш35, Ш37: мутация, вирус по стае, закрепление */ import * as rsv from './rastvor.js'; /* Ш29–Ш31: растворять, глотать по размеру, слабый старт */ import * as krm from './kormyozhka.js'; /* П35: добыча по росту */ import * as svi from './svet_il.js'; /* П27, П30: окна света, лабиринт ила */ import * as ptl from './potolok.js'; /* П53: потолки роста и большие события */ import * as psh from './pishcha.js'; /* кто кого ест без тебя (П42) */ import * as nv from './navyki.js'; /* навыки по книге: уровни, повторы ступенями, «сработало» */ import * as boj from './boj.js'; import * as gm from './genom.js'; /* одна таблица боя «кто кого и чем», удар по геному */
+import * as fl from './flazhok.js'; /* L070: один флажок на всех экранах */ import * as sob from './sobytiya.js'; /* Ш41: события объявлены заранее */ import * as svr from './sverlo.js'; /* Ш39: сверло руками */ import * as lop from './lopnut.js'; /* Ш4: убитый лопается точками */ import * as zn from './zona.js'; /* Ш40: тихая и злая вода */ import * as sty from './staya.js'; /* Ш32, Ш33: деление капелькой и стая */ import * as mtc from './mutaciya.js'; /* Ш34, Ш35, Ш37: мутация, вирус по стае, закрепление */ import * as rsv from './rastvor.js'; /* Ш29–Ш31: растворять, глотать по размеру, слабый старт */ import * as krm from './kormyozhka.js'; /* П35: добыча по росту */ import * as svi from './svet_il.js'; /* П27, П30: окна света, лабиринт ила */ import * as ptl from './potolok.js'; /* П53: потолки роста и большие события */ import * as psh from './pishcha.js'; /* кто кого ест без тебя (П42) */ import * as nv from './navyki.js'; /* навыки по книге: уровни, повторы ступенями, «сработало» */ import * as boj from './boj.js'; import * as gm from './genom.js'; /* одна таблица боя «кто кого и чем», удар по геному */
 const VEHI = vh.zagruzit();
 window.kaplyaLes = () => LES; window.kaplyaGlava = () => GLAVA; // спирилла, каулобактер, хлорелла (книга П39), руками // строка цели, подпись линейки, «теперь еда» (книга П5–П7)
 const KAP = await (await fetch('kaplya/kaplya.json')).json(), ZH = KAP.zhiteli, ZAP = {}; Object.assign(rost.R, KAP.temp); /* Ш26, Роман 21:22 «вырастаешь… очень быстро»: в «Капле» рост реже, основной «Заплыв» не меняется */
@@ -646,7 +646,7 @@ async function send() {
   const text = message(marks);
   try {
     const files = []; for (const [i, m] of marks.entries()) { const head = `Отметка ${i + 1} из ${marks.length} · ${m.at}`; // слова впечатаны в картинку: «Поделиться» часто отдаёт только фото (урок L035)
-      for (const [u, nm] of [[m.img, 'mesto'], [m.full, 'kadr']]) if (u || nm === 'mesto') try { files.push(new File([await signed(u, head, m.text)], `ne_tak_${i + 1}_${nm}.jpg`, { type: 'image/jpeg' })); } catch (_) {} }
+      try { files.push(new File([await signed(m.full || m.img, head, m.text)], `ne_tak_${i + 1}.jpg`, { type: 'image/jpeg' })); } catch (_) {} } /* одна картинка на отметку, с подписью (Роман 27.11: «без комментария фото не нужно») */
     if (navigator.share && files.length && navigator.canShare?.({ files })) await navigator.share({ text, files }); // картинки мест — вместе со словами
     else if (navigator.share) await navigator.share({ text });
     else { await navigator.clipboard.writeText(text); say('Скопировано — вставь в чат', 2200); }
@@ -654,11 +654,11 @@ async function send() {
     showMarks();
   } catch (e) { if (e?.name !== 'AbortError') say('Не отправилось — отметки целы, попробуй ещё', 2200); } /* отменил отправку — отметки остаются */
 }
-$('flag').onclick = e => { if (fdrag.used) { fdrag.used = false; return; } flag('игра', e.currentTarget); };
+$('flag').onclick = e => { if (fdrag.used) { fdrag.used = false; return; } flagAt(null, null); };
 // Флажок пальцем (Б16, Роман 24.11: «куда я его могу поставить чтобы игра вырезала…»): тянешь флажок на то место, где не так,
-// мир замирает, игра вырезает кусок кадра вокруг флажка и спрашивает словами, что не так. Отметка — строка с моментом и картинка.
-let frozen = false; const fdrag = { on: false, used: false, x0: 0, y0: 0 };
-$('flag').addEventListener('pointerdown', e => { if (ended || paused) return; fdrag.on = true; fdrag.drag = false; fdrag.x0 = e.clientX; fdrag.y0 = e.clientY; try { $('flag').setPointerCapture(e.pointerId); } catch (_) {} });
+// мир замирает, снимается весь экран с кольцом на месте флажка и лист спрашивает словами, что не так. Один флажок на всех экранах (L070, kaplya/flazhok.js).
+let frozen = false; const fdrag = { on: false, used: false, x0: 0, y0: 0 }; const FLSRC = new URL('./vendor/html2canvas.min.js', import.meta.url).href;
+$('flag').addEventListener('pointerdown', e => { fdrag.on = true; fdrag.drag = false; fdrag.x0 = e.clientX; fdrag.y0 = e.clientY; fl.podgruzit(FLSRC).catch(() => {}); try { $('flag').setPointerCapture(e.pointerId); } catch (_) {} });
 $('flag').addEventListener('pointermove', e => {
   if (!fdrag.on) return;
   if (!fdrag.drag && Math.hypot(e.clientX - fdrag.x0, e.clientY - fdrag.y0) > 14) { fdrag.drag = true; frozen = true; $('fpin').hidden = false; }
@@ -666,47 +666,27 @@ $('flag').addEventListener('pointermove', e => {
 });
 $('flag').addEventListener('pointerup', e => { if (!fdrag.on) return; fdrag.on = false; if (fdrag.drag) { fdrag.used = true; flagAt(e.clientX, e.clientY); } });
 $('flag').addEventListener('pointercancel', () => { fdrag.on = false; if (fdrag.drag) { $('fpin').hidden = true; frozen = false; } });
-function flagAt(cx, cy) { // вырезаем кусок кадра вокруг флажка: 220 точек, флажок в нём
-  $('fpin').hidden = true;
-  render(paint.t || performance.now() / 1000); // свежий кадр в буфере — сразу снимаем
-  const k = canvas.width / innerWidth, S = Math.min(innerWidth, innerHeight) * cfg.flag_cut, c = document.createElement('canvas'); c.width = c.height = 320;
-  const x0 = Math.max(0, Math.min(innerWidth - S, cx - S / 2)), y0 = Math.max(0, Math.min(innerHeight - S, cy - S / 2));
-  const g = c.getContext('2d'); g.drawImage(canvas, x0 * k, y0 * k, S * k, S * k, 0, 0, 320, 320);
-  const fx = (cx - x0) / S * 320, fy = (cy - y0) / S * 320; g.strokeStyle = 'rgba(0,0,0,0.55)'; g.lineWidth = 7; g.beginPath(); g.arc(fx, fy, 22, 0, 6.283); g.stroke(); g.strokeStyle = '#ffb48a'; g.lineWidth = 3; g.stroke(); // где стоял флажок: рамка 3 на тёмном гало
-  const [ux, uy] = unit({ clientX: cx, clientY: cy }), wp = toWorld(ux, uy);
-  FLAG.img = c.toDataURL('image/jpeg', 0.8); FLAG.wp = wp;
-  const a = document.createElement('canvas'); a.width = 720; a.height = Math.round(720 * innerHeight / innerWidth); a.getContext('2d').drawImage(canvas, 0, 0, a.width, a.height); FLAG.full = a.toDataURL('image/jpeg', 0.8); // и весь кадр — где это было; 720 в ширину, а не 360: мелкий кадр на телефоне мыльный (Роман 25.11: «Все стало расплывчатое»)
-  $('fsheet').classList.toggle('top', cy > innerHeight / 2); // лист от дальнего края: место под флажком остаётся видно
-  FLAG.menu = null; $('fwhere').hidden = true; $('fimg').hidden = false;
-  $('fimg').src = FLAG.img; $('ftext').value = ''; $('fsheet').classList.add('on');
+async function flagAt(cx, cy) { // снимок всего экрана: мир и открытое окно; тянул — с кольцом там, где отпустил
+  $('fpin').hidden = true; frozen = true; const where = fl.ekran(document, PNAME[curTab]);
+  let wp; if (cx != null && where === 'игра') { const [ux, uy] = unit({ clientX: cx, clientY: cy }); wp = toWorld(ux, uy); }
+  render(paint.t || performance.now() / 1000); // свежий кадр в буфере — сразу снимаем (снимок копирует холст до первого ожидания)
+  let S = null; try { S = await fl.snimok(canvas, 720, FLSRC, cx, cy); } catch (_) {} // 720 в ширину: мелкий кадр на телефоне мыльный (Роман 25.11)
+  FLAG.img = S ? S.full : ''; FLAG.wp = wp; FLAG.where = where; FLAG.okna = !!S?.okna;
+  $('fsheet').classList.toggle('top', cy != null && cy > innerHeight / 2); // лист от дальнего края: место под флажком остаётся видно
+  $('fwhere').hidden = false; $('fwhere').textContent = where; $('fimg').hidden = !S; if (S) $('fimg').src = S.kusok || S.full;
+  $('ftext').value = ''; $('fsheet').classList.add('on');
 }
-const FLAG = {};
+const FLAG = {}; window.kaplyaFlag = () => FLAG;
 $('fsave').onclick = () => {
   const words = $('ftext').value.trim(), now = new Date(), at = `${now.getDate()}.${String(now.getMonth() + 1).padStart(2, '0')} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
-  const M = FLAG.menu, where = M ? M.screen : 'флажок на месте';
+  const where = FLAG.where || 'игра';
   let text; try { text = mark(world, cards, $('ver').textContent.replace('Заплыв ', ''), where, cfg.flag_pin_r, FLAG.wp); } catch (e) { text = $('ver').textContent + ' · ' + where; }
-  if (M) text = `меню: ${M.screen} · место: «${M.what}» · ` + text; // флажок в меню: экран и то, чего коснулся (отметка Романа 8: «В меню не могу поставить флажок»)
-  marks.push({ at, text: (words ? '«' + words + '» · ' : '') + text, img: M ? '' : FLAG.img, full: M ? '' : FLAG.full }); FLAG.menu = null;
-  try { localStorage.setItem('zaplyv.marks', JSON.stringify(marks)); } catch (_) { marks[marks.length - 1].img = marks[marks.length - 1].full = ''; try { localStorage.setItem('zaplyv.marks', JSON.stringify(marks)); } catch (_) {} } // место кончилось — оставим слова
+  marks.push({ at, text: (words ? '«' + words + '» · ' : '') + text, img: FLAG.img || '' }); /* одна картинка на отметку, подпись впечатается при отправке (Роман 27.11) */
+  try { localStorage.setItem('zaplyv.marks', JSON.stringify(marks)); } catch (_) { marks[marks.length - 1].img = ''; try { localStorage.setItem('zaplyv.marks', JSON.stringify(marks)); } catch (_) {} } // место кончилось — оставим слова
   showMarks(); fclose(); const n = $('note'), q = marks.length; n.textContent = q > 1 ? `⚑ Записано · ${q} ${q % 10 >= 2 && q % 10 <= 4 && (q % 100 < 12 || q % 100 > 14) ? 'отметки ждут' : q % 10 === 1 && q % 100 !== 11 ? 'отметка ждёт' : 'отметок ждут'} отправки` : '⚑ Записано с картинкой · отправить — на паузе'; n.classList.add('on', 'ok'); clearTimeout(noteT); noteT = setTimeout(() => n.classList.remove('on'), 2200);
 };
 const fclose = () => { $('fsheet').classList.remove('on'); frozen = false; };
 $('fcancel').onclick = fclose;
-// Флажок в меню (пауза, её разделы, «Режимы»): касание ⚑, потом касание того, что не так, — экран и это место уходят в отметку.
-function armFlag(screen, btn) {
-  FLAG.arm = screen; document.body.classList.add('farm');
-  const n = $('note'); n.classList.remove('ok'); n.textContent = '⚑ Коснись того, что не так'; n.classList.add('on'); clearTimeout(noteT); noteT = setTimeout(() => { n.classList.remove('on'); FLAG.arm = null; document.body.classList.remove('farm'); }, 6000);
-  if (btn) { btn.classList.remove('hit'); void btn.offsetWidth; btn.classList.add('hit'); }
-}
-const eatTap = e => { if ((!FLAG.arm && !FLAG.eat) || e.target.closest('#gflag, #mflag, #fsheet')) return; e.preventDefault(); e.stopPropagation(); if (e.type === 'click') FLAG.eat = false; if (e.type !== 'pointerdown' || !FLAG.arm) return; // касание-указка не нажимает то, на что указало
-  FLAG.eat = true; setTimeout(() => { FLAG.eat = false; }, 700);
-  const el = e.target.closest('button, .prow, .mo, h1, h2, h3, p, li, img, canvas') || e.target;
-  FLAG.menu = { screen: FLAG.arm, what: ((el.innerText || el.alt || el.id || el.tagName) + '').replace(/\s+/g, ' ').trim().slice(0, 60) };
-  FLAG.arm = null; document.body.classList.remove('farm'); $('note').classList.remove('on'); FLAG.wp = undefined;
-  $('fimg').hidden = true; $('fwhere').hidden = false; $('fwhere').textContent = `${FLAG.menu.screen} · «${FLAG.menu.what}»`; $('ftext').value = ''; $('fsheet').classList.remove('top'); $('fsheet').classList.add('on'); };
-for (const t of ['pointerdown', 'pointerup', 'click', 'touchstart', 'touchend']) document.addEventListener(t, eatTap, { capture: true, passive: false });
-$('gflag').onclick = e => armFlag(PNAME[curTab] || 'Пауза', e.currentTarget);
-$('mflag').onclick = e => armFlag('Режимы', e.currentTarget);
 $('eno').onclick = e => flag('экран гибели', e.currentTarget);
 $('esend').onclick = openMarks;
 showMarks();
@@ -1278,7 +1258,7 @@ let last = performance.now(), acc = [], js = [];
 const dprAcc = [];
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
-  if (($('menu').classList.contains('on') || $('night').classList.contains('on')) && !frame.hid) { frame.hid = true; $('pause').style.display = $('flag').style.display = 'none'; } // кнопки заплыва не лежат поверх меню и ночи
+  if (($('menu').classList.contains('on') || $('night').classList.contains('on')) && !frame.hid) { frame.hid = true; $('pause').style.display = 'none'; } // кнопки заплыва не лежат поверх меню и ночи
   if ($('menu').classList.contains('on') && !$('cabinet').classList.contains('on')) { last = now; probe.frames++; requestAnimationFrame(frame); return; } // меню закрывает мир: мир стоит
   if ($('night').classList.contains('on')) { last = now; nightFrame(dt); probe.frames++; requestAnimationFrame(frame); return; } // ночь рода закрывает мир
   const play = !ended; // замер «средний кадр» — только пока плывёшь; экран гибели в него не подмешивается
@@ -1295,7 +1275,7 @@ function frame(now) {
     view.z += (z - view.z) * k;
     view.x += (c.x - (fx - 0.5) * W / view.z - view.x) * k; view.y += (c.y - (fy - 0.5) * H / view.z - view.y) * k;
   }
-  { const hide = ended || paused || !!kids; if (hide !== frame.hid) { frame.hid = hide; $('pause').style.display = $('flag').style.display = hide ? 'none' : ''; } }
+  { const hide = ended || paused || !!kids; if (hide !== frame.hid) { frame.hid = hide; $('pause').style.display = hide ? 'none' : ''; } }
   fx.step(dt);
   shake = Math.max(0, shake - dt * 0.9);
   sway = [Math.sin(now / 1000 * 5) * 6 * shake, Math.sin(now / 1000 * 3.7 + 1) * 4 * shake];
