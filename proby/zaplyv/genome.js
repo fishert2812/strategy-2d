@@ -78,8 +78,7 @@ export function genomeScreen({ G, cfg, world, icon = () => '', onOpen, onClose, 
     el('text', { x: 0, y: -R1 - 13, 'text-anchor': 'middle', fill: '#fff', 'font-size': 12, opacity: 0.6 }, svg).textContent = 'ori';
     const own = all.filter(p => !p.plasmid), n = own.filter(p => w.genes[p.slot.id]).length, np = all.filter(p => p.plasmid && !p.skill && w.genes[p.slot.id]).length;
     $('gchips').innerHTML = `<span>включено ${n} из ${own.length}</span><span>чужих ${np}</span>`;
-    $('gsend')?.remove(); const send = document.createElement('button'); send.id = 'gsend'; send.className = 'flag'; send.style.display = 'none'; send.onclick = onSend; $('pserv').appendChild(send); onDraw(); // «Отметки · N» — служебное, на первом уровне паузы
-    $('gsub').textContent = `поколение ${w.stats.gen} · кишечная палочка`;
+    $('gsend')?.remove(); const send = document.createElement('button'); send.id = 'gsend'; send.className = 'flag'; send.style.display = 'none'; send.onclick = onSend; $('pserv').appendChild(send); $('gsub').textContent = `поколение ${w.stats.gen} · кишечная палочка`; onDraw(); if (window.kaplyaStaryjGenom) $('gsub').textContent = `поколение ${w.stats.gen} · кишечная палочка`; /* L109: onDraw после подписи — «Капля» ставит своё поколение рода, и его не перетирает */ // «Отметки · N» — служебное, на первом уровне паузы
   }
 
   function select(slot, arc) {

@@ -12,4 +12,11 @@ const sud = stary => { let { a, w } = mir(stary), Zs = zhv.sozdat(), f = [], kon
   return vyrv && !a.grab ? '' : 'разворотами из пасти не вырваться'; };
 check(`test_L086 test_zahvat_uron: пасть держит — здоровье тает, исход не позже ${Z.predel} с, три разворота рвут хватку`, sud(false));
 check('test_zahvat_uron_samoproverka: старое (держит без урона, разворот не помогает) судья ловит', (() => { const { a, w } = mir(true), Zs = zhv.sozdat(); let f1 = 1; for (let t = 0; t < 2; t += DT) zhv.shag(Zs, w, DT, Z, a); f1 = a.gn ? a.gn.f : 1; return f1 >= 0.999; })() && sud(true) ? '' : 'не заметил');
+// L102, повтор 7481ab9: «Рывки → "Свобода! Плыви прочь", но клетка остаётся в амёбе, хватка тут же снова, гибель». Вырвалась — стоишь за краем амёбы, и она не хватает сразу.
+const radius = m => 12 * Math.cbrt(m);
+const vyhod = stary => { const a = { x: 0, y: 0, a: 0, m: 1 }, m = { x: 10, y: 0, m: 9, ohv: { faza: 'chasha', t: 0 } }, w = { me: [a], amoebas: [m], staryZahvat: stary, stats: { time: 0 }, lose() {} }, Zs = zhv.sozdat(); let vyrv = false;
+  for (let t = 0; t < 3 && !vyrv; t += DT) { a.tumble = (Math.floor(t / 0.4) % 2 === 0 && t % 0.4 < 0.1) ? 0.2 : 0; for (const e of zhv.shag(Zs, w, DT, Z, a, undefined, radius)) if (e[0] === 'vyrvalas') vyrv = true; }
+  const d = Math.hypot(a.x - m.x, a.y - m.y); return !vyrv ? 'из амёбы не вырваться' : d < radius(m.m) + radius(a.m) ? `после «Свободы!» ты внутри амёбы: ${d.toFixed(0)} от центра при её радиусе ${radius(m.m).toFixed(0)}` : !(m.syt > 0) ? 'амёба после «Свободы!» сразу готова хватать снова' : ''; };
+check('test_L102 test_zahvat_vyhod: вырвалась из амёбы — стоишь за её краем, и она не хватает сразу снова', vyhod(false));
+check('test_zahvat_vyhod_samoproverka: старое (отскок на 40 внутри амёбы) судья ловит', vyhod(true) ? '' : 'не заметил');
 process.exit(bad ? 1 : 0);
