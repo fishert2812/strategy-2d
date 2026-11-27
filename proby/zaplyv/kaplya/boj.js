@@ -68,10 +68,10 @@ export function kolca(w, B, a, radius) { const out = [], l0 = w.lvl || {};
 const oglushen = (w, B, x, y) => { const t = w.stats.time; for (const [, C] of spiski(B)) for (const q of w[C.spisok] || []) if (q.oglush > t && Math.hypot(q.x - x, q.y - y) < B.oglush_r) return true; return false; };
 export function ohrana(w, B) { const L = w.lose.bind(w); w.lose = (a, x, y, who) => { if (B.vkl && (B.lovit_medlenno || []).includes(who) && !w.ameba_ubivaet && !w.lestnica) return; /* Д.10 п. 7: амёба ловит не мгновенно, ameba.js */ if (B.vkl && w._bojHod && Object.values(B.na_tebya).some(X => X.kto && X.kto.includes(who))) return; if (B.vkl && x != null && (B.oglush_kto || []).includes(who) && oglushen(w, B, x, y)) return; /* П65 «Гарпун»: у оглушённого рот закрыт */ L(a, x, y, who); }; }
 export function po_tebe(w, dt, B, m0) { if (!B.vkl) return 0; const now = w.stats.time; let n = 0;
-  for (const e of w.events) { const X = B.na_tebya[e[0]]; if (!X || e.length < 5 || e.boj) continue; e.boj = true; /* событие считаем один раз, даже если список событий не чистят */
-    let a = null, bd = 1e9; for (const b of w.me) { const d = Math.hypot(b.x - e[3], b.y - e[4]); if (d < bd) { bd = d; a = b; } } if (!a) continue;
+  for (const e of w.events) { const X = B.na_tebya[e[0]]; if (!X || e.length < 3 || e.boj) continue; const vx = e.length >= 5 ? e[3] : e[1], vy = e.length >= 5 ? e[4] : e[2]; /* щипок кокка: событие без места жертвы — жертва ближняя к нему */ e.boj = true; /* событие считаем один раз, даже если список событий не чистят */
+    let a = null, bd = 1e9; for (const b of w.me) { const d = Math.hypot(b.x - vx, b.y - vy); if (d < bd) { bd = d; a = b; } } if (!a) continue;
     let q = null, qd = 1e9; for (const sp of X.spiski) for (const c of w[sp] || []) { const d = Math.hypot(c.x - e[1], c.y - e[2]); if (d < qd) { qd = d; q = c; } }
     const m = m0.get(a); if (m != null && a.m < m) a.m = m; /* масса не тает от укола */
-    if (gm.udar(a, gm.dolya(X.sila, (q && q.m) || X.massa, a.m), q || e, now, 0)) n++; }
-  for (const a of [...w.me]) if (gm.shag(a, dt, B.genom, true)) { a.gn = null; w.lose(a, a.x, a.y, B.gibel_ot); }
+    if (gm.udar(a, gm.dolya(X.sila, (q && q.m) || X.massa, a.m), q || e, now, 0)) { n++; a.gnOt = X.kto[0]; a.ujalT = now; } } /* кто ранил последним — тот и убийца (пачка 1 п. 2) */
+  for (const a of [...w.me]) if (gm.shag(a, dt, B.genom, true)) { a.gn = null; w.lose(a, a.x, a.y, a.gnOt || B.gibel_ot); }
   return n; }

@@ -12,7 +12,7 @@ const sudUbiycy = (spisok, me) => spisok.filter(([, imya, snimok]) => !imya || i
 const sudKadr = (r, imya) => [r.imya !== imya && `имя «${r.imya}», нужно «${imya}»`, !(r.snimok > 8) && `снимок пустой (разброс ${r.snimok})`, r.zakryto.length && 'кнопки закрыты: ' + r.zakryto.join(', ')].filter(Boolean).join('; ');
 (async () => {
   const gib = await import('./gibel.js'); const B = KAP.boj;
-  check('test_ubiyca_veren_yad: укол и яд соперницы записаны на ту, кто бьёт (boj.na_tebya.kto = boj.gibel_ot)', Object.values(B.na_tebya).filter(x => x && x.kto).every(x => x.kto.length === 1 && x.kto[0] === B.gibel_ot) ? '' : 'гибель по геному пишется не на того, кто бил');
+  check('test_ubiyca_veren_yad: каждый удар по геному (boj.na_tebya: укол и яд соперницы, щипок кокка) пишет одного убийцу — того, кто ударил последним (a.gnOt в boj.js)', Object.values(B.na_tebya).filter(x => x && x.kto).every(x => x.kto.length === 1) && /a\.gnOt = X\.kto\[0\]/.test(fs.readFileSync(path.join(__dirname, 'boj.js'), 'utf8')) ? '' : 'гибель по геному пишется не на того, кто бил');
   const SP = { parafizo: 'parafizo', trubach: 'trubachi' }, L = { amoeba: 'amoebas', slipper: 'slippers' };
   check('test_ubiyca_veren_sverlo: съели в сверле — убийца тот, в ком сверлила (не «амёба» по умолчанию)', gib.poSpisku('parafizo', L, SP) === 'parafizo' && gib.poSpisku('slippers', L, SP) === 'slipper' && gib.poSpisku('nichey', L, SP) === null ? '' : 'список мира не находит жителя');
   const srv = http.createServer((q, s) => { const f = path.join(KOREN, decodeURIComponent(q.url.split('?')[0])); const ff = fs.existsSync(f) && fs.statSync(f).isDirectory() ? path.join(f, 'index.html') : f;
