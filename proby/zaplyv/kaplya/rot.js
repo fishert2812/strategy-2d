@@ -11,10 +11,10 @@ export const vKonuse = (a, R, f, C) => { const [u, v] = mest(a, R, f.x, f.y), d 
   if (d > C.dlina * R) return false; if (C.ugol >= 180 || d < 1e-6) return true; return u / d >= Math.cos(C.ugol * Math.PI / 180); };
 export const sozdat = () => ({ kuski: [] });
 export const dlitsya = K => K.t + (K.n - 1) * K.zaderzhka;
-export function shag(S, w, dt, K, radius, lvl) {
+export function shag(S, w, dt, K, radius, lvl, kPl = 1) { // kPl — во сколько раз сытнее всосанная точка убитого (kaplya.json pitanie.plotoyadnyy_k)
   for (const a of w.me) { const R = radius(a.m), C = konus(K, lvl);
-    for (const f of w.food) { if (f.gone || f.pull || !(vKonuse(a, R, f, C) || Math.hypot(f.x - a.x, f.y - a.y) < R * K.bok + K.bok_zazor)) continue; // и та, что у бока: раньше касания она тоже рассыпается и обтекает тело к рту // еду, которую тянет ручной «Пищевой магнит», он ведёт сам
-      const [u, v] = mest(a, R, f.x, f.y), rnd = w.r ? w.r : Math.random; f.vzyat = true;
+    for (const f of w.food) { if (f.zn && !w.genes.plotoyadnyy) continue; /* Ж.3: точки убитого водоворот берёт только у «Плотоядного» */ if (f.gone || f.pull || !(vKonuse(a, R, f, C) || Math.hypot(f.x - a.x, f.y - a.y) < R * K.bok + K.bok_zazor)) continue; // и та, что у бока: раньше касания она тоже рассыпается и обтекает тело к рту // еду, которую тянет ручной «Пищевой магнит», он ведёт сам
+      const [u, v] = mest(a, R, f.x, f.y), rnd = w.r ? w.r : Math.random; f.vzyat = true; if (f.zn === 1) { f.s *= kPl; f.zn = 2; } /* всосанное убитое сытнее крошки */
       S.kuski.push({ f, a, t: 0, u, v, faza: [...Array(K.n)].map(() => rnd() * 6.283), raz: [...Array(K.n)].map(() => [(rnd() - 0.5) * K.razbros * R, (rnd() - 0.5) * K.razbros * R]) }); } }
   if (S.kuski.length) w.food = w.food.filter(f => !f.vzyat);
   for (const k of S.kuski) { k.t += dt;
