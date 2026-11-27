@@ -850,6 +850,7 @@ function events() {
     if (k === 'shrug') beep(1100, 0.05, 0.03); // новая дверь сработала: вирус отброшен
     if (k === 'bump') { beep(880, 0.05, 0.03); } // капсула: хищник отскочил
     if (k === 'pop') { beep(260, 0.25, 0.06, 'triangle', 0.6); } // чужая клетка лопнула
+    if (k === 'otkaz' && y2 === 'zhivoe' && !window.kaplyaStaryOtkaz) { const S = KAP.boj.otkaz_slova, t = world.stats.time; if (!(t - (tell.otkazT ?? -1e9) < S.pauza)) { tell.otkazT = t; pokaz(world.genes.toxin && !(world.knopka || {}).toxin ? S.zhivoe_yad : S.zhivoe, 3000); } } /* L097: щит на живой — сказать, чем её взять; сразу, это ответ на твоё касание */
     if (k === 'pinch') { beep(1400, 0.05, 0.03, 'square', 0.6); tell('pinch', KAP.boj.slova_pinch); }
     if (k === 'sick') { beep(180, 0.3, 0.05, 'sawtooth', 0.7); }
     if (k === 'burst' || k === 'eaten') { shake = 0.35; beep(110, 0.45, 0.09, 'triangle', 0.5);
