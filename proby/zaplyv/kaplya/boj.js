@@ -13,6 +13,8 @@ export function do_hoda(w, B) { const S = { geny: {}, gde: new Map() }; if (!B.v
   for (const g of B.skryt) { S.geny[g] = !!w.genes[g]; w.genes[g] = false; }
   S.stoit = new Map(); const t = w.stats.time;
   for (const [, C] of spiski(B)) for (const q of w[C.spisok] || []) { if (gm.otravlen(q)) S.gde.set(q, [q.x, q.y]); if (q.oglush > t) S.stoit.set(q, [q.x, q.y]); } return S; } // П65 «Гарпун»: оглушённая стоит
+// Отказ оружия (Д.3 п. 2): цель рядом, а не берёт — причина daleko, stenka или uroven. Не чаще раза в otkaz_pokaz секунд на цель; событие ['otkaz', x, y, кто, причина].
+function otkaz(w, q, ck, p, now, B) { if (q.otkaz && q.otkaz.t > now) return; q.otkaz = { p, t: now + B.otkaz_pokaz }; w.events.push(['otkaz', q.x, q.y, ck, p]); }
 export function posle_hoda(w, dt, B, radius, S) { for (const g in S.geny) w.genes[g] = S.geny[g]; w._bojHod = false; if (!B.vkl) return [];
   const now = w.stats.time, ubity = [], lvl = g => Math.max(1, (w.lvl || {})[g] || 0), O = Object.entries(B.oruzhie).filter(([g]) => g !== '_' && w.genes[g]);
   for (const [q, [x, y]] of S.gde) if (!q.gone) { q.x = x + (q.x - x) * B.medlenno; q.y = y + (q.y - y) * B.medlenno; } // отравленная плывёт медленнее
@@ -20,8 +22,9 @@ export function posle_hoda(w, dt, B, radius, S) { for (const g in S.geny) w.gene
   if (O.length) for (const a of w.me) { const R = radius(a.m), ax = Math.cos(a.a), ay = Math.sin(a.a);
     for (const [ck, C] of spiski(B)) for (const q of w[C.spisok] || []) { if (q.gone || q.held > 0) continue;
       const m = q.m || C.massa, dx = q.x - a.x, dy = q.y - a.y, d = Math.hypot(dx, dy) || 1, rq = radius(m) * C.k_r;
-      for (const [g, X] of O) { const k = (C.stenka || {})[g] ?? 1; if (k <= 0 || ((C.s_urovnya || {})[g] || 1) > lvl(g)) continue;
-        if (X.gde === 'nos' ? d > R + rq + X.dlina || (dx * ax + dy * ay) / d < X.nos : d > R + rq + dosyag(X, lvl(g), B)) continue;
+      for (const [g, X] of O) { const k = (C.stenka || {})[g] ?? 1, dos = X.gde === 'nos' ? X.dlina : dosyag(X, lvl(g), B), vNosu = X.gde !== 'nos' || (dx * ax + dy * ay) / d >= X.nos;
+        if (d > R + rq + dos) { if (vNosu && d <= R + rq + dos + (B.otkaz_daleko || 0)) otkaz(w, q, ck, 'daleko', now, B); continue; } if (!vNosu) continue; /* Д.3 п. 2: почему не берёт — видно */
+        if (k <= 0) { otkaz(w, q, ck, 'stenka', now, B); continue; } if (((C.s_urovnya || {})[g] || 1) > lvl(g)) { otkaz(w, q, ck, 'uroven', now, B); continue; }
         const dol = gm.dolya(X.sila[Math.min(lvl(g), X.sila.length) - 1] * k, a.m, m);
         if (X.sposob === 'yad' ? gm.yad(q, dol, a, now, X.pauza, X.dlitsya) : gm.udar(q, dol, a, now, X.pauza)) { w.events.push([X.sobytie, q.x, q.y, ck]); if (X.oglush) q.oglush = now + X.oglush; } } } }
   for (const [ck, C] of spiski(B)) { const L = w[C.spisok]; if (!L) continue; let byl = false;
