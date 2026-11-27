@@ -1452,7 +1452,7 @@
   "zazor": 4,
   "otkaz_pokaz": 1.2,
   "otkaz_daleko": 14,
-  "_otkaz": "Д.3 п. 2: цель рядом, а оружие не берёт — у неё вспыхивает серая обводка и щит на otkaz_pokaz секунд; причины: daleko (за досягаемостью, но ближе otkaz_daleko единиц), stenka (стенка не пускает это оружие), uroven (нужен уровень выше)",
+  "_otkaz": "Д.3 п. 2: цель рядом, а оружие не берёт — у неё вспыхивает серая обводка и щит на otkaz_pokaz секунд; причины: daleko (за досягаемостью, но ближе otkaz_daleko единиц), stenka (стенка не пускает это оружие), uroven (нужен уровень выше) zhivoe — тронул живого, а убить его нечем: отскок (otskok — доля прижатия, на которую он отодвигается за кадр) и щит.",
   "otkaz_vid": {
    "cvet": [
     0.7,
@@ -1530,12 +1530,14 @@
     "k_r": 0.9,
     "yad_r": 12,
     "yad_pauza": 1.2,
-    "_yad": "yad_r — докуда от твоего края бьёт ядом касанием соперница с ядом, yad_pauza — секунд между её уколами; сила укола — na_tebya"
+    "_yad": "yad_r — докуда от твоего края бьёт ядом касанием соперница с ядом, yad_pauza — секунд между её уколами; сила укола — na_tebya",
+    "zdorove": 1
    },
    "zapyataya": {
     "spisok": "bdellos",
     "massa": 0.5,
-    "k_r": 0.6
+    "k_r": 0.6,
+    "zdorove": 0.5
    },
    "kokk": {
     "spisok": "prey",
@@ -1550,32 +1552,38 @@
     "shchipok_t": 1.2,
     "shchipok": 1.0,
     "shchipok_tormoz": 0.5,
-    "_tolchok": "tolchok — как быстро кокк отодвигается, когда в него упираешься; shchipok_t — сколько секунд вплотную до щипка его ядом, shchipok — сколько секунд он тормозит, shchipok_tormoz — во сколько раз"
+    "_tolchok": "tolchok — как быстро кокк отодвигается, когда в него упираешься; shchipok_t — сколько секунд вплотную до щипка его ядом, shchipok — сколько секунд он тормозит, shchipok_tormoz — во сколько раз",
+    "zdorove": 0.5
    },
    "spirilla": {
     "spisok": "spirilly",
     "massa": 5,
-    "k_r": 0.7
+    "k_r": 0.7,
+    "zdorove": 1
    },
    "kaulo": {
     "spisok": "kaulo",
     "massa": 1.2,
-    "k_r": 0.8
+    "k_r": 0.8,
+    "zdorove": 1
    },
    "brodyazhka": {
     "spisok": "brodyazhki",
     "massa": 0.4,
-    "k_r": 0.8
+    "k_r": 0.8,
+    "zdorove": 0.5
    },
    "kroha": {
     "spisok": "krohi",
     "massa": 0.4,
-    "k_r": 0.8
+    "k_r": 0.8,
+    "zdorove": 0.5
    },
    "donor": {
     "spisok": "donors",
     "massa": 1.2,
-    "k_r": 0.9
+    "k_r": 0.9,
+    "zdorove": 1
    },
    "ameba": {
     "spisok": "amoebas",
@@ -1584,7 +1592,8 @@
     "s_urovnya": {
      "toxin": 2,
      "igla": 2
-    }
+    },
+    "zdorove": 3
    },
    "tufelka": {
     "spisok": "slippers",
@@ -1593,7 +1602,8 @@
     "s_urovnya": {
      "toxin": 2,
      "igla": 2
-    }
+    },
+    "zdorove": 2
    },
    "kolokolchik": {
     "spisok": "bells",
@@ -1602,7 +1612,8 @@
     "s_urovnya": {
      "toxin": 2,
      "igla": 2
-    }
+    },
+    "zdorove": 2
    },
    "kolovratka": {
     "spisok": "rotis",
@@ -1611,7 +1622,8 @@
     "s_urovnya": {
      "toxin": 2,
      "igla": 2
-    }
+    },
+    "zdorove": 2
    },
    "parafizo": {
     "spisok": "parafizo",
@@ -1620,7 +1632,8 @@
     "s_urovnya": {
      "toxin": 2,
      "igla": 2
-    }
+    },
+    "zdorove": 1
    },
    "cerko": {
     "spisok": "cerko",
@@ -1629,7 +1642,8 @@
     "s_urovnya": {
      "toxin": 2,
      "igla": 2
-    }
+    },
+    "zdorove": 1
    },
    "spumella": {
     "spisok": "spumelly",
@@ -1638,7 +1652,8 @@
     "s_urovnya": {
      "toxin": 2,
      "igla": 2
-    }
+    },
+    "zdorove": 1
    },
    "hlamido": {
     "spisok": "hlamido",
@@ -1647,7 +1662,8 @@
     "s_urovnya": {
      "toxin": 2,
      "igla": 2
-    }
+    },
+    "zdorove": 1
    },
    "ciklidium": {
     "spisok": "ciklidii",
@@ -1656,12 +1672,14 @@
     "s_urovnya": {
      "toxin": 2,
      "igla": 2
-    }
+    },
+    "zdorove": 1
    },
    "bodo": {
     "spisok": "bodos",
     "massa": 4,
-    "k_r": 0.8
+    "k_r": 0.8,
+    "zdorove": 1
    },
    "virus": {
     "spisok": "phages",
@@ -1671,7 +1689,8 @@
      "toxin": 0,
      "igla": 0
     },
-    "_": "вирус не живая клетка: яд и игла его не берут (биолог, vzaimodeystviya_biolog.md)"
+    "_": "вирус не живая клетка: яд и игла его не берут (биолог, vzaimodeystviya_biolog.md)",
+    "zdorove": 1
    },
    "hlorella": {
     "spisok": "hlorelly",
@@ -1681,7 +1700,8 @@
      "toxin": 0,
      "igla": 0
     },
-    "_": "водоросль: бактериоцин её не трогает (биолог)"
+    "_": "водоросль: бактериоцин её не трогает (биолог)",
+    "zdorove": 1
    },
    "ameba3": {
     "spisok": "ameby3",
@@ -1690,7 +1710,8 @@
     "s_urovnya": {
      "toxin": 3,
      "igla": 3
-    }
+    },
+    "zdorove": 1
    },
    "kolovratka3": {
     "spisok": "kolovratki3",
@@ -1699,7 +1720,8 @@
     "s_urovnya": {
      "toxin": 3,
      "igla": 3
-    }
+    },
+    "zdorove": 1
    },
    "tufelka3": {
     "spisok": "tufelki3",
@@ -1708,7 +1730,8 @@
     "s_urovnya": {
      "toxin": 3,
      "igla": 3
-    }
+    },
+    "zdorove": 1
    }
   },
   "yad_vid": {
@@ -1810,6 +1833,28 @@
    "pseudo_r": "sopernica.yad_r",
    "pseudo_cool": "sopernica.yad_pauza",
    "_": "числа ручного мира (data.json), которые в «Капле» берутся из этой таблицы: boj.v_mir переписывает их при загрузке"
+  },
+  "_zdorove": "zdorove — здоровье жителя в единицах ровни (удар делится на него): ровня 1, кокк 0,5, амёба 3, туфелька 2 (pravki_po_blokam.md Д.10 п. 6); живое не съесть, пока здоровье не 0 (boj.zhivoe)",
+  "otskok": 0.6,
+  "zdorove_vid": {
+   "tochek": 16,
+   "r": 2.2,
+   "ugol": 2.2,
+   "otstup": 10,
+   "pokaz": 2,
+   "cvet": [
+    1,
+    0.3,
+    0.25
+   ],
+   "a": 1,
+   "cvet_net": [
+    0.5,
+    0.52,
+    0.55
+   ],
+   "a_net": 0.5,
+   "_": "дуга здоровья над раненым: ugol — её размах в радианах над телом, видна, пока отравлен, и pokaz секунд после удара"
   }
  },
  "stolk": {

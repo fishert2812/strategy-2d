@@ -22,18 +22,25 @@ export function posle_hoda(w, dt, B, radius, S) { for (const g in S.geny) w.gene
   const now = w.stats.time, ubity = [], lvl = g => Math.max(1, (w.lvl || {})[g] || 0), O = Object.entries(B.oruzhie).filter(([g]) => g !== '_' && w.genes[g]);
   for (const [q, [x, y]] of S.gde) if (!q.gone) { q.x = x + (q.x - x) * B.medlenno; q.y = y + (q.y - y) * B.medlenno; } // отравленная плывёт медленнее
   for (const [q, [x, y]] of S.stoit || []) if (!q.gone) { q.x = x; q.y = y; } // оглушённая стоит на месте
-  if (O.length) for (const a of w.me) { const R = radius(a.m), ax = Math.cos(a.a), ay = Math.sin(a.a);
+  for (const a of w.me) { const R = radius(a.m), ax = Math.cos(a.a), ay = Math.sin(a.a);
     for (const [ck, C] of spiski(B)) for (const q of w[C.spisok] || []) { if (q.gone || q.held > 0) continue;
       const m = q.m || C.massa, dx = q.x - a.x, dy = q.y - a.y, d = Math.hypot(dx, dy) || 1, rq = radius(m) * C.k_r;
-      for (const [g, X] of O) { const k = (C.stenka || {})[g] ?? 1, dos = X.gde === 'nos' ? X.dlina : dosyag(X, lvl(g), B), vNosu = X.gde !== 'nos' || (dx * ax + dy * ay) / d >= X.nos;
+      let beret = false; for (const [g, X] of O) { const k = (C.stenka || {})[g] ?? 1, dos = X.gde === 'nos' ? X.dlina : dosyag(X, lvl(g), B), vNosu = X.gde !== 'nos' || (dx * ax + dy * ay) / d >= X.nos;
         if (d > R + rq + dos) { if (vNosu && d <= R + rq + dos + (B.otkaz_daleko || 0)) otkaz(w, q, ck, 'daleko', now, B); continue; } if (!vNosu) continue; /* Д.3 п. 2: почему не берёт — видно */
         if (k <= 0) { otkaz(w, q, ck, 'stenka', now, B); continue; } if (((C.s_urovnya || {})[g] || 1) > lvl(g)) { otkaz(w, q, ck, 'uroven', now, B); continue; }
-        const dol = gm.dolya(X.sila[Math.min(lvl(g), X.sila.length) - 1] * k, a.m, m);
-        if (X.sposob === 'yad' ? gm.yad(q, dol, a, now, X.pauza, X.dlitsya) : gm.udar(q, dol, a, now, X.pauza)) { w.events.push([X.sobytie, q.x, q.y, ck]); if (X.oglush) q.oglush = now + X.oglush; } } } }
+        beret = true; const dol = gm.dolya(X.sila[Math.min(lvl(g), X.sila.length) - 1] * k, a.m, m) / zdorove(C); /* Д.10 п. 1: здоровье жителя в единицах ровни */
+        if (X.sposob === 'yad' ? gm.yad(q, dol, a, now, X.pauza, X.dlitsya) : gm.udar(q, dol, a, now, X.pauza)) { w.events.push([X.sobytie, q.x, q.y, ck]); q.ranen = now; if (X.oglush) q.oglush = now + X.oglush; } }
+        if (!beret && q.m != null && q.m < a.m && d < R + rq + B.zazor) { otkaz(w, q, ck, 'zhivoe', now, B); const s = R + rq + B.zazor - d; q.x += dx / d * s * B.otskok; q.y += dy / d * s * B.otskok; } } } /* Д.10 п. 2: живое не съесть — отскок с серым щитом */
   for (const [ck, C] of spiski(B)) { const L = w[C.spisok]; if (!L) continue; let byl = false;
     for (const q of L) if (!q.gone && gm.shag(q, dt, B.genom)) { q.gone = byl = true; if (w.lopnut) w.lopnut(ck, q); else w.spill(q.x, q.y); w.events.push(['pop', q.x, q.y, ck]); /* Ш4: лопается точками своих частей */ ubity.push([ck, q]); }
     if (byl) w[C.spisok] = L.filter(q => !q.gone); }
   return ubity; }
+// Д.10 п. 2 «Живое не съесть, пока здоровье не 0»: одно правило для всех жителей. Растворение и «Глотать» (evo.js, zhiteli.js, bodo.js) спрашивают w.zhivoe(q):
+// живой житель из таблицы с геномом больше 0 — не берётся. Убитый лопается точками еды (posle_hoda), их и ешь.
+export const zdorove = C => C.zdorove ?? 1;
+export function zhivoe(B) { const spis = new Set(spiski(B).map(([, C]) => C.spisok)); return (q, kto) => B.vkl && !q.gone && !(q.gn && q.gn.f <= 1e-9) && (kto == null || spis.has(kto)); }
+// Дуга здоровья (Д.10 п. 1): над раненым жителем, пока ранен и pokaz секунд после; доля — сколько генома осталось.
+export const duga = (q, now, V) => q.gn && q.gn.f < 1 && (gm.otravlen(q) || now - (q.ranen ?? -1e9) < V.pokaz) ? Math.max(0, q.gn.f) : null;
 // Кольцо досягаемости (Роман 27.11 10:01: «радиус условно должен быть показан»): для каждого твоего оружия касанием с dostaet — радиус от центра клетки
 // и есть ли в нём тот, кого это оружие берёт (стенка не ноль, уровень хватает). Рисует main.js цветом yad_vid.
 export function kolca(w, B, a, radius) { const out = [], l0 = w.lvl || {};

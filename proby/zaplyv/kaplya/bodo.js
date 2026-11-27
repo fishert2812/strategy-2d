@@ -42,5 +42,5 @@ export function shag(w, dt, B, radius, slyshu) { if (!w.bodos) return; const nov
   w.bodos.push(...novye); }
 // Своя клетка глотает бодо, когда тяжелее его в bolshe раз и коснулась (как «Глотать» в evo.js: добыча тает внутри, масса в рост)
 export function glotat(w, B, radius, syt, t, umeet, slyshu) { if (!w.bodos || !umeet) return;
-  for (const a of w.me) for (const b of w.bodos) if (!b.gone && a.m >= b.m * (prizhat(B, b, radius, a) ? B.prizhat : B.bolshe) && d(a, b) < radius(a.m) + dlina(B, b.m)) { b.gone = true; w.gulps = w.gulps || []; w.gulps.push({ a, x: b.x, y: b.y, x0: b.x, y0: b.y, m: b.m, who: 'bodo', t: 0 }); w.syel = w.syel || {}; w.syel.bodo = (w.syel.bodo || 0) + 1; slyshu('bodo_syela', b); }
+  for (const a of w.me) for (const b of w.bodos) if (!b.gone && !(w.zhivoe && w.zhivoe(b, 'bodos')) && a.m >= b.m * (prizhat(B, b, radius, a) ? B.prizhat : B.bolshe) && d(a, b) < radius(a.m) + dlina(B, b.m)) { b.gone = true; w.gulps = w.gulps || []; w.gulps.push({ a, x: b.x, y: b.y, x0: b.x, y0: b.y, m: b.m, who: 'bodo', t: 0 }); w.syel = w.syel || {}; w.syel.bodo = (w.syel.bodo || 0) + 1; slyshu('bodo_syela', b); }
   w.bodos = w.bodos.filter(b => !b.gone); }
