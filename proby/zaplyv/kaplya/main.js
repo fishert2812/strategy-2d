@@ -1181,6 +1181,7 @@ function paint(time) {
   }
   if (world.trupy) for (const t of world.trupy) { const p = t.q._poza, [x, y] = scr(t.q.x, t.q.y), T = KAP.trup; if (!p) { glow.put(x, y, radius(t.q.m || 1) * z + 2, 0.45 * T.temnee, 0.45 * T.temnee, 0.45 * T.temnee, 0.9); continue; } /* мелкий, что рисовался точкой, — серая точка */ const tl = p.t * z * Math.sqrt(Math.max(0.05, t.q.m / (t.puz ? t.puz.m0 : t.q.m || 1))); if (!on(x, y, tl * 4)) continue; /* Ж.3: убитый — тот же вид, серый и тёмный */
     { const k = t.q.vid && ZAP[t.spisok + ':' + t.q.vid] ? t.spisok + ':' + t.q.vid : t.spisok, Z0 = ZAP[k]; ZAP[k] = seryj(k); zhitel(k, { id: t.q.id || 1, m: t.q.m }, x, y, Number.isFinite(p.a) ? p.a : 0, tl / ZH[k].tolshchina, time, z); ZAP[k] = Z0; } /* тот же житель через zhitel, но запись на кадр — серая */ if (t.puz) glow.put(x, y, tl * T.puzyr[0] * 2, 0.75, 0.9, 1, T.puzyr[1]); }
+  bodies.podnyat = window.kaplyaStaryjSloj ? 0 : KAP.sloi.ty; /* L082: ты всегда поверх жителей — не прячешься под анабеной и туфелькой (пачка 2, Т7) */
   for (const a of kids || world.me) { // палочка: мягкое тело
     if (a.spore > 0) continue; // перёд ведёт, корма и пучок жгутиков идут по его следу
     const lk = a.g ? look({ ...world.genes, [a.g]: true }, cfg.look, world.spacers.size) : lkAll, w = (rost.on(world) ? 8.5 * Math.pow(a.m, rost.vid(world)) : DL.w) * z * (a.g ? 1.9 : 1), sp = Math.hypot(a.vx, a.vy); // толщина постоянная (физика п. 14), в «Росте» видно, что растёшь
@@ -1219,6 +1220,7 @@ function paint(time) {
     if (f < 0.7) bodies.rod(x, y, b.a, w * 2.2, w, 0, [CELL[0].r, CELL[0].g, CELL[0].b], [CORE[0].r, CORE[0].g, CORE[0].b], b.id, 0);
     glow.put(x, y, w * 3, 0.6, 0.85, 1, 0.25 * (1 - f));
   }
+  bodies.podnyat = 0;
   for (const a of world.me) { // след: клетка расталкивает взвесь, частицы расходятся и гаснут — вязкость видна
     const sp = Math.hypot(a.vx, a.vy); if (KAP.bez_sleda || sp < 40 || puffs.length > 230) continue; // в «Капле» цепочки бледных кругов за клеткой нет
     const ux = Math.cos(a.a), uy = Math.sin(a.a), rr = radius(a.m), side = Math.random() < 0.5 ? -1 : 1;
