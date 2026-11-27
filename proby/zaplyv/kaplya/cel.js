@@ -3,6 +3,7 @@
 // Чистая логика без рисования: мир ручной игры (sim.js), масса и порог глотания — как в evo.js (evo.json glotat). Слова и числа — kaplya.json «cel».
 export const SPIS = [['prey', 'coccus'], ['pseudos', 'pseudo'], ['bdellos', 'bdello'], ['amoebas', 'amoeba'], ['bells', 'bell'], ['rotis', 'roti'], ['slippers', 'slipper'], ['bodos', 'bodo'], ['spirilly', 'spirilla'], ['kaulo', 'kaulo'], ['brodyazhki', 'brodyazhka'], ['hlorelly', 'hlorella'], ['krohi', 'kroha'], ['parafizo', 'parafizo'], ['cerko', 'cerko'], ['spumelly', 'spumella'], ['hlamido', 'hlamido'], ['ciklidii', 'ciklidium'], ['ameby3', 'ameba3'], ['kolovratki3', 'kolovratka3'], ['tufelki3', 'tufelka3']];
 const OPASNYE = ['bodos', 'bdellos', 'amoebas', 'bells', 'rotis', 'slippers', 'parafizo', 'cerko', 'spumelly', 'ciklidii', 'ameby3', 'kolovratki3']; // крупные П40: охотники и поток
+const HISHCHNIKI = new Set(SPIS.filter(([l]) => OPASNYE.includes(l)).map(([, w]) => w)); // кто ест таких, как ты
 export const sozdat = () => ({ videl: {}, eda: new Set(), stroka: '', rostom: '' });
 const blizh = (a, q) => Math.hypot(q.x - a.x, q.y - a.y);
 const vstav = (t, imya) => t.replace('{}', t.startsWith('{}') ? imya : imya.toLowerCase()); // имя в начале строки с большой буквы, в середине — с маленькой
@@ -16,7 +17,7 @@ export function shag(C, w, me, K, mass, bolshe, umeet, syt, gorit = null) { /* g
   C.rostom = rovnya ? 'ростом с ' + I[rovnya[0]][2] : legche ? 'ты в ' + String(okrugl(me.m / legche[1])).replace('.', ',') + (okrugl(me.m / legche[1]) >= 5 && Number.isInteger(okrugl(me.m / legche[1])) ? ' раз больше ' : ' раза больше ') + I[legche[0]][1] : 'ростом с кишечную палочку';
   // П6: строка цели, первое подходящее
   let vrag = null; for (const list of OPASNYE) for (const q of w[list] || []) { const who = SPIS.find(s => s[0] === list)[1]; if (!q.gone && !(q.syt > 0) && !(list === 'bodos' && q.m < me.m * bolshe) && blizh(me, q) < K.opasno && (!gorit || gorit(q)) && !(umeet && mass(q, who) * bolshe <= me.m) && (!vrag || blizh(me, q) < blizh(me, vrag.q))) vrag = { q, who }; }
-  const vyshe = vidy.filter(([who]) => !C.eda.has(who)).sort((a, b) => a[1] - b[1]), hoz = vidy.slice().sort((a, b) => b[1] - a[1])[0];
+  const vyshe = vidy.filter(([who]) => !C.eda.has(who)).sort((a, b) => a[1] - b[1]), hoz = vidy.filter(([who]) => HISHCHNIKI.has(who)).sort((a, b) => b[1] - a[1])[0]; /* «{} ест таких, как ты» — только про хищника: хламидомонада водоросль, бактерий не ест (проверка 27.11, daf250b) */
   let glotok = 0; for (const [list, who] of SPIS) for (const q of w[list] || []) if (!q.gone && umeet && blizh(me, q) < K.vidno && mass(q, who) * bolshe <= me.m) glotok = Math.max(glotok, mass(q, who) * syt);
   if (vrag) C.stroka = vstav(K.slova.opasno, I[vrag.who][0]);
   else if (!umeet) C.stroka = K.slova.kroshki;

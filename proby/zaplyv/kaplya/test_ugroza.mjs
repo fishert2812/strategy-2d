@@ -1,7 +1,7 @@
 // Сторож кромки угрозы «Капли» (блок В, pravki_po_blokam.md В.3 п. 1, 2, 4; В.6): node proby/zaplyv/kaplya/test_ugroza.mjs.
 // test_ugroza_kromka: кромка горит у того, кто рядом и идёт на тебя; не горит у дальнего, уходящего, сытого и того, кто тебе по зубам; колокольчик горит, просто сидя рядом.
 // test_net_udara_bez_znaka: каждый охотник с ходом из data.json, бросаясь с края экрана, к касанию горит не меньше za секунд, и перед касанием кромка мигает.
-import fs from 'fs'; import * as ugr from './ugroza.js'; import * as zh from './zhiteli.js';
+import fs from 'fs'; import * as ugr from './ugroza.js'; import * as zh from './zhiteli.js'; import * as cel from './cel.js';
 const KAP = JSON.parse(fs.readFileSync(new URL('./kaplya.json', import.meta.url))), U = KAP.ugroza, D = JSON.parse(fs.readFileSync(new URL('../data.json', import.meta.url))), C = D.sim || D, DT = 1 / 30;
 let bad = 0; const check = (n, e) => { console.log((e ? '  ПРОВАЛ ' : '  ок ') + n + (e ? ': ' + e : '')); if (e) bad++; };
 const R = m => 13 * Math.sqrt(m), shagi = (Uu, w, a, n, op = () => true, K = U, hod = null) => { for (let i = 0; i < n; i++) { if (hod) hod(); ugr.shag(Uu, w, DT, K, a, op); } };
@@ -20,4 +20,6 @@ check('test_net_udara_bez_znaka_samoproverka: кромка, что зажига�
 { const D = ugr.dosyag(KAP.novye, zh.SPISKI), voronka = K => Object.entries(D).filter(([s, r]) => { const a = { x: 0, y: 0, m: 1 }, q = { x: R(1) + R(400) + r - 2, y: 0, m: 400, a: 0 }, Uu = ugr.sozdat(); ugr.shag(Uu, { [s]: [q] }, DT, K, a, () => true); return !Uu.t.has(q); }).map(([s]) => s);
   check(`test_net_udara_bez_znaka_voronka: у воронок (трубач, нематода, циклидиум, коловратка) кромка горит с края тяги (${Object.values(D).join(', ')}), до того как воронка потянула`, voronka({ ...U, dosyag: D }).join(', '));
   check('test_net_udara_bez_znaka_voronka_samoproverka: без досягаемости воронки судья краснеет', voronka(U).length ? '' : 'не заметил'); }
+{ const stroka = (kto, spisok) => { const C = cel.sozdat(), me = { x: 0, y: 0, m: 1 }, w = Object.fromEntries(cel.SPIS.map(([l]) => [l, []])); w[spisok].push({ x: 900, y: 0, m: 200 }); C.videl[kto] = 200; cel.shag(C, w, me, KAP.cel, q => q.m, 1.8, true, 0.5); return C.stroka; }, ne = stroka('hlamido', 'hlamido'), da = stroka('amoeba', 'amoebas');
+  check(`test_trevoga_po_delu_hozyain: «… ест таких, как ты» только про хищника — водоросль хламидомонада молчит («${ne}»), амёба названа («${da}»)`, /ест таких/.test(ne) || !/ест таких/.test(da) ? 'не так' : ''); }
 process.exit(bad ? 1 : 0);
