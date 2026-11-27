@@ -2,7 +2,7 @@
 // в сторону в рандомную со стороны зада клетки не с головы… натягивает оболочку и натяжением отрывается… пускай маленькие клетки как твоя маленькая стая…
 // маленький условный рост внутри стаи… минимизировать затраты»). Ведёшь одну клетку. Доля zapas твоего прироста идёт в запас стаи (масса не из ниоткуда);
 // набралось cena твоей массы — сзади (в пределах ugol от оси назад) за t секунд вытягивается капля и рвётся: малышка massa твоей массы.
-// Малышки плывут за тобой, растут от еды, которой касаются, до max твоей массы, полные почкуются сами раз в sama секунд; в стае не больше n. Числа — kaplya.json «staya».
+// Малышки плывут за тобой, растут от еды, которой касаются, до max твоей массы, доросшие делятся сами (delenie — доля дочке) через sama секунд; в стае не больше n. Числа — kaplya.json «staya».
 export const sozdat = () => ({ zapas: 0, pochka: null, zhdal: 0, v: 0, px: null, py: null, vsego: 0 });
 const R = m => 13 * Math.sqrt(m);
 // Шаг после хода мира. m0 — массы до хода (Map). Возвращает события: 'pochka' (началась), 'malyshka' (оторвалась), 'sama' (малышка почковалась сама).
@@ -17,7 +17,7 @@ export function shag(S, w, dt, K, m0, speed, rnd = Math.random) { const a = w.me
     const tx = a.x + Math.cos(a.a + slot) * dist, ty = a.y + Math.sin(a.a + slot) * dist, dx = tx - q.x, dy = ty - q.y, L = Math.hypot(dx, dy) || 1, v = Math.min(L * 2, speed * K.hod);
     q.x += dx / L * v * dt; q.y += dy / L * v * dt; if (L > 3) q.a += Math.atan2(Math.sin(Math.atan2(dy, dx) - q.a), Math.cos(Math.atan2(dy, dx) - q.a)) * Math.min(1, dt * 4);
     for (const f of w.food) if (!f.gone && Math.abs(f.x - q.x) < R(q.m) + 4 && Math.abs(f.y - q.y) < R(q.m) + 4 && Math.hypot(f.x - q.x, f.y - q.y) < R(q.m) + 4) { f.gone = true; q.m = Math.min(K.max * a.m, q.m + K.eda * a.m); } // ест, чего касается
-    if (q.m >= K.max * a.m * 0.98 && (q.sama += dt) > K.sama && w.staya.length + nov.length < K.n) { q.sama = 0; const m = q.m * 0.4; q.m -= m; nov.push({ id: ++w.ids, x: q.x - Math.cos(q.a) * R(q.m) * 1.5, y: q.y - Math.sin(q.a) * R(q.m) * 1.5, a: q.a, m, t: 0, sama: 0 }); ev.push('sama'); } });
+    if (q.m >= K.max * a.m * 0.98 && (q.sama += dt) > K.sama && w.staya.length + nov.length < K.n) { q.sama = 0; const m = q.m * K.delenie; q.m -= m; nov.push({ id: ++w.ids, x: q.x - Math.cos(q.a) * R(q.m) * 1.5, y: q.y - Math.sin(q.a) * R(q.m) * 1.5, a: q.a, m, t: 0, sama: 0 }); ev.push('sama'); } });
   w.staya.push(...nov); w.staya = w.staya.filter(q => !q.gone);
   return ev; }
 // Где сейчас капля почки (для рисования): точка корня на корме, центр капли, её радиус и толщина перетяжки (0..1)

@@ -25,7 +25,11 @@ check('test_pochka_samoproverka_ugol: почку с любой стороны с
 check('test_pochka_samoproverka_darom: почку без запаса судья ловит', sudPochka({ ...KAP.staya, cena: 0 }) ? '' : 'не заметил');
 const sudStaya = K => { const o = opyt(K, 0.6, 120, true); if (o.max > KAP.staya.n) return `в стае было ${o.max}, больше ${KAP.staya.n}`; if (!o.sama) return 'ни одна малышка не почковалась сама';
   if (!o.dorosli) return `ни одна не доросла до ${KAP.staya.max} твоей массы`; if (o.sverh) return `${o.sverh} переросли ${KAP.staya.max}`; return ''; };
-check(`test_staya: малышки растут до ${KAP.staya.max} твоей массы и почкуются сами, не больше ${KAP.staya.n} (Ш33)`, sudStaya(KAP.staya));
+check(`test_staya: малышки растут до ${KAP.staya.max} твоей массы и делятся сами пополам, не больше ${KAP.staya.n} (Ш33, kolonia_eda_boy.md 12.8)`, sudStaya(KAP.staya));
 check('test_staya_samoproverka: стаю без предела судья ловит', sudStaya({ ...KAP.staya, n: 200 }) ? '' : 'не заметил');
 check('test_staya_samoproverka_rost: малышек, что не растут, судья ловит', sudStaya({ ...KAP.staya, eda: 0 }) ? '' : 'не заметил');
+const sudPopolam = K => { const a = { x: 0, y: 0, a: 0, m: 10 }, w = { me: [a], food: [], staya: [{ id: 1, x: -60, y: 0, a: 0, m: K.max * 10, t: 0, sama: 0 }], ids: 1 }, S = sty.sozdat();
+  for (let t = 0; t < K.sama + 0.2; t += DT) sty.shag(S, w, DT, K, new Map(), 175, rnd(3)); const m = w.staya.map(q => q.m); return m.length === 2 && Math.abs(m[0] - m[1]) < 1e-9 && Math.abs(m[0] + m[1] - K.max * 10) < 1e-9 ? '' : `после деления массы ${m}`; };
+check(`test_staya_popolam: доросшая малышка за ${KAP.staya.sama} с делится на две равные, масса сохраняется`, sudPopolam(KAP.staya));
+check('test_staya_popolam_samoproverka: деление не пополам судья ловит', sudPopolam({ ...KAP.staya, delenie: 0.4 }) ? '' : 'не заметил');
 process.exit(bad ? 1 : 0);
