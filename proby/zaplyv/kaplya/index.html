@@ -118,6 +118,8 @@ body:has(#offer.on):not(.staraPlashka) #toast { visibility: hidden; } /* L094: �
 #card { background: rgba(255, 90, 60, 0.1); border: 1px solid rgba(255, 140, 100, 0.35); }
 #path { background: #071a20; border: 1px solid rgba(120, 220, 255, 0.25); } #ebtns #path { grid-column: 1 / -1; width: 100%; padding: 8px 14px; } #ebtns #path h3 { font-size: 15px; margin-bottom: 2px; } #ebtns #path p { font-size: 14px; line-height: 1.3; margin: 0; } /* итог заплыва — в нижней плашке над кнопками, всегда виден целиком (П2: дважды уходил под затемнение) */
 #who { font-size: 15px; opacity: 0.75; }
+/* L114 (переигровка 06d0e96: «заголовок „Заплыв окончен“ спрятан под портретом»): строка «Гибель: …» / «Заплыв окончен» — заголовок над портретом */
+body:not(.staryjZag) #card { display: flex; flex-direction: column; } body:not(.staryjZag) #card #who { order: -1; font-size: 19px; font-weight: 600; opacity: 1; margin: 0 0 8px; text-align: left; }
 #card h2 { margin: 2px 0 6px; font-size: 23px; font-weight: 600; }
 #path h3 { margin: 0 0 6px; font-size: 17px; font-weight: 600; opacity: 0.8; }
 #card p, #path p { margin: 0 0 6px; font-size: 15px; line-height: 1.35; text-align: left; opacity: 0.85; }
