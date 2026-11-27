@@ -25,7 +25,7 @@ const cfg = await (await fetch('data.json')).json();
 import { sobrat, sobrat_gruppu, VC, chasti_navykov } from '../vid_chasti.js';
 import * as bodo from './bodo.js'; // бодо — хозяин главы 1 (книга П37, П39), руками
 import * as cel from './cel.js';
-import * as zh from './zhiteli.js'; import * as gib from './gibel.js'; /* блок В.1: кто убил */
+import * as zh from './zhiteli.js'; import * as gib from './gibel.js'; import * as obt from './obitateli.js'; /* жители книги в Альманахе */ /* блок В.1: кто убил */
 import * as les from './lestnica.js'; // аркада «Лестница» (П86–П89): ?lestnica
 import * as umn from './umeniya.js'; // умения по книге: «Вампир», шапка «Нюха» (П65, П71)
 import * as obl from './oblasti.js'; // области по книге: плёнка, без кислорода, сероводород, тень (П29–П33)
@@ -386,6 +386,7 @@ const SVR_CELI = () => Object.entries(KAP.boj.celi).filter(([k]) => k !== '_').m
 const LISTS = { me: 'me', phage: 'phages', bdello: 'bdellos', amoeba: 'amoebas', slipper: 'slippers', bell: 'bells', roti: 'rotis',
   pseudo: 'pseudos', strain: 'pseudos', donor: 'donors', coccus: 'prey', plant: 'plants', crumb: 'crumbs' };
 for (const k of dv.zhivut()) LISTS[k] = 'pseudos'; dv.vitrina(KAB, cards, TEKSTY); // виды из анкет: снимок и карточка собираются сами
+obt.zapisi(KAB, cards, KAP.obitateli, KAP.novye, zh.SPISKI, KAP.gibel, radius, l => !!ZAP[l]); // проверка К 27.11: жители книги — записи Альманаха со снимком и карточкой
 function studio(k, it) {
   const w = new World(cfg, 7), a = it.a, id = 9001;
   if (it.gene) { w.genes = { [it.gene]: true }; k = 'me'; } // ген — твоя клетка с этим геном: видно, что он меняет на теле
@@ -889,6 +890,7 @@ function tick(dt) {
       if (e === 'umerla' && !MUT.s_umerla) { MUT.s_umerla = 1; say(MS.umerla, 3500); } if (e === 'zakrep') say(MS.zakrep.replace('{}', geneName(g)), 4000, g); } }
   psh.shag(world, dt, KAP.pishcha, radius); { const B = KAP.bodo, um = !!world.genes.gulp; bodo.shag(world, dt, B, radius, slyshuBodo); bodo.glotat(world, B, radius, evo.E.glotat.syt, 0, um, slyshuBodo); zh.shag(world, dt, KAP.novye, v => (les.vkl() || v !== KAP.glava.kto) && /* блок Ц: синегнойка только из очагов главы */ !!ZAP[zh.SPISKI[v]] && (les.vkl() ? les.poyavitsya(KAP.lestnica, world.me[0] ? world.me[0].m : 1, KAP.novye[v].massa[0]) : (GLAVA >= (KAP.novye[v].glava || 1) || (KAP.novye[v].ranshe ? 'ranshe' : false))), radius); zh.glotat(world, evo.E.glotat.bolshe, radius, um, (v, mq, ma) => say(glk.slovo(KAP.slova_glotka, v === 'kaulo' && (world.syel.kaulo || 0) > 1 ? 'kaulo_snova' : v, mq, ma, evo.E.glotat.syt), 2600)); } // джойстик: направление и сила из сдвига пальца
   { const [fx, fy] = world.flow(view.x, view.y); cur[0] += fx * dt; cur[1] += fy * dt; } // течение несёт взвесь
+  if ((world.obtT = (world.obtT || 0) - dt) <= 0) { world.obtT = 0.5; for (const k of obt.vstrechi(world, KAP.obitateli, zh.SPISKI, cfg.meet, world.met, radius)) meet(k); } /* встреча с жителем книги — имя и «новое в Альманахе» */
   events();
   if (!world.me.length) {
     if (!ended) {
@@ -1316,6 +1318,7 @@ function render0(t, after) {
 }
 // Замер для проверки: кадры, худший и средний кадр за последние 5 с, число клеток и точек.
 window.zaplyvWorld = () => world; // для проверок и кадров
+window.kaplyaAlmanah = () => ({ items: KAB.items, imya: k => cards[k] ? cards[k].name : null, schet: () => Object.entries(KAB.items).filter(([, it]) => it.group !== 'me' && !it.gene).length, vstrechen: k => met.has(k) }); // проверка К: обитатели в Альманахе (test_obitateli.cjs)
 window.kaplyaUbiycy = () => gib.ubiycy(KAP, LISTS).map(k => { const it = KAB.items[k] || gib.kadr(k, zh.SPISKI, KAP.novye, KAP.gibel, radius); let s = ''; try { s = it ? snap(k, it) : ''; } catch (_) {} return [k, (gib.kto(k, cards, TEKSTY, KAP.gibel) || {}).name || null, s]; }); // блок В.1: кто может убить — имя и снимок (test_gibel.cjs)
 if (new URLSearchParams(location.search).has('pesochnica')) import('../pesochnica.js'); // песочница движка: пустая вода, умения касанием (pesochnica.js)
 window.zaplyvScr = (x, y) => { const [sx, sy] = scr(x, y); return [sx * innerWidth / W, sy * innerHeight / H]; }; // для проверок: где на экране точка мира (в точках CSS)
