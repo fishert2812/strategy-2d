@@ -16,7 +16,7 @@ check('test_flazhok_dva_foto_samoproverka: два фото на отметку �
   const pw = await import(process.env.PW || 'playwright').then(m => m.default || m);
   const b = await pw.chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME, args: ['--no-sandbox'] } : {});
   const p = await b.newPage({ viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true }); const oshibki = []; p.on('pageerror', e => oshibki.push(e.message));
-  await p.goto(process.env.FLAG_URL || `http://localhost:${srv.address().port}/kaplya/`); /* FLAG_URL — живой адрес */ await p.waitForFunction(() => window.zaplyvProbe && zaplyvProbe.frames > 20 && window.kaplyaFlag, null, { timeout: 40000 });
+  await p.goto(`http://localhost:${srv.address().port}/kaplya/`); await p.waitForFunction(() => window.zaplyvProbe && zaplyvProbe.frames > 20 && window.kaplyaFlag, null, { timeout: 40000 });
   await p.evaluate(() => { const w = zaplyvWorld(); w.lose = () => {}; kaplyaKarta().pauza = false; w.choice = []; localStorage.removeItem('zaplyv.marks'); });
   const tyani = async (imya, x = 200, y = 430) => { // флажок пальцем на место, лист, слова, «Записать»
     const r0 = await p.locator('#flag').boundingBox(); const cx = r0.x + r0.width / 2, cy = r0.y + r0.height / 2;

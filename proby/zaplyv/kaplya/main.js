@@ -790,7 +790,7 @@ function events() {
     if (k === 'spore') { beep(200, 0.6, 0.06, 'sine', 0.5); say('Сон! Спящих не берут — переждёшь беду', 2600); }
     if (k === 'rost') { beep(440, 0.5, 0.05, 'sine', 1.5); say(rost.text(size), 3200); world.rostT = world.stats.time; } // режим «Рост»: подросла, что теперь можно есть
     if (k === 'igla') { beep(1300, 0.08, 0.05, 'square', 0.5); } // нить-игла уколола соперницу
-    if (k === 'yad') { beep(900, 0.06, 0.04, 'sine', 0.7); if (!world.yadSkazano) { world.yadSkazano = true; say(KAP.boj.yad_vid.pervyj, 3500); } } /* Ш25: укол ядом; в первый раз словами — яд пошёл */
+    if (k === 'yad') { beep(900, 0.06, 0.04, 'sine', 0.7); } /* Ш25: укол ядом */
     if (k === 'gulp') { beep(200, 0.35, 0.06, 'sine', 0.6); } // проглотила живую клетку
     if (k === 'spit') { beep(260, 0.15, 0.04, 'sine', 0.7); tell('spit', 'Пасть тебя не взяла: ты больше её рта'); }
     if (k === 'sprout') { beep(520, 0.3, 0.05, 'sine', 2); }
@@ -1183,9 +1183,7 @@ function paint(time) {
     for (let j = 0; j < 7; j++) { const t = j * 2.399 + time * 0.1, rr = R * 0.7 * Math.sqrt((j + 0.5) / 7); glow.put(x + Math.cos(t) * rr, y + Math.sin(t) * rr, R * 0.6, ...K.cvet, K.a); }
     for (let j = 0; j < K.puzyrki; j++) { const t = j * 2.399, f = (time * 0.25 + j / K.puzyrki) % 1, rr = R * 0.8 * Math.sqrt((j + 0.5) / K.puzyrki); ink.put(x + Math.cos(t) * rr, y + Math.sin(t) * rr - f * R * 0.3, (1.2 + j % 2) * Math.max(1, z), ...K.cvet, 0.5 * (1 - f)); } } }
   { const K = KAP.rot; for (const k of ROT.kuski) { const F = cfg.food_kinds[k.f.kind || 'bits']; for (const t of vdv.tochki(k, K, radius)) { if (t.p >= 1) continue; const [x, y] = scr(t.x, t.y); if (!on(x, y, 10)) continue; const r = K.r_tochki * (1 - 0.45 * t.p) * (1 + K.obyom * t.gl) * Math.max(1, z * 0.6), al = K.a * (1 - K.obyom + K.obyom * (t.gl + 1) / 2); glow.put(x, y, r * 2.6, ...F.halo, 0.22 * al); glow.put(x, y, r, ...F.core, al); } } } /* Ш2: кусок рассыпался на точки, они воронкой бегут в рот */
-  { const Y = KAP.boj.yad_vid; for (const L of Object.values(KAP.boj.celi)) for (const q of world[L.spisok] || []) if (gm.otravlen(q)) { const [x, y] = scr(q.x, q.y); if (on(x, y, 40)) glow.put(x, y, 26 * z, ...Y.cvet, Y.a + (Y.a_gibnet || 0) * (1 - Math.max(0, q.gn.f))); } /* Ш25: отравленная светится цветом яда, ярче к гибели */
-    const K = Y.kolco; if (K) for (const a of world.me) for (const o of boj.kolca(world, KAP.boj, a, radius)) { const [x, y] = scr(a.x, a.y), r = o.R * z, al = o.cel ? K.a_cel : K.a; /* досягаемость яда: кольцо вокруг клетки, ярче, когда есть кого травить (Роман 27.11) */
-      for (let j = 0; j < K.tochek; j++) { const t = j / K.tochek * 6.2832 + time * 0.15; glow.put(x + Math.cos(t) * r, y + Math.sin(t) * r, K.r * z + 1, ...Y.cvet, al); } } }
+  { const Y = KAP.boj.yad_vid; for (const L of Object.values(KAP.boj.celi)) for (const q of world[L.spisok] || []) if (gm.otravlen(q)) { const [x, y] = scr(q.x, q.y); if (on(x, y, 40)) glow.put(x, y, 26 * z, ...Y.cvet, Y.a); } } /* Ш25: отравленная соперница светится цветом яда */
   { const K = KAP.virus_znak, me = world.me[0]; VIR = me ? vir.muti(world.phages, me, K, radius(me.m), cfg.speed / rost.hod(world, me)) : []; for (const q of VIR) { const [x, y] = scr(q.x, q.y); if (!on(x, y, 80)) continue; const ob = q.vid === 'oblako'; glow.put(x, y, (ob ? K.r_oblako : K.r_blizko) * z, ...K.cvet, ob ? K.a_oblako : K.a_blizko); } } // П7: вирус опасен водой — серая муть рядом и в облаке, без красного и розового
   { const M = sob.muti(SOB, KAP.sobytiya), K = KAP.sobytiya; if (M) { const [x, y] = scr(M.x, M.y), c = K.vidy[M.vid].cvet; for (let j = 0; j < 7; j++) { const t = j * 2.399 + time * 0.2, rr = K.r * z * 0.6 * Math.sqrt((j + 0.5) / 7); glow.put(x + Math.cos(t) * rr, y + Math.sin(t) * rr, K.r * z * 0.7, ...c, K.a * M.sila); } } } /* Ш41: беда видна водой до прихода */
   for (const g of world.phages) { // фаг T4: головка позади, хвостом вперёд — садится хвостом
