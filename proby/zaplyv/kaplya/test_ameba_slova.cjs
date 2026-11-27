@@ -23,8 +23,8 @@ async function scena(pw, port, staroe) { const b = await pw.chromium.launch(proc
   const srv = http.createServer((q, s) => { const f = path.join(KOREN, decodeURIComponent(q.url.split('?')[0])); const ff = fs.existsSync(f) && fs.statSync(f).isDirectory() ? path.join(f, 'index.html') : f;
     if (!ff.startsWith(KOREN) || !fs.existsSync(ff)) { s.writeHead(404); return s.end(); } s.writeHead(200, { 'Content-Type': TIP[path.extname(ff)] || 'application/octet-stream' }); fs.createReadStream(ff).pipe(s); }).listen(0);
   const pw = await import(process.env.PW || 'playwright').then(m => m.default || m), port = srv.address().port;
-  const sud = R => [R.eda > 0 ? `в чаше съедено +${R.eda} за 2 с` : '', !/Свобода/.test(R.vyhod) ? `на выходе строка «${R.vyhod}», а не «Свобода!»` : '', ZH.some(t => R.gibel.includes(t)) ? `после гибели висит «${R.gibel}»` : ''].filter(Boolean).join('; ');
+  const sud = R => [R.eda > 0 ? `в чаше съедено +${R.eda} за 2 с` : '', !/Свобода/.test(R.vyhod) ? `на выходе строка «${R.vyhod}», а не «Свобода!»` : '', ZH.some(t => R.gibel.includes(t)) ? `после гибели висит «${R.gibel}»` : !/^Гибель/.test(R.gibel) ? `сразу после гибели строка «${R.gibel}», а не «Гибель: …»` : ''].filter(Boolean).join('; ');
   const R = await scena(pw, port, false); console.log('  ' + JSON.stringify(R));
-  check('test_L092 test_ameba_slova: в чаше амёбы «съедено» стоит, на выходе сразу «Свобода!», после гибели строки хватки нет', R.errs.join(' | ') || sud(R));
+  check('test_L092 test_L100 test_ameba_slova: в чаше амёбы «съедено» стоит, на выходе сразу «Свобода!», после гибели сразу «Гибель: амёба», строки хватки нет', R.errs.join(' | ') || sud(R));
   if (!process.env.BEZ_SAMOPROVERKI) { const S = await scena(pw, port, true); console.log('  старое: ' + JSON.stringify(S)); check('test_ameba_slova_samoproverka: старые строки и еда в хватке — сторож краснеет', sud(S) ? '' : 'не заметил'); }
   srv.close(); process.exit(bad ? 1 : 0); })();
