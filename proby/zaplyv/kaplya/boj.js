@@ -35,7 +35,7 @@ export function posle_hoda(w, dt, B, radius, S) { for (const g in S.geny) w.gene
     const dx = q.x - a0.x, dy = q.y - a0.y, d = Math.hypot(dx, dy) || 1, k = C.otvet === 'beg' ? V.beg : C.otvet === 'napad' ? -V.napad : 0; q.otvetil = C.otvet;
     if (C.otvet === 'szhat') { q.vx = q.vy = 0; } else if (k) { q.x += dx / d * k * hod * dt; q.y += dy / d * k * hod * dt; q.a = Math.atan2(k > 0 ? dy : -dy, k > 0 ? dx : -dx); } }
   for (const [ck, C] of spiski(B)) { const L = w[C.spisok]; if (!L) continue; let byl = false;
-    for (const q of L) if (!q.gone && gm.shag(q, dt, B.genom)) { q.gone = byl = true; if (w.lopnut) w.lopnut(ck, q); else w.spill(q.x, q.y); w.events.push(['pop', q.x, q.y, ck]); /* Ш4: лопается точками своих частей */ ubity.push([ck, q]); }
+    for (const q of L) if (!q.gone && gm.shag(q, dt, B.genom)) { q.gone = byl = true; if (w.trupy) w.trupy.push({ ck, spisok: C.spisok, q, t: 0 }); /* Ж.3: сперва лежит серым телом (trup.js), лопается потом */ else { if (w.lopnut) w.lopnut(ck, q); else w.spill(q.x, q.y); w.events.push(['pop', q.x, q.y, ck]); } /* Ш4: лопается точками своих частей */ ubity.push([ck, q]); }
     if (byl) w[C.spisok] = L.filter(q => !q.gone); }
   return ubity; }
 // Облако яда с кнопки (Д.10 п. 3, knopki.js): кто в облаке — получает дозу по таблице (стенка, уровень, здоровье), не чаще pauza; сила облака тает к oblako_t.
