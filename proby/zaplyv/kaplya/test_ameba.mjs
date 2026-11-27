@@ -15,7 +15,7 @@ function opyt(A, B, uhodit) { const cfg = boj.v_mir(JSON.parse(JSON.stringify(ba
     for (const [e] of am.shag(w, DT, A, radius, hod, m0)) { fazy.push(e); if (e === uhodit) idu = true; if (e === 'vyrvalas') vyrvalas = true; } }
   return { gibel, fazy, vyrvalas }; }
 const sud = (A, B) => { const P = A.vyrost + A.ohvat + A.perevar, s = opyt(A, B, null);
-  if (s.gibel == null) return `стоишь 14 с — не съедена (${s.fazy.join(' → ')})`; if (s.gibel < P * 0.8) return `съедена за ${s.gibel.toFixed(1)} с, раньше ${P} с (${s.fazy.join(' → ')})`;
+  if (s.gibel == null) return `стоишь 14 с — не съедена (${s.fazy.join(' → ')})`; if (s.gibel < A.ohvat + A.perevar) return `съедена за ${s.gibel.toFixed(1)} с, раньше чаши и переваривания ${A.ohvat + A.perevar} с (${s.fazy.join(' → ')})`;
   const u = opyt(A, B, 'chasha'); if (u.gibel != null || !u.vyrvalas) return `ушла, когда пошла чаша, а ${u.gibel != null ? 'съедена на ' + u.gibel.toFixed(1) + ' с' : 'не вырвалась'} (${u.fazy.join(' → ')})`; return ''; };
 check(`test_ameba_ohvat: касание не убивает сразу (вырост ${KAP.ameba.vyrost} с, чаша ${KAP.ameba.ohvat} с, переваривание ${KAP.ameba.perevar} с); ушла от чаши — вырвалась`, sud(KAP.ameba, KAP.boj));
 const B0 = JSON.parse(JSON.stringify(KAP.boj)); B0.lovit_medlenno = []; check('test_ameba_ohvat_samoproverka_srazu: мгновенную поимку судья ловит', sud(KAP.ameba, B0) ? '' : 'не заметил');

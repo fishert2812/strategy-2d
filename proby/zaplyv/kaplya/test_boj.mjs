@@ -33,4 +33,9 @@ check('test_boj_tablica_samoproverka: строка без силы судья л
 { const w = { genes: { toxin: true }, knopka: { toxin: true }, lvl: {}, me: [{ x: 0, y: 0, a: 0, m: 1 }], stats: { time: 0 }, events: [], spill() {}, spirilly: [{ x: 16, y: 0, m: 1 }] }, rad = m => 13 * Math.sqrt(m);
   for (let i = 0; i < 400 && w.spirilly.length; i++) { const S = boj.do_hoda(w, K0); w.stats.time += 1 / 30; boj.posle_hoda(w, 1 / 30, K0, rad, S); if (w.spirilly[0]) w.spirilly[0].x = 16; }
   check('test_boj_stroka: житель из таблицы (спирилла) тоже бьётся ядом — новый житель добавляется строкой', w.spirilly.length ? 'спирилла жива' : ''); }
+{ const jalit = B => { const a = { x: 0, y: 0, m: 1 }, q = { x: 20, y: 0, m: 1 }, w = { me: [a], prey: [q], events: [], stats: { time: 0 }, lose(c, x, y, who) { this.me = this.me.filter(b => b !== c); this.stats.killer = who; } }; let n = 0;
+    for (let i = 0; i < 300 && w.me.length; i++) { w.stats.time += 0.1; if (i % 12 === 0) { w.events.push(['pinch', q.x, q.y]); n++; } boj.po_tebe(w, 0.1, B, new Map()); w.events = []; } return { f: a.gn ? a.gn.f : 1, kto: w.stats.killer, n }; };
+  const r = jalit(K0), bez = jalit({ ...K0, na_tebya: Object.fromEntries(Object.entries(K0.na_tebya).filter(([k]) => k !== 'pinch')) });
+  check('test_L075 test_kokk_jalit: щипок кокка отнимает геном-здоровье, добьёт — убийца кокк, а не соперница', r.kto === 'coccus' ? '' : JSON.stringify(r));
+  check('test_kokk_jalit_samoproverka: без строки pinch в таблице судья краснеет', bez.f >= 1 && !bez.kto ? '' : 'не заметил: ' + JSON.stringify(bez)); }
 process.exit(bad ? 1 : 0);
