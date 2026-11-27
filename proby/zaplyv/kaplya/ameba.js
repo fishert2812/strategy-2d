@@ -16,7 +16,7 @@ const v = (faza, e) => { O.faza = faza; O.t = 0; if (e) ev.push([e, m]); };
     if (!mozhet && O.faza !== 'puzyr') { if (O.faza) v('otdyh'); continue; }
     if (!O.faza) { if (kraj < dosyag) { O.ug = Math.atan2(dy, dx); v('vyrost', 'vyrost'); } continue; }
     if (O.faza === 'vyrost') { O.ug = Math.atan2(dy, dx); O.dl = Math.min(1, O.t / A.vyrost) * dosyag; // вырост тянется к тебе
-      if (kraj > dosyag * 1.3) v('otdyh'); else if (kraj <= O.dl) v('prilip', 'prilip'); continue; }
+      if (kraj > dosyag * 1.3) v('otdyh'); else if (kraj <= O.dl && (!w.mozhnoBit || w.mozhnoBit(m))) v('prilip', 'prilip'); /* блок В: без горевшей кромки не прилипает */ continue; }
     const tyani = k => { const s = Math.min(d - Rm * 0.2, k * hod * dt); a.x -= dx / d * s; a.y -= dy / d * s; };
     if (O.faza === 'prilip') { O.dl = Math.max(0, kraj); if (kraj > A.otryv * Rm) { v('otdyh', 'vyrvalas'); continue; } tyani(A.tyaga_prilip); if (kraj < Ra * A.k_telu) v('chasha', 'chasha'); continue; }
     if (O.faza === 'chasha') { O.f = Math.min(1, O.t / A.ohvat); if (kraj > A.vyhod * Ra) { v('otdyh', 'vyrvalas'); continue; } tyani(A.tyaga_chasha); if (O.t >= A.ohvat) v('puzyr', 'puzyr'); continue; }
