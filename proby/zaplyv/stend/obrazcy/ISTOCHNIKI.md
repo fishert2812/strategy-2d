@@ -54,3 +54,4 @@
 | `pmc12843806_bdellovibrio_u_zhertvy_tem.jpg` | Shorokhova A.P. и др. | CC BY 4.0 | https://doi.org/10.3390/microorganisms14010190 |
 | `ppat1011687_t6ss_vystrel_v_kletke_fluor.jpg` | Kandolo O. и др. | CC BY 4.0 | https://doi.org/10.1371/journal.ppat.1011687 |
 | `wellcome_B0010312_membrana_skol_chastitsy.jpg` | Wellcome Collection | CC BY 4.0 | https://wellcomecollection.org/works/attbabyf |
+| `pmc12843806_puzyrki_u_konca_kletki_tem.jpg` | Shorokhova A.P. и др. | CC BY 4.0 | https://doi.org/10.3390/microorganisms14010190 |
