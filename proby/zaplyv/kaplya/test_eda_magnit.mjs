@@ -2,7 +2,7 @@
 // В живой партии бот 30 с стоял на сахаре у водоросли и не ел: сахар открывался только с первого роста, магнит тянул его к клетке, он лип к оболочке
 // и занимал магнит. test_L077 test_eda_sahar: сахар ешь с первой секунды — магнит подтянул, клетка съела. test_eda_magnit_zakrytoe: то, что ещё не умеешь
 // есть (лизат до 2-го роста), магнит не тянет. Самопроверка: старое (сахар с 1-го роста, магнит тянет всё) — сторож краснеет.
-import fs from 'fs'; import { World } from '../sim.js'; import * as mut from '../mutacii.js'; import * as zh from './zhiteli.js'; import * as rost from '../rost.js';
+import fs from 'fs'; import { World } from '../sim.js'; import * as mut from '../mutacii.js'; import * as zh from './zhiteli.js'; import * as rost from '../rost.js'; import * as edr from './eda_ryadom.js';
 const base = JSON.parse(fs.readFileSync(new URL('../data.json', import.meta.url))), KAP = JSON.parse(fs.readFileSync(new URL('./kaplya.json', import.meta.url))), DT = 1 / 30, R0 = JSON.parse(JSON.stringify(rost.R));
 let bad = 0; const check = (n, e) => { console.log((e ? '  ПРОВАЛ ' : '  ок ') + n + (e ? ': ' + e : '')); if (e) bad++; };
 function scena(staroe, kind) { Object.assign(rost.R, JSON.parse(JSON.stringify(R0)), KAP.temp); if (staroe) rost.R.eda = { ...rost.R.eda, glucose: 1 };
@@ -17,4 +17,11 @@ const sudZakrytoe = S => S.pritaschil ? `магнит тащит еду, кот�
 check('test_L077 test_eda_sahar: сахар у водоросли ешь с первой секунды — магнит подтягивает 4 крупинки, клетка съела все 4', sudSahar(scena(false, 'glucose')));
 check('test_eda_magnit_zakrytoe: лизат до 2-го роста магнит не тянет — он не липнет к клетке', sudZakrytoe(scena(false, 'lysate')));
 check('test_eda_samoproverka: старое (сахар с первого роста, магнит тянет всё) — сторож краснеет', sudSahar(scena(true, 'glucose')) && sudZakrytoe(scena(true, 'lysate')) ? '' : 'не заметил');
+// L081 (пачка 1 п. 7 «до 2 минут без крошки»): плывёшь 20 с по пустой воде — в кадре (eda_ryadom.r) крошек не меньше n, новые появляются за краем кадра, а не под носом
+const ER = KAP.eda_ryadom, sudRyadom = (shag = edr.shag) => { const a = { x: 0, y: 0, a: 0 }, w = { food: [] }, S = edr.sozdat(); let min = 1e9, podNosom = 0, n0 = 0;
+  for (let t = 0; t < 20; t += DT) { a.x += 120 * DT; const bylo = w.food.length; shag(S, w, DT, ER, a); for (const f of w.food.slice(bylo)) if (Math.hypot(f.x - a.x, f.y - a.y) < ER.za[0] - 1) podNosom++;
+    w.food = w.food.filter(f => !(Math.hypot(f.x - a.x, f.y - a.y) < 12 && (f.gone = true))); if (t > 1) min = Math.min(min, w.food.filter(f => Math.hypot(f.x - a.x, f.y - a.y) < ER.r).length); }
+  return min < ER.n - 2 ? `в кадре было всего ${min} крошек` : podNosom ? `${podNosom} крошек появились прямо в кадре` : ''; };
+check(`test_L081 test_eda_ryadom: 20 с по пустой воде — в кадре не меньше ${ER.n - 2} крошек, новые появляются за краем кадра`, sudRyadom());
+check('test_eda_ryadom_samoproverka: без подсыпки (пустая вода) судья ловит', sudRyadom(() => 0) ? '' : 'не заметил');
 Object.assign(rost.R, R0); process.exit(bad ? 1 : 0);
