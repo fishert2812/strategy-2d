@@ -59,10 +59,6 @@ export function hod(q, P, K, dt, rnd, d = 0) { dt = Math.max(dt, 1e-4); const ti
   // общий закон плавности: любой разворот (кувырок, щелчок, отскок) идёт не быстрее telo.razvorot рад/с в среднем, большой угол дольше малого;
   // иначе тело поворачивает на десятки градусов за кадр, и глаз видит скачок, а не движение
   const plavno = (T0, pov) => Math.max(T0, Math.abs(pov) / (K.telo.razvorot || 99));
-  // совет биолога 26.11 (design/dlya_dvizhka/sovety_biologa_hod.md, пункт 1; Berg & Brown 1972; Xie и др. 2011): живое в капле встаёт, поворачивается
-  // на месте и едет дальше. Кувырок и щелчок: тормоз beg.tormoz с, потом поворот на месте по кривой «медленно, быстро, медленно» за время из
-  // пределов tt (большой угол дольше, в среднем telo.razvorot_mesta рад/с), потом разгон. Предел telo.razvorot остаётся поворотам на ходу (отскок инфузории)
-  const na_meste = (pov, tt) => { h.pov = pov; h.tm = B.tormoz; h.t = h.T = lim(Math.abs(pov) / K.telo.razvorot_mesta, tt[0], tt[1]); h.faza = 'kuvyrok'; };
   if (tip === 'polzet' && !q.pokoy) { const N = K.nozhki, z = h.nz || (h.nz = { ang: 0, r: 0, st: znak(), rost: 1, t: N.rastet * rnd() }); o.rul = 0; o.beg = 0;
     const novyy = ot => { z.st = rnd() < N.zigzag ? -z.st : z.st; z.ang = lim(z.st * N.ugol * (0.6 + rnd() * 0.8) + lim(d, -N.k_celi, N.k_celi) + (ot || 0), -2.6, 2.6); z.r = 0; z.rost = 1; z.t = N.rastet * (0.7 + rnd() * 0.6); };
     // ест (оболочка обхватывает кусок: pitanie.js obhvat): ходовой вырост втягивается, вещество тела уходит в губы вокруг куска, тело стоит
@@ -80,10 +76,10 @@ export function hod(q, P, K, dt, rnd, d = 0) { dt = Math.max(dt, 1e-4); const ti
   o.kach = P.kach * Math.sin(h.f * B.chastota + q.id);
   if (h.faza === 'beg') { h.zh += dt; o.sk = 1 + B.pulsaciya * Math.sin(h.f * 2.3 + q.id * 1.7) * Math.sin(h.f * 0.9 + q.id);
     // цель оказалась сзади: резкий разворот кувырком в её сторону (как у клетки игрока в игре: data.json swim.tumble_angle)
-    if (Math.abs(d) > B.ugol_kuvyrka && h.zh > B.ne_chashche && tip === 'beg') na_meste(d * B.dolya_razvorota, B.na_meste);
-    else if ((q.vedut ? 1 : (h.t -= dt)) <= 0 || udar && h.zh > B.ne_chashche) { if (tip === 'polus') { h.faza = 'nazad'; h.t = B.nazad * (0.5 + rnd()); } else na_meste(znak() * P.ugol * (0.3 + rnd() * 1.4), B.na_meste); } }
-  else if (h.faza === 'nazad') { o.sk = -B.nazad_skorost; o.rul = 0; o.kach *= B.nazad_kach; if ((h.t -= dt) <= 0) na_meste(znak() * B.shchelchok * (0.6 + rnd() * 0.8), B.shchelchok_t); }
-  else { o.sk = B.v_kuvyrke; o.beg = 0; o.rul = 0; o.tormoz = 1; if (h.tm > 0) h.tm -= dt; else { const sh = Math.min(dt, h.t); o.da += h.pov * sh / h.T * (1 - Math.cos(6.283 * (1 - (h.t - sh / 2) / h.T))); o.kach *= 1 + Math.sin(Math.PI * (1 - h.t / h.T)); if ((h.t -= dt) <= 0) { h.faza = 'beg'; h.t = probeg(); h.zh = 0; } } }
+    if (Math.abs(d) > B.ugol_kuvyrka && h.zh > B.ne_chashche && tip === 'beg') { h.faza = 'kuvyrok'; h.pov = d * B.dolya_razvorota; h.t = h.T = plavno(B.kuvyrok, h.pov); }
+    else if ((q.vedut ? 1 : (h.t -= dt)) <= 0 || udar && h.zh > B.ne_chashche) { if (tip === 'polus') { h.faza = 'nazad'; h.t = B.nazad * (0.5 + rnd()); } else { h.faza = 'kuvyrok'; h.pov = znak() * P.ugol * (0.3 + rnd() * 1.4); h.t = h.T = plavno(B.kuvyrok * (0.6 + rnd() * 0.8), h.pov); } } }
+  else if (h.faza === 'nazad') { o.sk = -B.nazad_skorost; o.rul = 0; if ((h.t -= dt) <= 0) { h.faza = 'kuvyrok'; h.pov = znak() * B.shchelchok * (0.6 + rnd() * 0.8); h.t = h.T = plavno(B.shchelchok_t, h.pov); } }
+  else { o.sk = B.v_kuvyrke; o.beg = 0; o.rul = 0; o.da += h.pov * dt / h.T * (1 - Math.cos(6.283 * (1 - h.t / h.T))); o.kach *= 1 + Math.sin(Math.PI * (1 - h.t / h.T)); if ((h.t -= dt) <= 0) { h.faza = 'beg'; h.t = probeg(); h.zh = 0; } }
   return o; }
 // Течение: вода в капле медленно ходит кругами и несёт всех одинаково (бездивергентное поле из двух волн, еду не сминает в кучи).
 export function techenie(K, x, y, t) { const T = K.techenie, k = 6.283 / T.masshtab, f = t * 6.283 / T.period;
@@ -98,7 +94,7 @@ export function shag_tela(q, K, dt, d, vmax, X, kp, w, sdvig, rnd, half = 0) { d
   q.a += (X.rul && d && Math.abs(q.om * dt) > Math.abs(d) ? d : q.om * dt) + X.da;
   const thrust = vmax * X.sk * (X.rul ? Math.max(T.v_povorote, Math.cos(d)) : 1), ux = Math.cos(q.a), uy = Math.sin(q.a);
   let fwd = (q.vx || 0) * ux + (q.vy || 0) * uy, side = -(q.vx || 0) * uy + (q.vy || 0) * ux;
-  fwd += (thrust - fwd) * Math.min(1, (X.tormoz ? T.stop_tormoz : thrust ? T.drag_along : T.stop) * dt); side += ((thrust ? X.bok * w : 0) - side) * Math.min(1, T.drag_side * dt);
+  fwd += (thrust - fwd) * Math.min(1, (thrust ? T.drag_along : T.stop) * dt); side += ((thrust ? X.bok * w : 0) - side) * Math.min(1, T.drag_side * dt);
   q.vx = ux * fwd - uy * side; q.vy = uy * fwd + ux * side; q.a += (X.duga || 0) * fwd / w * dt; 
   const tau = K.drozh.plavno, kd = Math.min(1, dt / tau), sg = sdvig / tau * Math.sqrt(dt) * kd / (dt / tau); q.bx = (q.bx || 0) * (1 - kd) + gauss(rnd) * sg; q.by = (q.by || 0) * (1 - kd) + gauss(rnd) * sg;
   q.x += (q.vx + q.bx) * dt; q.y += (q.vy + q.by) * dt;
