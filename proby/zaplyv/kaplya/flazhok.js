@@ -4,7 +4,7 @@
 // Отметка — одна картинка; подпись (слова, экран, момент) впечатывается в неё при отправке. Второго кадра без подписи нет.
 // Окна сверху вниз: первое открытое и есть экран отметки.
 export const OKNA = [['cabinet', 'Альманах'], ['genome', null], ['night', 'Ночь рода'], ['menu', 'Режимы'], ['end', 'экран гибели'],
-  ['kvybor', 'вопрос'], ['offer', 'карточки умений']];
+  ['kvybor', 'вопрос'], ['offer', 'карточки умений'], ['evo', 'Эволюция']];
 const otkryto = el => el && (el.id === 'kvybor' || el.classList.contains('on'));
 export function ekran(doc, razdel) { for (const [id, imya] of OKNA) if (otkryto(doc.getElementById(id))) return imya || razdel || 'Пауза'; return 'игра'; }
 // Чего на снимке быть не должно: сам флажок, его лист и надписи о нём. Холст игры снимаем сами, сразу после кадра.
