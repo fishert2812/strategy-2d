@@ -18,8 +18,8 @@ function sdvig(B) { const cfg = boj.v_mir(JSON.parse(JSON.stringify(base)), B); 
   const a = w.me[0]; a.m = 1; const q = { id: 9999, x: a.x + 14, y: a.y, a: 0, m: 1, vx: 0, vy: 0 }, x0 = q.x - a.x; w.prey.push(q);
   for (let t = 0; t < 0.5; t += DT) { a.vx = a.vy = 0; w.step(DT, null); } return Math.hypot(q.x - a.x, q.y - a.y) - x0; }
 const sudMir = B => { const v = boj.v_mir({}, B); for (const [imya, put] of Object.entries(B.v_mir)) if (imya !== '_' && v[imya] !== boj.izTablicy(B, put)) return `${imya} не из таблицы`;
-  const s = sdvig(B), B0 = JSON.parse(JSON.stringify(B)); B0.celi.kokk.tolchok = 0; const s0 = sdvig(B0); return s > s0 + 3 ? '' : `кокк отъехал на ${s.toFixed(1)}, с толчком 0 — на ${s0.toFixed(1)}`; };
-check(`test_boj_odna_tablica_mir: толчок кокка ${KAP.boj.celi.kokk.tolchok} и щипок ${KAP.boj.celi.kokk.shchipok_t} с — из boj.celi, мир их слушается`, sudMir(KAP.boj));
+  const B1 = JSON.parse(JSON.stringify(B)); if (!B1.celi.kokk.tolchok) B1.celi.kokk.tolchok = B1.celi.kokk.tolchok_staryj || 6; /* L075: в игре кокк стоит (tolchok 0) — слушается ли мир, меряем на старом толчке */ const s = sdvig(B1), B0 = JSON.parse(JSON.stringify(B)); B0.celi.kokk.tolchok = 0; const s0 = sdvig(B0); return s > s0 + 3 ? '' : `кокк отъехал на ${s.toFixed(1)}, с толчком 0 — на ${s0.toFixed(1)}`; };
+check(`test_boj_odna_tablica_mir: толчок кокка ${KAP.boj.celi.kokk.tolchok || KAP.boj.celi.kokk.tolchok_staryj} и щипок ${KAP.boj.celi.kokk.shchipok_t} с — из boj.celi, мир их слушается`, sudMir(KAP.boj));
 // Код «Капли» не читает эти числа из data.json мимо таблицы (cfg.prey_push, world.cfg.pinch_t…).
 const imena = Object.keys(KAP.boj.v_mir).filter(k => k !== '_'), mimo = new RegExp(`\\bcfg\\.(${imena.join('|')})\\b`);
 const sudKod = faily => faily.filter(([, s]) => mimo.test(s)).map(([f]) => f);
