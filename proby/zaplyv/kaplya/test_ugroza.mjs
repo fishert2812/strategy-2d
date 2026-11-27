@@ -1,7 +1,7 @@
 // Сторож кромки угрозы «Капли» (блок В, pravki_po_blokam.md В.3 п. 1, 2, 4; В.6): node proby/zaplyv/kaplya/test_ugroza.mjs.
 // test_ugroza_kromka: кромка горит у того, кто рядом и идёт на тебя; не горит у дальнего, уходящего, сытого и того, кто тебе по зубам; колокольчик горит, просто сидя рядом.
 // test_net_udara_bez_znaka: каждый охотник с ходом из data.json, бросаясь с края экрана, к касанию горит не меньше za секунд, и перед касанием кромка мигает.
-import fs from 'fs'; import * as ugr from './ugroza.js'; import * as zh from './zhiteli.js'; import * as cel from './cel.js';
+import fs from 'fs'; import * as ugr from './ugroza.js'; import * as zh from './zhiteli.js'; import * as cel from './cel.js'; import * as am from './ameba.js';
 const KAP = JSON.parse(fs.readFileSync(new URL('./kaplya.json', import.meta.url))), U = KAP.ugroza, D = JSON.parse(fs.readFileSync(new URL('../data.json', import.meta.url))), C = D.sim || D, DT = 1 / 30;
 let bad = 0; const check = (n, e) => { console.log((e ? '  ПРОВАЛ ' : '  ок ') + n + (e ? ': ' + e : '')); if (e) bad++; };
 const R = m => 13 * Math.sqrt(m), shagi = (Uu, w, a, n, op = () => true, K = U, hod = null) => { for (let i = 0; i < n; i++) { if (hod) hod(); ugr.shag(Uu, w, DT, K, a, op); } };
@@ -24,4 +24,6 @@ check('test_net_udara_bez_znaka_samoproverka: кромка, что зажига�
   check(`test_trevoga_po_delu_hozyain: «… ест таких, как ты» только про хищника — водоросль хламидомонада молчит («${ne}»), амёба названа («${da}»)`, /ест таких/.test(ne) || !/ест таких/.test(da) ? 'не так' : ''); }
 { const Uu = ugr.sozdat(), q = { x: 60, y: 0, m: 6, a: Math.PI }, a = { x: 0, y: 0, m: 1 }, w = { amoebas: [q] }, ranee = ugr.mozhno_bit(Uu, U, q); shagi(Uu, w, a, Math.ceil(U.za / DT) + 2);
   check(`test_net_udara_bez_znaka_vorota: пасть без кромки не хватает; после ${U.za} с горения — может`, !ranee && ugr.mozhno_bit(Uu, U, q) ? '' : `до: ${ranee}, после: ${ugr.mozhno_bit(Uu, U, q)}`); }
+{ const prilip = (mozhno, n) => { const a = { x: 0, y: 0, m: 1 }, m = { x: R(6) + R(1) + 4, y: 0, m: 6, a: Math.PI }, w = { me: [a], amoebas: [m], genes: {}, stats: { time: 0 }, mozhnoBit: mozhno }; for (let i = 0; i < n; i++) { w.stats.time += DT; if (am.shag(w, DT, KAP.ameba, R, 1, null).some(([e]) => e === 'prilip')) return true; } return false; }, n = Math.ceil(3 / DT);
+  check(`test_net_udara_bez_znaka_ameba: амёба вплотную не прилипает, пока её кромка не горела ${U.za} с; с горевшей — прилипает`, prilip(() => false, n) ? 'прилипла без кромки' : prilip(() => true, n) ? '' : 'и с кромкой не прилипла: сцена не та'); }
 process.exit(bad ? 1 : 0);
