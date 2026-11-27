@@ -23,7 +23,7 @@ export function posle_hoda(w, dt, B, radius, S) { for (const g in S.geny) w.gene
         const dol = gm.dolya(X.sila[Math.min(lvl(g), X.sila.length) - 1] * k, a.m, m);
         if (X.sposob === 'yad' ? gm.yad(q, dol, a, now, X.pauza, X.dlitsya) : gm.udar(q, dol, a, now, X.pauza)) { w.events.push([X.sobytie, q.x, q.y, ck]); if (X.oglush) q.oglush = now + X.oglush; } } } }
   for (const [ck, C] of spiski(B)) { const L = w[C.spisok]; if (!L) continue; let byl = false;
-    for (const q of L) if (!q.gone && gm.shag(q, dt, B.genom)) { q.gone = byl = true; w.spill(q.x, q.y); w.events.push(['pop', q.x, q.y, ck]); ubity.push([ck, q]); }
+    for (const q of L) if (!q.gone && gm.shag(q, dt, B.genom)) { q.gone = byl = true; if (w.lopnut) w.lopnut(ck, q); else w.spill(q.x, q.y); w.events.push(['pop', q.x, q.y, ck]); /* Ш4: лопается точками своих частей */ ubity.push([ck, q]); }
     if (byl) w[C.spisok] = L.filter(q => !q.gone); }
   return ubity; }
 // Ш3 «Кто колет тебя»: удар жителя по тебе тоже идёт по геному, а не по массе. Ручной гарпун соперницы (dvizhok.js) и её яд (zhizn.js) отнимают массу
