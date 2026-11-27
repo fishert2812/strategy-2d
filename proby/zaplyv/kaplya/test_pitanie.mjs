@@ -15,9 +15,10 @@ const sud = (K, B = { ...KAP.boj, novye_geny: [...KAP.boj.novye_geny, 'plotoyadn
 check(`test_lestnica_pitaniya: в 400 заходах первые две карты — не «Глотать»; «Плотоядный» после оружия; «Глотать» после «Плотоядного» и с ${KAP.pitanie.glotat_ot_mkm} мкм`, sud(KAP.pitanie));
 check('test_lestnica_pitaniya_samoproverka: «Глотать» без порога роста судья ловит', sud({ ...KAP.pitanie, glotat_ot_mkm: -Infinity }) ? '' : 'не заметил');
 // Водоворот: точка убитого (zn) у самого рта.
-const vsos = (plot, k) => { const a = { x: 0, y: 0, a: 0, m: 1 }, f = { x: radius(1) * 1.3, y: 0, s: 1, kind: 'bits', zn: 1 }, w = { me: [a], food: [f], genes: plot ? { plotoyadnyy: true } : {}, r: rnd(3) }, S = rt.sozdat();
+const vsos = (plot, k) => { const a = { x: 0, y: 0, a: 0, m: 1 }, f = { x: radius(1) * 1.3, y: 0, s: 1, kind: 'bits', ubit: 1 }, w = { me: [a], food: [f], genes: plot ? { plotoyadnyy: true } : {}, r: rnd(3) }, S = rt.sozdat();
   rt.shag(S, w, DT, KAP.rot, radius, 0, k); return { vzyat: S.kuski.length > 0, s: f.s }; };
-const sudV = k => { const bez = vsos(false, k), s = vsos(true, k); return bez.vzyat ? 'без «Плотоядного» точку убитого тянет' : !s.vzyat ? 'с «Плотоядным» не тянет' : !(s.s >= 2) ? `сытость всосанной ${s.s}, а надо ×${k}` : ''; };
+const krosha = () => { const a = { x: 0, y: 0, a: 0, m: 1 }, w = { me: [a], food: [{ x: radius(1) * 1.3, y: 0, s: 1, kind: 'bits', zn: 1 }], genes: {}, r: rnd(3) }, S = rt.sozdat(); rt.shag(S, w, DT, KAP.rot, radius, 0, 2); return S.kuski.length > 0; };
+const sudV = k => { if (!krosha()) return 'обычную крошку (разложенную зоной, zn) водоворот не берёт'; const bez = vsos(false, k), s = vsos(true, k); return bez.vzyat ? 'без «Плотоядного» точку убитого тянет' : !s.vzyat ? 'с «Плотоядным» не тянет' : !(s.s >= 2) ? `сытость всосанной ${s.s}, а надо ×${k}` : ''; };
 check(`test_vsasyvanie: точки убитого водоворот всасывает только у «Плотоядного», в ${KAP.pitanie.plotoyadnyy_k} раза сытнее`, sudV(KAP.pitanie.plotoyadnyy_k));
 check('test_vsasyvanie_samoproverka: всосанное не сытнее судья ловит', sudV(1) ? '' : 'не заметил');
 process.exit(bad ? 1 : 0);
