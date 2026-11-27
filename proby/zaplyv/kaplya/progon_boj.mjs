@@ -12,6 +12,7 @@ const SPISKI = ['pseudos', 'donors', 'bdellos', 'prey', 'amoebas', 'phages', 'be
 const obrazcy = (() => { const w = mir(), out = new Map(); w.lose = () => {}; w.step(DT, null);
   for (let i = 0; i < 30 && out.size < 40; i++) { zh.shag(w, DT, KAP.novye, () => true, radius); for (const L of SPISKI) for (const q of w[L] || []) { const k = L + ':' + (q.vid || (q.strain ? 'strain' : '')); if (!out.has(k) && !q.gone) out.set(k, [L, JSON.parse(JSON.stringify(q, (key, v) => key === 'dom' || key === 'on' || key === 'gn' ? undefined : v))]); }
     if (!w.me[0]) break; w.me[0].x += 1600 * (i % 2 ? 1 : -1); w.me[0].y += 1100; w.step(DT, null); }
+  { const k = [...out].find(([k]) => k.startsWith('prey:')); if (k) out.set('prey:krupnyj', ['prey', { ...k[1][1], m: MAS * 2 }]); } /* кокк вдвое тяжелее тебя (Роман 27.11 10:01: «Яд не активируется!») */
   return out; })();
 const boi = (geny, [L, obr]) => { const w = mir(); w.step(DT, null); let gibel = null; w.lose = (a, x, y, who) => { gibel = gibel ?? who ?? 'кто-то'; }; boj.ohrana(w, B);
   for (const k of SPISKI) w[k] = []; for (const k of ['food', 'crumbs', 'plants', 'slime']) w[k] = []; w.me = [w.me[0]]; const a = w.me[0]; a.m = MAS;

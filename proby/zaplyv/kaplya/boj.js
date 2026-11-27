@@ -4,6 +4,8 @@
 // Код один на все строки: новое оружие из известных способов или новый житель — строка в таблице. Удар бьёт по геному цели (genom.js, законы З2–З3).
 // Способы: yad — доза тает dlitsya секунд, отравленная плывёт медленнее; udar — сразу. Где: kasanie — касание телом; nos — носом, в пределах dlina и угла nos.
 import * as gm from './genom.js';
+// Докуда достаёт оружие касанием: dostaet по уровням (ворс яда), иначе общий зазор касания.
+export const dosyag = (X, l, B) => X.dostaet ? X.dostaet[Math.min(Math.max(1, l), X.dostaet.length) - 1] : B.zazor;
 export const est = (w, B) => Object.keys(B.oruzhie).some(g => g !== '_' && w.genes[g]);
 const spiski = B => Object.entries(B.celi).filter(([k]) => k !== '_');
 // до хода мира: ручные гены, которые бьют через таблицу, прячем от sim.js и evo.js (там «Яд» лопал родню сразу, игла — любую соперницу за 1,2 с)
@@ -19,13 +21,21 @@ export function posle_hoda(w, dt, B, radius, S) { for (const g in S.geny) w.gene
     for (const [ck, C] of spiski(B)) for (const q of w[C.spisok] || []) { if (q.gone || q.held > 0) continue;
       const m = q.m || C.massa, dx = q.x - a.x, dy = q.y - a.y, d = Math.hypot(dx, dy) || 1, rq = radius(m) * C.k_r;
       for (const [g, X] of O) { const k = (C.stenka || {})[g] ?? 1; if (k <= 0 || ((C.s_urovnya || {})[g] || 1) > lvl(g)) continue;
-        if (X.gde === 'nos' ? d > R + rq + X.dlina || (dx * ax + dy * ay) / d < X.nos : d > R + rq + B.zazor) continue;
+        if (X.gde === 'nos' ? d > R + rq + X.dlina || (dx * ax + dy * ay) / d < X.nos : d > R + rq + dosyag(X, lvl(g), B)) continue;
         const dol = gm.dolya(X.sila[Math.min(lvl(g), X.sila.length) - 1] * k, a.m, m);
         if (X.sposob === 'yad' ? gm.yad(q, dol, a, now, X.pauza, X.dlitsya) : gm.udar(q, dol, a, now, X.pauza)) { w.events.push([X.sobytie, q.x, q.y, ck]); if (X.oglush) q.oglush = now + X.oglush; } } } }
   for (const [ck, C] of spiski(B)) { const L = w[C.spisok]; if (!L) continue; let byl = false;
     for (const q of L) if (!q.gone && gm.shag(q, dt, B.genom)) { q.gone = byl = true; if (w.lopnut) w.lopnut(ck, q); else w.spill(q.x, q.y); w.events.push(['pop', q.x, q.y, ck]); /* Ш4: лопается точками своих частей */ ubity.push([ck, q]); }
     if (byl) w[C.spisok] = L.filter(q => !q.gone); }
   return ubity; }
+// Кольцо досягаемости (Роман 27.11 10:01: «радиус условно должен быть показан»): для каждого твоего оружия касанием с dostaet — радиус от центра клетки
+// и есть ли в нём тот, кого это оружие берёт (стенка не ноль, уровень хватает). Рисует main.js цветом yad_vid.
+export function kolca(w, B, a, radius) { const out = [], l0 = w.lvl || {};
+  for (const [g, X] of Object.entries(B.oruzhie)) { if (g === '_' || !w.genes[g] || X.gde !== 'kasanie' || !X.dostaet) continue; const l = Math.max(1, l0[g] || 0), R = radius(a.m) + dosyag(X, l, B); let cel = false;
+    for (const [, C] of spiski(B)) { if (((C.stenka || {})[g] ?? 1) <= 0 || ((C.s_urovnya || {})[g] || 1) > l) continue;
+      for (const q of w[C.spisok] || []) if (!q.gone && Math.hypot(q.x - a.x, q.y - a.y) < R + radius(q.m || C.massa) * C.k_r) { cel = true; break; } if (cel) break; }
+    out.push({ g, R, cel }); }
+  return out; }
 // Ш3 «Кто колет тебя»: удар жителя по тебе тоже идёт по геному, а не по массе. Ручной гарпун соперницы (dvizhok.js) и её яд (zhizn.js) отнимают массу
 // и убивают ниже предела; в «Капле» во время хода мира такую гибель не пускаем (ohrana), массу возвращаем, а удар считаем строкой na_tebya по З3
 // от массы бьющего. Геном кончился — гибнешь. Без урона pokoy секунд геном лечится.
