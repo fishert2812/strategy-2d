@@ -1,5 +1,5 @@
 // Сторож флажка на всех экранах «Капли» (урок L070, Роман 27.11 10:08: «в меню я не могу правки фоткать как в игре!… без комментария фото не нужно»):
-// node proby/zaplyv/kaplya/test_flazhok.cjs. Телефон 393×852. Обходит каждое окно: игра, карточки умений, вопрос мутации, пауза, Геном, Альманах, Карта, Стая,
+// node proby/zaplyv/kaplya/test_flazhok.cjs. Телефон 393×852. Обходит каждое окно: игра, карточки умений, вопрос, пауза, Геном, Альманах, Карта, Стая,
 // Режимы, Ночь рода, гибель. На каждом флажок тянется пальцем на место: под пальцем сам флажок (окно его не закрыло), лист «Что здесь не так?» открылся,
 // экран назван верно, снимок экрана с окном есть. Отправка: одна картинка на отметку, с подписью. Самопроверка: флажок, спрятанный под окно, и два фото на отметку — судья ловит.
 const http = require('http'), fs = require('fs'), path = require('path');
@@ -33,9 +33,9 @@ check('test_flazhok_dva_foto_samoproverka: два фото на отметку �
   await tyani('игра');
   await p.evaluate(() => { kaplyaKarta().pauza = true; zaplyvWorld().choice = ['capsule', 'toxin']; }); await p.waitForFunction(() => document.getElementById('offer').classList.contains('on'), null, { timeout: 5000 }).catch(() => {});
   await tyani('карточки умений');
-  await p.evaluate(() => { zaplyvWorld().choice = []; document.getElementById('offer').classList.remove('on'); const w = zaplyvWorld(), a = w.me[0]; w.staya = [{ id: 999, x: a.x - 50, y: a.y, a: 0, m: 0.3, t: 0, sama: 0, mut: 'kapsula', mt: 0 }]; });
+  await p.evaluate(() => { zaplyvWorld().choice = []; document.getElementById('offer').classList.remove('on'); kaplyaSprosit({ vopros: 'Проверка флажка: окно вопроса', knopki: ['Да', 'Нет'] }); });
   await p.waitForFunction(() => window.kaplyaVybor(), null, { timeout: 5000 }).catch(() => {});
-  await tyani('вопрос мутации', 200, 300);
+  await tyani('вопрос', 200, 300);
   await p.evaluate(() => { kaplyaKarta().pauza = false; const v = kaplyaVybor(); if (v) v.querySelectorAll('button')[1]?.click(); });
   await p.click('#pause'); await p.waitForTimeout(400); await tyani('Пауза');
   for (const [t, imya] of [['genome', 'Геном'], ['alm', 'Альманах'], ['map', 'Карта'], ['staya', 'Стая']]) {

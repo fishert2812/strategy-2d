@@ -1,5 +1,5 @@
 // Сторож паузы «Стая» и карточки «Стать ею?» «Капли» (задание kolonia_eda_boy.md 11.6, Ш36, Ш34): node proby/zaplyv/kaplya/test_menyu_staya.cjs. Провал — код 1.
-// В меню ровно те клетки и мутации, что в мире; выход касанием. Мутантка родилась — карточка «Стать ею?», мир стоит; «Стать ею» — ты её размера, умение твоё.
+// В меню ровно те клетки и мутации, что в мире; выход касанием. Мутантка родилась — строка, мир идёт; колесо стаи и перелив в игре (Е.3 п. 9–12).
 // Самопроверка: меню, потерявшее клетку, судья ловит.
 const http = require('http'), fs = require('fs'), path = require('path');
 const KOREN = path.resolve(__dirname, '..'), TIP = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg' };
@@ -20,13 +20,19 @@ check('test_menyu_staya_samoproverka: меню без клетки судья л
   check('test_menyu_staya: в паузе «Стая» ровно те клетки и мутации, что в мире, и сколько отрастать (Ш36)', sud(mir, menyu) || (/шипик — отрастёт через \d+ с/.test(tekst) ? '' : `нет срока отрастания: ${tekst}`));
   await p.evaluate(() => { zaplyvWorld().choice = []; document.getElementById('offer').classList.remove('on'); }); await p.click('#gon'); await p.waitForTimeout(500);
   check('test_menyu_staya_vyhod: «Продолжить» одним касанием возвращает в заплыв', await p.evaluate(() => !document.getElementById('genome').classList.contains('on')) ? '' : 'пауза не закрылась');
-  await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; kaplyaKarta().pauza = true; w.choice = []; w.staya.push({ id: 999, x: a.x - 50, y: a.y, a: 0, m: 0.3, t: 0, sama: 0, mut: 'kapsula', mt: 0 }); });
-  await p.waitForFunction(() => window.kaplyaVybor(), null, { timeout: 5000 }).catch(() => {});
-  const t0 = await p.evaluate(() => zaplyvWorld().stats.time); await p.waitForTimeout(800); const t1 = await p.evaluate(() => zaplyvWorld().stats.time), karta = await p.evaluate(() => kaplyaVybor() && kaplyaVybor().innerText);
-  check('test_mutaciya_karta: мутантка родилась — карточка «Стать ею?», мир стоит (Ш34)', karta && /Стать ею/.test(karta) && t1 === t0 ? '' : `карточка ${JSON.stringify(karta)}, время ${t0} → ${t1}`);
-  if (karta) { await p.evaluate(() => { zaplyvWorld().choice = []; document.getElementById('offer').classList.remove('on'); }); await p.click('#kvybor button >> nth=0'); await p.waitForFunction(() => { const w = zaplyvWorld(); return Math.abs(w.me[0].m - 0.3) < 0.05 && w.genes.capsule && w.staya.some(q => q.m > 3.5); }, null, { timeout: 8000 }).catch(() => {}); } /* на медленном CI 400 мс не хватало (красное на main 27.11): ждём, пока обмен закончится */
-  const posle = await p.evaluate(() => ({ m: zaplyvWorld().me[0].m, kaps: !!zaplyvWorld().genes.capsule, staraya: zaplyvWorld().staya.some(q => q.m > 3.5) })); /* прежняя ты в стае ест и растёт: массу сравниваем с запасом, а не на равенство (красное на CI 27.11) */
-  check('test_mutaciya_stat_eyu: «Стать ею» — ты её размера, мутация твоё умение, прежняя ты в стае (Ш34, Ш37)', Math.abs(posle.m - 0.3) < 0.05 && posle.kaps && posle.staraya ? '' : JSON.stringify(posle));
+  // Е.3 п. 6, 9–12: мутантка родилась — строка, мир не стоит (карточки «Стать ею?» больше нет); держишь палец на себе — колесо, отпустил на ней — перелив
+  await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.choice = []; a.m = 4; w.staya = [{ id: 998, x: a.x - 45, y: a.y + 20, a: 0, m: 0.5, t: 0, sama: 0, T: 10, mut: null, mt: 0 }, { id: 999, x: a.x - 50, y: a.y, a: 0, m: 0.5, t: 0, sama: 0, T: 6, mut: 'kapsula', mt: 0 }]; });
+  const t0 = await p.evaluate(() => zaplyvWorld().stats.time); await p.waitForTimeout(800); const t1 = await p.evaluate(() => zaplyvWorld().stats.time), karta = await p.evaluate(() => !!(window.kaplyaVybor && kaplyaVybor()));
+  check('test_mutaciya_stroka: мутантка родилась — карточки нет, мир идёт (Е.3 п. 6)', !karta && t1 > t0 ? '' : `карточка ${karta}, время ${t0} → ${t1}`);
+  const derzhat = async (kuda) => { await p.evaluate(() => { const a = zaplyvWorld().me[0]; a.vx = a.vy = 0; }); const [x, y] = (await p.evaluate(() => kaplyaKoleso())).ya; await p.mouse.move(x, y); await p.mouse.down();
+    await p.waitForFunction(() => kaplyaKoleso().otkryto, null, { timeout: 3000 }).catch(() => {}); const K = await p.evaluate(() => kaplyaKoleso()), s0 = await p.evaluate(() => zaplyvWorld().stats.time); await p.waitForTimeout(500); const s1 = await p.evaluate(() => zaplyvWorld().stats.time);
+    const i = K.id.indexOf(kuda), [mx, my] = i >= 0 ? K.mesta[i] : K.ya; await p.mouse.move(mx, my, { steps: 4 }); const stroka = (await p.evaluate(() => kaplyaKoleso())).stroka; await p.mouse.up(); return { K, medlenno: s1 - s0, stroka }; };
+  const m0 = await p.evaluate(() => zaplyvWorld().me[0].m), otm = await derzhat(-1); await p.waitForTimeout(300);
+  const posleOtm = await p.evaluate(() => ({ most: kaplyaKoleso().most, kaps: !!zaplyvWorld().genes.capsule }));
+  check(`test_koleso: держишь палец на себе ${0.4} с — колесо из ${otm.K.id.length} копий, мир идёт медленнее (${otm.medlenno.toFixed(2)} с мира за 0,5 с); отпустил в середине — ничего не поменялось`, otm.K.otkryto && otm.K.id.length === 2 && otm.medlenno < 0.25 && !posleOtm.most && !posleOtm.kaps ? '' : JSON.stringify({ otm, posleOtm }));
+  const vyb = await derzhat(999); await p.waitForFunction(() => zaplyvWorld().genes.capsule, null, { timeout: 8000 }).catch(() => {}); await p.waitForTimeout(200);
+  const posle = await p.evaluate(() => { const w = zaplyvWorld(); return { m: w.me[0].m, kaps: !!w.genes.capsule, staraya: w.staya.find(q => q.id === 999) }; });
+  check('test_obmen_v_igre: отпустил на мутантке — строка что даёт её ген, перелив; ты той же массы (±2 %), с капсулой, прежнее тело в стае (И29)', /капсула/.test(vyb.stroka) && Math.abs(posle.m / m0 - 1) < 0.02 && posle.kaps && posle.staraya && posle.staraya.m < 1 ? '' : JSON.stringify({ stroka: vyb.stroka, m0, posle }));
   check('test_menyu_staya_bez_oshibok: на странице нет ошибок скрипта', oshibki.join('; '));
   await b.close(); srv.close(); process.exit(bad ? 1 : 0);
 })().catch(e => { console.log('  ПРОВАЛ ошибка сторожа: ' + e.message); process.exit(1); });
