@@ -536,11 +536,13 @@ function kolesoPod(x, y) { const KO = KAP.koleso, S = KO.slova, M = KAP.mutaciya
 const kolesoZakryt = () => { KOL.otkryto = false; $('koleso').classList.remove('on'); };
 window.kaplyaKoleso = () => { const a = world.me[0], [x, y] = a ? scr(a.x, a.y) : [0, 0]; return { otkryto: KOL.otkryto, most: !!KOL.most, mesta: KOLM, id: KOLQ.map(q => q.id), ya: [x * innerWidth / W, y * innerWidth / W], stroka: $('kstroka').textContent }; };
 window.kaplyaMut = () => MUT; window.kaplyaSprosit = V => vybor(V, () => {}); /* сторож флажка: окно вопроса (вопрос мутации ушёл в колесо стаи) */ window.kaplyaStayaMenu = () => [...$('stlist').querySelectorAll('.st')].map(r => ({ id: +r.dataset.id, mut: r.dataset.mut || null }));
+// L084 (пачка 2, Т3): одни числа рода во всех экранах — поколение по летописи стаи, клеток — ты и стая
+const rodChisla = w => { if (window.kaplyaStaryeChisla) return { gen: w.stats.gen, kletok: w.me.length }; const L = STY && STY.letopis; return { gen: Math.max(w.stats.gen || 0, (L && L.pok) || 0), kletok: w.me.length + (w.staya || []).length }; }; window.kaplyaRodChisla = () => rodChisla(world);
 function hubFill() { // первый уровень паузы: что в каждом разделе — одной строкой, служебное — мелко
   const own = genomeData.arcs.flatMap(a => a.slots), deaths = KARTA.marks.filter(m => m.kind === 'death').length;
-  $('pstate').textContent = ($(`mscene`).querySelector(`.mo[data-m=${world.mode}] b`)?.textContent || 'Заплыв') + ' · поколение ' + world.stats.gen + ' · клеток ' + world.me.length;
-  $('pg').textContent = `включено ${own.filter(x => x.id && world.genes[x.id]).length} из ${own.length}`;
-  $('pa').textContent = kab.label().replace(/^Альманах · /, ''); { const st = world.staya || []; $('pst').textContent = st.length ? `клеток ${st.length} · мутанток ${st.filter(q => q.mut).length}` : 'пока никого'; }
+  const RC = rodChisla(world); $('pstate').textContent = ($(`mscene`).querySelector(`.mo[data-m=${world.mode}] b`)?.textContent || 'Заплыв') + ' · поколение ' + RC.gen + ' · клеток ' + RC.kletok; /* L084: те же числа, что в «Стае» и на экране гибели */
+  $('pg').textContent = window.kaplyaStaryeChisla ? `включено ${own.filter(x => x.id && world.genes[x.id]).length} из ${own.length}` : `генов включено ${Object.keys(world.genes).filter(g => world.genes[g]).length}`; /* L084: «0 из 21» при включённом «Глотать» — гены «Капли» не в круге генома */
+  $('pa').textContent = kab.label().replace(/^Альманах · /, ''); { const st = world.staya || []; $('pst').textContent = st.length ? `копий ${st.length} · мутанток ${st.filter(q => q.mut).length}` : 'пока никого'; }
   keepSeen(); $('pm').textContent = karta.count(cfg.pond, new Set(KARTA.seen)).replace(/^Ты в/, 'В') + (deaths ? ` · гибелей ${deaths}` : '');
   $('psound').textContent = ROD.quiet ? 'Звук выключен' : 'Звук включён';
   const n = $('pnew'); n.sure = false; n.classList.remove('sure'); n.textContent = 'Новый заплыв';
@@ -804,7 +806,7 @@ $('otitle').dataset.d = $('otitle').textContent;
 
 // Твой путь за заход: время, поколения и сколько это заняло бы в природе, мутации, кто сколько отнял.
 function pathText(w) {
-  const L = STY && STY.letopis, s = { ...w.stats, gen: Math.max(w.stats.gen || 0, (L && L.pok) || 0), most: Math.max(w.stats.most || 0, (L && L.max) || 0) }, t = Math.round(s.time), mm = (s.gen * 20) | 0; // одно деление ≈ 20 минут при хорошей еде; Е.3 п. 14: поколения и стая — из летописи рода
+  const L = STY && STY.letopis, s = { ...w.stats, gen: rodChisla(w).gen, most: Math.max(w.stats.most || 0, (L && L.max) || 0) }, t = Math.round(s.time), mm = (s.gen * 20) | 0; // одно деление ≈ 20 минут при хорошей еде; Е.3 п. 14: поколения и стая — из летописи рода
   const nature = mm < 60 ? mm + ' мин' : Math.floor(mm / 60) + ' ч' + (mm % 60 ? ' ' + (mm % 60) + ' мин' : '');
   const genes = Object.keys(w.genes).map(geneName).join(', ') || 'пока нет';
   const lost = Object.entries(s.lost).map(([k, n]) => (TEKSTY[k]?.imya || (cards[k] ? cards[k].name : k)) + ' — ' + n).join(', ');
@@ -925,7 +927,7 @@ function tick(dt) {
   for (let i = 0; i < 3; i++) view.tint[i] += (t[i] - view.tint[i]) * Math.min(1, dt * 0.8);
   { const b = world.me.reduce((q, a) => a.m > q.m ? a : q, world.me[0] || { m: 1 }), sp = world.split(); // размер числом: длина палочки в микрометрах (260 единиц — 10 мкм)
     const um = vh.dlina(KAP.rost, b.m); if (!les.vkl()) for (const h of vh.shag(VEHI, KAP.rost, um, { glotat: world.genes.gulp, bodo: GLAVA === 2 })) setTimeout(() => say(h.tekst, 3500), 1500); const umeet = !!world.genes.gulp, ms = (q, who) => q.m || evo.E.glotat.razmer[who] || 1, KC = KAP.cel; // книга П5–П7 // П51 длина, П54 вехи
-    LIN ||= lin.sozdat(KAP.lineyka); for (const who of cel.shag(CEL, world, b, KC, ms, evo.E.glotat.bolshe, umeet, evo.E.glotat.syt)) { say(KC.slova.teper.replace('{}', KC.imena[who][0]), 2200); lin.vspyshka(LIN, who, ...scr(b.x, b.y).map(v => v * innerWidth / W)); }
+    LIN ||= lin.sozdat(KAP.lineyka); for (const who of cel.shag(CEL, world, b, KC, ms, evo.E.glotat.bolshe, umeet, evo.E.glotat.syt)) { say(cel.slovoTeper(KC, who, LISTS[who] || zh.SPISKI[who] || (who === 'bodo' ? 'bodos' : who), world.zhivoe), 2200); /* L085: живое сначала убить — не «теперь еда!» (пачка 2, Т3, шарик) */ lin.vspyshka(LIN, who, ...scr(b.x, b.y).map(v => v * innerWidth / W)); }
     { const car = les.vkl() ? LES.car && LES.car.who : GLAVA === 1 ? ((world.bodos || []).some(q => q.car && !q.gone) ? 'bodo' : null) : GL && GL.L && GL.L.car ? GL.L.car.who : null;
       lin.obnovit(LIN, CEL.videl, CEL.eda, b.m, KAP.lineyka, car && CEL.videl[car] != null ? car : null); } // П5, П87: столбик силуэтов у линейки; сверху портрет хозяина главы, если его уже видели
     { const kto = pkz.shag(POK, world, b, { ...KAP.pokaz, radius: Math.max(KAP.pokaz.radius, radius(b.m) * 5) }, cel.SPIS, ms, dt); if (kto && !les.vkl()) say(KAP.pokaz.slovo.replace('{}', (KC.imena[kto] || [kto])[0].toLowerCase()), 3500); } // П13, П84: первое новое существо после хозяина — показ и имя
