@@ -493,7 +493,7 @@ let paused = false;
 const genome = genomeScreen({ G: genomeData, cfg, world: () => world, icon: g => icon(g),
   onOpen: () => { paused = true; document.body.classList.add('paused'); pad.end(0); down = null; finger = null; openTab(); },
   onClose: () => { paused = false; document.body.classList.remove('paused'); leaveTabs(); },
-  onSend: () => openMarks(), onDraw: () => showMarks() });
+  onSend: () => openMarks(), onDraw: () => { showMarks(); if (!window.kaplyaStaryeChisla) { const c = $('gchips').firstElementChild; if (c) c.textContent = `генов включено ${Object.keys(world.genes).filter(g => world.genes[g]).length}`; $('gsub').textContent = `поколение ${rodChisla(world).gen} · кишечная палочка`; } } }); /* L099: «Геном» говорит те же числа, что пауза (L084) */
 
 // Пауза — игровое меню (урок L037): уровень 1 «Пауза» (tab 'hub'): «Продолжить», «Новый заплыв», «Режимы», справочник строками.
 // Уровень 2 — раздел (Геном, Альманах, Карта): заголовок раздела, внизу «‹ Пауза» и «Продолжить». Пауза всегда открывается первым уровнем.
