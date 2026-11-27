@@ -25,7 +25,7 @@ const cfg = await (await fetch('data.json')).json();
 import { sobrat, sobrat_gruppu, VC, chasti_navykov } from '../vid_chasti.js';
 import * as bodo from './bodo.js'; // бодо — хозяин главы 1 (книга П37, П39), руками
 import * as cel from './cel.js';
-import * as zh from './zhiteli.js';
+import * as zh from './zhiteli.js'; import * as evp from './evolyuciya.js'; /* блок Э: панель «Эволюция» */
 import * as les from './lestnica.js'; // аркада «Лестница» (П86–П89): ?lestnica
 import * as umn from './umeniya.js'; // умения по книге: «Вампир», шапка «Нюха» (П65, П71)
 import * as obl from './oblasti.js'; // области по книге: плёнка, без кислорода, сероводород, тень (П29–П33)
@@ -557,6 +557,25 @@ function hubIcons() {
   const last = [...met].reverse().find(k => KAB.items[k] && k !== 'me') || 'me'; ai.src = snap(last, KAB.items[last]);
   const mc = document.createElement('canvas'); mc.width = mc.height = 320; karta.draw(mc.getContext('2d'), 320, 320, { P: cfg.pond, seen: new Set(KARTA.seen), marks: KARTA.marks, icons: {}, me: null, t: 9, hot: -1 }); mi.src = mc.toDataURL();
 }
+// Блок Э: панель «Эволюция» — снимок тебя со всеми генами (часть гена — где кадр меняется без него), черты рода, гены словами книги.
+const EVP = evp.sozdat(document, KAP.panel_evo);
+function evoModel() { const NW = 360, NH = 220, K = KAP.panel_evo, g = Object.fromEntries(Object.keys(world.genes).filter(k => world.genes[k]).map(k => [k, world.genes[k]])), b = world.me[0], chasti = [];
+  shotDensity(); const B = studioKadr(g, NW, NH), d = B.data;
+  for (const k of Object.keys(g)) { const A = studioKadr({ ...g, [k]: false }, NW, NH).data; let n = 0, sx = 0, sy = 0;
+    const px = []; for (let i = 0; i < A.length; i += 4) if (Math.abs(A[i] - d[i]) + Math.abs(A[i + 1] - d[i + 1]) + Math.abs(A[i + 2] - d[i + 2]) > K.porog) { const p = i / 4, x = p % NW, y = Math.floor(p / NW); px.push(x, y); sx += x; sy += y; n++; }
+    let x = null, y = null; if (n / (NW * NH) >= K.dolya) { const cx = sx / n, cy = sy / n; let bd = Infinity; for (let j = 0; j < px.length; j += 2) { const dd = (px[j] - cx) ** 2 + (px[j + 1] - cy) ** 2 + (chasti.some(c => c.x != null && Math.hypot(c.x * NW - px[j], c.y * NH - px[j + 1]) < K.razvesti) ? 1e9 : 0); if (dd < bd) { bd = dd; x = px[j] / NW; y = px[j + 1] / NH; } } } /* точка линии — на самой части: ближайший к середине изменённый пиксель, не ближе razvesti к чужой точке */
+    chasti.push({ g: k, imya: geneName(k), daet: geneBook(k).daet || '', x, y }); }
+  const c = document.createElement('canvas'); c.width = NW; c.height = NH; c.getContext('2d').putImageData(B, 0, 0); posleSnimka();
+  const S = K.slova, lv = Object.keys(KAP.boj.oruzhie).filter(k => k !== '_' && g[k]).map(k => Math.max(1, (world.lvl || {})[k] || 0)), zash = K.zashchita.filter(k => g[k]).length, um = vh.dlina(KAP.rost, b ? b.m : 1);
+  return { src: c.toDataURL('image/jpeg', 0.88), chasti, cherty: [
+    { k: 'razmer', z: '📏', t: String(um.toFixed(1)).replace('.', ',') + ' ' + S.mkm, p: S.razmer }, { k: 'rod', z: '⏱', t: Math.round(STY.T ?? KAP.staya.T_max) + ' ' + S.sek, p: S.rod },
+    { k: 'oruzhie', z: '⚔', t: lv.length ? S.ur + ' ' + Math.max(...lv) : S.net, p: S.oruzhie }, { k: 'zashchita', z: '🛡', t: zash ? String(zash) : S.net, p: S.zashchita },
+    { k: 'skorost', z: '➶', t: '×' + String((cfg.speed / KAP.hod.v).toFixed(1)).replace('.', ','), p: S.skorost }] }; }
+function evoZakryt() { evp.zakryt(EVP); paused = false; document.body.classList.remove('paused'); }
+function evoOtkryt() { if (ended || paused || EVP.otkryto || !world.me[0]) return; paused = true; document.body.classList.add('paused'); pad.end(0); down = null; finger = null; evp.otkryt(EVP, KAP.panel_evo, evoModel(), evoZakryt); }
+{ const bt = document.body.appendChild(Object.assign(document.createElement('button'), { id: 'evobtn', className: 'ghost' })); bt.setAttribute('aria-label', KAP.panel_evo.slova.zagolovok); bt.onclick = e => { e.stopPropagation(); evoOtkryt(); };
+  setInterval(() => { const r = $('dnk').getBoundingClientRect(), h = KAP.panel_evo.min_kasanie; Object.assign(bt.style, { top: (r.top + r.height / 2 - h / 2) + 'px', left: r.left + 'px', width: r.width + 'px', height: h + 'px' }); }, 400); } /* касание спирали ДНК — панель; зона касания не меньше min_kasanie */
+window.kaplyaEvo = () => ({ otkryto: EVP.otkryto, model: EVP.otkryto ? evoModel() : null, otkryt: evoOtkryt });
 function openTab() { tab('hub'); try { hubIcons(); } catch (e) {} }
 function leaveTabs() { const C = $('cabinet'); if (C.classList.contains('inpause')) { kab.close(); kab.back = null; C.classList.remove('inpause'); C.style.top = C.style.bottom = ''; } curTab = null; }
 for (const b of $('phub').querySelectorAll('.prow')) b.onclick = () => tab(b.dataset.t);
