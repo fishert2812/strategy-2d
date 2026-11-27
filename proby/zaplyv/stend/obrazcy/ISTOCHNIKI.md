@@ -52,3 +52,5 @@
 | `servier_plazmida_skruchennaya.jpg` | Servier Medical Art | CC BY 2.0 | https://www.flickr.com/photos/serviermedicalart/10085606774/ |
 | `bdj129622_kolovratka_chelyusti_zubcy_sem.jpg` | Hee-Min Yang, Gi-Sik Min | CC BY 4.0 | https://doi.org/10.3897/BDJ.12.e129622 |
 | `pmc12843806_bdellovibrio_u_zhertvy_tem.jpg` | Shorokhova A.P. и др. | CC BY 4.0 | https://doi.org/10.3390/microorganisms14010190 |
+| `ppat1011687_t6ss_vystrel_v_kletke_fluor.jpg` | Kandolo O. и др. | CC BY 4.0 | https://doi.org/10.1371/journal.ppat.1011687 |
+| `wellcome_B0010312_membrana_skol_chastitsy.jpg` | Wellcome Collection | CC BY 4.0 | https://wellcomecollection.org/works/attbabyf |
