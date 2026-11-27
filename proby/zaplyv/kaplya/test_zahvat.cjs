@@ -1,0 +1,29 @@
+// Сторож «захват всегда кончается» «Капли» (урок L074, пачка 1 п. 3): node proby/zaplyv/kaplya/test_zahvat.cjs. Провал — код 1.
+// Роман 27.11 20:34: «заглючило меня между двух огней ! … не умираю крутился тут как юла». В живой игре 390×844: амёба обходит тебя чашей рядом с сувойкой
+// на нити анабены, ты крутишься на месте (джойстик туда-обратно) или стоишь. test_zahvat_konchaetsya: держат не дольше zahvat.predel + 1 с подряд,
+// и пасть не хватает, пока держит амёба; test_zahvat_ryvki: разворотами вырываешься из амёбы. Самопроверка: со старым поведением (window.kaplyaBezZahvata) сторож краснеет.
+const http = require('http'), fs = require('fs'), path = require('path');
+const KOREN = path.resolve(__dirname, '..'), TIP = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg' };
+const KAP = JSON.parse(fs.readFileSync(path.join(__dirname, 'kaplya.json'))), Z = KAP.zahvat;
+let bad = 0; const check = (n, e) => { console.log((e ? '  ПРОВАЛ ' : '  ок ') + n + (e ? ': ' + e : '')); if (e) bad++; };
+async function scena(pw, port, { staroe, kruti }) { const b = await pw.chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME, args: ['--no-sandbox'] } : {}), p = await b.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const errs = []; p.on('pageerror', e => errs.push(e.message)); if (staroe) await p.addInitScript(() => { window.kaplyaBezZahvata = true; });
+  await p.goto(`http://127.0.0.1:${port}/kaplya/`); await p.waitForFunction(() => window.zaplyvWorld && zaplyvWorld() && zaplyvWorld().me.length && zaplyvWorld().stats.time > 0.5, null, { timeout: 90000 });
+  await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0]; w.choice = []; a.m = 1.5; w.genes = {}; const X = a.x, Y = a.y; for (const k of ['amoebas', 'bells', 'slippers', 'rotis', 'bdellos', 'phages', 'bodos', 'pseudos']) if (w[k]) w[k].length = 0;
+    const dir = Math.atan2(40, -50), L = w.cfg.bell_stalk || 70, bx = X - Math.cos(dir) * L, by = Y - Math.sin(dir) * L; w.plants.push({ x: bx, y: by, m: 6, id: ++w.ids, t: 0, bell: true }); w.bells.push({ x: bx, y: by, dir, shut: 0, id: ++w.ids }); /* рот сувойки — прямо на тебе */
+    w.amoebas.push({ x: X + 75, y: Y + 10, vx: 0, vy: 0, m: 9, id: ++w.ids }); /* амёба рядом: ловит сама — вырост, прилип, чаша */ window.ZT = { max: 0, t: 0, dvoe: 0, konec: null, vyrv: 0 }; });
+  const cx = 195, cy = 600; await p.mouse.move(cx, cy); await p.mouse.down(); let x = 1;
+  for (let i = 0; i < 4 * (Z.predel + 6); i++) { if (kruti) { x = -x; await p.mouse.move(cx + x * 80, cy); } await p.waitForTimeout(250);
+    const s = await p.evaluate(() => { const w = zaplyvWorld(), a = w.me[0], Q = ZT; if (!a || Q.konec) { Q.konec ||= 'gibel'; return Q; } const am = w.amoebas.find(m => m.ohv && ['prilip', 'chasha', 'puzyr'].includes(m.ohv.faza)), drzh = !!(a.grab || am);
+      if (am && a.grab) Q.dvoe++; Q.t = drzh ? Q.t + 0.25 : 0; Q.max = Math.max(Q.max, Q.t); if (!drzh && Q.byl) Q.vyrv++; Q.byl = drzh; return Q; }); if (s.konec) break; }
+  const R = await p.evaluate(() => ZT); R.errs = errs; await b.close(); return R; }
+const sud = R => R.max > Z.predel + 1 ? `держали ${R.max.toFixed(1)} с подряд без развязки` : R.dvoe ? `держали двое разом ${R.dvoe} раз` : '';
+(async () => {
+  const srv = http.createServer((q, s) => { const f = path.join(KOREN, decodeURIComponent(q.url.split('?')[0])); const ff = fs.existsSync(f) && fs.statSync(f).isDirectory() ? path.join(f, 'index.html') : f;
+    if (!ff.startsWith(KOREN) || !fs.existsSync(ff)) { s.writeHead(404); return s.end(); } s.writeHead(200, { 'Content-Type': TIP[path.extname(ff)] || 'application/octet-stream' }); fs.createReadStream(ff).pipe(s); }).listen(0);
+  const pw = await import(process.env.PW || 'playwright').then(m => m.default || m), port = srv.address().port;
+  const stoit = await scena(pw, port, {}), krutit = await scena(pw, port, { kruti: true }); console.log('  ' + JSON.stringify({ stoit, krutit }));
+  check(`test_L074 test_zahvat_konchaetsya: амёба чашей у сувойки на анабене — стоишь или крутишься, держат не дольше ${Z.predel + 1} с подряд и не двое разом`, sud(stoit) || sud(krutit) || (stoit.errs.concat(krutit.errs).join(' | ')));
+  check('test_zahvat_ryvki: резкими разворотами вырываешься из амёбы, а не ждёшь гибели', krutit.vyrv > 0 || (krutit.konec !== 'gibel' && krutit.max <= Z.predel) ? '' : JSON.stringify(krutit));
+  if (!process.env.BEZ_SAMOPROVERKI) { const st = await scena(pw, port, { staroe: true, kruti: true }); console.log('  старое: ' + JSON.stringify(st)); check('test_zahvat_samoproverka: старое поведение (два хищника, без развязки) — сторож краснеет', sud(st) ? '' : 'не заметил: ' + JSON.stringify(st)); }
+  srv.close(); process.exit(bad ? 1 : 0); })();
