@@ -6,16 +6,17 @@
 import fs from 'fs'; import { World, radius } from '../sim.js'; import * as evo from '../evo.js'; import * as mut from '../mutacii.js'; import * as zh from './zhiteli.js'; import * as boj from './boj.js';
 const base = JSON.parse(fs.readFileSync(new URL('../data.json', import.meta.url))), KAP = JSON.parse(fs.readFileSync(new URL('./kaplya.json', import.meta.url))), B = KAP.boj;
 const M = JSON.parse(fs.readFileSync(new URL('../mutacii.json', import.meta.url))), T = 20, DT = 1 / 30, MAS = 1.5;
-const mir = () => { const cfg = JSON.parse(JSON.stringify(base)); mut.addGenes(cfg); cfg.sense_idle = KAP.upravlenie.sense_idle; cfg.sense_pull = KAP.upravlenie.sense_pull; const w = new World(cfg, 9); w.mode = 'evo'; zh.nachalo(w); return w; };
+const mir = () => { const cfg = boj.v_mir(JSON.parse(JSON.stringify(base)), KAP.boj); mut.addGenes(cfg); cfg.sense_idle = KAP.upravlenie.sense_idle; cfg.sense_pull = KAP.upravlenie.sense_pull; const w = new World(cfg, 9); w.mode = 'evo'; zh.nachalo(w); return w; };
 const SPISKI = ['pseudos', 'donors', 'bdellos', 'prey', 'amoebas', 'phages', 'bells', 'rotis', 'slippers', ...Object.values(zh.SPISKI)];
 // по образцу каждого жителя: обходим воду и берём первого встречного каждого вида
 const obrazcy = (() => { const w = mir(), out = new Map(); w.lose = () => {}; w.step(DT, null);
   for (let i = 0; i < 30 && out.size < 40; i++) { zh.shag(w, DT, KAP.novye, () => true, radius); for (const L of SPISKI) for (const q of w[L] || []) { const k = L + ':' + (q.vid || (q.strain ? 'strain' : '')); if (!out.has(k) && !q.gone) out.set(k, [L, JSON.parse(JSON.stringify(q, (key, v) => key === 'dom' || key === 'on' || key === 'gn' ? undefined : v))]); }
     if (!w.me[0]) break; w.me[0].x += 1600 * (i % 2 ? 1 : -1); w.me[0].y += 1100; w.step(DT, null); }
+  { const k = [...out].find(([k]) => k.startsWith('prey:')); if (k) out.set('prey:krupnyj', ['prey', { ...k[1][1], m: MAS * 2 }]); } /* кокк вдвое тяжелее тебя (Роман 27.11 10:01: «Яд не активируется!») */
   return out; })();
 const boi = (geny, [L, obr]) => { const w = mir(); w.step(DT, null); let gibel = null; w.lose = (a, x, y, who) => { gibel = gibel ?? who ?? 'кто-то'; }; boj.ohrana(w, B);
   for (const k of SPISKI) w[k] = []; for (const k of ['food', 'crumbs', 'plants', 'slime']) w[k] = []; w.me = [w.me[0]]; const a = w.me[0]; a.m = MAS;
-  for (const [g, l] of geny) { w.genes[g] = true; (w.lvl ||= {})[g] = l; }
+  for (const [g, l] of geny) { w.genes[g] = true; (w.lvl ||= {})[g] = l; (w.knopka ||= {})[g] = true; } /* кнопочное оружие в прогоне держим нажатым */
   const q = { ...obr, id: 9999, gone: false, x: a.x + radius(MAS) + 14, y: a.y }; if (L === 'kaulo') q.dom = { x: q.x + 30, y: q.y }; w[L].push(q);
   for (let t = 0; t < T; t += DT) { const d = Math.hypot(q.x - a.x, q.y - a.y) || 1, R = radius(a.m); a.a = Math.atan2(q.y - a.y, q.x - a.x); if (d > R + 8) { a.x = q.x - (q.x - a.x) / d * (R + 6); a.y = q.y - (q.y - a.y) / d * (R + 6); } a.vx = a.vy = 0;
     const m0 = new Map(w.me.map(b => [b, b.m])), S = boj.do_hoda(w, B); w.step(DT, null); boj.posle_hoda(w, DT, B, radius, S); boj.po_tebe(w, DT, B, m0);

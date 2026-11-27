@@ -9,7 +9,7 @@ let bad = 0; const check = (n, e) => { console.log((e ? '  ПРОВАЛ ' : '  �
 const boy = (K, geny, mMe, mCel, T = 60) => { const cfg = JSON.parse(JSON.stringify(base)); cfg.sense_idle = 0; cfg.sense_pull = 0; const w = new World(cfg, 5); w.mode = 'evo'; w.lose = () => {}; w.step(1 / 30, null); /* первый ход мир строит воду вокруг — после него ставим бой */
   for (const k of ['amoebas', 'phages', 'bdellos', 'slippers', 'bells', 'rotis', 'prey', 'food', 'crumbs', 'plants', 'slime', 'donors']) w[k] = [];
   w.pseudos = w.pseudos.slice(0, 1); if (!w.pseudos.length) return { err: 'в мире нет соперниц' }; const q = w.pseudos[0]; q.x = w.me[0].x + 40; q.y = w.me[0].y; q.m = mCel;
-  w.me = [w.me[0]]; const a = w.me[0]; a.m = mMe; for (const g of geny) w.genes[g] = true; let zhiva1 = null;
+  w.me = [w.me[0]]; const a = w.me[0]; a.m = mMe; for (const g of geny) { w.genes[g] = true; (w.knopka ||= {})[g] = true; } /* кнопочный яд держим */ let zhiva1 = null;
   for (let t = 0; t < T; t += 1 / 30) { const R = radius(a.m), d = Math.hypot(q.x - a.x, q.y - a.y) || 1; a.a = Math.atan2(q.y - a.y, q.x - a.x); q.x = a.x + (q.x - a.x) / d * (R + 2); q.y = a.y + (q.y - a.y) / d * (R + 2); a.vx = a.vy = 0; a.m = mMe; /* бот держится вплотную: соперницу ставим к тебе, чтобы мир не убрал её как дальнюю */
     const S = boj.do_hoda(w, K); w.step(1 / 30, null); boj.posle_hoda(w, 1 / 30, K, radius, S);
     if (t >= 1 && zhiva1 === null) zhiva1 = !q.gone; if (q.gone || !w.pseudos.includes(q)) return { t, zhiva1: zhiva1 ?? false, f: 0 }; }
@@ -21,16 +21,16 @@ const sud = K => { const m = 1.2;
   const t3 = boy(K, ['igla'], m, 3 * m, 0.9); if (t3.t < 0.9) return '«Нить-игла» одним уколом убила втрое тяжёлую';
   return ''; };
 check('test_boj_oruzhie: «Яд» и «Нить-игла» убивают ровню не дольше 10 с, без оружия ровня жива 60 с (Роман 21:05)', sud(K0));
-check('test_boj_samoproverka: яд мгновенный (dlitsya 0) судья ловит', sud({ ...K0, oruzhie: { ...K0.oruzhie, toxin: { ...K0.oruzhie.toxin, dlitsya: 0, sila: [5, 5, 5] } } }) ? '' : 'судья не заметил');
+check('test_boj_samoproverka: яд мгновенный (dlitsya 0) судья ловит', sud({ ...K0, min_ubit: 0, min_ubit_rovnya: 0, min_ubit_krupnyj: 0, oruzhie: { ...K0.oruzhie, toxin: { ...K0.oruzhie.toxin, dlitsya: 0, sila: [5, 5, 5] } } }) ? '' : 'судья не заметил');
 check('test_boj_samoproverka_ruchnoe: оружие мимо генома (vkl false, ручной яд по одной родне) судья ловит', sud({ ...K0, vkl: false }) ? '' : 'судья не заметил');
 { const q = { m: 1 }; gm.yad(q, 0.3, 'a', 0, 0.5, 5); let t = 0; for (; t < 5 - 1e-9; t += 0.1) gm.shag(q, 0.1, K0.genom); const q3 = { m: 1 }; gm.yad(q3, gm.dolya(0.3, 1, 3), 'a', 0, 0.5, 5); for (let i = 0; i < 60; i++) gm.shag(q3, 0.1, K0.genom);
   check('test_genom_doza: укол ровни ядом 1 отнимает 30 % ровно за 5 с, втрое тяжёлой 10 %', Math.abs(q.gn.f - 0.7) < 1e-6 && Math.abs(q3.gn.f - 0.9) < 1e-6 ? '' : `ровня ${q.gn.f}, тяжёлая ${q3.gn.f}`); }
 // таблица полна: у каждого оружия способ, место, сила по уровням и пауза; у каждой цели список и масса — иначе строка молча ничего не делает
-const tablica = B => { for (const [g, X] of Object.entries(B.oruzhie)) { if (g === '_') continue; if (!['yad', 'udar'].includes(X.sposob) || !['kasanie', 'nos'].includes(X.gde) || !(X.sila || []).length || !(X.pauza >= 0) || (X.sposob === 'yad' && !(X.dlitsya >= 0))) return `оружие ${g}: неполная строка`; }
+const tablica = B => { for (const [g, X] of Object.entries(B.oruzhie)) { if (g === '_' || (X.sposob === 'svoy' && X.kod)) continue; /* своё оружие: код назван в строке */ if (!['yad', 'udar'].includes(X.sposob) || !['kasanie', 'nos'].includes(X.gde) || !(X.sila || []).length || !(X.pauza >= 0) || (X.sposob === 'yad' && !(X.dlitsya >= 0))) return `оружие ${g}: неполная строка`; }
   for (const [k, C] of Object.entries(B.celi)) { if (k === '_') continue; if (!C.spisok || !(C.massa > 0) || !(C.k_r > 0)) return `цель ${k}: неполная строка`; } return ''; };
 check('test_boj_tablica: у каждой строки таблицы боя есть всё, чем она бьёт или кого', tablica(K0));
 check('test_boj_tablica_samoproverka: строка без силы судья ловит', tablica({ ...K0, oruzhie: { ...K0.oruzhie, ship: { sposob: 'udar', gde: 'nos' } } }) ? '' : 'судья не заметил');
-{ const w = { genes: { toxin: true }, lvl: {}, me: [{ x: 0, y: 0, a: 0, m: 1 }], stats: { time: 0 }, events: [], spill() {}, spirilly: [{ x: 16, y: 0, m: 1 }] }, rad = m => 13 * Math.sqrt(m);
+{ const w = { genes: { toxin: true }, knopka: { toxin: true }, lvl: {}, me: [{ x: 0, y: 0, a: 0, m: 1 }], stats: { time: 0 }, events: [], spill() {}, spirilly: [{ x: 16, y: 0, m: 1 }] }, rad = m => 13 * Math.sqrt(m);
   for (let i = 0; i < 400 && w.spirilly.length; i++) { const S = boj.do_hoda(w, K0); w.stats.time += 1 / 30; boj.posle_hoda(w, 1 / 30, K0, rad, S); if (w.spirilly[0]) w.spirilly[0].x = 16; }
   check('test_boj_stroka: житель из таблицы (спирилла) тоже бьётся ядом — новый житель добавляется строкой', w.spirilly.length ? 'спирилла жива' : ''); }
 process.exit(bad ? 1 : 0);

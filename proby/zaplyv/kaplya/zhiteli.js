@@ -44,6 +44,6 @@ function krupny(w, q, S, dt, radius, vid) { const H = S.hod; q.t += dt; q.syt = 
   q.x += Math.cos(q.a) * v * dt; q.y += Math.sin(q.a) * v * dt; q.kach = Math.sin(q.t * 3 + q.id) * 0.1; }
 // Своя клетка глотает их, как «Глотать» в evo.js: тяжелее в bolshe раз и коснулась — тает внутри, масса в рост
 export function glotat(w, bolshe, radius, umeet, slyshu) { if (!umeet) return;
-  for (const [vid, k] of Object.entries(SPISKI)) for (const q of w[k]) for (const a of w.me) if (!q.gone && !(q.otpalT > w.stats.time) && a.m >= q.m * bolshe && d(a, q) < radius(a.m) + radius(q.m) * 0.8) {
+  for (const [vid, k] of Object.entries(SPISKI)) for (const q of w[k]) for (const a of w.me) if (!q.gone && !(q.otpalT > w.stats.time) && !(w.zhivoe && w.zhivoe(q, k)) && a.m >= q.m * bolshe && d(a, q) < radius(a.m) + radius(q.m) * 0.8) {
     q.gone = true; w.gulps = w.gulps || []; w.gulps.push({ a, x: q.x, y: q.y, x0: q.x, y0: q.y, m: q.m, who: vid, t: 0, q }); w.syel = w.syel || {}; w.syel[vid] = (w.syel[vid] || 0) + 1; slyshu(vid, q.m, a.m); }
   for (const k of Object.values(SPISKI)) w[k] = w[k].filter(q => !q.gone); }

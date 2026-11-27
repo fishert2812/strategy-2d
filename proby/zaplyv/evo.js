@@ -61,7 +61,7 @@ function gulp(w, dt, radius) {
     if (a.spore > 0 || a.grab) continue;
     const r = radius(a.m);
     for (const [list, who] of PREY) {
-      const eat = w[list].filter(q => !q.gone && !(q.otpalT > w.stats.time) && mass(q, who) * E.glotat.bolshe <= a.m && Math.hypot(q.x - a.x, q.y - a.y) < r + Math.max(E.glotat.kasanie, radius(mass(q, who)) * 0.6)); // крупная расталкивает мелких на r+8 (rost.js) — касание чуть дальше
+      const eat = w[list].filter(q => !q.gone && !(q.otpalT > w.stats.time) && !(w.zhivoe && w.zhivoe(q, list)) /* «Капля» Д.10: живое сначала убить */ && mass(q, who) * E.glotat.bolshe <= a.m && Math.hypot(q.x - a.x, q.y - a.y) < r + Math.max(E.glotat.kasanie, radius(mass(q, who)) * 0.6)); // крупная расталкивает мелких на r+8 (rost.js) — касание чуть дальше
       if (!eat.length) continue;
       w[list] = w[list].filter(q => !eat.includes(q));
       for (const q of eat) {

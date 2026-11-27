@@ -40,7 +40,7 @@ const pishcha = K => { const w = mir(); const a = w.me[0]; w.lose = () => {}; co
   return 'парафизомонада рядом с шариком не съела его за 4 с'; };
 check('test_navyki_pishcha: крупный житель «Капли» сам ест шарика рядом и растёт, без тебя (П42)', pishcha(KAP.pishcha));
 check('test_navyki_pishcha_samoproverka: без таблицы «кто кого ест» судья ловит', pishcha({ ...KAP.pishcha, kto: {} }) ? '' : 'судья не заметил');
-const yadro = B => { const bil = lv => { const w = mir(); w.me = [w.me[0]]; const a = w.me[0]; a.m = 1.5; w.genes.toxin = true; w.lvl = { toxin: lv }; boj.ohrana(w, B);
+const yadro = B => { const bil = lv => { const w = mir(); w.me = [w.me[0]]; const a = w.me[0]; a.m = 1.5; w.genes.toxin = true; w.knopka = { toxin: true }; w.lvl = { toxin: lv }; boj.ohrana(w, B);
     const am = { x: a.x + radius(1.5) + radius(6) * 0.8 + 2, y: a.y, vx: 0, vy: 0, m: 6, id: 995 };
     for (let t = 0; t < 2; t += DT) { w.amoebas = [am]; w.phages = []; a.x = am.x - radius(1.5) - radius(6) * 0.8 - 2; a.y = am.y; const S = boj.do_hoda(w, B); w.step(DT, null); boj.posle_hoda(w, DT, B, radius, S); w.events.length = 0; }
     return am.gn ? 1 - am.gn.f + am.gn.dozy.reduce((v, d) => v + d.ost, 0) : 0; };
@@ -48,7 +48,7 @@ const yadro = B => { const bil = lv => { const w = mir(); w.me = [w.me[0]]; cons
 check('test_navyki_yadro: «Яд» 1 бьёт только бактерий, «Яд» 2 травит и клетки с ядром (П65)', yadro(KAP.boj));
 check('test_navyki_yadro_samoproverka: без порога уровня судья ловит', yadro({ ...KAP.boj, celi: { ...KAP.boj.celi, ameba: { ...KAP.boj.celi.ameba, s_urovnya: {} } } }) ? '' : 'судья не заметил');
 const rot = B => { const w = mir(); w.me = [w.me[0]]; const a = w.me[0]; a.m = 1.5; let umer = 0; w.lose = () => { umer++; }; boj.ohrana(w, B);
-  const am = { x: a.x + 30, y: a.y, vx: 0, vy: 0, m: 6, id: 996, oglush: w.stats.time + 5 }; w.amoebas = [am]; w._bojHod = false; w.lose(a, am.x, am.y, 'amoeba'); am.oglush = 0; w.lose(a, am.x, am.y, 'amoeba');
+  const am = { x: a.x + 30, y: a.y, vx: 0, vy: 0, m: 6, id: 996, oglush: w.stats.time + 5 }; w.amoebas = [am]; w._bojHod = false; w.ameba_ubivaet = true; /* как при переваривании (ameba.js) */ w.lose(a, am.x, am.y, 'amoeba'); am.oglush = 0; w.lose(a, am.x, am.y, 'amoeba');
   return umer !== 1 ? `гибелей ${umer} из 2 (оглушённая должна не взять, неоглушённая взять)` : ''; };
 check('test_navyki_rot: оглушённая шипом амёба тебя не берёт, рот закрыт (П65 «Гарпун»)', rot(KAP.boj));
 check('test_navyki_rot_samoproverka: без закрытого рта судья ловит', rot({ ...KAP.boj, oglush_kto: [] }) ? '' : 'судья не заметил');
