@@ -25,4 +25,10 @@ const sudObgon = K0 => { const G = glc.rasstavit(glc.sozdat(), K0, 0, 0, rnd, gd
   const c1 = glc.chistota(G, K0), n = G.ochagi.filter(x => x.sila > 0).length; return c1 - c0 < 0.06 ? `чистота ${Math.round(c0 * 100)} → ${Math.round(c1 * 100)} %` : n >= K0.n ? `очагов по-прежнему ${n}` : ''; };
 check('test_L089 test_glava_obgon: минута у очага, палочка раз в 10 с — чистота растёт на 6+ % и очагов меньше', sudObgon(K));
 check('test_glava_obgon_samoproverka: прежние числа (сила 6 из 16, рост 0,8 в минуту) судья ловит', sudObgon({ ...K, sila0: 6, sila_max: 16, rost_v_min: 0.8 }) ? '' : 'не заметил');
+// L126 (переигровка b44b767: «Очаг растёт дробно (4,1, 4,4): нужна лишняя убитая клетка на хвост 0,1–0,4»): палочка раз в 8 с (запас яда), очаг 4 — вычищен за 4 палочки
+const sudHvost = () => { const G = glc.rasstavit(glc.sozdat(), K, 0, 0, rnd, gde), w = { [K.spisok]: [] }, o = G.ochagi[0], a = { x: o.x, y: o.y, m: 1 }; const spawn = (oc, n) => { for (let i = 0; i < n; i++) w[K.spisok].push({ x: oc.x, y: oc.y, oc }); };
+  let ubil = 0; for (let t = 0; t < 400 && o.sila > 0; t += 1) { let ub = []; if (t % 8 === 7) { const q = w[K.spisok].find(q => q.oc === o && !q.gone); if (q) { q.gone = true; ub = [[K.kto, q]]; ubil++; w[K.spisok] = w[K.spisok].filter(x => !x.gone); } } glc.shag(G, w, 1, K, a, ub, spawn); }
+  return o.sila > 0 ? `очаг не вычищен: ${o.sila.toFixed(2)}` : ubil > K.sila0 ? `на очаг ${K.sila0} ушло ${ubil} палочек` : ''; };
+check(`test_L126 test_glava_hvost: палочка раз в 8 с — очаг ${K.sila0} вычищен за ${K.sila0} палочки, хвост роста не держит его`, sudHvost());
+globalThis.kaplyaStaryjHvost = true; check('test_glava_hvost_samoproverka: без хвоста (прежнее) судья ловит лишнюю палочку', sudHvost() ? '' : 'не заметил'); delete globalThis.kaplyaStaryjHvost;
 process.exit(bad ? 1 : 0);
