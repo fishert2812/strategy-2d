@@ -48,7 +48,7 @@ import * as stk from './stolk.js'; /* столкновения по контур
 import * as fl from './flazhok.js'; /* L070: один флажок на всех экранах */ import * as sob from './sobytiya.js'; /* Ш41: события объявлены заранее */ import * as svr from './sverlo.js'; /* Ш39: сверло руками */ import * as lop from './lopnut.js'; /* Ш4: убитый лопается точками */ import * as zn from './zona.js'; /* Ш40: тихая и злая вода */ import * as sty from './staya.js'; /* Ш32, Ш33: деление капелькой и стая */ import * as mtc from './mutaciya.js'; /* Ш34, Ш35, Ш37: мутация, вирус по стае, закрепление */ import * as rsv from './rastvor.js'; /* Ш29–Ш31: растворять, глотать по размеру, слабый старт */ import * as krm from './kormyozhka.js'; /* П35: добыча по росту */ import * as svi from './svet_il.js'; /* П27, П30: окна света, лабиринт ила */ import * as ptl from './potolok.js'; /* П53: потолки роста и большие события */ import * as psh from './pishcha.js'; /* кто кого ест без тебя (П42) */ import * as nv from './navyki.js'; /* навыки по книге: уровни, повторы ступенями, «сработало» */ import * as boj from './boj.js'; import * as gm from './genom.js'; /* одна таблица боя «кто кого и чем», удар по геному */
 const VEHI = vh.zagruzit();
 window.kaplyaLes = () => LES; window.kaplyaGlava = () => GLAVA; // спирилла, каулобактер, хлорелла (книга П39), руками // строка цели, подпись линейки, «теперь еда» (книга П5–П7)
-const KAP = await (await fetch('kaplya/kaplya.json')).json(), ZH = KAP.zhiteli, ZAP = {}; Object.assign(rost.R, KAP.temp); /* Ш26, Роман 21:22 «вырастаешь… очень быстро»: в «Капле» рост реже, основной «Заплыв» не меняется */
+const KAP = await (await fetch('kaplya/kaplya.json')).json(), ZH = KAP.zhiteli, ZAP = {}; boj.v_mir(cfg, KAP.boj); /* Д.6: толчок и щипок кокка, укол соперницы — из таблицы боя */ Object.assign(rost.R, KAP.temp); /* Ш26, Роман 21:22 «вырастаешь… очень быстро»: в «Капле» рост реже, основной «Заплыв» не меняется */
 { const U = KAP.upravlenie; cfg.sense_idle = U.sense_idle; cfg.sense_pull = U.sense_pull; } // Роман 26.11 20:39: клетку ведёт только палец; «Нюх» не везёт к еде
 for (const [k, v] of Object.entries(ZH)) if (v && VC.vidy[v.zapis]) ZAP[k] = { ...VC.vidy[v.zapis], gruppa: undefined };
 // нарисовать жителя записью: x, y — экран, a — куда смотрит, mera — ручная мера тела (длина, радиус, толщина) на экране
@@ -1051,7 +1051,7 @@ function paint(time) {
   for (const q of world.prey) { // кокки — соседи-соперники, сиреневые; с токсином зеленеют: касание их убьёт
     const [x, y] = scr(q.x, q.y); if (!on(x, y)) continue;
     const side = 1, r = radius(q.m) * z, kind = q.id % 4, a = q.a + time * 0.2;
-    if (q.touch > 0) { probe.poison = (probe.poison || 0) + 1; const k = Math.min(1, q.touch / cfg.pinch_t); // прижалась к кокку — вокруг него проступает его яд, к «щипку» облачко полное
+    if (q.touch > 0) { probe.poison = (probe.poison || 0) + 1; const k = Math.min(1, q.touch / KAP.boj.celi.kokk.shchipok_t); // прижалась к кокку — вокруг него проступает его яд, к «щипку» облачко полное
       for (let i = 0; i < 7; i++) { const f = (time * 0.7 + i / 7) % 1, t = i * 0.8976 + q.id + time * 0.3, d = r * (0.8 + f * (0.7 + 0.8 * k)); // яд сочится мягкими клубами наружу и тает, без точек по кругу (L047)
         glow.put(x + Math.cos(t) * d, y + Math.sin(t) * d, r * (0.55 + 0.7 * f) + 2, 0.75, 0.95, 0.3, (0.1 + 0.3 * k) * (1 - f)); } }
     const ux = Math.cos(a), uy = Math.sin(a); if (zhitel('prey', q, x, y, a, r, time, z)) continue;

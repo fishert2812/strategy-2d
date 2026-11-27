@@ -4,7 +4,7 @@
 import fs from 'fs'; import { World, radius } from '../sim.js'; import * as mut from '../mutacii.js'; import * as zh from './zhiteli.js'; import * as boj from './boj.js';
 const base = JSON.parse(fs.readFileSync(new URL('../data.json', import.meta.url))), KAP = JSON.parse(fs.readFileSync(new URL('./kaplya.json', import.meta.url))), DT = 1 / 30;
 let bad = 0; const check = (n, e) => { console.log((e ? '  ПРОВАЛ ' : '  ок ') + n + (e ? ': ' + e : '')); if (e) bad++; };
-function opyt(B, mKokk) { const cfg = JSON.parse(JSON.stringify(base)); mut.addGenes(cfg); const w = new World(cfg, 5); w.mode = 'evo'; zh.nachalo(w); w.step(DT, null); w.lose = () => {}; boj.ohrana(w, B);
+function opyt(B, mKokk) { const cfg = boj.v_mir(JSON.parse(JSON.stringify(base)), B); mut.addGenes(cfg); const w = new World(cfg, 5); w.mode = 'evo'; zh.nachalo(w); w.step(DT, null); w.lose = () => {}; boj.ohrana(w, B);
   for (const k of ['pseudos', 'donors', 'bdellos', 'prey', 'amoebas', 'phages', 'bells', 'rotis', 'slippers', ...Object.values(zh.SPISKI), 'food', 'crumbs', 'plants', 'slime']) w[k] = [];
   const a = w.me[0]; a.m = 1; w.genes.toxin = true; (w.lvl ||= {}).toxin = 1; const q = { id: 9999, x: a.x + 40, y: a.y, a: 0, m: mKokk, vx: 0, vy: 0 }; w.prey.push(q);
   let kolco = null, ukol = null, gibel = null;
@@ -19,7 +19,7 @@ const r = opyt(KAP.boj, 2); check(`test_yad_kokk: «Яд 1» по кокку в�
 const B0 = JSON.parse(JSON.stringify(KAP.boj)); B0.celi.kokk.stenka.toxin = 0; check('test_yad_kokk_samoproverka: стенка, не пускающая яд, — судья ловит', sud(opyt(B0, 2)) ? '' : 'не заметил');
 check('test_yad_dostaet: яд достаёт дальше касания по уровням, данные в kaplya.json boj.oruzhie.toxin.dostaet', (KAP.boj.oruzhie.toxin.dostaet || []).every((v, i, A) => v > KAP.boj.zazor && (!i || v >= A[i - 1])) ? '' : 'нет или убывает');
 // test_yad_radius (Д.6): кокк на dostaet−1 от касания — яд берёт; на dostaet+1 — отказ «daleko»; цель, чья стенка не пускает яд, — отказ «stenka». Клетка и кокк стоят.
-function stoyat(B, zazor, stenka = null) { const cfg = JSON.parse(JSON.stringify(base)); mut.addGenes(cfg); const w = new World(cfg, 5); w.mode = 'evo'; zh.nachalo(w); w.step(DT, null); w.lose = () => {};
+function stoyat(B, zazor, stenka = null) { const cfg = boj.v_mir(JSON.parse(JSON.stringify(base)), B); mut.addGenes(cfg); const w = new World(cfg, 5); w.mode = 'evo'; zh.nachalo(w); w.step(DT, null); w.lose = () => {};
   for (const k of ['pseudos', 'donors', 'bdellos', 'prey', 'amoebas', 'phages', 'bells', 'rotis', 'slippers', ...Object.values(zh.SPISKI), 'food', 'crumbs', 'plants', 'slime']) w[k] = [];
   const BB = JSON.parse(JSON.stringify(B)); if (stenka != null) BB.celi.kokk.stenka.toxin = stenka; const a = w.me[0]; a.m = 1; w.genes.toxin = true; (w.lvl ||= {}).toxin = 1;
   const C = BB.celi.kokk, q = { id: 9999, x: 0, y: 0, a: 0, m: 1, vx: 0, vy: 0 }, d = radius(1) + radius(1) * C.k_r + boj.dosyag(BB.oruzhie.toxin, 1, BB) + zazor; w.prey.push(q); const ev = [];

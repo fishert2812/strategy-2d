@@ -6,7 +6,7 @@
 import fs from 'fs'; import { World, radius } from '../sim.js'; import * as evo from '../evo.js'; import * as mut from '../mutacii.js'; import * as zh from './zhiteli.js'; import * as boj from './boj.js';
 const base = JSON.parse(fs.readFileSync(new URL('../data.json', import.meta.url))), KAP = JSON.parse(fs.readFileSync(new URL('./kaplya.json', import.meta.url))), B = KAP.boj;
 const M = JSON.parse(fs.readFileSync(new URL('../mutacii.json', import.meta.url))), T = 20, DT = 1 / 30, MAS = 1.5;
-const mir = () => { const cfg = JSON.parse(JSON.stringify(base)); mut.addGenes(cfg); cfg.sense_idle = KAP.upravlenie.sense_idle; cfg.sense_pull = KAP.upravlenie.sense_pull; const w = new World(cfg, 9); w.mode = 'evo'; zh.nachalo(w); return w; };
+const mir = () => { const cfg = boj.v_mir(JSON.parse(JSON.stringify(base)), KAP.boj); mut.addGenes(cfg); cfg.sense_idle = KAP.upravlenie.sense_idle; cfg.sense_pull = KAP.upravlenie.sense_pull; const w = new World(cfg, 9); w.mode = 'evo'; zh.nachalo(w); return w; };
 const SPISKI = ['pseudos', 'donors', 'bdellos', 'prey', 'amoebas', 'phages', 'bells', 'rotis', 'slippers', ...Object.values(zh.SPISKI)];
 // по образцу каждого жителя: обходим воду и берём первого встречного каждого вида
 const obrazcy = (() => { const w = mir(), out = new Map(); w.lose = () => {}; w.step(DT, null);

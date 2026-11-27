@@ -8,6 +8,9 @@ import * as gm from './genom.js';
 export const dosyag = (X, l, B) => X.dostaet ? X.dostaet[Math.min(Math.max(1, l), X.dostaet.length) - 1] : B.zazor;
 export const est = (w, B) => Object.keys(B.oruzhie).some(g => g !== '_' && w.genes[g]);
 const spiski = B => Object.entries(B.celi).filter(([k]) => k !== '_');
+// Одна таблица (Д.6): числа ручного мира (data.json), что решают бой, в «Капле» берутся из строк celi. v_mir: имя в data.json → «житель.поле».
+export const izTablicy = (B, put) => { const [k, f] = put.split('.'); return B.celi[k]?.[f]; };
+export function v_mir(cfg, B) { for (const [imya, put] of Object.entries(B.v_mir || {})) if (imya !== '_') { const v = izTablicy(B, put); if (v == null) throw new Error('boj.v_mir: нет ' + put); cfg[imya] = v; } return cfg; }
 // до хода мира: ручные гены, которые бьют через таблицу, прячем от sim.js и evo.js (там «Яд» лопал родню сразу, игла — любую соперницу за 1,2 с)
 export function do_hoda(w, B) { const S = { geny: {}, gde: new Map() }; if (!B.vkl) return S; w._bojHod = true;
   for (const g of B.skryt) { S.geny[g] = !!w.genes[g]; w.genes[g] = false; }
