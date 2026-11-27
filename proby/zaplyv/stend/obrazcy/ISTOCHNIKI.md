@@ -5,7 +5,7 @@
 | Файл | Автор | Права | Страница |
 |---|---|---|---|
 | `cdc_23242_enterobakterii_eckert.jpg` | Alissa Eckert | CDC PHIL, public domain | https://phil.cdc.gov/Details.aspx?pid=23242 |
-| `cdc_23247_cdifficile_oosthuizen.jpg` | Jennifer Oosthuizen | CDC PHIL, public domain | https://phil.cdc.gov/Details.aspx?pid=23247 |
+| `plos_pgen1010696_bsubtilis_cepochka.jpg` | Kilb A., Burghard-Schrod M., Holtrup S., Graumann P.L. (вырезка рис. 2A, проходящий свет) | CC BY 4.0 | https://doi.org/10.1371/journal.pgen.1010696 |
 | `cdc_23249_pseudomonas_oosthuizen.jpg` | Jennifer Oosthuizen | CDC PHIL, public domain | https://phil.cdc.gov/Details.aspx?pid=23249 |
 | `cdc_21921_vibrio_oosthuizen.jpg` | Jennifer Oosthuizen | CDC PHIL, public domain | https://phil.cdc.gov/Details.aspx?pid=21921 |
 | `cdc_23234_mrsa_newlove.jpg` | Meredith Newlove | CDC PHIL, public domain | https://phil.cdc.gov/Details.aspx?pid=23234 |
@@ -55,3 +55,4 @@
 | `ppat1011687_t6ss_vystrel_v_kletke_fluor.jpg` | Kandolo O. и др. | CC BY 4.0 | https://doi.org/10.1371/journal.ppat.1011687 |
 | `wellcome_B0010312_membrana_skol_chastitsy.jpg` | Wellcome Collection | CC BY 4.0 | https://wellcomecollection.org/works/attbabyf |
 | `pmc12843806_puzyrki_u_konca_kletki_tem.jpg` | Shorokhova A.P. и др. | CC BY 4.0 | https://doi.org/10.3390/microorganisms14010190 |
+| `inat_107445689_truba_na_nozhke.jpg` | crseaquist (стентор трубой на тонкой ножке, венчик ресничек) | CC BY | https://www.inaturalist.org/observations/107445689 |
