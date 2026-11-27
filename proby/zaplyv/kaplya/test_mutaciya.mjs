@@ -10,7 +10,7 @@ const sudMut = M0 => { const r = rnd(11); let n = 0, z = 0; for (let i = 0; i < 
   const w = { staya: [{ x: 0, y: 0, m: 1, mut: 'ship', mt: 0 }], genes: {}, phages: [] }, S = mtc.sozdat(); let t15 = 0; for (let t = 0; t < 31; t += DT) { mtc.shag(S, w, DT, M0); if (Math.abs(t - 15) < DT / 2) t15 = w.staya[0].mt; }
   if (Math.abs(t15 - 15) > 0.1 || w.staya[0].mt !== M0.otrast) return `метка за 15 с ${t15.toFixed(1)}, за 31 с ${w.staya[0].mt}`;
   for (let i = 0; i < 50; i++) if (mtc.rodit('kapsula', M0, r) !== 'kapsula') return 'потомок мутанта без мутации';
-  const a = { x: 0, y: 0, a: 0, m: 10 }, w2 = { me: [a], food: [], staya: [{ id: 1, x: -60, y: 0, a: 0, m: 1.5, t: 0, sama: 0, mut: 'obmanka', mt: 30 }], ids: 1 }, S2 = sty.sozdat();
+  const a = { x: 0, y: 0, a: 0, m: 10 }, w2 = { me: [a], food: [], staya: [{ id: 1, x: -60, y: 0, a: 0, m: 1.5, t: 0, sama: 0, mut: 'obmanka', mt: 30, T: 4 }], ids: 1 }, S2 = sty.sozdat();
   for (let t = 0; t < 8; t += DT) sty.shag(S2, w2, DT, KAP.staya, new Map(), 175, r, M0); const deti = w2.staya.slice(1);
   if (!deti.length || deti.some(q => q.mut !== 'obmanka')) return `дочь мутантки: ${JSON.stringify(deti.map(q => q.mut))}`; return ''; };
 check(`test_mutaciya: мутантов ${M.shans * 100} % ± 2 % из 1000 почкований, метка отрастает за ${M.otrast} с, потомки наследуют (Ш34)`, sudMut(M));
