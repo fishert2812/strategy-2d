@@ -45,7 +45,7 @@ import * as lin from './lineyka.js'; // линейка из живых силу�
 import * as vh from './vehi.js'; // рост по книге: длина П51, вехи П54, худение за умения П49
 import * as vdv from './rot.js'; /* Ш2: водоворот у рта */
 import * as stk from './stolk.js'; /* столкновения по контуру записей движка */
-import * as zn from './zona.js'; /* Ш40: тихая и злая вода */ import * as sty from './staya.js'; /* Ш32, Ш33: деление капелькой и стая */ import * as rsv from './rastvor.js'; /* Ш29–Ш31: растворять, глотать по размеру, слабый старт */ import * as krm from './kormyozhka.js'; /* П35: добыча по росту */ import * as svi from './svet_il.js'; /* П27, П30: окна света, лабиринт ила */ import * as ptl from './potolok.js'; /* П53: потолки роста и большие события */ import * as psh from './pishcha.js'; /* кто кого ест без тебя (П42) */ import * as nv from './navyki.js'; /* навыки по книге: уровни, повторы ступенями, «сработало» */ import * as boj from './boj.js'; import * as gm from './genom.js'; /* одна таблица боя «кто кого и чем», удар по геному */
+import * as zn from './zona.js'; /* Ш40: тихая и злая вода */ import * as sty from './staya.js'; /* Ш32, Ш33: деление капелькой и стая */ import * as mtc from './mutaciya.js'; /* Ш34, Ш35, Ш37: мутация, вирус по стае, закрепление */ import * as rsv from './rastvor.js'; /* Ш29–Ш31: растворять, глотать по размеру, слабый старт */ import * as krm from './kormyozhka.js'; /* П35: добыча по росту */ import * as svi from './svet_il.js'; /* П27, П30: окна света, лабиринт ила */ import * as ptl from './potolok.js'; /* П53: потолки роста и большие события */ import * as psh from './pishcha.js'; /* кто кого ест без тебя (П42) */ import * as nv from './navyki.js'; /* навыки по книге: уровни, повторы ступенями, «сработало» */ import * as boj from './boj.js'; import * as gm from './genom.js'; /* одна таблица боя «кто кого и чем», удар по геному */
 const VEHI = vh.zagruzit();
 window.kaplyaLes = () => LES; window.kaplyaGlava = () => GLAVA; // спирилла, каулобактер, хлорелла (книга П39), руками // строка цели, подпись линейки, «теперь еда» (книга П5–П7)
 const KAP = await (await fetch('kaplya/kaplya.json')).json(), ZH = KAP.zhiteli, ZAP = {}; Object.assign(rost.R, KAP.temp); /* Ш26, Роман 21:22 «вырастаешь… очень быстро»: в «Капле» рост реже, основной «Заплыв» не меняется */
@@ -250,10 +250,10 @@ function start(genes, mode) {
   if (Array.isArray(genes)) world.inherit(genes); // заплыв веткой рода после «Ночи рода»
   $('night').classList.remove('on'); $('menu').classList.remove('on');
   if (GOL.zapas && world) { world.cfg.food_per_chunk = GOL.zapas.f; world.cfg.food_patches = GOL.zapas.p; } GOL = gol.sozdat(); POK = pkz.sozdat(); ROT = vdv.sozdat(); ZAR = zr.sozdat(); KIS = kis.sozdat(); // голод, показ мира и заметность не переживают новый заход
-  view = { x: 0, y: 0, z: 2.2, tint: [...TINT[0]] }; CEL = cel.sozdat(); GLAVA = 1; SVI = svi.sozdat(); PTL = ptl.sozdat(); KRM = krm.sozdat(); VEL = krm.sozdat(); RSV = rsv.sozdat(); STY = sty.sozdat(); ZON = zn.sozdat(); world.staya = []; LES = les.sozdat(); OBL = obl.sozdat(); ROD_K = rod.sozdat(); zh.nachalo(world); { const P = sm.pamyat(), K = KAP.semena; SEM = P.zahodov && world.me[0] ? sm.posadit(world.me[0], K, sm.vybor(P, K, world.cfg.genes, world.genes)) : []; if (SEM.length) setTimeout(() => say(K.slova.start, 3000), 300); } // П76: семена рода
+  view = { x: 0, y: 0, z: 2.2, tint: [...TINT[0]] }; CEL = cel.sozdat(); GLAVA = 1; SVI = svi.sozdat(); PTL = ptl.sozdat(); KRM = krm.sozdat(); VEL = krm.sozdat(); RSV = rsv.sozdat(); STY = sty.sozdat(); ZON = zn.sozdat(); MUT = mtc.sozdat(); world.staya = []; LES = les.sozdat(); OBL = obl.sozdat(); ROD_K = rod.sozdat(); zh.nachalo(world); { const P = sm.pamyat(), K = KAP.semena; SEM = P.zahodov && world.me[0] ? sm.posadit(world.me[0], K, sm.vybor(P, K, world.cfg.genes, world.genes)) : []; if (SEM.length) setTimeout(() => say(K.slova.start, 3000), 300); } // П76: семена рода
   { const sg = les.vkl() ? 1 : glv.sohranena(); if (sg >= 2 && KAP.glavy[sg] && world.me[0]) { GLAVA = sg; world.me[0].m = KAP.glavy[sg].massa; if (KAP.glavy[sg].glubina != null) { const P = world.cfg.pond; world.me[0].y = (KAP.glavy[sg].glubina - P.y0) * P.h; view.y = world.me[0].y; } /* партия 26.11: заход с главы 3 сразу у границы кислорода, а не за 11 000 единиц от неё */ setTimeout(() => say(KAP.glavy[sg].nazvanie, 3500), 600); } GL = glv.nachat(world, GLAVA); } // П76, П83: заход с последней непройденной главы
   if (les.vkl() || VEHI.has('glotat') || GLAVA >= 2) { world.genes.gulp = true; if (!les.vkl()) setTimeout(() => say(KAP.navyki.glotat_vsegda, 3500, 'gulp'), 1200); } if (!les.vkl() && GLAVA === 1) bodo.nachalo(world, KAP.bodo); // П54: веха «Глотать: навсегда»; в «Лестнице» хозяина нет, «Глотать» с рождения (П86)
-  boj.ohrana(world, KAP.boj); /* Ш3: гарпун не убивает мимо генома */ { const lose0 = world.lose.bind(world); world.lose = (a, x, y, who) => { const m = a.m; lose0(a, x, y, who); if (world.me.length || les.vkl()) return; const sis = rod.probudit(ROD_K, world, KAP.rod, m, x, y); if (!sis) { sm.zapomnit(world, KAP.semena, who, vh.dlina(KAP.rost, m)); return; } const R = KAP.rod.slova, im = ((KAP.cel.imena[who] || [R.kto])[0] || R.kto).toLowerCase(); view.x = sis.x; view.y = sis.y; say(R.zhiv.replace('{kto}', im), 4500); }; } // П73: род жив
+  boj.ohrana(world, KAP.boj); /* Ш3: гарпун не убивает мимо генома */ { const lose0 = world.lose.bind(world); world.lose = (a, x, y, who) => { const m = a.m; lose0(a, x, y, who); if (world.me.length || les.vkl()) return; { const P = mtc.prosnutsya(MUT, world, KAP.mutaciya); if (P) { view.x = P.a.x; view.y = P.a.y; say(KAP.mutaciya.slova.prosnulas, 4000); if (P.gene) say(KAP.mutaciya.slova.zakrep.replace('{}', geneName(P.gene)), 4000, P.gene); return; } } /* Ш13, Ш35: просыпаешься самой крупной из стаи */ const sis = rod.probudit(ROD_K, world, KAP.rod, m, x, y); if (!sis) { sm.zapomnit(world, KAP.semena, who, vh.dlina(KAP.rost, m)); return; } const R = KAP.rod.slova, im = ((KAP.cel.imena[who] || [R.kto])[0] || R.kto).toLowerCase(); view.x = sis.x; view.y = sis.y; say(R.zhiv.replace('{kto}', im), 4500); }; } // П73: род жив
   fx.reset(); fx.world = world; ended = false; // fx читает мир: сидящие вирусы, запятые, амёбы
   $('end').classList.remove('on');
   setTimeout(() => say(KAP.start, 5000), 700); // книга П1: цель одной фразой, длинная форма для первого экрана
@@ -475,7 +475,7 @@ const cabLabel = () => { $('cab').textContent = kab.label(); };
 cabLabel();
 const knowGenes = () => { let add = false; for (const g in world.genes) if (!met.has('gene:' + g)) { met.add('gene:' + g); add = true; } if (add) { saveMet(); cabLabel(); } }; // ген, который у тебя был, — запись в Альманахе
 $('cab').onclick = () => { knowGenes(); kab.open(); const kk = world.stats.killer; if (ended && kk && KAB.items[kk] && kk !== 'me') { met.add(kk); kab.openCard(kk); } }; // с гибели — сразу карточка того, кто съел; «‹ Альманах» внизу ведёт на полку
-let ZON = zn.sozdat(), STY = sty.sozdat(), RSV = rsv.sozdat(), VEL = krm.sozdat(), KRM = krm.sozdat(), SVI = svi.sozdat(), PTL = ptl.sozdat(), NAV = {}, toastT = 0, OCHERED = [], pokazT = 0; // очередь строк (П11)
+let ZON = zn.sozdat(), MUT = mtc.sozdat(), STY = sty.sozdat(), RSV = rsv.sozdat(), VEL = krm.sozdat(), KRM = krm.sozdat(), SVI = svi.sozdat(), PTL = ptl.sozdat(), NAV = {}, toastT = 0, OCHERED = [], pokazT = 0; // очередь строк (П11)
 // Пауза с геномом: мир замирает, твоя клетка крупно в середине кольца ДНК.
 let paused = false;
 const genome = genomeScreen({ G: genomeData, cfg, world: () => world, icon: g => icon(g),
@@ -493,22 +493,30 @@ const addMark = m => { KARTA.marks.push({ ...m, run: world.seed }); KARTA.marks 
 let curTab = null, mapT = 0, mapHit = null, mapOpenedAt = 0;
 const mapIcons = {};
 const iconOf = who => { if (!mapIcons[who]) { const im = new Image(); im.src = who.startsWith('gene:') ? icon(who.slice(5)) : KAB.items[who] ? snap(who, KAB.items[who]) : ''; mapIcons[who] = im; } return mapIcons[who]; };
-const PNAME = { hub: 'Пауза', genome: 'Геном', map: 'Карта', alm: 'Альманах' };
+const PNAME = { hub: 'Пауза', genome: 'Геном', map: 'Карта', alm: 'Альманах', staya: 'Стая' };
 function tab(t) {
   curTab = t; const G = $('genome'), C = $('cabinet');
   for (const k in PNAME) G.classList.toggle('tab-' + k, t === k);
-  $('gtitle').textContent = PNAME[t]; $('map').hidden = t !== 'map'; $('mcard').hidden = true;
+  $('gtitle').textContent = PNAME[t]; $('map').hidden = t !== 'map'; $('mcard').hidden = true; $('stlist').hidden = t !== 'staya'; if (t === 'staya') stayaFill();
   if (t === 'hub') hubFill();
   $('gback').textContent = '‹ Пауза';
   if (t === 'alm') { knowGenes(); kab.open('Пауза'); kab.back = () => tab('hub'); C.classList.add('inpause'); const top = $('ghead').getBoundingClientRect().bottom + 6, bot = innerHeight - $('gbar').getBoundingClientRect().top + 8;
     C.style.top = top + 'px'; C.style.bottom = bot + 'px'; } else if (C.classList.contains('inpause')) { kab.close(); kab.back = null; C.classList.remove('inpause'); C.style.top = C.style.bottom = ''; }
   if (t === 'map') { keepSeen(); mapOpenedAt = performance.now(); }
 }
+function stayaFill() { // Ш36: пауза «Стая» — все клетки стаи, у каждой снимок, метка мутации и сколько ей отрастать
+  const L = $('stlist'), M = KAP.mutaciya, S = M.slova, A = world.me[0], st = world.staya || []; L.innerHTML = ''; if (!st.length) { L.appendChild(Object.assign(document.createElement('p'), { textContent: S.pusto })); return; }
+  const src = snap('me', KAB.items.me); st.forEach((q, i) => { const r = document.createElement('div'); r.className = 'st'; r.dataset.id = q.id; r.dataset.mut = q.mut || '';
+    const im = new Image(); im.src = src; im.style.transform = `scale(${Math.max(0.6, Math.min(1.3, 0.5 + Math.sqrt(q.m / ((A && A.m) || q.m))))})`; r.appendChild(im); /* крупнее — больше снимок */
+    if (q.mut) { const dot = document.createElement('i'); dot.style.background = `rgb(${M.spisok[q.mut].cvet.map(c => Math.round(c * 255))})`; r.appendChild(dot); }
+    const sp = document.createElement('span'), dm = A ? (q.m / A.m).toFixed(2).replace('.', ',') : '—', mt = q.mut ? (q.mt >= M.otrast ? S.gotova.replace('{}', M.spisok[q.mut].imya) : S.rastet.replace('{}', M.spisok[q.mut].imya).replace('{s}', Math.ceil(M.otrast - q.mt))) : S.bez;
+    sp.textContent = S.stroka.replace('{n}', i + 1).replace('{m}', dm) + ' · ' + mt; r.appendChild(sp); L.appendChild(r); }); }
+window.kaplyaMut = () => MUT; window.kaplyaStayaMenu = () => [...$('stlist').querySelectorAll('.st')].map(r => ({ id: +r.dataset.id, mut: r.dataset.mut || null }));
 function hubFill() { // первый уровень паузы: что в каждом разделе — одной строкой, служебное — мелко
   const own = genomeData.arcs.flatMap(a => a.slots), deaths = KARTA.marks.filter(m => m.kind === 'death').length;
   $('pstate').textContent = ($(`mscene`).querySelector(`.mo[data-m=${world.mode}] b`)?.textContent || 'Заплыв') + ' · поколение ' + world.stats.gen + ' · клеток ' + world.me.length;
   $('pg').textContent = `включено ${own.filter(x => x.id && world.genes[x.id]).length} из ${own.length}`;
-  $('pa').textContent = kab.label().replace(/^Альманах · /, '');
+  $('pa').textContent = kab.label().replace(/^Альманах · /, ''); { const st = world.staya || []; $('pst').textContent = st.length ? `клеток ${st.length} · мутанток ${st.filter(q => q.mut).length}` : 'пока никого'; }
   keepSeen(); $('pm').textContent = karta.count(cfg.pond, new Set(KARTA.seen)).replace(/^Ты в/, 'В') + (deaths ? ` · гибелей ${deaths}` : '');
   $('psound').textContent = ROD.quiet ? 'Звук выключен' : 'Звук включён';
   const n = $('pnew'); n.sure = false; n.classList.remove('sure'); n.textContent = 'Новый заплыв';
@@ -516,12 +524,12 @@ function hubFill() { // первый уровень паузы: что в каж
 // Значки строк паузы — живые снимки разделов (Роман 25.11: «значок генома можно найти красивый»): твоё кольцо ДНК со включёнными генами
 // вокруг твоей клетки, последний встреченный в Альманахе, разрез пруда с отметками. Меняются вместе с игрой.
 function hubIcons() {
-  const [gi, ai, mi] = $('phub').querySelectorAll('.pico'), S = 104, cv = document.createElement('canvas'); cv.width = cv.height = S; const x = cv.getContext('2d');
+  const [gi, ai, mi, si] = $('phub').querySelectorAll('.pico'), S = 104, cv = document.createElement('canvas'); cv.width = cv.height = S; const x = cv.getContext('2d');
   const own = genomeData.arcs.flatMap(a => a.slots.map(sl => [sl, a.color])), step = Math.PI * 2 / own.length, me = new Image();
   me.onload = () => { x.fillStyle = '#061018'; x.fillRect(0, 0, S, S); x.save(); x.beginPath(); x.arc(S / 2, S / 2, 31, 0, 7); x.clip(); x.drawImage(me, S / 2 - 46, S / 2 - 46, 92, 92); x.restore();
     x.lineWidth = 11; own.forEach(([sl, c], i) => { const on = sl.id && world.genes[sl.id]; x.strokeStyle = c; x.globalAlpha = on ? 1 : 0.22; x.beginPath(); x.arc(S / 2, S / 2, 42, -Math.PI / 2 + i * step + 0.05, -Math.PI / 2 + (i + 1) * step - 0.05); x.stroke(); });
     x.globalAlpha = 1; gi.src = cv.toDataURL(); };
-  me.src = snap('me', KAB.items.me);
+  me.src = snap('me', KAB.items.me); if (si) si.src = me.src; // Ш36: у «Стаи» — твой же снимок
   const last = [...met].reverse().find(k => KAB.items[k] && k !== 'me') || 'me'; ai.src = snap(last, KAB.items[last]);
   const mc = document.createElement('canvas'); mc.width = mc.height = 320; karta.draw(mc.getContext('2d'), 320, 320, { P: cfg.pond, seen: new Set(KARTA.seen), marks: KARTA.marks, icons: {}, me: null, t: 9, hot: -1 }); mi.src = mc.toDataURL();
 }
@@ -832,7 +840,7 @@ function events() {
 }
 
 function tick(dt) {
-  offer(dt); if (KAP.karta.pauza && world.choice.length) return; /* Ш20: пока лежат карточки, мир стоит */
+  offer(dt); if (KAP.karta.pauza && (world.choice.length || MUT.vopros)) return; /* Ш34: и пока лежит «Стать ею?» */ /* Ш20: пока лежат карточки, мир стоит */
   { const H = KAP.hod, me = world.me[0]; if (me) { const zb = view.z / (1 + cfg.close_up * (view.calm || 0)), k = Math.max(1, H.z0 / zb); // Роман 26.11: «чтобы при росте моем не замедлялась клетка»
     cfg.speed = H.v * rsv.hod(KAP.slabyy_start, world) * rost.hod(world, me) * k ** H.stepen / (me.chew && me.m > (me.chew.m || 4) * H.gryzt_bolshe ? rost.R.stoit : 1); } } // большую клетку крошечный комок под ней не тормозит: «встать и грызть» только у комка не мельче тебя в gryzt_bolshe раз // скорость на экране не падает: тяжесть не тормозит, а отъезд камеры возмещается ходом в мире
   const m0 = new Map(world.me.map(a => [a, a.m])), OS = boj.do_hoda(world, KAP.boj); const ZM = les.vkl() ? null : zn.do_hoda(world, KAP.zona); world.step(dt, pad.value()); if (ZM) for (const [, z] of zn.shag(ZON, world, dt, KAP.zona, ZM, radius)) if (!ZON.byla[z]) { ZON.byla[z] = 1; say(KAP.zona.slova[z], 4000); } /* Ш40 */ boj.posle_hoda(world, dt, KAP.boj, radius, OS); /* таблица боя: яд и игла бьют по геному */ boj.po_tebe(world, dt, KAP.boj, m0); /* Ш3: уколы жителей по тебе — по геному, а не по массе */ stk.shag(world, KAP.stolk, ZAP, VC.vidy[KAP.stolk.igrok.zapis]); /* Роман 21:55: не проходишь сквозь жителей */ for (const t of obl.shag(OBL, world, dt, KAP.oblasti, m0, GLAVA)) say(t, 3500);
@@ -853,7 +861,13 @@ function tick(dt) {
   { const g = sm.shag(SEM, world, world.me[0], KAP.semena, dt, radius); if (g) { world.genes[g] = true; say(KAP.semena.slova.vzyato.replace('{}', geneName(g)), 3000, g); } } // П76: коснулся семени — умение твоё
   vh.hudet(world, evo.E, KAP.rost, dt); nv.shag(NAV, world, KAP.navyki, say); if (umn.tech(world, dt, KAP.umeniya, radius) && !world.vampirSkazano) { world.vampirSkazano = true; say(KAP.umeniya.slova.vampir, 3500); } if (!world.genes.gulp && world.stats.time >= KAP.glotat_s) { if (!KAP.karta.glotat) { world.genes.gulp = true; world.choice = world.choice.filter(g => g !== 'gulp'); say(KAP.slova_glotat, 4000); } else if (!world.choice.length) world.choice = ['gulp']; } /* Ш20, Р5: «Глотать» — карточкой на 10-й секунде */ // книга П2, П16: глотать с 10-й секунды, а не после первого роста
   for (const e of rsv.shag(RSV, world, dt, KAP.rastvor, evo.E, RSV_SPISKI, radius, cfg.speed, (a, m) => world.grow(a, m))) if (!RSV[e]) { RSV[e] = 1; say(KAP.rastvor.slova[e], 3000); } /* Ш29: крупное тает у оболочки, отплыл — отпало */
-  if (!les.vkl()) for (const e of sty.shag(STY, world, dt, KAP.staya, m0, cfg.speed)) if (KAP.staya.slova[e] && !STY['s_' + e]) { STY['s_' + e] = 1; say(KAP.staya.slova[e], 3500); } /* Ш32, Ш33 */
+  if (!les.vkl()) { const a = world.me[0], was = a && m0.get(a); if (a && world.genes.lock && was != null && a.m > was) a.m -= (a.m - was) * (1 - KAP.mutaciya.cena); } /* 12.5: замок — цена: растёшь от еды ×0,95 */
+  { for (const e of sty.shag(STY, world, dt, KAP.staya, m0, cfg.speed, Math.random, KAP.mutaciya, MUT.moya)) if (KAP.staya.slova[e] && !STY['s_' + e]) { STY['s_' + e] = 1; say(KAP.staya.slova[e], 3500); } /* Ш32, Ш33 */
+    const M = KAP.mutaciya, MS = M.slova, im = m => M.spisok[m].imya; for (const [e, q, g] of mtc.shag(MUT, world, dt, M)) { // Ш34, Ш35, Ш37
+      if (e === 'mutant' && !MUT.est[q.mut] && !MUT.sprosila[q.mut] && !MUT.vopros && !$('kvybor')) { MUT.sprosila[q.mut] = 1; MUT.vopros = q; vybor({ vopros: MS.vopros.replace('{}', im(q.mut)) + (q.mut === M.zamok ? ' ' + MS.zamok_cena : ''), knopki: MS.knopki }, i => { MUT.vopros = null; if (i === 0) { const m = q.mut; mtc.statEyu(MUT, world, M, q); say(MS.stala.replace('{}', im(m)), 4000, M.spisok[m].gene); } }); }
+      if (e === 'otskok') { world.events.push(['bump', g.x, g.y]); if (!(MUT.zvon > world.stats.time)) { MUT.zvon = world.stats.time + 0.25; beep(1320, 0.08, 0.03, 'sine'); } } /* 12.5: вирус отскакивает от замка со звоном */
+      if (e === 'spas') say(MS.spas.replace('{n}', q).replace('{iz}', g), 5000);
+      if (e === 'umerla' && !MUT.s_umerla) { MUT.s_umerla = 1; say(MS.umerla, 3500); } if (e === 'zakrep') say(MS.zakrep.replace('{}', geneName(g)), 4000, g); } }
   psh.shag(world, dt, KAP.pishcha, radius); { const B = KAP.bodo, um = !!world.genes.gulp; bodo.shag(world, dt, B, radius, slyshuBodo); bodo.glotat(world, B, radius, evo.E.glotat.syt, 0, um, slyshuBodo); zh.shag(world, dt, KAP.novye, v => !!ZAP[zh.SPISKI[v]] && (les.vkl() ? les.poyavitsya(KAP.lestnica, world.me[0] ? world.me[0].m : 1, KAP.novye[v].massa[0]) : GLAVA >= (KAP.novye[v].glava || 1)), radius); zh.glotat(world, evo.E.glotat.bolshe, radius, um, (v, mq, ma) => say(glk.slovo(KAP.slova_glotka, v === 'kaulo' && (world.syel.kaulo || 0) > 1 ? 'kaulo_snova' : v, mq, ma, evo.E.glotat.syt), 2600)); } // джойстик: направление и сила из сдвига пальца
   { const [fx, fy] = world.flow(view.x, view.y); cur[0] += fx * dt; cur[1] += fy * dt; } // течение несёт взвесь
   events();
@@ -1116,7 +1130,7 @@ function paint(time) {
   if (kids) kids.forEach((a, i) => { a.x = view.x + (i ? 1 : -1) * W * 0.24 / z; a.y = view.y - 20 / z; a.a = -Math.PI / 2 + Math.sin(time * 0.8 + i * 2) * 0.12; a.m = 1.7 + 0.1 * Math.sin(time * 1.3 + i); }); // дочки покачиваются на месте
   const phageNear = world.phages.some(g => g.host === 'me' && Math.hypot(g.x - view.x, g.y - view.y) < 220);
   const foodNear = world.food.some(f => Math.hypot(f.x - view.x, f.y - view.y) < 120);
-  { const A = world.me[0], Ks = KAP.staya; (world.staya || []).forEach((q, i) => { const [x, y] = scr(q.x, q.y), r = radius(q.m) * z; q.daleko = i >= Ks.polno; if (on(x, y, r * 3)) zhitel('staya', q, x, y, q.a, r, time, z); }); // Ш33: малышки стаи — твоя же запись, мельче
+  { const A = world.me[0], Ks = KAP.staya; (world.staya || []).forEach((q, i) => { const [x, y] = scr(q.x, q.y), r = radius(q.m) * z; q.daleko = i >= Ks.polno; if (!on(x, y, r * 3)) return; zhitel('staya', q, x, y, q.a, r, time, z); const M = KAP.mutaciya; if (q.mut) { const f = 0.25 + 0.75 * q.mt / M.otrast; glow.put(x, y, r * (1.3 + 0.7 * f), ...M.spisok[q.mut].cvet, M.metka * f); } if (q.bol != null) glow.put(x, y, r * 1.8, ...KAP.virus_znak.cvet, 0.5); if (q.otskokT != null && MUT.t - q.otskokT < M.otskok.t) glow.put(x, y, r * 2.2, ...M.spisok[M.zamok].cvet, 0.35 * (1 - (MUT.t - q.otskokT) / M.otskok.t)); }); /* Ш34: метка мутации отрастает; Ш35: больная мутнеет серым */ // Ш33: малышки стаи — твоя же запись, мельче
     const P = A && sty.kaplya(STY, A, Ks, STY.polu = Ks.korma * KAP.stolk.igrok.w * A.m ** KAP.stolk.igrok.stepen); if (P) { const [x0, y0] = scr(P.x0, P.y0), [x, y] = scr(P.x, P.y), r = P.r * z; if (bodies.seg) bodies.seg(x0, y0, x, y, Math.max(0.6, r * 1.1 * P.sheya), Ks.obolochka, 0.85); zhitel('staya', { id: -7, m: STY.pochka.m }, x, y, P.ug, r, time, z); } } // Ш32: капля тянет оболочку перетяжкой и рвётся
   for (const a of world.me) if (a.spore > 0) { // сон-персистер: та же палочка, но погасшая — серая, жгутики обвисли, редкое «дыхание»; перед пробуждением теплеет
     const [x, y] = scr(a.x, a.y); vid.sleeper({ a, x, y, z, time, cfg, bodies, glow, ink });
