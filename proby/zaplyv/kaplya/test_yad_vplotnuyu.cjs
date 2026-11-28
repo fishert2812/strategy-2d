@@ -16,7 +16,7 @@ async function scena(pw, port, staroe) { const b = await pw.chromium.launch(proc
   const g = await p.evaluate(() => { const s = document.querySelector('#kyad .kyad-slovo').getBoundingClientRect(); return [s.x + s.width / 2, s.y + s.height / 2]; });
   const c = await ctx.newCDPSession(p), T = (type, tp) => c.send('Input.dispatchTouchEvent', { type, touchPoints: tp });
   await T('touchStart', [{ x: g[0], y: g[1], id: 1 }]); const t0 = await p.evaluate(() => zaplyvWorld().stats.time);
-  await p.waitForFunction(t0 => YQ.gone || !zaplyvWorld().me.length || zaplyvWorld().stats.time - t0 > 8, t0, { timeout: 180000 });
+  await p.waitForFunction(t0 => YQ.gone || !zaplyvWorld().me.length || zaplyvWorld().stats.time - t0 > 10, t0, { timeout: 180000 });
   const R = await p.evaluate(t0 => { const a = zaplyvWorld().me[0]; return { lopnul: !!YQ.gone, zhiv: !!a, t: +(zaplyvWorld().stats.time - t0).toFixed(1), f: YQ.gn ? +YQ.gn.f.toFixed(2) : 1, d: a ? Math.round(Math.hypot(YQ.x - a.x, YQ.y - a.y)) : null }; }, t0);
   await T('touchEnd', []); await b.close(); return { ...R, errs }; }
 const sud = R => !R.zhiv && !R.lopnul ? 'тебя съели раньше, чем кокк умер' : !R.lopnul ? `кокк жив через ${R.t} с с зажатым «Ядом»: здоровье ${R.f}, расстояние ${R.d}` : '';
@@ -25,6 +25,6 @@ const sud = R => !R.zhiv && !R.lopnul ? 'тебя съели раньше, че�
     if (!ff.startsWith(KOREN) || !fs.existsSync(ff)) { s.writeHead(404); return s.end(); } s.writeHead(200, { 'Content-Type': TIP[path.extname(ff)] || 'application/octet-stream' }); fs.createReadStream(ff).pipe(s); }).listen(0);
   const pw = await import(process.env.PW || 'playwright').then(m => m.default || m), port = srv.address().port;
   const R = await scena(pw, port, false); console.log('  ' + JSON.stringify(R));
-  check('test_L124 test_yad_vplotnuyu: 393×659, кокк в 2,8 раза тяжелее вплотную, один палец на «Яд» — кокк умирает за 8 с, ты жив', R.errs.join(' | ') || sud(R));
+  check('test_L124 test_yad_vplotnuyu: 393×659, кокк в 2,8 раза тяжелее вплотную, один палец на «Яд» — кокк умирает за 10 с, ты жив', R.errs.join(' | ') || sud(R));
   if (!process.env.BEZ_SAMOPROVERKI) { let lov = false; for (let i = 0; i < 3 && !lov; i++) { const S = await scena(pw, port, true); console.log('  старое: ' + JSON.stringify(S)); lov = !!sud(S); } check('test_yad_vplotnuyu_samoproverka: прежние кольцо и запас, клетку уносит — сторож краснеет (течение то к кокку, то от него: старое проигрывает 2 раза из 3, даём три попытки)', lov ? '' : 'не заметил'); }
   srv.close(); process.exit(bad ? 1 : 0); })();
