@@ -491,7 +491,7 @@ const knowGenes = () => { let add = false; for (const g in world.genes) if (!met
 $('cab').onclick = () => { knowGenes(); kab.open(); const kk = world.stats.killer; if (ended && kk && KAB.items[kk] && kk !== 'me') { met.add(kk); kab.openCard(kk); } }; // с гибели — сразу карточка того, кто съел; «‹ Альманах» внизу ведёт на полку
 let EDR = edr.sozdat(), ZHV = zhv.sozdat(), GLC = glc.sozdat(), TRP_S = 0, MST = mst.sozdat(), KUS = kus.sozdat(), SOB = sob.sozdat(), SVR = svr.sozdat(), ZON = zn.sozdat(), MUT = mtc.sozdat(), STY = sty.sozdat(), RSV = rsv.sozdat(), VEL = krm.sozdat(), KRM = krm.sozdat(), SVI = svi.sozdat(), PTL = ptl.sozdat(), NAV = {}, toastT = 0, OCHERED = [], pokazT = 0; // очередь строк (П11)
 // Пауза с геномом: мир замирает, твоя клетка крупно в середине кольца ДНК.
-let paused = false;
+let paused = false; let ROST_CEL = null;
 const genome = genomeScreen({ G: genomeData, cfg, world: () => world, icon: g => icon(g),
   onOpen: () => { paused = true; document.body.classList.add('paused'); pad.end(0); down = null; finger = null; openTab(); },
   onClose: () => { paused = false; document.body.classList.remove('paused'); leaveTabs(); },
@@ -1317,7 +1317,7 @@ function paint(time) {
   }
   bodies.end(time);
   { const sp = world.split(), top = world.me.reduce((b, a) => a.m > b.m ? a : b, world.me[0] || { m: 0 }); // полоса: самая близкая к делению сестра, от половинки до деления
-    const g = Math.max(0, Math.min(1, (top.m - sp / 2) / (sp / 2))); $('growfill').style.width = (g * 100).toFixed(1) + '%'; probe.grow = g;
+    let g = Math.max(0, Math.min(1, (top.m - sp / 2) / (sp / 2))); if (!window.kaplyaStaryjRost && world.me.length && !les.vkl()) { const Kr = KAP.rost, um = vh.dlina(Kr, top.m), st = Kr.shag_mkm, cel = (Math.floor(um / st + 1e-6) + 1) * st; g = (um - (cel - st)) / st; const L = $('growlbl') || Object.assign($('scalebox').appendChild(document.createElement('div')), { id: 'growlbl' }); const tx = Kr.polosa.replace('{}', cel.toFixed(1).replace('.', ',')); if (L.textContent !== tx) { if (L.textContent && ROST_CEL != null && cel > ROST_CEL) { say(Kr.podrosla.replace('{}', (cel - st).toFixed(1).replace('.', ',')), 2200); const H = $('hud'); H.classList.remove('rost'); void H.offsetWidth; H.classList.add('rost'); window.kaplyaPodroslo = (window.kaplyaPodroslo || 0) + 1; } L.textContent = tx; } ROST_CEL = cel; document.body.classList.add('rostNa'); } $('growfill').style.width = (g * 100).toFixed(1) + '%'; probe.grow = g; /* L135 (итог ночи п. 4: «Роста не видно: 2,0 мкм после 10–30 крошек»): полоса — рост до следующих rost.shag_mkm, подписана; дошла — «Подросла», число вспыхивает */
     const ill = world.me.filter(a => a.sick >= 0), k = ill.length ? Math.min(...ill.map(a => a.sick)) / cfg.sick : 0; // заражена — красная засечка на конце, тает к разрыву
     const n = $('sicknotch'); n.style.width = (ill.length ? 4 + 18 * k : 0) + '%'; n.style.left = Math.max(0, g * 100 - (ill.length ? 4 + 18 * k : 0)).toFixed(1) + '%'; probe.sickNotch = ill.length ? k : -1; }
   U.tint.value.set(...view.tint);
