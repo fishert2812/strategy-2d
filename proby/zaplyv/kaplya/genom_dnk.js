@@ -8,7 +8,7 @@
 import { layout } from '../genome.js';
 
 const PARY = [['#7cc8f0', '#f0c35a', 'A', 'T'], ['#b49cff', '#7dffb0', 'G', 'C']];
-const SDVIG = Math.PI * 0.78, V_STROKE = 8;
+const SDVIG = Math.PI * 0.78, V_STROKE = 8; /* экраны 28.11: под каждым витком русское имя в две строки */
 // Гены «Капли», которых нет на кольце: оружие и пасть (evo.json «svoi»); имя в книге у иглы — tssB
 export const SVOI = [{ id: 'gulp', gene: 'gulp' }, { id: 'igla', gene: 'tssB' }, { id: 'kislota', gene: 'kislota' }];
 
@@ -38,10 +38,10 @@ const S = { stroki: [], vybor: null, u: 0, cam: { s: 1, x: 0, y: 0 }, t0: 0, ide
 window.kaplyaGenomDnk = S;
 
 function rasstavit() { // где строки и витки: в точках холста при камере 1
-  const w = S.w, h = S.h, n = S.stroki.length, sh = Math.min(84, (h - 12) / n), sw = Math.min(56, (w - 24) / V_STROKE);
+  const w = S.w, h = S.h, n = S.stroki.length, sh = Math.min(84, (h - 12) / n), sw = Math.min(64, (w - 8) / V_STROKE);
   const y0 = (h - sh * n) / 2;
   S.stroki.forEach((st, r) => { st.y = y0 + r * sh; st.h = sh; st.x0 = (w - sw * V_STROKE) / 2; st.sw = sw;
-    st.sp.forEach((u, i) => { u.x = st.x0 + i * sw; u.y = st.y; u.w = sw; u.h = sh; u.yc = st.y + 13 + (sh - 26) / 2 - 2; u.A = Math.min(12, (sh - 30) / 2.4); }); });
+    st.sp.forEach((u, i) => { u.x = st.x0 + i * sw; u.y = st.y; u.w = sw; u.h = sh; u.A = Math.max(4, Math.min(11, (sh - 40) / 2)); u.yc = st.y + (st.imya ? 15 : 6) + u.A; }); });
 }
 
 function otkryt() {
@@ -80,7 +80,7 @@ function risuy(t, w, dpr) {
   const vstup = Math.min(1, t / 0.9); // при открытии спираль собирается слева направо, строка за строкой, как на загрузке
   const vsego = S.stroki.reduce((n, st) => n + st.sp.length, 0); let nom = 0;
   for (const st of S.stroki) {
-    if (st.imya) { g.globalAlpha = 0.9 * (1 - S.u); g.fillStyle = st.cvet; g.font = '600 10px -apple-system, system-ui, sans-serif'; g.textAlign = 'left'; g.fillText(st.imya.toUpperCase().split('').join(' '), st.x0 + 2, st.y + 10); }
+    if (st.imya) { g.globalAlpha = 0.9 * (1 - S.u); g.fillStyle = st.cvet; g.font = '700 10px -apple-system, system-ui, sans-serif'; g.textAlign = 'left'; g.fillText(st.imya.toUpperCase().split('').join(' '), st.x0 + 2, st.y + 10); }
     for (const u of st.sp) {
       const dolya = Math.max(0, Math.min(1, vstup * vsego * 1.15 - nom++));
       if (dolya > 0) vitok(u, t, !!(u.id && w.genes[u.id]), dolya);
@@ -125,17 +125,19 @@ function vitok(u, t, est, dolya) {
   nit(0, true); nit(SDVIG, true);
   // ограничитель участка и подпись гена
   g.globalAlpha = ten * 0.5; g.fillStyle = '#cfe8f5'; g.beginPath(); g.arc(u.x + 1, u.yc, 1.4, 0, 7); g.fill();
-  g.globalAlpha = ten * (est ? 1 : 0.6) * (1 - raz); g.fillStyle = est ? u.cvet : '#9fb6c8';
-  g.font = `${est ? 700 : 400} italic 10px ui-monospace, Menlo, monospace`; g.textAlign = 'center';
-  g.fillText(u.gene === '?' ? '?' : (u.gene || '').slice(0, 7), u.x + u.w / 2, u.yc + u.A + 13);
+  g.globalAlpha = ten * (est ? 1 : 0.62) * (1 - S.u); g.fillStyle = est ? u.cvet : '#b9cad6';
+  g.font = `${est ? 700 : 500} 8.5px -apple-system, system-ui, sans-serif`; g.textAlign = 'center';
+  imyaStroki(u).forEach((l, i) => g.fillText(l, u.x + u.w / 2, u.yc + u.A + 10 + i * 10)); /* экраны 28.11: имя гена по-русски, не код flhDC; при наезде подписи гаснут */
 }
 
+// Русское имя гена из книги в две строки по ширине витка; неизвестный — «Неизвестный ген»
+function imyaStroki(u) { const im0 = u.gene === '?' ? 'Неизвестный ген' : slova(book, u).imya || 'Ген', im = im0; (S.podpisi ||= new Set()).add(im); const sl = im.split(' '), out = ['']; g.save(); for (const w of sl) { const t = out[out.length - 1] ? out[out.length - 1] + ' ' + w : w; if (g.measureText(t).width <= u.w - 3 || !out[out.length - 1]) out[out.length - 1] = t; else if (out.length < 2) out.push(w); else { out[1] += '…'; break; } } for (let i = 0; i < out.length; i++) while (out[i].length > 2 && g.measureText(out[i]).width > u.w - 3) out[i] = out[i].slice(0, -2) + '…'; g.restore(); return out; } /* длинное слово не заходит на соседа */
 // Над расплетённым участком — имя гена крупно (в точках экрана, не камеры)
 function podpis(u, est) {
   const b = slova(book, u);
   g.globalAlpha = Math.min(1, (S.u - 0.3) / 0.5); g.textAlign = 'center';
   g.fillStyle = '#f2fbff'; g.font = '600 20px -apple-system, system-ui, sans-serif'; g.fillText(b.imya || u.gene, S.w / 2, 30);
-  g.fillStyle = est ? u.cvet : '#9fb6c8'; g.font = 'italic 14px ui-monospace, Menlo, monospace'; g.fillText((u.gene || '') + (est ? ' · включён' : ' · спит'), S.w / 2, 50);
+  g.fillStyle = est ? u.cvet : '#9fb6c8'; g.font = 'italic 14px ui-monospace, Menlo, monospace'; g.font = '14px -apple-system, system-ui, sans-serif'; g.fillText(est ? 'включён' : 'спит', S.w / 2, 50); /* экраны 28.11: без латинского кода */
   g.fillStyle = 'rgba(220,240,250,0.6)'; g.font = '12px -apple-system, system-ui, sans-serif'; g.fillText('коснись ещё раз — весь геном', S.w / 2, S.h - 12);
 }
 
