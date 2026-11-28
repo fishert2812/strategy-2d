@@ -1,0 +1,119 @@
+// Режим «Эволюция» (Роман 25.11: «бесконечно расти… внедряй все навыки на нашу клетку… плотоядным стать каким угодно»).
+// Замысел: design/zaplyv_rezhim_evolyuciya.md. Рост без предела и еда по ростам — из «Роста» (rost.js считает режим своим),
+// умения «Мутаций» включены (mutacii.js тоже). Здесь — выбор способности на каждом росте вместо дочек при делении
+// и свои умения режима, ветка хищника:
+//   gulp — Г51 «Глотает целиком»: коснулась живой клетки заметно мельче себя — она тает внутри и идёт в рост.
+//          Кто «мельче» — решает масса, поэтому выросшая ест и тех, кто ел её в начале (амёба, колокольчик, коловратка, туфелька).
+//   еда крупнеет вместе с клеткой (логика режима, ЛЭ10): с роста s новые кокки рождаются крупнее, в k раз на каждый
+//          следующий рост, — иначе корма на следующий рост почти нет и рост встаёт.
+//   худеет без еды (ЛЭ13, Роман 25.11 17:24 «окей»): большое тело всё время тратит — каждую секунду теряет hudeet долю массы
+//          (не меньше min); от голода не гибнет, но может похудеть обратно на рост, и прежние пасти снова её берут.
+//   ты то, что ты ешь (ЛЭ21, Роман 25.11 «точно»): у существ капли своё умение (evo.json dobycha); проглотил n таких —
+//          на следующем росте оно приходит третьей карточкой. Первое: от кокка — kislota «Не боится кислоты» (кокк не щиплет).
+//   igla — Г55 «Нить-игла» (шестой путь выделения, T6SS; биолог, круги 15–16): коснулась носом бактерии-соперницы —
+//          уколотая замирает, раздувается шариком (яд режет стенку изнутри) и через t секунд растекается соком. Кокков не берёт.
+// Свой файл; sim.js зовёт отсюда step(), main.js — draw(). Числа и слова — evo.json, имена генов — только книга.
+const url = new URL('./evo.json', import.meta.url);
+export const E = url.protocol === 'file:' ? JSON.parse((await import('node:fs')).readFileSync(url, 'utf8')) : await (await fetch(url)).json();
+
+export const on = w => w.mode === 'evo';
+const has = (w, g) => on(w) && !!w.genes[g];
+// Что можно предложить: все гены мира и свои умения режима, которых у клетки ещё нет, кроме умений семьи.
+export const pool = w => [...Object.keys(w.cfg.genes), ...E.svoi].filter(g => (!w.genes[g] || (w.urovni && w.urovni(g))) && !E.bez.includes(g) && !ot(g) && !(w.ne_dat && w.ne_dat(g))); // «Капля» (kaplya/navyki.js): взятое умение приходит следующим уровнем, прежние гены — ступенями
+// Умение от добычи: заработано ли (съедено n тех, у кого оно есть).
+const ot = g => Object.values(E.dobycha).some(d => d.gene === g);
+const uroven = (w, g) => w.genes[g] ? Math.max(1, (w.lvl || {})[g] || 0) : 0; // «Капля»: рецепт даёт и следующий уровень (П41), за каждый — ещё n съеденных
+export const earned = w => Object.entries(E.dobycha).filter(([who, d]) => (w.syel?.[who] || 0) >= d.n * (uroven(w, d.gene) + 1) && (!w.genes[d.gene] || (w.urovni && w.urovni(d.gene)))).map(([, d]) => d.gene);
+
+// Кого можно проглотить: список мира, ключ карточки (кто), масса.
+const PREY = [['prey', 'coccus'], ['pseudos', 'pseudo'], ['bdellos', 'bdello'], ['amoebas', 'amoeba'], ['bells', 'bell'], ['rotis', 'roti'], ['slippers', 'slipper']];
+const mass = (q, who) => q.m || E.glotat.razmer[who] || 1;
+
+// Шаг режима: глотание и выбор способности на росте (событие rost из rost.js). Способность берёт world.pick — уровни умений там же.
+export function step(w, dt, radius) {
+  if (!on(w)) return;
+  gulp(w, dt, radius); igla(w, radius); krupneet(w);
+  for (const a of w.me) if (!(a.spore > 0) && a.m > E.hudeet.ot) a.m -= (a.m - E.hudeet.ot) * E.hudeet.v * dt; // большое тело тратит: худеет только то, что сверх ot (круг 0.84: малая клетка таяла быстрее, чем ела, и не росла вовсе)
+  if (w.me.some(a => has(w, 'kislota'))) for (const q of w.prey) { // не боится кислоты: шарик рядом не жжёт (sim.js pinch_t), но насос тратит силы
+    for (const a of w.me) if (q.touch > 0) a.m = Math.max(1, a.m * (1 - E.kislota.plata * dt));
+    q.touch = 0;
+  }
+  if (w.choice.length || !w.events.some(e => e[0] === 'rost')) return;
+  const left = pool(w);
+  for (let i = left.length - 1; i > 0; i--) { const j = Math.floor(w.r() * (i + 1)); [left[i], left[j]] = [left[j], left[i]]; }
+  const n = w.events.find(e => e[0] === 'rost')[3];
+  if (n >= E.glotat.k && left.includes('gulp')) { w.choice = ['gulp']; return; } // «Глотать» — событие, а не одна из карт: одна карточка (логика режима, ЛЭ14)
+  const own = left.filter(g => g !== 'gulp'), pink = earned(w).slice(0, 1); // третья карточка — от добычи, если заработана, иначе ещё одно своё
+  w.choice = [...own.slice(0, E.vybor - pink.length), ...pink];
+}
+
+// Г51: касание добычи — она уходит из мира и тает внутри клетки (w.gulps), за t секунд её масса переходит в рост.
+function gulp(w, dt, radius) {
+  w.gulps = (w.gulps || []).filter(g => {
+    g.t += dt; const k = Math.min(1, dt * 6);
+    if (!g.rv) { g.x += (g.a.x - g.x) * k; g.y += (g.a.y - g.y) * k; } // добычу втягивает в середину; растворяемая (g.rv, «Капля» rastvor.js) тает у оболочки
+    if (g.t < (g.tt ?? E.glotat.t)) return true;
+    if (w.me.includes(g.a)) w.grow(g.a, g.m * E.glotat.syt);
+    return false;
+  });
+  if (!w.me.some(a => has(w, 'gulp'))) return;
+  for (const a of w.me) {
+    if (a.spore > 0 || a.grab) continue;
+    const r = radius(a.m);
+    for (const [list, who] of PREY) {
+      const eat = w[list].filter(q => !q.gone && !(q.otpalT > w.stats.time) && !(w.zhivoe && w.zhivoe(q, list)) /* «Капля» Д.10: живое сначала убить */ && mass(q, who) * E.glotat.bolshe <= a.m && Math.hypot(q.x - a.x, q.y - a.y) < r + Math.max(E.glotat.kasanie, radius(mass(q, who)) * 0.6)); // крупная расталкивает мелких на r+8 (rost.js) — касание чуть дальше
+      if (!eat.length) continue;
+      w[list] = w[list].filter(q => !eat.includes(q));
+      for (const q of eat) {
+        w.gulps.push({ a, x: q.x, y: q.y, x0: q.x, y0: q.y, m: mass(q, who), who, t: 0, q });
+        w.stats.gulped = (w.stats.gulped || 0) + 1; w.syel = w.syel || {}; w.syel[who] = (w.syel[who] || 0) + 1; w.events.push(['gulp', q.x, q.y, mass(q, who), who]);
+      }
+    }
+  }
+}
+
+// Новые кокки — по росту клетки: помеченные (q.evo) уже подогнаны.
+function krupneet(w) {
+  const n = (w.rost || 0) - E.eda.s; if (n <= 0) return;
+  const k = E.eda.k ** n;
+  for (const q of w.prey) if (!q.evo) { q.evo = true; q.m *= k; }
+}
+
+// Г55: укол в упор — соперница у носа клетки (впереди, в пределах dlina за краем); скорость не нужна (круг 16). Уколотая стоит (её ход в sim.js гаснет:
+// отдыхает бесконечно, гарпун не заряжается), через t секунд гибнет и растекается соком.
+function igla(w, radius) {
+  const now = w.stats.time;
+  for (const q of w.pseudos) if (q.igla !== undefined && now - q.igla >= E.igla.t) { q.gone = true; w.spill(q.x, q.y); }
+  if (!w.me.some(a => has(w, 'igla'))) return;
+  for (const a of w.me) {
+    const r = radius(a.m), ax = Math.cos(a.a), ay = Math.sin(a.a);
+    for (const q of w.pseudos) {
+      if (q.igla !== undefined || q.gone) continue;
+      const dx = q.x - a.x, dy = q.y - a.y, d = Math.hypot(dx, dy) || 1;
+      if (d > r + E.igla.dlina || (dx * ax + dy * ay) / d < E.igla.nos) continue;
+      q.igla = now; q.t = q.rest = 1e9; q.cool = 1e9; q.vx *= 0.2; q.vy *= 0.2;
+      w.stats.igla = (w.stats.igla || 0) + 1; w.events.push(['igla', q.x, q.y]);
+    }
+  }
+}
+
+// Временный вид глотания (до кирпичей анимации 'glotat'): нити оболочки тянутся к добыче и обволакивают её,
+// добыча темнеет и сжимается, клетка наливается светом. scr — мир → экран.
+export function draw({ w, a, x, y, z, glow, scr }) {
+  if (!on(w)) return;
+  if (a === w.me[0]) for (const q of w.pseudos) if (q.igla !== undefined) { // уколотая раздувается шариком и светлеет к разрыву (до кирпича 'igla')
+    const [qx, qy] = scr(q.x, q.y), u = Math.min(1, (w.stats.time - q.igla) / E.igla.t);
+    glow.put(qx, qy, (10 + 14 * u) * z, 1, 0.6, 0.65, 0.15 + 0.3 * u);
+  }
+  if (!w.gulps) return;
+  for (const g of w.gulps) {
+    if (g.a !== a) continue;
+    const u = Math.min(1, g.t / (g.tt ?? E.glotat.t)), [gx, gy] = scr(g.x, g.y), R = 13 * Math.sqrt(g.m) * z * (1 - u * 0.7);
+    glow.put(gx, gy, R * 1.6, 0.45, 0.3, 0.25, 0.35 * (1 - u)); // добыча тёмным пятном тает
+    for (let i = 0; i < 8; i++) { // нити: от края клетки к добыче, концы обходят её кругом
+      const t = i / 8 * 6.283, ex = gx + Math.cos(t) * R, ey = gy + Math.sin(t) * R;
+      for (let j = 1; j <= 6; j++) { const s = j / 6 * Math.min(1, u * 2.5); glow.put(x + (ex - x) * s, y + (ey - y) * s, 1.1 * z + 0.4, 0.8, 0.95, 1, 0.5 * (1 - u * 0.5)); }
+    }
+    glow.put(x, y, 13 * Math.sqrt(a.m) * z * 1.4, 0.75, 1, 0.9, 0.25 * Math.sin(u * 3.14)); // наливается светом
+  }
+}

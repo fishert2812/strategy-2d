@@ -1,0 +1,28 @@
+{
+	"_": "Поведение существ без игрока (карта движка, кусок 5; Роман 25.11 22:40: «Нам нужна симуляция мира… все что упростит нам жизнь и будет жить правилами в мире»). Одни правила на всех (povedenie.js), разница только в числах анкеты. Длины в мкм, время в секундах, массы в «палочках». obshchee — числа по умолчанию; vidy — отличия вида (наследуются от obshchee, хранится только разница). chuet — с какого расстояния существо замечает еду, врага, добычу и родню; strah — во сколько раз чужой должен быть тяжелее, чтобы от него бежать; hishchnik — гонится ли за живыми; dobycha — во сколько раз жертва должна быть легче, чтобы за ней гнаться; syt — с какой сытости (0–1) существо перестаёт искать еду и отдыхает; ustal — с какой усталости (0–1) отдыхает даже голодное; vesa — сила каждого желания при сложении (eda, strah, ohota, rodnya, pole, razezd, nos, palec); skorost — доля наибольшей скорости в каждом занятии (bezhit, gonitsya, est, k_rodne, brodit, otdyh, razezd, nyuhaet, palec); panika — сила страха, выше которой существо только бежит и ни на что не отвлекается; ryskanie — насколько меняет курс, когда бродит (доля разворота за раз); blizko_rodnya — ближе этого к родне не тянется (не слипаются). razezd — правило «разъезд семьи» (Г36 «Уйти от своих»): vkl — включено умением; если сестёр в чутье не меньше tesno, а еды в чутье не больше malo_edy, сёстры не тянутся друг к другу, а расплываются. nos — правило «поиск комка» (Г44 «Новый нос»): vkl — включено умением; еду вида vid существо чует до dalnost мкм, дальше обычного чутья, и подруливает к ней с силой vesa.nos. vesa.palec — сила пальца игрока (sost.palec, длина 0–1): больше всех прочих желаний, палец всегда главнее.",
+	"miry": { "_": "поправка анкет для мира (mir_zhizn.js, по имени мира из mir.json «miry»), подобрана ботом на сторож test_mir_dolgo: в капле тяга к корму поля сильнее, к родне слабее", "kaplya": { "vesa": { "pole": 2, "rodnya": 0.1 }, "skorost": { "brodit": 0.35 } } },
+	"obshchee": {
+		"chuet": 60,
+		"strah": 1.5,
+		"hishchnik": false,
+		"dobycha": 1.8,
+		"syt": 0.85,
+		"ustal": 0.9,
+		"vesa": { "eda": 1, "strah": 2.5, "ohota": 1.2, "rodnya": 0.3, "pole": 0.5, "razezd": 1, "nos": 0.8, "palec": 4 },
+		"skorost": { "bezhit": 1, "gonitsya": 0.9, "est": 0.6, "k_rodne": 0.4, "brodit": 0.35, "otdyh": 0, "razezd": 0.6, "nyuhaet": 0.6, "palec": 1 },
+		"panika": 0.35,
+		"ryskanie": 0.6,
+		"blizko_rodnya": 4,
+		"razezd": { "vkl": false, "tesno": 4, "malo_edy": 2 },
+		"nos": { "vkl": false, "vid": "komok", "dalnost": 400 }
+	},
+	"vidy": {
+		"palochka": {},
+		"kokk": { "chuet": 0, "strah": 1e9, "skorost": { "brodit": 0, "bezhit": 0, "est": 0 } },
+		"sopernica": { "chuet": 50, "vesa": { "strah": 2 } },
+		"zapyataya": { "chuet": 90, "hishchnik": true, "dobycha": 1.2, "skorost": { "gonitsya": 1 } },
+		"ameba": { "chuet": 40, "hishchnik": true, "dobycha": 1.5, "strah": 2, "skorost": { "gonitsya": 0.5, "bezhit": 0.4, "brodit": 0.2 } },
+		"tufelka": { "chuet": 120, "hishchnik": true, "dobycha": 3, "strah": 2, "syt": 0.7 },
+		"miksokokk": { "chuet": 30, "hishchnik": true, "dobycha": 1, "vesa": { "rodnya": 1.5 }, "skorost": { "gonitsya": 0.05, "brodit": 0.03, "bezhit": 0.05 } }
+	}
+}

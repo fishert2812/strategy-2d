@@ -1,0 +1,18 @@
+{
+  "_": "Мир капли одной записью (mir_sborka.js, второй кусок мира в карте движка). Поля среды берутся из pole.json (правки — в pole), виды — ключи записей существ (vidy.json или паспорт zhizn.json), сколько их — plotnost: особей на квадрат 640×640 там, где виду лучше всего (пригодность 1). Где виду лучше, считает поле по его «любит»: пока хозяин движка не перенёс «любит» в анкету vidy.json, движок берёт его отсюда (lyubit). Еда — поле сахара (pole.js), отдельных чисел у неё нет. Опасные (opasen в паспорте) у старта не ставятся ближе tiho_r. s_rosta — с какой дальности от старта (в квадратах 640) вид вообще живёт. gruppa — сколько держатся вместе [от, до]. massa — масса особи [от, до] в палочках.",
+  "kvadrat": 640,
+  "start": { "x": 0, "y": 0, "tiho_r": 960 },
+  "vidy": {
+    "coccus": { "plotnost": 3, "gruppa": [1, 2], "massa": [0.3, 1.2], "s_rosta": 0, "lyubit": { "sahar": [0.04, 1], "kislorod": [0.3, 1] } },
+    "amoeba": { "plotnost": 0.6, "gruppa": [1, 1], "massa": [3, 6], "s_rosta": 1.5, "lyubit": { "il": true, "kislorod": [0, 0.6], "sahar": [0.05, 1] } },
+    "slipper": { "plotnost": 0.18, "gruppa": [1, 1], "massa": [8, 8], "s_rosta": 1.6, "lyubit": { "sahar": [0.08, 1], "kislorod": [0.5, 1] } },
+    "bell": { "plotnost": 0.4, "gruppa": [1, 3], "massa": [4, 4], "s_rosta": 1.5, "lyubit": { "svet": [0.25, 1], "kislorod": [0.6, 1], "vodorosli": [0.5, 9] } },
+    "roti": { "plotnost": 0.1, "gruppa": [1, 1], "massa": [10, 10], "s_rosta": 2.2, "lyubit": { "kislorod": [0.5, 1], "sahar": [0.05, 1] } },
+    "bdello": { "plotnost": 0.4, "gruppa": [2, 3], "massa": [0.2, 0.2], "s_rosta": 2.5, "lyubit": { "sahar": [0.1, 1], "kislorod": [0.3, 1] } },
+    "phage": { "plotnost": 1.8, "gruppa": [3, 6], "massa": [0, 0], "s_rosta": 1.5, "lyubit": { "sahar": [0.15, 1] } },
+    "donor": { "plotnost": 0.2, "gruppa": [1, 1], "massa": [1, 1.5], "s_rosta": 0.8, "lyubit": { "kislorod": [0.4, 1] } },
+    "pseudo": { "plotnost": 0.3, "gruppa": [1, 2], "massa": [1, 1.5], "s_rosta": 1.8, "lyubit": { "sahar": [0.05, 1], "kislorod": [0.4, 1] } },
+    "strain": { "plotnost": 0.35, "gruppa": [1, 2], "massa": [1, 1.5], "s_rosta": 1.2, "lyubit": { "sahar": [0.05, 1], "kislorod": [0.4, 1] } },
+    "seno": { "plotnost": 0.3, "gruppa": [2, 4], "massa": [1, 1.5], "s_rosta": 2.5, "lyubit": { "svet": [0.6, 1], "kislorod": [0.8, 1] } }
+  }
+}

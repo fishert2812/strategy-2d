@@ -1,0 +1,34 @@
+<!doctype html><meta charset="utf-8"><meta name=viewport content="width=device-width">
+<!-- Печь спирали ДНК (pech_dnk.cjs): 3D-сцена dnk3d.js рисуется здесь один раз при сборке, в игру идут только готовые картинки. -->
+<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}canvas{width:100%;height:100%;display:block}</style>
+<canvas id=c></canvas><script type=module>
+import * as m from '../dnk3d.js';
+const q = new URLSearchParams(location.search);
+if (q.get('chto') === 'polosa') {
+  // Лента полоски генома: KADROV кадров вращения, верхний ряд — живая спираль, нижний — остов без перекладин
+  const T = m.THREE, W = +q.get('w'), H = +q.get('h'), KADROV = +q.get('k'), SHAG = 0.13, VYS = 2.3;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const r = new T.WebGLRenderer({ canvas: cv, antialias: true, alpha: true, preserveDrawingBuffer: true });
+  r.setPixelRatio(1); r.setSize(W, H, false); r.toneMapping = T.ACESFilmicToneMapping; r.setClearColor(0, 0);
+  const sc = new T.Scene(); m.osveshchenie(sc, r);
+  const dl = VYS * W / H, PAR = Math.ceil(dl / SHAG) + 2;
+  const sp = m.spiral({ par: PAR, R: 0.8, shag: SHAG, bus: 0.17, naVitok: 20, nb: 1, ustR: 0.17, puzyri: 0 }); sp.rotation.z = Math.PI / 2; sc.add(sp);
+  const kam = new T.OrthographicCamera(-dl / 2, dl / 2, VYS / 2, -VYS / 2, 0.1, 50); kam.position.z = 10;
+  const atlas = document.createElement('canvas'); atlas.width = W * KADROV; atlas.height = H * 2; const a = atlas.getContext('2d');
+  for (let k = 0; k < KADROV; k++) { const faza = k / KADROV * Math.PI;
+    sp.userData.ustanovit(PAR, faza); sp.userData.ust.visible = true; r.render(sc, kam); a.drawImage(cv, k * W, 0);
+    sp.userData.ust.visible = false; r.render(sc, kam); a.drawImage(cv, k * W, H); }
+  window.gotovo = atlas.toDataURL('image/png');
+} else {
+  // Загрузка: та же сцена, что была живой; фон без главной спирали и кадры вращения с ней
+  const S = m.scena(document.getElementById('c'), { dpr: devicePixelRatio }); S.razmer(innerWidth, innerHeight);
+  const N = 82, sp = m.spiral({ par: N, R: 1.25, shag: 0.13, naVitok: 35, izgib: 1.6, glub: 3.4 }); sp.rotation.z = 0.12; sp.position.y = -0.5; S.glavnaya.add(sp);
+  const k1 = m.kapli(9, [4.5, 9, 2.5]); S.glavnaya.add(k1); const k2 = m.kapli(8, [9, 14, 3], { yarko: 0.6 }); k2.position.z = -5; S.fonovaya.add(k2);
+  [[-3.6, 0.5, -5, 0.35, 0x8ab4f0, 0x7fd8ff], [3.9, -1.5, -6, -0.3, 0xe0a060, 0xff9050], [-1.2, -6, -4, -1.0, 0x8a9ae8, 0x7fd8ff]].forEach(f => {
+    const b = m.spiral({ par: 70, cvetNiti: f[4], kromkaC: f[5], yarko: 0.45, shag: 0.2 }); b.position.set(f[0], f[1], f[2]); b.rotation.z = f[3]; S.fonovaya.add(b); });
+  const o1 = m.ogni(18, [12, 18, 4], [0xff8a3c, 0xffb060, 0xff6a3a]); o1.position.z = -4; S.fonovaya.add(o1);
+  const o2 = m.ogni(10, [7, 12, 3], [0xff8a3c, 0xffc070]); o2.position.z = 1; S.glavnaya.add(o2);
+  S.kamera.position.z = 18; S.kamera.lookAt(0, 0, 0); k1.userData.dvig(2); k2.userData.dvig(2); o1.material.uniforms.uT.value = 2; o2.material.uniforms.uT.value = 2;
+  window.kadr = (faza, sSpiralyu) => { sp.visible = sSpiralyu; sp.userData.ustanovit(N, faza); S.kadr({ svet: 0.55 }); };
+}
+</script>

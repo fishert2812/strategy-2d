@@ -1,0 +1,175 @@
+// Проверки режима «Эволюция» (evo.js) без экрана: node proby/zaplyv/test_evo.mjs. Провал — код 1.
+// EVO_OFF=1 гоняет те же заплывы в «Росте»: доказательство test_evo_vybor обязано покраснеть (самопроверка шага 58_evo).
+import { World } from './sim.js';
+import * as rost from './rost.js';
+import * as evo from './evo.js';
+import { readFileSync } from 'node:fs';
+const cfg = JSON.parse(readFileSync(new URL('./data.json', import.meta.url)));
+const MODE = process.env.EVO_OFF ? 'rost' : 'evo';
+if (process.env.ROST_SYTOST) rost.R.sytost = +process.env.ROST_SYTOST; // самопроверка первой минуты: при прежней сытости 0.84 сторож краснеет
+let bad = 0;
+const check = (name, fn) => {
+  try { const r = fn(); if (r) { bad++; console.log('  ПРОВАЛ', name + ':', r); } else console.log('  ок   ', name); }
+  catch (e) { bad++; console.log('  ПРОВАЛ', name + ':', e.stack); }
+};
+// Бот-новичок: плывёт к ближайшей еде, которую уже может есть; на выборе берёт первую способность.
+const bot = w => { const c = w.center(); let best = null, bd = 400;
+  for (const f of [...w.food.filter(f => rost.can(w, f.kind || 'bits')), ...(rost.can(w, 'crumb') ? w.crumbs : []), ...(rost.can(w, 'plant') ? w.plants : [])]) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } }
+  return best ? { x: best.x, y: best.y } : { dx: Math.cos(w.dir), dy: Math.sin(w.dir), p: 1 }; };
+const SAFE = ['amoebas', 'phages', 'bdellos', 'slippers', 'bells', 'rotis', 'pseudos']; // выбор и рост меряем без хищников
+const play = (seed, sec) => {
+  const w = new World(cfg, seed); w.mode = MODE; w.dir = seed * 1.3; let rosts = 0, asks = 0, most = 1; const got = [], cards = [];
+  for (let i = 0; i < 30 * sec && w.me.length; i++) {
+    for (const k of SAFE) w[k] = [];
+    w.step(1 / 30, bot(w)); most = Math.max(most, w.me.length);
+    for (const e of w.events) if (e[0] === 'rost') rosts++; w.events.length = 0;
+    if (w.choice.length) { asks++; if (new Set(w.choice).size !== w.choice.length || w.choice.some(g => w.genes[g])) got.push('!'); got.push(w.choice[0]); cards.push([...w.choice]); w.pick(w.choice[0]); }
+    if (i % 300 === 0) w.dir += 0.7;
+  }
+  return { w, rosts, asks, most, got, cards };
+};
+const runs = [2, 3, 4, 5, 6, 7].map(s => play(s, 300)), grown = runs.filter(r => r.rosts >= 4); // в капле можно и погибнуть: меряем по выросшим
+
+// Доказательство: каждый рост — новая способность на выбор, и она остаётся у клетки.
+check('test_evo_vybor: на каждом росте клетке дают выбор новой способности, взятые копятся', () => {
+  console.log('    за 300 с:', runs.map(r => `ростов ${r.rosts}, выборов ${r.asks}, генов ${Object.keys(r.w.genes).length}`).join(' | '));
+  if (grown.length < 3) return `до четвёртого роста дожили ${grown.length} из ${runs.length} — проверка ничего не меряет`;
+  const short = runs.filter(r => r.asks < Math.min(r.rosts, evo.pool({ cfg, genes: {} }).length));
+  if (short.length) return `выбор был не на каждом росте (${short.map(r => r.asks + ' из ' + r.rosts).join(', ')})`;
+  if (runs.some(r => r.got.includes('!'))) return 'предложили способность, которая уже есть, или одну дважды';
+  if (runs.some(r => Object.keys(r.w.genes).length < r.asks)) return 'взятая способность не осталась у клетки';
+});
+
+check('test_evo_rost: клетка не делится и растёт выше потолка заплыва, как в «Росте»', () => {
+  if (runs.some(r => r.most > 1)) return 'клетка поделилась';
+  if (grown.filter(r => r.w.me[0] && r.w.me[0].m > cfg.max_m * 3).length < 3) return 'не выросла больше трёх потолков';
+});
+
+check('test_evo_semya: умения семьи одной клетке не предлагают', () => {
+  const all = runs.flatMap(r => r.got);
+  const fam = evo.E.bez.filter(g => all.includes(g));
+  if (fam.length) return 'предложили: ' + fam.join(', ');
+});
+
+// Доказательство Г51: с умением клетка глотает живых мельче себя и растёт, а кто крупнее — не тронут; без умения никого.
+// Выросшая ест того, кто ел её маленькой: амёба, которая проглотила бы клетку массы 1, сама проглочена клеткой массы 12.
+check('test_evo_glotat: «Глотает целиком» — ест живых мельче себя, крупнее не трогает, выросшая ест того, кто ел её', () => {
+  const empty = (m, genes) => { const w = new World(cfg, 21); w.mode = MODE;
+    for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'crumbs', 'bdellos', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = [];
+    w.tidy = 1e9; w.tiho = 1; Object.assign(w.me[0], { m, x: 0, y: 0, vx: 0, vy: 0 }); for (const g of genes) w.genes[g] = true; return w; };
+  const run = w => { for (let i = 0; i < 60 && w.me.length; i++) { w.step(1 / 30, null); w.events.length = 0; if (w.choice.length) w.choice = []; } return w; };
+  const res = {};
+  for (const [name, m, genes, prey] of [['мелкий кокк', 6, ['gulp'], { prey: { m: 1 } }], ['кокк без умения', 6, [], { prey: { m: 1 } }],
+    ['крупная амёба', 3, ['gulp'], { amoebas: { m: 5 } }], ['амёба у выросшей', 12, ['gulp'], { amoebas: { m: 5 } }], ['амёба у маленькой', 1, ['gulp'], { amoebas: { m: 5 } }]]) {
+    const w = empty(m, genes), [list, q] = Object.entries(prey)[0]; w[list].push({ x: 4, y: 0, vx: 0, vy: 0, a: 0, id: 77, ...q }); run(w);
+    res[name] = { alive: w.me.length > 0, ate: !w[list].length && (w.stats.gulped || 0) > 0, m: (w.me[0]?.m ?? 0) + (w.me[0]?.zhd || 0), m0: m };
+  }
+  console.log('    ', Object.entries(res).map(([k, r]) => `${k}: ${r.alive ? (r.ate ? 'проглотила, масса ' + r.m0 + '→' + r.m.toFixed(1) : 'не глотала') : 'съедена'}`).join(' | '));
+  if (!res['мелкий кокк'].ate || !(res['мелкий кокк'].m > 6 + evo.E.glotat.syt * 0.9)) return 'с умением мелкого кокка не проглотила или не выросла';
+  if (res['кокк без умения'].ate) return 'без умения глотает';
+  if (res['крупная амёба'].ate) return 'проглотила того, кто крупнее';
+  if (!res['амёба у выросшей'].ate) return 'выросшая не проглотила амёбу';
+  if (res['амёба у маленькой'].alive) return 'маленькую амёба не съела — проверка ничего не меряет';
+});
+
+check('test_evo_glotat_vybor: «Глотает целиком» приходит событием — одной карточкой на своём росте', () => {
+  const k = evo.E.glotat.k, at = r => r.cards.findIndex(c => c.includes('gulp'));
+  console.log('    «Глотать» на выборе №', runs.map(r => at(r) + 1).join(', '), '| карточки:', runs.map(r => JSON.stringify(r.cards[at(r)])).join(' '));
+  const bad = runs.filter(r => r.rosts >= k && (at(r) < 0 || at(r) > k - 1 || r.cards[at(r)].length !== 1));
+  if (bad.length) return `не пришло одной карточкой к ${k}-му росту в ${bad.length} заплывах`;
+})
+
+// Доказательство Г55: с умением укол носом в упор убивает соперницу (стоит, раздувается, растекается соком); без умения — нет; кокка игла не берёт.
+check('test_evo_igla: «Нить-игла» — укол носом в упор убивает соперницу, она растекается едой; кокка не берёт', () => {
+  const go = (genes, fast) => { const w = new World(cfg, 31); w.mode = MODE;
+    for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'crumbs', 'bdellos', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = [];
+    w.tidy = 1e9; w.tiho = 1; const a = w.me[0]; Object.assign(a, { m: 2, x: 0, y: 0, a: 0, vx: fast ? 200 : 0, vy: 0 }); for (const g of genes) w.genes[g] = true;
+    w.pseudos.push({ x: 40, y: 0, vx: 0, vy: 0, a: Math.PI, t: 5, rest: 0.25, cool: 5, strain: true, id: 88 }); w.prey.push({ x: -22, y: 0, vx: 0, vy: 0, m: 1, a: 0, id: 89 });
+    let stab = 0, juice = 0;
+    for (let i = 0; i < 75 && w.me.length; i++) { w.step(1 / 30, fast ? { x: 600, y: 0 } : null); stab += w.events.filter(e => e[0] === 'igla').length; w.events.length = 0; if (w.choice.length) w.choice = []; }
+    juice = w.food.filter(f => f.kind === 'lysate').length;
+    return { stab, juice, left: w.pseudos.length, kokk: w.prey.length };
+  };
+  const yes = go(['igla'], true), no = go([], true), still = go(['igla'], false);
+  console.log('    укол с иглой на ходу:', JSON.stringify(yes), '| без иглы:', JSON.stringify(no), '| с иглой стоя:', JSON.stringify(still));
+  if (!(yes.stab === 1 && yes.left === 0 && yes.juice > 0)) return 'с иглой тычок не убил соперницу или она не растеклась едой';
+  if (no.stab || no.left === 0) return 'без иглы соперница погибла';
+  if (yes.kokk !== 1 || still.kokk !== 1) return 'игла убила кокка';
+});
+
+// Доказательство «худеет без еды» (ЛЭ13): без еды большая клетка за минуту заметно худеет, но не гибнет и не меньше min.
+check('test_evo_hudeet: без еды большое тело худеет, от голода не гибнет', () => {
+  const w = new World(cfg, 41); w.mode = MODE;
+  for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'crumbs', 'bdellos', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = [];
+  w.tidy = 1e9; w.me[0].m = 20; w.rost = 9;
+  for (let i = 0; i < 30 * 60 && w.me.length; i++) { for (const k of ['food', 'prey', 'pseudos']) w[k] = []; w.step(1 / 30, null); w.events.length = 0; w.choice = []; }
+  const m = w.me[0]?.m;
+  console.log('    без еды минуту: масса 20 →', m?.toFixed(2));
+  if (!w.me.length) return 'погибла от голода';
+  if (!(m < 20 * 0.97)) return 'не худеет';
+  if (m < evo.E.hudeet.ot) return 'похудела меньше ot';
+});
+
+// Доказательство «ты то, что ты ешь» (ЛЭ21): после трёх проглоченных шариков на росте приходит карточка «Не боится кислоты», до трёх — нет;
+// с этим умением шарик рядом не жжёт (нет события pinch), без него жжёт.
+check('test_evo_dobycha: съела трёх шариков — карточка «Не боится кислоты»; с ней шарик не жжёт', () => {
+  const fresh = (genes = []) => { const w = new World(cfg, 51); w.mode = MODE;
+    for (const k of ['food', 'prey', 'amoebas', 'phages', 'plants', 'crumbs', 'bdellos', 'slime', 'slippers', 'bells', 'rotis', 'pseudos', 'donors']) w[k] = [];
+    w.tidy = 1e9; Object.assign(w.me[0], { m: 6, x: 0, y: 0, vx: 0, vy: 0 }); w.rost = 3; for (const g of genes) w.genes[g] = true; return w; };
+  const cards = n => { const w = fresh(['gulp']);
+    for (let j = 0; j < n; j++) { w.prey.push({ x: 4, y: 0, vx: 0, vy: 0, a: 0, id: 70 + j, m: 1 }); for (let i = 0; i < 40; i++) { w.step(1 / 30, null); w.events.length = 0; w.choice = []; } }
+    w.me[0].m = 9.5; w.me[0].zhd = 0; w.step(1 / 30, null); return w.choice; };
+  const c2 = cards(2), c3 = cards(3);
+  const burn = genes => { const w = fresh(genes); w.prey.push({ x: 40, y: 0, vx: 0, vy: 0, a: 0, id: 90, m: 1 }); let n = 0;
+    for (let i = 0; i < 150; i++) { w.step(1 / 30, { x: 40, y: 0 }); n += w.events.filter(e => e[0] === 'pinch').length; w.events.length = 0; w.choice = []; } return n; };
+  const [yes, no] = [burn(['kislota']), burn([])];
+  console.log('    карточки после 2 шариков:', JSON.stringify(c2), '| после 3:', JSON.stringify(c3), '| ожогов у шарика с умением', yes, 'без', no);
+  if (c2.includes('kislota')) return 'карточка пришла раньше трёх шариков';
+  if (!c3.includes('kislota')) return 'после трёх шариков карточки нет';
+  if (!(no > 0)) return 'шарик не жжёт и без умения — проверка ничего не меряет';
+  if (yes) return 'с умением шарик всё равно жжёт';
+});
+
+// Сторож первой минуты (круг 0.84 и Роман 25.11 21:19: «в целом я не вырос… никого не съел - никаких новых навыков»):
+// неторопливый бот (смотрит вокруг раз в 1,5 с, без хищников) за 60 с вырастает, получает «Глотать» и кого-то проглатывает,
+// а к концу второй минуты выбирает из карточек. Проглотить за минуту — в 4 заплывах из 5 (кокков рядом может не оказаться), за полторы — во всех.
+let nekogo = 0;
+check('test_evo_minuta: за первую минуту вырос, научился глотать и проглотил, за вторую выбрал умение', () => {
+  const plohie = [], out = [];
+  for (const seed of [2, 3, 4, 5, 6]) {
+    const w = new World(cfg, seed); w.mode = MODE; w.dir = seed * 1.3; let cel = null, rost1 = null, karta = null, gl1 = null; if (seed === 2) nekogo = 0;
+    const L0 = Math.pow(w.me[0].m, rost.vid(w)); let L60 = 0;
+    for (let i = 0; i < 30 * 120 && w.me.length; i++) {
+      for (const k of ['amoebas', 'phages', 'bdellos', 'slippers', 'bells', 'rotis', 'pseudos']) w[k] = [];
+      if (i % 45 === 0) { const a = w.me[0], gl = w.genes.gulp; let best = null, bd = 400;
+        for (const f of [...w.food.filter(f => rost.can(w, f.kind || 'bits')), ...(gl ? w.prey.filter(q => q.m * evo.E.glotat.bolshe <= a.m) : [])]) { const d = Math.hypot(f.x - a.x, f.y - a.y); if (d < bd) { bd = d; best = f; } }
+        cel = best ? { x: best.x, y: best.y } : { dx: Math.cos(w.dir), dy: Math.sin(w.dir), p: 1 }; }
+      w.step(1 / 30, cel);
+      for (const e of w.events) { if (e[0] === 'rost' && rost1 === null) rost1 = w.stats.time; if (e[0] === 'gulp' && gl1 === null) gl1 = w.stats.time; } w.events.length = 0;
+      if (w.choice.length) { if (w.choice.length > 1 && karta === null) karta = w.stats.time; w.pick(w.choice[0]); }
+      if (i === 30 * 60) L60 = w.me[0] ? Math.pow(w.me[0].m, rost.vid(w)) / L0 : 0;
+      if (i % 300 === 0) w.dir += 0.7;
+    }
+    out.push(`${seed}: рост ${rost1?.toFixed(0)} с, длина за минуту ×${L60.toFixed(2)}, карточки ${karta?.toFixed(0)} с, первый проглочен ${gl1?.toFixed(0)} с, всего ${w.stats.gulped || 0}`);
+    if (!(gl1 < 90)) plohie.push(seed + ': за полторы минуты никого не проглотил'); if (!(gl1 < 60)) nekogo++;
+    if (!(rost1 < 40)) plohie.push(seed + ': первый рост позже 40 с');
+    if (!(L60 >= 1.5)) plohie.push(seed + ': за минуту длина меньше ×1,5');
+    if (!(karta < 120)) plohie.push(seed + ': за две минуты ни одного выбора из карточек');
+  }
+  console.log('    ' + out.join(' | '));
+  if (nekogo > 1) plohie.push(`за минуту никого не проглотил в ${nekogo} заплывах из 5`);
+  if (plohie.length) return plohie.join('; ');
+});
+
+// L061 (Роман на 0.94, 25.11 22:15: «после возрождения не появился моя моделька просто исчезла»; прогон 0.84: «Плыть снова» срабатывало
+// само под пальцем): клетка гибла, пока на руках был выбор умения, и полоса карточек оставалась поверх экрана гибели — касание
+// попадало в карточку, а не в «Плыть снова». Гибель последней клетки снимает выбор.
+check('test_L061: погибла с выбором на руках — выбор снят, карточки не лезут на экран гибели', () => {
+  const w = new World(cfg, 61); w.mode = MODE; w.tiho = 1; w.choice = ['capsule', 'crispr'];
+  w.lose(w.me[0], 0, 0, 'amoeba');
+  if (w.me.length) return 'клетка не погибла';
+  if (w.choice.length) return 'после гибели на руках остался выбор: ' + w.choice.join(', ');
+});
+
+console.log(bad ? `ЭВОЛЮЦИЯ: провалов ${bad}` : 'ЭВОЛЮЦИЯ: все проверки прошли');
+process.exit(bad ? 1 : 0);

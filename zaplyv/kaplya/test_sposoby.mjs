@@ -1,0 +1,20 @@
+// Сторож способов «Присоска» и «Общие соки» (книга П18, П19, П66): node proby/zaplyv/kaplya/test_sposoby.mjs. Провал — код 1. Числа — kaplya.json «sposoby».
+import fs from 'fs'; import { poluchit, prisoska, soki } from './sposoby.js';
+const K = JSON.parse(fs.readFileSync(new URL('./kaplya.json', import.meta.url))).sposoby, radius = m => 13 * Math.sqrt(m), mass = q => q.m;
+let bad = 0; const check = (n, e) => { console.log((e ? '  ПРОВАЛ ' : '  ок ') + n + (e ? ': ' + e : '')); if (e) bad++; };
+const sudP = K => { const a = { x: 0, y: 0, m: 10 }, q = { x: radius(10) + radius(40) * 0.9, y: 0, m: 40 }, w = { me: [a], amoebas: [q], sposoby: { prisoska: true } }, S = [['amoebas', 'amoeba']];
+  let vyp = 0; for (let t = 0; t < 0.9; t += 0.05) vyp += prisoska(w, 0.05, K, radius, S, mass); if (vyp) return 'пьёт раньше, чем прилипла';
+  for (let t = 0; t < 1; t += 0.05) vyp += prisoska(w, 0.05, K, radius, S, mass); if (!(vyp > 0 && a.m > 10 && q.m < 40)) return 'прижалась к крупному и держится, а не пьёт';
+  for (let t = 0; t < K.derzhit + 0.5; t += 0.05) prisoska(w, 0.05, K, radius, S, mass); if (Math.hypot(a.x - q.x, a.y - q.y) < radius(a.m) + radius(q.m) + K.stryahnut * 0.5) return 'великан не стряхнул';
+  const b = { x: 0, y: 0, m: 10 }, w2 = { me: [b], prey: [{ x: radius(10) + 2, y: 0, m: 2 }], sposoby: { prisoska: true } }; for (let t = 0; t < 2; t += 0.05) if (prisoska(w2, 0.05, K, radius, [['prey', 'coccus']], mass)) return 'присоска к мелкому';
+  return ''; };
+const sudS = K => { const a = { x: 0, y: 0, vx: 0, vy: 0, m: 4 }, kom = { x: radius(4) + radius(4) + 5, y: 0, m: 4 }, f = { x: -radius(4) * 2, y: 0 }, w = { me: [a], crumbs: [kom], food: [f], sposoby: { soki: true } };
+  for (let t = 0; t < 0.9; t += 0.05) soki(w, 0.05, K, radius); if (f.x !== -radius(4) * 2) return 'облако раньше, чем постояла';
+  for (let t = 0; t < 1; t += 0.05) soki(w, 0.05, K, radius); if (!(Math.abs(f.x) < radius(4) * 2 - 5)) return 'постояла у комка, а еда не течёт';
+  const b = { x: 0, y: 0, vx: 100, vy: 0, m: 4 }, g = { x: -20, y: 0 }, w2 = { me: [b], crumbs: [{ ...kom }], food: [g], sposoby: { soki: true } }; for (let t = 0; t < 3; t += 0.05) soki(w2, 0.05, K, radius); if (g.x !== -20) return 'облако на ходу';
+  return ''; };
+check('test_sposoby_prisoska: к крупному — прилипла через 1 с, пьёшь, он стряхивает; к мелкому нет (П18)', sudP(K.prisoska));
+check('test_sposoby_soki: стоишь у комка 1 с — еда течёт в тебя; на ходу облака нет (П19)', sudS(K.soki));
+check('test_sposoby_poluchit: «Присоска» после главы 2, «Общие соки» от каулобактера (П66)', (() => { const w = { syel: {} }; if (poluchit(w, 2).length) return 'способ без события'; const a = poluchit(w, 3); w.syel.kaulo = 1; const b = poluchit(w, 3); return a.join() === 'prisoska' && b.join() === 'soki' && !poluchit(w, 3).length ? '' : `${a} / ${b}`; })());
+check('test_sposoby_samoproverka: присоска без «прилипнуть» — судья краснеет', sudP({ ...K.prisoska, prilip: 0 }) ? '' : 'судья не заметил');
+process.exit(bad ? 1 : 0);
