@@ -58,4 +58,13 @@ check('test_kusok_shans_samoproverka: кусочки, что не влияют �
 { const mk = () => ({ me: [], ids: 9, genes: {}, staya: [{ id: 1, x: 0, y: 0, a: 0, m: 0.9, mut: null }, { id: 2, x: 5, y: 0, a: 0, m: 0.5, mut: M.zamok }] }), w1 = mk(), w2 = mk();
   const v = mtc.prosnutsya(mtc.sozdat(), w1, M, true), d = mtc.prosnutsya(mtc.sozdat(), w2, M, false);
   check('test_virus_probuzhdenie: от вируса просыпаешься копией с замком (0,5), от другого — самой крупной (0,9) (Е.3 п. 13)', v && v.a.m === 0.5 && v.zamok && d && d.a.m === 0.9 && !d.zamok ? '' : JSON.stringify({ v: v && v.a.m, d: d && d.a.m })); }
+// L078 (пачка 1 п. 7; Роман: «стал маленьким, а большая плывёт следом»): погибла — просыпаешься копией, а копия 0,02 твоей массы не дорастала и за 400 крошек
+const sudProsnut = M0 => { const w = { me: [], staya: [{ id: 1, x: 0, y: 0, a: 0, m: 0.02, mut: null }, { id: 2, x: 9, y: 0, a: 0, m: 0.021, mut: null, T: 5 }], genes: {}, ids: 9 }, P = mtc.prosnutsya(mtc.sozdat(), w, M0);
+  return !P ? 'не проснулась' : P.a.m < 0.4 ? `проснулась пылинкой ${P.a.m}` : P.a.m > 2 ? `проснулась большой ${P.a.m}` : P.T !== 5 ? `темп рода не копии: ${P.T}` : ''; };
+check(`test_L078 test_prosnutsya_rastet: погибла — просыпаешься копией не меньше ${M.prosnut_min} массы, чтобы расти заново, и делишься её темпом`, sudProsnut(M));
+check('test_prosnutsya_samoproverka: старое (копия 0,02 как есть) судья ловит', sudProsnut({ ...M, prosnut_min: 0 }) ? '' : 'не заметил');
+// L079 (пачка 1 п. 8): «12+ делений, все без мутации» — при шансе 0,07 так выходит почти в половине партий
+const sudGarant = M0 => { const S = sty.sozdat(), w = { staya: [] }, rnd = () => 0.99; let n = 0; for (; n < 12; n++) { const g = sty.rodiGarant(S, w, M0, null, rnd); w.staya.push({ mut: g }); if (g) break; } return n < M.garant ? '' : `${n + 1 > 12 ? 'за 12' : n + 1 + '-е'} делений без мутации`; };
+check(`test_L079 test_mutantka_garant: при самом неудачном шансе мутантка рождается не позже ${M.garant}-го деления подряд`, sudGarant(M));
+check('test_mutantka_garant_samoproverka: без гарантии (12 делений без мутации) судья ловит', sudGarant({ ...M, garant: 0 }) ? '' : 'не заметил');
 process.exit(bad ? 1 : 0);

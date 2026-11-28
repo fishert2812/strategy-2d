@@ -131,7 +131,7 @@ function magnet(w, a, dt) {
     w.stats.magnet = (w.stats.magnet || 0) + 1; w.events.push(['magnet', f.x, f.y, a.series]); }
   a.pulled = a.pulled.filter(f => !f.gone && Math.hypot(f.x - a.x, f.y - a.y) < R * Q.let || (f.pull = null));
   for (const f of w.food) { if (a.pulled.length >= L.n) break;
-    if (f.gone || (f.pull && f.pull !== a && w.me.includes(f.pull)) || a.pulled.includes(f) || Math.hypot(f.x - a.x, f.y - a.y) > R) continue;
+    if (f.gone || (f.pull && f.pull !== a && w.me.includes(f.pull)) || a.pulled.includes(f) || Math.hypot(f.x - a.x, f.y - a.y) > R || (w.mozhnoEst && !w.mozhnoEst(f))) continue; // L077: что ещё не умеешь есть, магнит не тянет — иначе липнет к клетке и занимает магнит
     f.pull = a; f.side = w.r() < 0.5 ? 1 : -1; a.pulled.push(f); }
   if (a.pulled.length >= Q.cascade && !(a.casc > 0)) { a.casc = Q.hold; (w.waves ||= []).push({ x: a.x, y: a.y, r: R, t: 0 }); w.stats.cascade = (w.stats.cascade || 0) + 1; } // вся россыпь разом: волна по воде
   for (const f of a.pulled) { const dx = a.x - f.x, dy = a.y - f.y, d = Math.hypot(dx, dy) || 1, c = Q.curl * Math.min(1, d / R) * f.side, v = L.v * dt; // ручеёк закручивается и выпрямляется у самой клетки

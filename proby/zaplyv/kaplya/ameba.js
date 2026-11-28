@@ -7,11 +7,14 @@
 export const massy = w => new Map((w.amoebas || []).map(m => [m, m.m]));
 export const FAZY = ['vyrost', 'prilip', 'chasha', 'puzyr', 'otdyh'];
 // Ход после хода мира. hod — твой ход (единиц/с). Вернёт события: ['vyrost'|'prilip'|'chasha'|'puzyr'|'vyrvalas'|'syela', m].
+const window_stary = w => !!w.staraSvoboda; // самопроверка test_L083: старое — «Свобода!» новой тебе
 export function shag(w, dt, A, radius, hod, m0) { const ev = [], a = w.me[0]; if (m0) for (const [m, x] of m0) if (m.m > x) m.m = x; if (!a) return ev;
   for (const m of w.amoebas || []) { const O = m.ohv ||= { faza: null, t: 0 }; O.t += dt; const Rm = radius(m.m), Ra = radius(a.m), dx = a.x - m.x, dy = a.y - m.y, d = Math.hypot(dx, dy) || 1;
     const syta = m.syt > 0 || m.oglush > w.stats.time, mozhet = m.m * 0.8 > a.m && (w.bezZahvata || (!a.grab && !(a.free > 0))) /* L074: держит один хищник за раз */ && !w.genes.capsule && !(a.spore > 0) && !syta, kraj = d - Rm - Ra, dosyag = A.dosyag * Rm;
+m.lovit = mozhet && !w.bezZahvata; /* L074: может тебя съесть — столкновения её не отталкивают (stolk.js), иначе вырост не дотянется */
 const v = (faza, e) => { O.faza = faza; O.t = 0; if (e) ev.push([e, m]); };
     if (O.faza === 'otdyh') { if (O.t > A.pauza) v(null); continue; }
+    if (O.faza && O.faza !== 'vyrost' && O.kogo && O.kogo !== a && !window_stary(w)) { v('otdyh'); continue; } /* L083: держала ту, что погибла, — тихо отпускает новую тебя, без «Свободы!» (пачка 2, Т3) */ if (O.faza === 'prilip' || O.faza === 'chasha' || O.faza === 'puzyr') O.kogo ||= a; else O.kogo = null;
     if (!mozhet && O.faza !== 'puzyr') { if (O.faza) v('otdyh'); continue; }
     if (!O.faza) { if (kraj < dosyag) { O.ug = Math.atan2(dy, dx); v('vyrost', 'vyrost'); } continue; }
     if (O.faza === 'vyrost') { O.ug = Math.atan2(dy, dx); O.dl = Math.min(1, O.t / A.vyrost) * dosyag; // вырост тянется к тебе

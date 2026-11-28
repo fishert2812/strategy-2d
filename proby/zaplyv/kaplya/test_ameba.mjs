@@ -20,4 +20,10 @@ const sud = (A, B) => { const P = A.vyrost + A.ohvat + A.perevar, s = opyt(A, B,
 check(`test_ameba_ohvat: касание не убивает сразу (вырост ${KAP.ameba.vyrost} с, чаша ${KAP.ameba.ohvat} с, переваривание ${KAP.ameba.perevar} с); ушла от чаши — вырвалась`, sud(KAP.ameba, KAP.boj));
 const B0 = JSON.parse(JSON.stringify(KAP.boj)); B0.lovit_medlenno = []; check('test_ameba_ohvat_samoproverka_srazu: мгновенную поимку судья ловит', sud(KAP.ameba, B0) ? '' : 'не заметил');
 check('test_ameba_ohvat_samoproverka_sila: чашу сильнее хода судья ловит', sud({ ...KAP.ameba, tyaga_chasha: 3, vyhod: 5 }, KAP.boj) ? '' : 'не заметил');
+// L083 (пачка 2, Т3: «"Свобода! Амёба осталась ни с чем" сразу после того, как амёба съела»): амёба держала тебя, ты погибла и проснулась копией в стороне — амёба тихо отпускает, «Свободы!» нет
+const sudSvoboda = stary => { const A = KAP.ameba, a1 = { x: 0, y: 0, m: 1, a: 0 }, m = { id: 5, x: 30, y: 0, m: 9 }, w = { me: [a1], amoebas: [m], genes: {}, stats: { time: 0 }, staraSvoboda: stary }; const ev = [];
+  m.ohv = { faza: 'chasha', t: 0.5 }; ev.push(...am.shag(w, DT, A, radius, 100)); w.me = [{ x: 400, y: 0, m: 0.5, a: 0 }]; for (let k = 0; k < 10; k++) ev.push(...am.shag(w, DT, A, radius, 100));
+  const sv = ev.filter(e => e[0] === 'vyrvalas').length; return sv ? `после твоей гибели «Свобода!» ${sv} раз` : ''; };
+check('test_L083 test_ameba_svoboda_lozh: держала погибшую — новой тебе «Свободы!» не говорит', sudSvoboda(false));
+check('test_ameba_svoboda_samoproverka: старое («Свобода!» новой тебе) судья ловит', sudSvoboda(true) ? '' : 'не заметил');
 process.exit(bad ? 1 : 0);

@@ -11,4 +11,7 @@ const sud = B => { let { w, b } = mir(14, true, B); const f = progon(w, B, 3); i
   ({ w } = mir(5.6, false, B)); progon(w, B, 3); return w.syela ? 'молодой бодо съел тебя массой ' + B.molodoy : ''; };
 check('test_bodo_boy: бой на привязи — хозяин прыгает вокруг комка; молодой бодо не берёт тебя с массы 5,6 (П78)', sud(B));
 check('test_bodo_samoproverka: без предела молодого бодо судья краснеет', sud({ ...B, molodoy: 1e9 }) ? '' : 'судья не заметил');
+{ const ty = (B2, zona) => { const { w } = mir(1, true, B2); w.stats.time = 5; w.zonaGde = () => zona; progon(w, B2, 6); return !!w.syela; };
+  check(`test_L076 test_bodo_tiho: в тихой воде первые ${B.tiho_s} с хозяин тебя не берёт, в злой берёт`, !ty(B, 'tihaya') && ty(B, 'zlaya') ? '' : JSON.stringify({ tiho: ty(B, 'tihaya'), zlo: ty(B, 'zlaya') }));
+  check('test_bodo_tiho_samoproverka: без tiho_s бодо ест в тихой воде — судья краснеет', ty({ ...B, tiho_s: 0 }, 'tihaya') ? '' : 'не заметил'); }
 process.exit(bad ? 1 : 0);
