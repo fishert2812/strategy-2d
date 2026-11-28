@@ -19,10 +19,11 @@ export function shelf(K, E, met, sec = 'life', P = {}) {
   const life = n('life'), food = n('food'), genes = n('gene');
   const count = `Ты знаешь ${life} ${plural(life, 'обитателя', 'обитателей', 'обитателей')} капли из ${of('life').length}` +
     ` · ${food} ${plural(food, 'еду', 'еды', 'еды')} из ${of('food').length}` + (genes ? ` · ${genes} ${plural(genes, 'ген', 'гена', 'генов')}` : '');
+  const schet = K.schet ? K.schet.replace('{o}', life).replace('{O}', of('life').length).replace('{e}', food).replace('{E}', of('food').length) + (genes ? K.schet_geny.replace('{g}', genes) : '') : count; /* «Капля», экраны 28.11: короткий счёт в одну строку */
   const pills = K.sections.filter(([s]) => K.open.includes(s) || n(s)).map(([s, name]) => ({ s, label: n(s) ? `${name} · ${n(s)}` : name }));
-  const list = keys.filter(k => E[k].sec === sec);
+  const list = keys.filter(k => E[k].sec === sec).sort((a, b) => K.schet ? (met.has(b) || E[b].group === 'me') - (met.has(a) || E[a].group === 'me') : 0); /* «Капля»: известные первыми */
   const note = { life: P.almanah_cveta, food: P.eda_tochki }[sec] || ''; // как в жизни и как у нас (книга, подписи): цвета — наши метки, еду не видно
-  return { count, part: (life + food) / (of('life').length + of('food').length), pills, list, note };
+  return { count: schet, part: (life + food) / (of('life').length + of('food').length), pills, list, note };
 }
 
 // Страница: модель, имя, ярлык, блоки книги; невстреченное — только где искать.
@@ -78,7 +79,7 @@ export function almanahScreen({ K, cards, T, G, S, P = {}, met, snap, onSwim, on
       if (shots.has(k)) img.src = shots.get(k); else queue.push({ k, img });
       const n = document.createElement('b'); n.textContent = P.name; b.appendChild(n);
       const l = document.createElement('span'); l.textContent = P.met ? E[k].line || P.line : P.line; b.appendChild(l); // на полке — главное одной строкой
-      if (P.met && !opened.has(k) && k !== 'me') { const d = document.createElement('i'); d.className = 'new'; b.appendChild(d); }
+      if (P.met && !opened.has(k) && k !== 'me') { const d = document.createElement('i'); d.className = 'new'; if (K.schet) d.textContent = 'новое'; b.appendChild(d); }
       b.onclick = () => P.met && openCard(k);
       box.appendChild(b);
     }
