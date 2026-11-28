@@ -823,7 +823,7 @@ function pathText(w) {
   const nature = mm < 60 ? mm + ' мин' : Math.floor(mm / 60) + ' ч' + (mm % 60 ? ' ' + (mm % 60) + ' мин' : '');
   const genes = Object.keys(w.genes).filter(g => window.kaplyaStaryjItog || w.genes[g]).map(geneName).join(', ') || KAP.itog_slova.net_genov; /* L107: только взятые — выключенный ген (0) в итог не идёт */
   const lost = Object.entries(s.lost).map(([k, n]) => (TEKSTY[k]?.imya || (cards[k] ? cards[k].name : window.kaplyaStaryjItog ? k : imyaKto(k))) + ' — ' + n).join(', ');
-  return `Плыл ${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}, проплыл ${Math.round(s.path / 26)} мкм<br>`
+  return KAP.itog_slova.put.replace('{t}', `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`).replace('{d}', Math.round(s.path / 26)) + '<br>'
     + (s.gen > 0 ? `Поколений: ${s.gen} — в природе это ≈ ${nature}<br>` : KAP.itog_slova.bez_delenij + '<br>') + `Клеток было до ${s.most}, съедено ${s.eaten}<br>`
     + `${KAP.itog_slova.geny}: ${genes}` + (L && L.mutacii.length ? `<br>${KAP.mutaciya.slova.letopis.replace('{rod}', L.mutacii.map(m => KAP.mutaciya.spisok[m].imya).join(', ')).replace('{vzyal}', L.vzyal.map(m => KAP.mutaciya.spisok[m].imya).join(', ') || '—')}` : '') + (lost ? `<br>Отняли клеток: ${lost}` : '');
 }
