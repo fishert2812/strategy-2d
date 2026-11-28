@@ -567,7 +567,7 @@ export class World {
       else if (a && a.m < m.m * 0.8 && !(m.syt > 0)) { // сытая амёба не гонится (zhizn.js, С25)
         const d = dist(a, m) || 1;
         const ground = this.biome(m.x, m.y) === 2 || this.plants.some(p => dist(p, m) < 160) || this.crumbs.some(k => dist(k, m) < 120);
-        const v = c.amoeba * (ground ? 1 : c.amoeba_open);
+        const v = c.amoeba * (ground ? 1 : c.amoeba_open) * ((c.amoeba_vid || {})[m.vid] || 1); // вид амёбы со своим ходом (большая берёт размером, не скоростью)
         wx = (a.x - m.x) / d * v; wy = (a.y - m.y) / d * v;
         if (d < radius(m.m) + radius(a.m) * 0.3 && !this.genes.capsule) { this.lose(a, m.x, m.y, 'amoeba'); m.m += a.m * 0.5; mut.bite(this, m); }
         else if (d < radius(m.m) + radius(a.m) * 0.3 && !(m.slip > this.stats.time)) { m.slip = this.stats.time + 1; this.events.push(['slip', a.x, a.y]); } // капсула сработала: видно, что выскользнула // амёба обтекает целиком — из неё не вырваться, спасает капсула
