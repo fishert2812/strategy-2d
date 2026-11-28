@@ -11,10 +11,10 @@ async function scena(pw, port, staroe) { const b = await pw.chromium.launch(proc
   await p.goto(`http://127.0.0.1:${port}/kaplya/`); await p.waitForFunction(() => window.zaplyvWorld && zaplyvWorld() && zaplyvWorld().me.length && zaplyvWorld().stats.time > 1.5, null, { timeout: 90000 });
   await p.evaluate(() => { zaplyvWorld().choice = ['magnet', 'kusalka', 'sense']; }); await p.waitForFunction(() => document.getElementById('offer').classList.contains('on') && document.querySelectorAll('#obtns button').length === 3, null, { timeout: 30000 });
   const R = await p.evaluate(() => { const bs = [...document.querySelectorAll('#obtns button')]; return { shir: Math.min(...bs.map(b => b.getBoundingClientRect().width)) | 0, krug: Math.min(...bs.map(b => (b.querySelector('.gkrug') || b.querySelector('img')).getBoundingClientRect().width)) | 0,
-    strok: Math.max(...bs.map(b => { const s = b.querySelector('small'); return Math.round(s.getBoundingClientRect().height / parseFloat(getComputedStyle(s).lineHeight)); })) }; });
+    znak: getComputedStyle(document.getElementById('kochag')).visibility !== 'hidden' && !document.getElementById('kochag').hidden, strok: Math.max(...bs.map(b => { const s = b.querySelector('small'); return Math.round(s.getBoundingClientRect().height / parseFloat(getComputedStyle(s).lineHeight)); })) }; });
   await p.tap('#obtns button:first-child'); await p.waitForTimeout(600); const vzyal = await p.evaluate(() => !!zaplyvWorld().genes.magnet);
   await b.close(); return { ...R, vzyal, errs }; }
-const sud = R => !R.vzyal ? 'касание не взяло умение' : R.shir < 300 ? `карточка ${R.shir} точек в ширину — узкая колонка` : R.krug < 70 ? `картинка ${R.krug} точек` : R.strok > 4 ? `описание в ${R.strok} строк` : '';
+const sud = R => !R.vzyal ? 'касание не взяло умение' : R.shir < 300 ? `карточка ${R.shir} точек в ширину — узкая колонка` : R.krug < 70 ? `картинка ${R.krug} точек` : R.strok > 4 ? `описание в ${R.strok} строк` : R.znak ? '☣ поверх карточек умения' : '';
 (async () => {
   const srv = http.createServer((q, s) => { const f = path.join(KOREN, decodeURIComponent(q.url.split('?')[0])); const ff = fs.existsSync(f) && fs.statSync(f).isDirectory() ? path.join(f, 'index.html') : f;
     if (!ff.startsWith(KOREN) || !fs.existsSync(ff)) { s.writeHead(404); return s.end(); } s.writeHead(200, { 'Content-Type': TIP[path.extname(ff)] || 'application/octet-stream' }); fs.createReadStream(ff).pipe(s); }).listen(0);
