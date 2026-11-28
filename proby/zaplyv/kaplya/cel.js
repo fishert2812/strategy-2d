@@ -17,6 +17,8 @@ export function shag(C, w, me, K, mass, bolshe, umeet, syt, naEkrane) { const I 
   C.rostom = rovnya ? 'ростом с ' + I[rovnya[0]][2] : legche ? 'ты в ' + String(okrugl(me.m / legche[1])).replace('.', ',') + (okrugl(me.m / legche[1]) >= 5 && Number.isInteger(okrugl(me.m / legche[1])) ? ' раз больше ' : ' раза больше ') + I[legche[0]][1] : 'ростом с кишечную палочку';
   // П6: строка цели, первое подходящее
   let vrag = null; for (const list of OPASNYE) for (const q of w[list] || []) { const who = SPIS.find(s => s[0] === list)[1]; if (!q.gone && !(q.syt > 0) && !(list === 'bodos' && q.m < me.m * bolshe) && blizh(me, q) < K.opasno && (!naEkrane || naEkrane(q)) && !(umeet && mass(q, who) * bolshe <= me.m) && (!vrag || blizh(me, q) < blizh(me, vrag.q))) vrag = { q, who }; }
+  if (!globalThis.kaplyaStarayaTrevogaKto) { const by = me.grab && me.grab.by; if (by) { for (const list of OPASNYE) if ((w[list] || []).includes(by)) vrag = { q: by, who: SPIS.find(s => s[0] === list)[1] }; } /* L137: держит пасть — тревога о том, кто держит, а не о соседе */
+    else if (C.vrag && !C.vrag.q.gone && !(C.vrag.q.syt > 0) && vrag && vrag.q !== C.vrag.q && blizh(me, C.vrag.q) < K.opasno * 1.3 && (!naEkrane || naEkrane(C.vrag.q))) vrag = C.vrag; C.vrag = vrag; } /* L137: имя в тревоге не скачет между соседями — прежний держится, пока рядом */
   const vyshe = vidy.filter(([who]) => !C.eda.has(who)).sort((a, b) => a[1] - b[1]), hoz = vidy.slice().sort((a, b) => b[1] - a[1])[0];
   let glotok = 0; for (const [list, who] of SPIS) for (const q of w[list] || []) if (!q.gone && umeet && blizh(me, q) < K.vidno && mass(q, who) * bolshe <= me.m) glotok = Math.max(glotok, mass(q, who) * syt);
   if (vrag) C.stroka = vstav(K.slova.opasno, I[vrag.who][0]);
