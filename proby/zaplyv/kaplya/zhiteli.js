@@ -44,7 +44,7 @@ function krupny(w, q, S, dt, radius, vid) { const H = S.hod; q.t += dt; q.syt = 
     else if (c && q.celL && !c.gone && d(c, q) < R + S.na_r) { c.gone = true; w[q.celL] = w[q.celL].filter(x => x !== c); w.events.push(['pop', c.x, c.y, S.na[q.celL]]); q.sytN = (q.sytN || 0) + 1; if (q.sytN >= S.syt.n) { q.syt = S.syt.t; q.sytN = 0; } q.faza = 'otdyh'; q.t = 0; } /* проглотил целиком */
     else if (q.t >= S.ryvok.t) { q.faza = 'otdyh'; q.t = 0; } return; }
   if (q.faza === 'otdyh') { if (q.t >= S.ryvok.otdyh) { q.faza = 'beg'; q.t = 0; } return; }
-  if (S.povadka === 'potok') for (const a of w.me) { if (a.m * S.bolshe > q.m) continue; const k = d(a, q); if (k < S.potok.r * f + R) { a.x += (q.x - a.x) / k * S.potok.v * f * dt; a.y += (q.y - a.y) / k * S.potok.v * f * dt; if (k < R * 0.8) { w.lose(a, a.x, a.y, vid); q.m += a.m * 0.5; return; } } }
+  if (S.povadka === 'potok') for (const a of w.me) { if (a.m * S.bolshe > q.m) continue; const k = d(a, q); if (k < S.potok.r * f + R) { { const sh = globalThis.kaplyaStaroeVtyag ? S.potok.v * f * dt : Math.min(k, S.potok.v * f * dt); a.x += (q.x - a.x) / k * sh; a.y += (q.y - a.y) / k * sh; } /* L128: шаг потока не длиннее расстояния — не перелетает через центр */ if (k < R * 0.8) { w.lose(a, a.x, a.y, vid); q.m += a.m * 0.5; return; } } }
   const v = q.faza === 'stop' ? 0 : H.v * f; if (q.faza === 'beg' && q.t > H.beg) { q.faza = H.stop ? 'stop' : 'beg'; q.t = 0; q.a += (w.r() - 0.5) * 1.6; } else if (q.faza === 'stop' && q.t > H.stop) { q.faza = 'beg'; q.t = 0; }
   q.x += Math.cos(q.a) * v * dt; q.y += Math.sin(q.a) * v * dt; q.kach = Math.sin(q.t * 3 + q.id) * 0.1; }
 // Своя клетка глотает их, как «Глотать» в evo.js: тяжелее в bolshe раз и коснулась — тает внутри, масса в рост
