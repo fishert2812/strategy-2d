@@ -8,7 +8,7 @@
 import { layout } from '../genome.js';
 
 const PARY = [['#7cc8f0', '#f0c35a', 'A', 'T'], ['#b49cff', '#7dffb0', 'G', 'C']];
-const SDVIG = Math.PI * 0.78, V_STROKE = 8; /* экраны 28.11: под каждым витком русское имя в две строки */
+const SDVIG = Math.PI * 0.78, V_STROKE = 6; /* экраны 28.11: под каждым витком русское имя в две строки */
 // Гены «Капли», которых нет на кольце: оружие и пасть (evo.json «svoi»); имя в книге у иглы — tssB
 export const SVOI = [{ id: 'gulp', gene: 'gulp' }, { id: 'igla', gene: 'tssB' }, { id: 'kislota', gene: 'kislota' }];
 
@@ -38,15 +38,15 @@ const S = { stroki: [], vybor: null, u: 0, cam: { s: 1, x: 0, y: 0 }, t0: 0, ide
 window.kaplyaGenomDnk = S;
 
 function rasstavit() { // где строки и витки: в точках холста при камере 1
-  const w = S.w, h = S.h, n = S.stroki.length, zag = S.stroki.filter(st => st.imya).length, sh = Math.min(84, (h - 8 - 12 * zag) / n), sw = Math.min(64, (w - 8) / V_STROKE);
-  S.strok = sh >= 50 ? 2 : 1; let y = (h - sh * n - 12 * zag) / 2; /* экраны 28.11: заголовку группы своя полоса, имена не налезают; тесно — имя в одну строку */
+  const w = S.w, h = S.h, n = S.stroki.length, zag = S.stroki.filter(st => st.imya).length, sh = Math.min(84, (h - 30 - 12 * zag) / n), sw = Math.min(64, (w - 8) / V_STROKE);
+  S.strok = sh >= 50 ? 2 : 1; let y = (h - 22 - sh * n - 12 * zag) / 2; /* экраны 28.11: заголовку группы своя полоса, имена не налезают; тесно — имя в одну строку */
   S.stroki.forEach((st, r) => { if (st.imya) y += 12; st.y = y; y += sh; st.h = sh; st.x0 = (w - sw * V_STROKE) / 2; st.sw = sw;
-    st.sp.forEach((u, i) => { u.x = st.x0 + i * sw; u.y = st.y; u.w = sw; u.h = sh; u.A = Math.max(4, Math.min(11, (sh - 12 - 10 * (S.strok || 2)) / 2)); u.yc = st.y + 3 + u.A; }); });
+    st.sp.forEach((u, i) => { u.x = st.x0 + i * sw; u.y = st.y; u.w = sw; u.h = sh; u.A = Math.max(4, Math.min(15, (sh - 14 - 11.5 * (S.strok || 2)) / 2)); u.yc = st.y + 3 + u.A; }); });
 }
 
 function otkryt() {
   const w = window.zaplyvWorld?.(), est = Object.keys(w?.genes || {});
-  S.stroki = uchastki(G, est); S.vybor = null; S.u = 0; S.cam = null; S.t0 = performance.now();
+  S.stroki = uchastki(G, est); S.vybor = null; $('gcard').classList.add('skryt'); S.u = 0; S.cam = null; S.t0 = performance.now();
   ring.style.opacity = '0'; ring.style.pointerEvents = 'none';
   const hint = document.querySelector('#gcard .hint');
   if (hint) hint.textContent = 'Это твоя ДНК. Каждый виток — ген, светятся включённые. Коснись витка — увидишь его участок и что он даёт.';
@@ -62,7 +62,7 @@ function kadr(now) {
   rasstavit();
   const t = (now - S.t0) / 1000, w = window.zaplyvWorld?.() || { genes: {} };
   // камера: к выбранному витку наезд, без выбора — весь геном
-  const v = S.vybor, cel = v ? { s: Math.min(2.6, S.w / (v.w * 2.6)), x: v.x + v.w / 2, y: v.yc } : { s: 1, x: S.w / 2, y: S.h / 2 };
+  const v = S.vybor, zs = v ? Math.min(2.6, S.w / (v.w * 2.6)) : 1, cel = v ? { s: zs, x: v.x + v.w / 2, y: v.yc + S.h * 0.3 / zs } : { s: 1, x: S.w / 2, y: S.h / 2 }; /* выбранный виток выше середины: снизу всплывает карточка */
   if (!S.cam) S.cam = { ...cel };
   const k = 7 / 60; S.cam.s += (cel.s - S.cam.s) * k; S.cam.x += (cel.x - S.cam.x) * k; S.cam.y += (cel.y - S.cam.y) * k;
   S.u += ((v ? 1 : 0) - S.u) * Math.min(1, 1 / 60 * 4);
@@ -88,6 +88,7 @@ function risuy(t, w, dpr) {
   }
   g.restore();
   if (S.vybor && S.u > 0.3) podpis(S.vybor, !!(S.vybor.id && w.genes[S.vybor.id]));
+  else if (!S.vybor) { g.globalAlpha = 0.7 * Math.min(1, t); g.fillStyle = '#dcebf5'; g.font = '13px -apple-system, system-ui, sans-serif'; g.textAlign = 'center'; g.fillText('Коснись витка — узнаешь, что даёт ген', W / 2, H - 10); } /* подсказка внизу спирали вместо пустой карточки */
 }
 
 // Один ген — один виток: две нити и семь пар между ними. Выбранный расплетается в лестницу, пары расходятся с буквами.
@@ -126,8 +127,8 @@ function vitok(u, t, est, dolya) {
   // ограничитель участка и подпись гена
   g.globalAlpha = ten * 0.5; g.fillStyle = '#cfe8f5'; g.beginPath(); g.arc(u.x + 1, u.yc, 1.4, 0, 7); g.fill();
   g.globalAlpha = ten * (est ? 1 : 0.62) * (1 - S.u); g.fillStyle = est ? u.cvet : '#b9cad6';
-  g.font = `${est ? 700 : 500} 8.5px -apple-system, system-ui, sans-serif`; g.textAlign = 'center';
-  imyaStroki(u).forEach((l, i) => g.fillText(l, u.x + u.w / 2, u.yc + u.A + 10 + i * 10)); /* экраны 28.11: имя гена по-русски, не код flhDC; при наезде подписи гаснут */
+  g.font = `${est ? 700 : 500} 10px -apple-system, system-ui, sans-serif`; g.textAlign = 'center';
+  imyaStroki(u).forEach((l, i) => g.fillText(l, u.x + u.w / 2, u.yc + u.A + 12 + i * 11.5)); /* экраны 28.11: имя гена по-русски, не код flhDC; при наезде подписи гаснут */
 }
 
 // Русское имя гена из книги в две строки по ширине витка; неизвестный — «Неизвестный ген»
@@ -138,11 +139,11 @@ function podpis(u, est) {
   g.globalAlpha = Math.min(1, (S.u - 0.3) / 0.5); g.textAlign = 'center';
   g.fillStyle = '#f2fbff'; g.font = '600 20px -apple-system, system-ui, sans-serif'; g.fillText(b.imya || u.gene, S.w / 2, 30);
   g.fillStyle = est ? u.cvet : '#9fb6c8'; g.font = 'italic 14px ui-monospace, Menlo, monospace'; g.font = '14px -apple-system, system-ui, sans-serif'; g.fillText(est ? 'включён' : 'спит', S.w / 2, 50); /* экраны 28.11: без латинского кода */
-  g.fillStyle = 'rgba(220,240,250,0.6)'; g.font = '12px -apple-system, system-ui, sans-serif'; g.fillText('коснись ещё раз — весь геном', S.w / 2, S.h - 12);
+  g.fillStyle = 'rgba(220,240,250,0.6)'; g.font = '12px -apple-system, system-ui, sans-serif'; g.fillText('коснись ещё раз — весь геном', S.w / 2, 68);
 }
 
 function vybrat(u) {
-  S.vybor = u;
+  S.vybor = u; $('gcard').classList.toggle('skryt', !u); /* экраны 28.11: без выбора карточка не висит над спиралью */
   if (!u) return;
   if (u.idx >= 0) { const m = ring.querySelectorAll('g.slot')[u.idx]; m?.onclick?.({ stopPropagation() {} }); return; }
   const b = slova(book, u), w = window.zaplyvWorld?.() || { genes: {} }, box = $('gcard'); // своих генов «Капли» на кольце нет — карточку пишем сами

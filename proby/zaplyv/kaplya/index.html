@@ -236,6 +236,7 @@ body:has(#genome.on) #kcel, body:has(#genome.on) #klin, body:has(#genome.on) #km
 #gcard.no { border-style: dashed; }
 #gcard { -webkit-mask-image: linear-gradient(#000 calc(100% - 22px), rgba(0,0,0,0.35)); mask-image: linear-gradient(#000 calc(100% - 22px), rgba(0,0,0,0.35)); padding-bottom: 18px; } /* низ гаснет: видно, что карточка листается, а не обрезана */
 #genome #gcard.no { border-style: solid; border-color: rgba(120, 220, 255, 0.15); } #genome #gcard h2 i { display: none; } /* экраны 28.11: спираль генов крупнее, карточка ниже; без пунктира и без латинского кода */
+#genome.tab-genome #gcard { position: absolute; left: 50%; transform: translateX(-50%); width: calc(100% - 32px); bottom: calc(env(safe-area-inset-bottom) + 136px); box-shadow: 0 -12px 24px rgba(2, 4, 10, 0.85); z-index: 3; } #genome.tab-genome #gcard:not(:has(h2)), #genome.tab-genome #gcard.skryt { visibility: hidden; } /* экраны 28.11: карточка гена всплывает поверх спирали только по касанию — спирали вся высота экрана */
 #gcard h2 { margin: 0; font-size: 21px; font-weight: 600; }
 #gcard h2 i { color: #9fe0ff; font-family: ui-monospace, Menlo, monospace; font-size: 17px; }
 #gcard .sub { font-size: 13px; opacity: 0.6; margin: 1px 0 6px; }
