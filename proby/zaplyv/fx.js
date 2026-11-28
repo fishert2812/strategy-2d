@@ -184,7 +184,7 @@ export class Fx {
         if (tb < 0.12) { const [px, py] = P(0, 0); glow.put(px, py, (L + w) * z, 1, 0.9, 0.85, 0.5 * (1 - tb / 0.12)); } }
       else if (S.ghost) { const R = e.w * 1.6, fill = Math.max(0, 1 - e.t / 1.2); // шарик-бделлопласт: сначала полный, нутро уходит, остаётся пустая тускнеющая оболочка
         for (let i = 0; i < 12; i++) { const t = i * 2.39996, r = Math.sqrt((i + 0.5) / 12) * R * 0.8, [px, py] = scr(e.x + Math.cos(t) * r, e.y + Math.sin(t) * r); ink.put(px, py, R * z * 0.35, 0.85, 0.25, 0.55, 0.7 * fill); }
-        for (let i = 0; i < 36; i++) { const t = i / 36 * 6.283, [px, py] = scr(e.x + Math.cos(t) * R, e.y + Math.sin(t) * R); glow.put(px, py, 2.2 * z, 1, 0.6, 0.45, 0.65 * (1 - f)); } }
+        { const N = Math.max(36, Math.ceil(6.283 * R / 1.2)); /* пустая оболочка сплошной мягкой линией: 36 точек на большом шарике читались пунктиром */ for (let i = 0; i < N; i++) { const t = i / N * 6.283, [px, py] = scr(e.x + Math.cos(t) * R, e.y + Math.sin(t) * R); glow.put(px, py, 2.2 * z, 1, 0.6, 0.45, 0.65 * (1 - f) * Math.min(1, 54 / N)); } } }
       else bod(0, 0, L, w, al);
     }
     for (const q of this.flicks) { const F = V.flick, f = q.t / F.life, px = -q.dy, py = q.dx, c = q.kind ? F.shake : F.lock; // дуга на борту и черта отлёта

@@ -12,3 +12,5 @@ export function shag(Y, X, a, R, dt, now, est) { let idet = false;
   Y.oblaka = Y.oblaka.filter(o => now - o.t0 < X.oblako_t); return idet; }
 // Сила облака в точке: 0…1, свежее облако сильнее, к oblako_t тает до нуля.
 export const vOblake = (Y, X, x, y, now) => { let s = 0; for (const o of Y.oblaka) if (Math.hypot(x - o.x, y - o.y) < o.r) s = Math.max(s, 1 - (now - o.t0) / X.oblako_t); return s; };
+// Облако нарисовано на самой клетке и идёт с ней (круг до кольца досягаемости R, сила — свежесть самого свежего клуба): урон считается там же, где оно видно.
+export const vOblakeNaKletke = (Y, X, a, R, x, y, now) => { if (!a || Math.hypot(x - a.x, y - a.y) >= R) return 0; let s = 0; for (const o of Y.oblaka) s = Math.max(s, 1 - (now - o.t0) / X.oblako_t); return s; };
