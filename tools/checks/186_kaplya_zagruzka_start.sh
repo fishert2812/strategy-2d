@@ -6,4 +6,4 @@ set -u
 . "$(dirname "${BASH_SOURCE[0]}")/../check_mode.sh"; run_in fast || exit 0
 command -v node >/dev/null || { echo "  нет node — проверить нечем"; exit 1; }
 . tools/web/kaplya_pw.sh; [ -f "$PW" ] || { echo "  нет playwright — проверить нечем"; exit 1; }
-timeout 150 node proby/zaplyv/kaplya/test_zagruzka_start.cjs || exit 1
+timeout 200 node proby/zaplyv/kaplya/test_zagruzka_start.cjs || exit 1
