@@ -222,9 +222,9 @@ export class Fx {
       const k = Math.min(1, o.pull / (this.cfg.conj || 3)); for (let i = 0; i <= 16; i++) { const u = i / 16 * k, [x, y] = scr(o.x + (q.x - o.x) * u, o.y + (q.y - o.y) * u); ink.put(x, y, 2.4 * z, 0.2, 0.15, 0.05, 0.4); glow.put(x, y, 1.5 * z, ...V.gene.color, 0.8); } }
     for (const q of this.genes) { const G = V.gene, f = q.t / G.life, run = Math.min(1, q.t / G.run), tx = q.to ? q.to.x : q.x, ty = q.to ? q.to.y : q.y; // колечко бежит, внутри раскрывается
       const cx = q.x + (tx - q.x) * run, cy = q.y + (ty - q.y) * run, R = G.r * (1 + (run >= 1 ? 1.5 * (q.t - G.run) / (G.life - G.run) : 0)), a = run < 1 ? 0.9 : 0.9 * (1 - f);
-      for (let i = 0; i < 12; i++) { const t = i / 12 * 6.283 + q.t * 3, [x, y] = scr(cx + Math.cos(t) * R, cy + Math.sin(t) * R); glow.put(x, y, 2 * z, ...(q.col || G.color), a); } }
+      { const N = Math.max(24, Math.ceil(6.283 * R / 1.1)); /* сплошное колечко, не 12 бусин */ for (let i = 0; i < N; i++) { const t = i / N * 6.283 + q.t * 3, [x, y] = scr(cx + Math.cos(t) * R, cy + Math.sin(t) * R); glow.put(x, y, 2 * z, ...(q.col || G.color), a * Math.min(1, 30 / N)); } } }
     for (const q of this.naps) { const N = V.nap, f = q.t / N.life, k = q.wake ? f : 1 - f, R = N.r * (0.6 + 1.6 * k), c = q.col || (q.wake ? N.wake : N.sleep), [x, y] = scr(q.x, q.y); // мягко, без вспышки
-      for (let i = 0; i < 36; i++) { const t = i / 36 * 6.283; glow.put(x + Math.cos(t) * R * z, y + Math.sin(t) * R * z, 2.4 * z, ...c, (q.a || 0.35) * Math.sin(f * Math.PI)); } }
+      { const N = Math.max(36, Math.ceil(6.283 * R / 1.2)); /* кольцо сна и пробуждения сплошной мягкой линией: 36 точек на большом радиусе читались пунктиром */ for (let i = 0; i < N; i++) { const t = i / N * 6.283; glow.put(x + Math.cos(t) * R * z, y + Math.sin(t) * R * z, 2.4 * z, ...c, (q.a || 0.35) * Math.sin(f * Math.PI) * Math.min(1, 54 / N)); } } }
     for (const r of this.rings) { // вспышка-кольцо
       const k = r.t / 0.6, [x, y] = scr(r.x, r.y), R = r.r * z * (0.3 + k), c = CELL[r.side];
       for (let i = 0; i < 28; i++) { const t = i * 0.2244; glow.put(x + Math.cos(t) * R, y + Math.sin(t) * R, 4 * (1 - k) + 1.2, c.r, c.g, c.b, 0.6 * (1 - k)); }
