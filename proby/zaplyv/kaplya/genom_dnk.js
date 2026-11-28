@@ -38,10 +38,10 @@ const S = { stroki: [], vybor: null, u: 0, cam: { s: 1, x: 0, y: 0 }, t0: 0, ide
 window.kaplyaGenomDnk = S;
 
 function rasstavit() { // где строки и витки: в точках холста при камере 1
-  const w = S.w, h = S.h, n = S.stroki.length, sh = Math.min(84, (h - 12) / n), sw = Math.min(64, (w - 8) / V_STROKE);
-  const y0 = (h - sh * n) / 2;
-  S.stroki.forEach((st, r) => { st.y = y0 + r * sh; st.h = sh; st.x0 = (w - sw * V_STROKE) / 2; st.sw = sw;
-    st.sp.forEach((u, i) => { u.x = st.x0 + i * sw; u.y = st.y; u.w = sw; u.h = sh; u.A = Math.max(4, Math.min(11, (sh - 40) / 2)); u.yc = st.y + (st.imya ? 15 : 6) + u.A; }); });
+  const w = S.w, h = S.h, n = S.stroki.length, zag = S.stroki.filter(st => st.imya).length, sh = Math.min(84, (h - 8 - 12 * zag) / n), sw = Math.min(64, (w - 8) / V_STROKE);
+  S.strok = sh >= 50 ? 2 : 1; let y = (h - sh * n - 12 * zag) / 2; /* экраны 28.11: заголовку группы своя полоса, имена не налезают; тесно — имя в одну строку */
+  S.stroki.forEach((st, r) => { if (st.imya) y += 12; st.y = y; y += sh; st.h = sh; st.x0 = (w - sw * V_STROKE) / 2; st.sw = sw;
+    st.sp.forEach((u, i) => { u.x = st.x0 + i * sw; u.y = st.y; u.w = sw; u.h = sh; u.A = Math.max(4, Math.min(11, (sh - 12 - 10 * (S.strok || 2)) / 2)); u.yc = st.y + 3 + u.A; }); });
 }
 
 function otkryt() {
@@ -80,7 +80,7 @@ function risuy(t, w, dpr) {
   const vstup = Math.min(1, t / 0.9); // при открытии спираль собирается слева направо, строка за строкой, как на загрузке
   const vsego = S.stroki.reduce((n, st) => n + st.sp.length, 0); let nom = 0;
   for (const st of S.stroki) {
-    if (st.imya) { g.globalAlpha = 0.9 * (1 - S.u); g.fillStyle = st.cvet; g.font = '700 10px -apple-system, system-ui, sans-serif'; g.textAlign = 'left'; g.fillText(st.imya.toUpperCase().split('').join(' '), st.x0 + 2, st.y + 10); }
+    if (st.imya) { g.globalAlpha = 0.9 * (1 - S.u); g.fillStyle = st.cvet; g.font = '700 10px -apple-system, system-ui, sans-serif'; g.textAlign = 'left'; g.fillText(st.imya.toUpperCase().split('').join(' '), st.x0 + 2, st.y - 2); }
     for (const u of st.sp) {
       const dolya = Math.max(0, Math.min(1, vstup * vsego * 1.15 - nom++));
       if (dolya > 0) vitok(u, t, !!(u.id && w.genes[u.id]), dolya);
@@ -131,7 +131,7 @@ function vitok(u, t, est, dolya) {
 }
 
 // Русское имя гена из книги в две строки по ширине витка; неизвестный — «Неизвестный ген»
-function imyaStroki(u) { const im0 = u.gene === '?' ? 'Неизвестный ген' : slova(book, u).imya || 'Ген', im = im0; (S.podpisi ||= new Set()).add(im); const sl = im.split(' '), out = ['']; g.save(); for (const w of sl) { const t = out[out.length - 1] ? out[out.length - 1] + ' ' + w : w; if (g.measureText(t).width <= u.w - 3 || !out[out.length - 1]) out[out.length - 1] = t; else if (out.length < 2) out.push(w); else { out[1] += '…'; break; } } for (let i = 0; i < out.length; i++) while (out[i].length > 2 && g.measureText(out[i]).width > u.w - 3) out[i] = out[i].slice(0, -2) + '…'; g.restore(); return out; } /* длинное слово не заходит на соседа */
+function imyaStroki(u) { const im0 = u.gene === '?' ? 'Неизвестный ген' : slova(book, u).imya || 'Ген', im = im0; (S.podpisi ||= new Set()).add(im); const sl = im.split(' '), out = ['']; g.save(); for (const w of sl) { const t = out[out.length - 1] ? out[out.length - 1] + ' ' + w : w; if (g.measureText(t).width <= u.w - 3 || !out[out.length - 1]) out[out.length - 1] = t; else if (out.length < (S.strok || 2)) out.push(w); else { out[out.length - 1] += '…'; break; } } for (let i = 0; i < out.length; i++) while (out[i].length > 2 && g.measureText(out[i]).width > u.w - 3) out[i] = out[i].slice(0, -2) + '…'; g.restore(); return out; } /* длинное слово не заходит на соседа */
 // Над расплетённым участком — имя гена крупно (в точках экрана, не камеры)
 function podpis(u, est) {
   const b = slova(book, u);
