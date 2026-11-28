@@ -6,6 +6,10 @@ export function sozdat(K) { const st = document.createElement('style');
 #klin img,#klin i{width:${K.px}px;height:${K.px}px;border-radius:50%;border:2px solid rgba(255,255,255,.25);opacity:.55;object-fit:cover;background:#0006}
 #klin img.eda{opacity:1;border-color:rgb(255,190,110)}#klin img.car{opacity:1;border-color:#e9c46a;margin-bottom:5px;box-shadow:0 0 6px #e9c46a99}#klin img.car.eda{border-color:rgb(255,190,110)}#klin img.vsp{animation:kvsp 1s}#klin i{display:block;width:${K.px}px;height:6px;border-radius:3px;border:0;opacity:1;background:#9fe0ff;box-shadow:0 0 6px #9fe0ff}
 body.levsha #klin{left:auto;right:8px}
+body:not(.staryjStolbik) #klin::after{content:'${K.verh || ''}';font:600 10px/1 system-ui,sans-serif;color:#cfe6f0;text-shadow:0 1px 2px #000;text-align:center;margin-bottom:2px}
+body:not(.staryjStolbik) #klin::before{content:'${K.niz_slovo || ''}';font:600 10px/1 system-ui,sans-serif;color:#cfe6f0;text-shadow:0 1px 2px #000;text-align:center;margin-top:2px}
+body:not(.staryjStolbik) #klin i{position:relative;overflow:visible}body:not(.staryjStolbik) #klin i::after{content:'${K.ty || ''}';position:absolute;left:${K.px + 4}px;top:-5px;font:700 11px/1 system-ui,sans-serif;color:#9fe0ff;text-shadow:0 1px 2px #000}
+body:not(.staryjStolbik) #klin img{opacity:.8}
 @keyframes kvsp{0%{transform:scale(1.6);box-shadow:0 0 14px rgb(255,190,110)}100%{transform:scale(1)}}
 .knad{position:fixed;width:${K.px}px;height:${K.px}px;border-radius:50%;border:2px solid rgb(255,190,110);pointer-events:none;z-index:2;animation:knad 1s forwards}@keyframes knad{0%{opacity:0;transform:translateY(0)}20%{opacity:1}100%{opacity:0;transform:translateY(-30px)}}`;
   document.head.appendChild(st); const box = document.createElement('div'); box.id = 'klin'; document.body.appendChild(box); return { box, sil: {}, klyuch: '' }; }
