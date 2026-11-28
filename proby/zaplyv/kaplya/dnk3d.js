@@ -11,7 +11,8 @@ const SDVIG = Math.PI * 0.78, NA_VITOK = 12;
 
 // Блик и кромка: стекло светится по краю, как на образцах
 function kromka(mat, sila, cvet) {
-  mat.onBeforeCompile = sh => {
+  const prezhde = mat.onBeforeCompile; // не затираем свечение своим цветом (svetCvet)
+  mat.onBeforeCompile = (sh, r) => { prezhde.call(mat, sh, r);
     sh.uniforms.uKr = { value: sila }; sh.uniforms.uKrC = { value: new THREE.Color(cvet) };
     sh.fragmentShader = 'uniform float uKr; uniform vec3 uKrC;\n' + sh.fragmentShader.replace('#include <opaque_fragment>',
       '#include <opaque_fragment>\n float kr = pow(1.0 - abs(dot(normalize(normal), normalize(vViewPosition))), 2.2); gl_FragColor.rgb += uKrC * kr * uKr;');
@@ -24,7 +25,7 @@ function svetCvet(mat, k) { // перекладина светится свои�
 }
 
 // Спираль вдоль оси Y: par пар оснований. ustanovit(k) — сколько пар собрано (дробно, для анимации сборки).
-export function spiral({ par = 40, R = 0.78, shag = 0.12, bus = 0.22, cvetNiti = 0xdce6f2, kromkaC = 0xe8f0ff, yarko = 1, izgib = 0, glub = 0, naVitok = 20 } = {}) {
+export function spiral({ par = 40, R = 0.78, shag = 0.12, bus = 0.22, cvetNiti = 0xcfe2f4, kromkaC = 0x7fd8ff, yarko = 1, izgib = 0, glub = 0, naVitok = 20, nb = 2 } = {}) {
   const grp = new THREE.Group(), n = par, v = new THREE.Vector3(), L = (n - 1) * shag;
   let faza = 0;
   // ось изогнута буквой S (izgib), концы уходят от зрителя (glub) — дальние витки попадают в размытие по глубине
@@ -33,8 +34,8 @@ export function spiral({ par = 40, R = 0.78, shag = 0.12, bus = 0.22, cvetNiti =
     return out.set(R * Math.cos(a) + izgib * Math.sin(u * Math.PI), y, R * Math.sin(a) - glub * u * u);
   };
   // бусины: по две-три на пару на каждой нити, разного размера; прозрачное стекло — тёмная середина, яркая кромка
-  const NB = 1, busy = new THREE.InstancedMesh(new THREE.SphereGeometry(bus, 22, 16),
-    kromka(new THREE.MeshPhysicalMaterial({ color: cvetNiti, roughness: 0.03, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.02, transparent: true, opacity: 0.8, depthWrite: true, envMapIntensity: 3.6, specularIntensity: 1, ior: 1.5 }), 0.75 * yarko, kromkaC), n * NB * 2);
+  const NB = nb, busy = new THREE.InstancedMesh(new THREE.SphereGeometry(bus, 22, 16),
+    kromka(new THREE.MeshPhysicalMaterial({ color: cvetNiti, roughness: 0.03, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.02, transparent: true, opacity: 0.55, depthWrite: true, envMapIntensity: 3.6, specularIntensity: 1, ior: 1.5 }), 1.0 * yarko, kromkaC), n * NB * 2);
   busy.renderOrder = 2;
   // сердцевина: внутри каждой бусины светится маленькое ядро — нить горит изнутри
   const yadra = new THREE.InstancedMesh(new THREE.SphereGeometry(bus * 0.42, 10, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(0x6a5cff).multiplyScalar(0.6 * yarko), transparent: true, opacity: 0.25 }), n * NB * 2);
@@ -48,7 +49,8 @@ export function spiral({ par = 40, R = 0.78, shag = 0.12, bus = 0.22, cvetNiti =
   const cv = new THREE.Color();
   for (let i = 0; i < n; i++) { const p = PARY[(i * 7 + (i >> 2)) % 3], nav = (i * 5) % 3 === 0; ust.setColorAt(i * 2, cv.set(nav ? p[1] : p[0])); ust.setColorAt(i * 2 + 1, cv.set(nav ? p[0] : p[1])); }
   grp.add(ust);
-  const razb = Array.from({ length: n * NB * 2 }, (_, j) => 0.85 + 0.3 * (((j * 2654435761) >>> 0) % 1000) / 1000); // размеры бусин вразнобой
+  const sl = j => (((j * 2654435761) >>> 0) % 1000) / 1000, razb = Array.from({ length: n * NB * 2 }, (_, j) => j % NB ? 0.45 + 0.35 * sl(j) : 0.6 + 0.75 * sl(j)); // крупные и мелкие вперемешку
+  const povB = Array.from({ length: n * NB * 2 }, (_, j) => new THREE.Quaternion().setFromEuler(new THREE.Euler(sl(j + 7) * 6, sl(j + 13) * 6, sl(j + 29) * 6))); // сплюснуты в разные стороны // размеры бусин вразнобой
   const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), S = new THREE.Vector3(), A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3(), P = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
   let kPred = n;
   function ustanovit(k = kPred, f = faza) {
@@ -57,8 +59,8 @@ export function spiral({ par = 40, R = 0.78, shag = 0.12, bus = 0.22, cvetNiti =
       const s = Math.max(0, Math.min(1, k - i)), e = 1 - Math.pow(1 - s, 3);
       for (let st = 0; st < 2; st++) for (let b = 0; b < NB; b++) {
         const j = (i * 2 + st) * NB + b;
-        tochka(i + b / NB, st ? SDVIG : 0, v); const sb = Math.max(0, Math.min(1, (k - i) * 2 - b * 0.3)), r = 0.0001 + (1 - Math.pow(1 - sb, 3)) * razb[j];
-        M.compose(v, Q.identity(), S.setScalar(r)); busy.setMatrixAt(j, M); yadra.setMatrixAt(j, M);
+        tochka(i + b / NB + (sl(j + 3) - 0.5) * 0.2, st ? SDVIG : 0, v); const sb = Math.max(0, Math.min(1, (k - i) * 2 - b * 0.3)), r = 0.0001 + (1 - Math.pow(1 - sb, 3)) * razb[j];
+        M.compose(v, povB[j], S.set(r * 1.18, r * 0.78, r)); busy.setMatrixAt(j, M); yadra.setMatrixAt(j, M);
       }
       for (let st = 0; st < 2; st++) { // лента от этой бусины к следующей
         const d = st ? SDVIG : 0; tochka(i, d, A); tochka(i + 1, d, B); const sv = Math.max(0, Math.min(1, k - i - 0.5)) * (i < n - 1 ? 1 : 0);
@@ -82,10 +84,11 @@ export function spiral({ par = 40, R = 0.78, shag = 0.12, bus = 0.22, cvetNiti =
 // Стеклянные капли вокруг: неровные, жёлто-оранжевые, со своим светом
 export function kapli(N, razbros, { yarko = 1 } = {}) {
   const geo = new THREE.IcosahedronGeometry(0.22, 4), pos = geo.attributes.position;
-  for (let i = 0; i < pos.count; i++) { v3.fromBufferAttribute(pos, i); v3.multiplyScalar(1 + 0.18 * Math.sin(v3.x * 9 + v3.y * 7) + 0.12 * Math.cos(v3.z * 11)); pos.setXYZ(i, v3.x, v3.y, v3.z); }
+  for (let i = 0; i < pos.count; i++) { v3.fromBufferAttribute(pos, i); v3.multiplyScalar(1 + 0.3 * Math.sin(v3.x * 9 + v3.y * 7) + 0.2 * Math.cos(v3.z * 11) + 0.15 * Math.sin(v3.z * 23 + v3.x * 5)); pos.setXYZ(i, v3.x, v3.y, v3.z); }
   geo.computeVertexNormals();
-  const m = new THREE.InstancedMesh(geo, kromka(new THREE.MeshPhysicalMaterial({ color: 0xffa23a, emissive: new THREE.Color(0xff6a10).multiplyScalar(0.3 * yarko), roughness: 0.15, clearcoat: 1, transparent: true, opacity: 0.85, envMapIntensity: 2 }), 0.8, 0xfff0a0), N);
+  const m = new THREE.InstancedMesh(geo, kromka(svetCvet(new THREE.MeshPhysicalMaterial({ roughness: 0.1, clearcoat: 1, transparent: true, opacity: 0.8, envMapIntensity: 2.4 }), 0.35 * yarko), 0.8, 0xfff0a0), N);
   const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), E = new THREE.Euler();
+  const KC = [0xffa23a, 0xc8f04a, 0x6ad8ff], cc = new THREE.Color(); for (let i = 0; i < N; i++) m.setColorAt(i, cc.set(KC[i % 3])); // оранжевые, жёлто-зелёные, голубые
   m.userData.d = Array.from({ length: N }, () => ({ p: new THREE.Vector3((Math.random() - 0.5) * razbros[0], (Math.random() - 0.5) * razbros[1], (Math.random() - 0.5) * razbros[2]), s: 0.25 + Math.random() * 0.5, f: Math.random() * 7, e: new THREE.Vector3(Math.random(), Math.random(), Math.random()).multiplyScalar(2.4) }));
   m.userData.dvig = t => { m.userData.d.forEach((d, i) => { E.set(d.e.x * t * 0.2 + d.f, d.e.y * t * 0.2, d.e.z); M.compose(v3.copy(d.p).add(new THREE.Vector3(Math.sin(t * 0.3 + d.f) * 0.3, Math.cos(t * 0.25 + d.f) * 0.4, 0)), Q.setFromEuler(E), new THREE.Vector3(d.s, d.s * 0.85, d.s)); m.setMatrixAt(i, M); }); m.instanceMatrix.needsUpdate = true; };
   m.userData.dvig(0);
@@ -131,7 +134,7 @@ void main(){ vec2 q = vUv-vec2(0.5,0.45); float r = length(q*vec2(0.8,1.0));
   gl_FragColor = vec4(c*uA, 1.0); }`;
 
 // Сцена с фоном и свечением на своём холсте. Возвращает { renderer, kamera, glavnaya, fonovaya, kadr(t), razmer(w,h) }
-export function scena(canvas, { dpr = Math.min(2, devicePixelRatio || 1), voda = [0x02040c, 0x0c1c3a] } = {}) {
+export function scena(canvas, { dpr = Math.min(2, devicePixelRatio || 1), voda = [0x100e3a, 0x3d2f80] } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
   renderer.setPixelRatio(dpr); renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.3;
   const env = okruzhenie(renderer);
@@ -166,7 +169,9 @@ export function scena(canvas, { dpr = Math.min(2, devicePixelRatio || 1), voda =
     pS.u.uFon.value = rtF1.texture; pS.u.uGl.value = rtG.texture; pS.u.uGlR.value = rtM1.texture; pS.u.uGlub.value = rtG.depthTexture; pS.u.uFok.value.set(kamera.near, kamera.far, fokus.d); pS.u.uSv.value = rtS1.texture; pS.u.uSvK.value = svet; pS.u.uA.value = a;
     renderer.setRenderTarget(null); renderer.render(pS.s, ortho);
   }
-  return { renderer, kamera, glavnaya, fonovaya, kadr, razmer, ogni, env, fokus };
+  // Слабое железо: загрузка сама снижает плотность точек, если кадр дольше 1/40 с (zagruzka.js)
+  function snizit(d) { dpr = d; renderer.setPixelRatio(d); const c = renderer.domElement; razmer(c.clientWidth, c.clientHeight); }
+  return { renderer, kamera, glavnaya, fonovaya, kadr, razmer, snizit, ogni, env, fokus };
 }
 export { ogni };
 

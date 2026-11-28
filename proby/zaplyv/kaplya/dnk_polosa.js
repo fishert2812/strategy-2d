@@ -13,13 +13,14 @@ async function ispech(w, h, dpr) {
   r.setPixelRatio(1); r.setSize(W, H, false); r.toneMapping = T.ACESFilmicToneMapping; r.setClearColor(0x000000, 0);
   const sc = new T.Scene(); m.osveshchenie(sc, r);
   const dl = VYS * W / H, PAR = Math.ceil(dl / SHAG) + 2; // пар столько, чтобы спираль шла через всю ширину
-  const sp = m.spiral({ par: PAR, R: 0.8, shag: SHAG, bus: 0.17, naVitok: 20 }); sp.rotation.z = Math.PI / 2; sc.add(sp);
+  const sp = m.spiral({ par: PAR, R: 0.8, shag: SHAG, bus: 0.17, naVitok: 20, nb: 1 }); sp.rotation.z = Math.PI / 2; sc.add(sp); // в полоске по бусине на ступень: печь легче
   const kam = new T.OrthographicCamera(-dl / 2, dl / 2, VYS / 2, -VYS / 2, 0.1, 50); kam.position.z = 10;
   const atlas = document.createElement('canvas'); atlas.width = W * KADROV; atlas.height = H * 2; const a = atlas.getContext('2d');
   for (let k = 0; k < KADROV; k++) { // верхний ряд — живая спираль, нижний — остов без пар
     const faza = k / KADROV * Math.PI * 2 / 2; // за кадры — полоборота: остальное повторяет рисунок через пару нитей
     sp.userData.ustanovit(PAR, faza); sp.userData.ust.visible = true; r.render(sc, kam); a.drawImage(cv, k * W, 0);
     sp.userData.ust.visible = false; r.render(sc, kam); a.drawImage(cv, k * W, H);
+    await new Promise(z => setTimeout(z, 0)); // печём по кадру между кадрами игры: игра не замирает
   }
   r.dispose(); r.forceContextLoss();
   return { atlas, W, H };
@@ -27,6 +28,7 @@ async function ispech(w, h, dpr) {
 
 export function dnkPolosa() {
   let pech = null, gotovo = null, klyuch = '', pred = null; const kroshki = [];
+  const sl = document.createElement('canvas'), sg = sl.getContext('2d'); // слой полоски: концы растушёвываются в прозрачность, без ровного обруба
   return function (g, x, y, w, h, f, t) {
     f = Math.max(0, Math.min(1, f));
     const dpr = Math.min(2, devicePixelRatio || 1), k = w + 'x' + h;
@@ -36,9 +38,13 @@ export function dnkPolosa() {
     pred = f;
     if (!gotovo) return;
     const { atlas, W, H } = gotovo, kd = Math.floor(t * 8) % KADROV, gr = Math.round(W * f);
-    g.save();
-    if (gr < W) { g.globalAlpha = 0.38; g.drawImage(atlas, kd * W + gr, H, W - gr, H, x + gr / W * w, y, w - gr / W * w, h); }
-    if (gr > 0) { g.globalAlpha = 1; g.drawImage(atlas, kd * W, 0, gr, H, x, y, gr / W * w, h); }
+    if (sl.width !== W || sl.height !== H) { sl.width = W; sl.height = H; }
+    sg.globalCompositeOperation = 'source-over'; sg.clearRect(0, 0, W, H);
+    if (gr < W) { sg.globalAlpha = 0.38; sg.drawImage(atlas, kd * W + gr, H, W - gr, H, gr, 0, W - gr, H); }
+    if (gr > 0) { sg.globalAlpha = 1; sg.drawImage(atlas, kd * W, 0, gr, H, 0, 0, gr, H); }
+    const tush = sg.createLinearGradient(0, 0, W, 0); tush.addColorStop(0, 'rgba(0,0,0,0)'); tush.addColorStop(0.12, '#000'); tush.addColorStop(0.88, '#000'); tush.addColorStop(1, 'rgba(0,0,0,0)');
+    sg.globalAlpha = 1; sg.globalCompositeOperation = 'destination-in'; sg.fillStyle = tush; sg.fillRect(0, 0, W, H);
+    g.save(); g.globalAlpha = 1; g.drawImage(sl, x, y, w, h);
     for (let j = kroshki.length - 1; j >= 0; j--) { // осколки летят вверх-вбок и гаснут за 0,9 с
       const p = kroshki[j], s = t - p.t0; if (s > 0.9 || s < 0) { kroshki.splice(j, 1); continue; }
       const px = p.x + p.vx * s, py = p.y + p.vy * s + 30 * s * s, a = 1 - s / 0.9;

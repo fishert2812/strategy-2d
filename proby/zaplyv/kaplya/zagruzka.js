@@ -10,7 +10,7 @@
   var W = window, D = document;
   var box = D.createElement('div');
   box.id = 'zagruzka'; box.setAttribute('aria-label', 'Загрузка');
-  box.style.cssText = 'position:fixed;inset:0;z-index:9999;pointer-events:none;transition:opacity .7s ease;background:radial-gradient(ellipse at 50% 45%,#1c3446 0%,#0b1824 45%,#03070d 100%);font-family:-apple-system,system-ui,sans-serif;color:#e8f4fa';
+  box.style.cssText = 'position:fixed;inset:0;z-index:9999;pointer-events:none;transition:opacity .7s ease;background:radial-gradient(ellipse at 50% 45%,#2a2560 0%,#141a44 45%,#060818 100%);font-family:-apple-system,system-ui,sans-serif;color:#e8f4fa';
   box.innerHTML = '<canvas style="position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .9s ease"></canvas>' +
     '<div style="position:absolute;left:0;right:0;top:calc(env(safe-area-inset-top) + 34px);text-align:center;font-size:32px;font-weight:600;letter-spacing:1px;text-shadow:0 2px 18px rgba(0,0,0,.8)">Капля</div>' +
     '<div style="position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 54px);text-align:center;font-size:16px;opacity:.85;text-shadow:0 1px 8px #000"><span id="zagrText">Собирается геном</span>' +
@@ -30,15 +30,19 @@
   import('./dnk3d.js').then(function (m) {
     if (W.kaplyaZagruzka.ushla) return;
     var S = m.scena(cv, { dpr: Math.min(2, W.devicePixelRatio || 1) });
-    var N = 80, sp = m.spiral({ par: N, R: 1.25, izgib: 0.9, glub: 3.4 }); sp.rotation.z = 0.12; sp.position.y = -0.5; S.glavnaya.add(sp);
+    var N = 56, sp = m.spiral({ par: N, R: 1.25, shag: 0.19, naVitok: 24, izgib: 1.6, glub: 3.4 }); sp.rotation.z = 0.12; sp.position.y = -0.5; S.glavnaya.add(sp);
     var k1 = m.kapli(9, [4.5, 9, 2.5]); S.glavnaya.add(k1); var k2 = m.kapli(8, [9, 14, 3], { yarko: 0.6 }); k2.position.z = -5; S.fonovaya.add(k2);
     [[-3.6, 0.5, -5, 0.35, 0xe0905a], [3.9, -1.5, -6, -0.3, 0xe0a060], [-1.2, -6, -4, -1.0, 0x9a8ad8]].forEach(function (f) {
       var b = m.spiral({ par: 70, cvetNiti: f[4], kromkaC: 0xff9050, yarko: 0.45, shag: 0.2 }); b.position.set(f[0], f[1], f[2]); b.rotation.z = f[3]; S.fonovaya.add(b);
     });
     var o1 = m.ogni(18, [12, 18, 4], [0xff8a3c, 0xffb060, 0xff6a3a]); o1.position.z = -4; S.fonovaya.add(o1);
     var o2 = m.ogni(10, [7, 12, 3], [0xff8a3c, 0xffc070]); o2.position.z = 1; S.glavnaya.add(o2);
-    var w = 0, h = 0;
-    tri = function (t, dolya, ukhod) {
+    var w = 0, h = 0, zamer = [], snizheno = false;
+    tri = function (t, dolya, ukhod, dt0) {
+      if (!snizheno && dt0 > 0 && (zamer.push(dt0), zamer.length >= 30)) { // медиана 30 кадров; медленнее 40 к/с — меньше точек на экране
+        snizheno = true; zamer.sort(function (a, b) { return a - b; }); W.kaplyaZagruzka.kadrMs = Math.round(zamer[15] * 1000);
+        if (zamer[15] > 1 / 40 && S.renderer.getPixelRatio() > 1) { S.snizit(1); W.kaplyaZagruzka.snizheno = true; }
+      }
       if (w !== W.innerWidth || h !== W.innerHeight) { w = W.innerWidth; h = W.innerHeight; S.razmer(w, h); S.kamera.position.z = 18 * Math.max(1, (393 / 852) / (w / h)); }
       sp.userData.ustanovit(dolya * N, t * 0.6); k1.userData.dvig(t); k2.userData.dvig(t);
       S.kamera.position.y = 0.6 * Math.sin(t * 0.2); S.kamera.position.x = 0.4 * Math.sin(t * 0.13); S.kamera.lookAt(0, 0, 0);
@@ -66,7 +70,7 @@
     }
     if (!dolgo) txt.textContent = 'Собирается геном · ' + Math.round(pokaz * 100) + '%';
     bar.style.width = (pokaz * 100).toFixed(1) + '%';
-    if (tri) tri(t, pokaz, konec >= 0 ? Math.min(1, (t - konec) / 0.7) : 0);
+    if (tri) tri(t, pokaz, konec >= 0 ? Math.min(1, (t - konec) / 0.7) : 0, dt0);
     W.requestAnimationFrame(kadr);
   }
   W.requestAnimationFrame(kadr);
