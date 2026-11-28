@@ -484,7 +484,7 @@ setTimeout(function warm(i = 0) { const g = Object.keys(cfg.genes)[i]; if (!g) r
 const geneBook = g => Object.values(GENY.geny || {}).find(q => q.klyuch === g) || Object.values(GENY.geny || {}).find(q => q.plan === g) || {}, /* plan — умение ещё строится (скрытый режим «Эволюция») */ geneName = g => geneBook(g).imya || g; // имя и тексты гена — только из книги
 genomeData.book = GENY.geny || {};
 GENY.gruppa = Object.fromEntries([...genomeData.arcs.flatMap(a => a.slots.map(x => [x.id, a.name])), ...genomeData.plasmids.map(x => [x.id, 'Чужие'])].filter(x => x[0])); // группа гена — дуга кольца
-KAB.schet = KAP.almanah_slova.schet; KAB.schet_geny = KAP.almanah_slova.geny; /* экраны 28.11: короткий счёт */ const kab = almanahScreen({ K: KAB, cards, T: TEKSTY, P: PODPISI, G: GENY, S: SVYAZI, met, snap, onNav: () => { if (curTab === 'alm') $('gback').textContent = '‹ ' + (kab.where() || 'Пауза'); }, onSwim: () => { if (ended || $('menu').classList.contains('on')) start(); else if (paused) genome.close(); } });
+KAB.schet = KAP.almanah_slova.schet; KAB.schet_geny = KAP.almanah_slova.geny; KAB.schet_ne_vstrechen = KAP.almanah_slova.ne_vstrechen; /* экраны 28.11: короткий счёт */ const kab = almanahScreen({ K: KAB, cards, T: TEKSTY, P: PODPISI, G: GENY, S: SVYAZI, met, snap, onNav: () => { if (curTab === 'alm') $('gback').textContent = '‹ ' + (kab.where() || 'Пауза'); }, onSwim: () => { if (ended || $('menu').classList.contains('on')) start(); else if (paused) genome.close(); } });
 const cabLabel = () => { const [g, ...r] = kab.label().split(' · '); $('cab').innerHTML = g + (r.length ? '<small>' + r.join(' · ') + '</small>' : ''); }; /* экраны 28.11: счёт второй строкой, без переноса посреди «из 5» */
 cabLabel();
 const knowGenes = () => { let add = false; for (const g in world.genes) if (!met.has('gene:' + g)) { met.add('gene:' + g); add = true; } if (add) { saveMet(); cabLabel(); } }; // ген, который у тебя был, — запись в Альманахе
@@ -539,6 +539,7 @@ function kolesoPod(x, y) { const KO = KAP.koleso, S = KO.slova, M = KAP.mutaciya
 const kolesoZakryt = () => { KOL.otkryto = false; $('koleso').classList.remove('on'); };
 window.kaplyaKoleso = () => { const a = world.me[0], [x, y] = a ? scr(a.x, a.y) : [0, 0]; return { otkryto: KOL.otkryto, most: !!KOL.most, mesta: KOLM, id: KOLQ.map(q => q.id), ya: [x * innerWidth / W, y * innerWidth / W], stroka: $('kstroka').textContent }; };
 window.kaplyaMut = () => MUT; window.kaplyaSprosit = V => vybor(V, () => {}); /* сторож флажка: окно вопроса (вопрос мутации ушёл в колесо стаи) */ window.kaplyaStayaMenu = () => [...$('stlist').querySelectorAll('.st')].map(r => ({ id: +r.dataset.id, mut: r.dataset.mut || null }));
+const sloiPruda = seen => KAP.almanah_slova.sloi.replace('{n}', Math.max(0, ['ни одного', 'один', 'два', 'три', 'четыре'].indexOf(karta.count(cfg.pond, seen).split(' ')[2]))); /* экраны 28.11: без «Ты видел» — игра не знает твой род */
 // L084 (пачка 2, Т3): одни числа рода во всех экранах — поколение по летописи стаи, клеток — ты и стая
 const rodChisla = w => { if (window.kaplyaStaryeChisla) return { gen: w.stats.gen, kletok: w.me.length }; const L = STY && STY.letopis; return { gen: Math.max(w.stats.gen || 0, (L && L.pok) || 0), kletok: w.me.length + (w.staya || []).length }; }; window.kaplyaRodChisla = () => rodChisla(world);
 function hubFill() { // первый уровень паузы: что в каждом разделе — одной строкой, служебное — мелко
@@ -546,7 +547,7 @@ function hubFill() { // первый уровень паузы: что в каж
   const RC = rodChisla(world); $('pstate').textContent = ($(`mscene`).querySelector(`.mo[data-m=${world.mode}] b`)?.textContent || 'Заплыв') + ' · поколение ' + RC.gen + ' · клеток ' + RC.kletok; /* L084: те же числа, что в «Стае» и на экране гибели */
   $('pg').textContent = window.kaplyaStaryeChisla ? `включено ${own.filter(x => x.id && world.genes[x.id]).length} из ${own.length}` : `генов включено ${Object.keys(world.genes).filter(g => world.genes[g]).length}`; /* L084: «0 из 21» при включённом «Глотать» — гены «Капли» не в круге генома */
   $('pa').textContent = kab.label().replace(/^Альманах · /, ''); { const st = world.staya || []; $('pst').textContent = st.length ? `копий ${st.length} · мутанток ${st.filter(q => q.mut).length}` : 'пока никого'; }
-  keepSeen(); $('pm').textContent = karta.count(cfg.pond, new Set(KARTA.seen)).replace(/^Ты в/, 'В') + (deaths ? ` · гибелей ${deaths}` : '');
+  keepSeen(); $('pm').textContent = sloiPruda(new Set(KARTA.seen)) + (deaths ? ` · гибелей ${deaths}` : '');
   $('psound').innerHTML = '<span>Звук</span><i class="sw' + (ROD.quiet ? '' : ' on') + '"></i>'; $('psound').setAttribute('aria-pressed', String(!ROD.quiet)); /* экраны 28.11: звук — переключатель, а не «неактивная кнопка» */
   const n = $('pnew'); n.sure = false; n.classList.remove('sure'); n.textContent = 'Новый заплыв';
 }
@@ -593,7 +594,7 @@ function drawMap() {
   const me = world.me.length ? c : null; if (!mapIcons.me) mapIcons.me = Object.assign(new Image(), { src: snap('me', KAB.items.me) });
   const R = karta.draw(ctx, box.width, box.height, { P: cfg.pond, seen: all, marks: KARTA.marks, goal: KARTA.goal, me, icons, meImg: mapIcons.me, t, hot: t < 1.2 && last >= 0 ? karta.clusters(KARTA.marks, cfg.pond, karta.frame(cfg.pond, box.width, box.height)).findIndex(q => q.list.includes(KARTA.marks[last])) : -1 });
   mapHit = R.C;
-  $('mhead').textContent = (me ? 'Ты в слое «' + { film: 'плёнка', light: 'светлая толща', oxy: 'граница кислорода', silt: 'ил' }[world.layer(c.y)] + '» · ' : '') + karta.count(cfg.pond, all);
+  $('mhead').textContent = (me ? 'Ты в слое «' + { film: 'плёнка', light: 'светлая толща', oxy: 'граница кислорода', silt: 'ил' }[world.layer(c.y)] + '» · ' : '') + sloiPruda(all);
 }
 $('mcv').addEventListener('click', e => { // касание отметки — карточка места
   const r = $('mcv').getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, card = $('mcard');

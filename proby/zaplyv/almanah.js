@@ -29,7 +29,7 @@ export function shelf(K, E, met, sec = 'life', P = {}) {
 // Страница: модель, имя, ярлык, блоки книги; невстреченное — только где искать.
 export function page(k, K, E, cards, T, G, met) {
   const it = E[k], color = K.colors[it.group];
-  if (!met.has(k)) { const grp = it.sec === 'gene' && K.schet && (G?.gruppa || {})[it.gene]; return { name: it.sec === 'gene' ? (grp ? 'Ген · ' + grp : 'Ещё не было') : 'Ещё не встречал', line: it.hint || 'Плыви дальше', color, met: false }; } /* «Капля», экраны 28.11: у закрытых генов видна их группа, заглушки не одинаковые */
+  if (!met.has(k)) { const grp = it.sec === 'gene' && K.schet && (G?.gruppa || {})[it.gene]; return { name: it.sec === 'gene' ? (grp ? 'Ген · ' + grp : 'Ещё не было') : K.schet ? K.schet_ne_vstrechen : 'Ещё не встречал', line: it.hint || 'Плыви дальше', color, met: false }; } /* «Капля», экраны 28.11: у закрытых генов видна их группа, заглушки не одинаковые */
   if (it.sec === 'gene') {
     const g = Object.values(G.geny).find(x => x.klyuch === it.gene), P = G.podpisi;
     const grp = (G.gruppa || {})[it.gene]; // подзаголовок — группа и номер записи, текст только в блоке (приёмка дизайнера)
