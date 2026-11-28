@@ -27,7 +27,7 @@ export function shag(S, w, dt, K, m0, speed, rnd = Math.random, M = null, moya =
   if (S.pochka) { const P = S.pochka; P.t += dt; if (P.t >= K.t) { const ug = a.a + Math.PI + P.ug, d = (S.polu || R(a.m)) + R(P.m) * (1 + K.otskok); // натяжение порвалось: копия отскакивает
       w.staya.push({ id: ++w.ids, x: a.x + Math.cos(ug) * d, y: a.y + Math.sin(ug) * d, a: ug, m: P.m, t: 0, sama: 0, T: P.T, pok: 1, ug: P.ug, mut: rodi(moya), mt: 0 }); S.pochka = null; S.vsego++; ev.push('malyshka'); a.vzdrog = K.vzdrog; zapisat(S.letopis, w.staya[w.staya.length - 1]); } }
   const nov = [], R0 = R(a.m);
-  w.staya.forEach((q, i) => { q.t += dt; const kol = Math.floor(i / 6), slot = Math.PI + ((i % 6) - 2.5) * 0.5, dist = R0 * (K.ryad0 + K.ryad * kol) + R(q.m); // места за кормой: кучкой по шесть
+  w.staya.forEach((q, i) => { q.t += dt; const kol = Math.floor(i / 6), slot = Math.PI + ((i % 6) - 2.5) * 0.5, dist = R0 * (K.ryad0 + K.ryad * kol) + (globalThis.kaplyaStaryeKopii ? R(q.m) : Math.max(R(q.m), R0 * (K.vid_min || 0) * (K.mut_obod || 1))); // места за кормой: кучкой по шесть
     const tx = a.x + Math.cos(a.a + slot) * dist, ty = a.y + Math.sin(a.a + slot) * dist, dx = tx - q.x, dy = ty - q.y, L = Math.hypot(dx, dy) || 1;
     let vx = (S.vx || 0) + dx * K.tyaga, vy = (S.vy || 0) + dy * K.tyaga; const vm = Math.hypot(vx, vy), cap = speed * (Math.hypot(q.x - a.x, q.y - a.y) > K.kuchka * R0 ? K.dognat : K.hod); /* плывёт с тобой и тянется к своему месту */
     if (vm > cap) { vx *= cap / vm; vy *= cap / vm; } q.x += vx * dt; q.y += vy * dt; if (L > 3) q.a += Math.atan2(Math.sin(Math.atan2(dy, dx) - q.a), Math.cos(Math.atan2(dy, dx) - q.a)) * Math.min(1, dt * 4);
