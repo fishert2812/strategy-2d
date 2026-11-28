@@ -132,7 +132,14 @@ check('test_vid_shchit_vspyshka: щит срабатывает видимо — 
   const lock = new Fx({}, [C, C, C]); lock.reset(); lock.world = { me: [{ x: 0, y: 0 }] }; lock.on('shrug', 12, 0); lock.step(0.03);
   if (!shot(lock).some(p => Math.hypot(p.x - 12, p.y) < 6 && p.r >= 8 && p.a > 0.6 && p.cr > 0.9)) return 'вирус не сел — нет светлой вспышки в точке касания';
   const learn = new Fx({}, [C, C, C]); learn.reset(); learn.world = { me: [{ x: 0, y: 0 }] }; learn.on('learn', 30, 0); learn.step(0.3);
-  const ring = shot(learn).filter(p => Math.abs(Math.hypot(p.x, p.y) - 40) < 40 && p.a > 0.4); if (ring.length < 20) return 'первый вирус: волны к клетке не видно';
+  // Волна — сплошная линия из частых мягких точек (#577), а не 36 ярких бусин: меряем линию. Сплошная — шаг между соседними не больше радиуса точки; видна — яркость линии (альфа точки × сколько точек лежит на одном месте) не ниже 0,3.
+  const volna = pts => { const po = new Map(); for (const p of pts) { const R = Math.hypot(p.x, p.y); if (R < 20 || R > 80) continue; const k = R.toFixed(1) + '/' + p.r; po.set(k, [...(po.get(k) || []), p]); }
+    let luch = null; for (const g of po.values()) if (g.length >= 20 && (!luch || g.length > luch.length)) luch = g; if (!luch) return 'первый вирус: волны к клетке не видно';
+    const ug = luch.map(p => Math.atan2(p.y, p.x)).sort((a, b) => a - b), R = Math.hypot(luch[0].x, luch[0].y), r = luch[0].r; let shag = ug[0] + 6.2832 - ug[ug.length - 1]; for (let i = 1; i < ug.length; i++) shag = Math.max(shag, ug[i] - ug[i - 1]); shag *= R;
+    if (shag > r) return `первый вирус: волна пунктиром — между точками ${shag.toFixed(1)} при радиусе точки ${r}`; const yark = luch[0].a * 2 * r / (6.2832 * R / luch.length);
+    return yark < 0.3 ? `первый вирус: волна тусклая — яркость линии ${yark.toFixed(2)}` : ''; };
+  { const e = volna(shot(learn)); if (e) return e; const P = shot(learn), kazhdaya = n => P.filter((p, i) => i % n === 0);
+    if (!volna(kazhdaya(12))) return 'самопроверка: волну пунктиром (каждая 12-я точка) судья не заметил'; if (!volna(P.map(p => ({ ...p, a: p.a / 3 })))) return 'самопроверка: волну втрое тусклее судья не заметил'; if (!volna([])) return 'самопроверка: пустой кадр судья не заметил'; }
   const ab = new Fx({}, [C, C, C]); ab.reset(); ab.on('abort', 0, 0, 0, 1); ab.step(0.5);
   if (!shot(ab).some(p => p.a > 0.25 && p.cr > 0.5)) return 'сестра гаснет без светлого контура — на тёмной воде не видно';
   return '';

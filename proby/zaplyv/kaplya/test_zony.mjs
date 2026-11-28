@@ -22,4 +22,11 @@ check('test_zony_samoproverka_tiho: тихую без защиты судья л
 check('test_zony_samoproverka_eda: злую с прежней едой судья ловит', sud({ ...K, zlaya: { ...K.zlaya, eda: 1 } }) ? '' : 'не заметил');
 { const S = zn.sozdat(); S.i0 = 0; S.j0 = 0; const [x, y] = mesto(S, K, 'zlaya'), a = { x, y, a: 0, m: 4 }, b = { x: x + 500, y, a: 0 }, w = { me: [a], food: [], bdellos: [b], ids: 1 }; const M = zn.do_hoda(w, K); b.x -= 10; zn.shag(S, w, DT, { ...K, zlaya: { ...K.zlaya, zapyataya: 1e9 } }, M, radius);
   check(`test_zony_hod: в злой охотник рядом быстрее в ${K.zlaya.hod} раза`, Math.abs((x + 500 - b.x) - 10 * K.zlaya.hod) < 1e-6 ? '' : `сдвиг ${x + 500 - b.x}`); }
+// L164: старт стоит в точке (0, 0) — на углу четырёх клеток пруда, две из них злые. Шаг в сторону не должен выводить из тихой воды; очаги главы (glava.dal) остаются в злой.
+const ugol = () => { const S = zn.sozdat(), a = { x: 0, y: 0, a: 0, m: 1 }, w = { me: [a], food: [], bdellos: [], ids: 0 }; zn.shag(S, w, DT, { ...K, zlaya: { ...K.zlaya, zapyataya: 1e9 } }, new Map(), radius);
+  for (let u = 0; u < 6.283; u += 0.39) for (const d of [5, K.r_tiho, K.start_r * 0.95]) if (zn.gde(S, K, Math.cos(u) * d, Math.sin(u) * d) !== 'tihaya') return `в ${d.toFixed(0)} ед. от старта под углом ${u.toFixed(1)} вода злая`;
+  const [d0, d1] = KAP.glava.dal; if (!(K.start_r < d0)) return `start_r ${K.start_r} не меньше glava.dal[0] ${d0}: очагам негде встать`; let zl = 0; for (let u = 0; u < 6.283; u += 0.39) if (zn.gde(S, K, Math.cos(u) * d0, Math.sin(u) * d0) === 'zlaya') zl++;
+  return zl ? '' : `на ${d0} от старта (где очаги) злой воды нет`; };
+check('test_L164 test_zony_start_ugol: у точки старта вода тихая во все стороны на start_r, дальше злая есть', ugol());
+{ globalThis.kaplyaStartNaUglu = true; check('test_zony_start_ugol_samoproverka: тихая только клетка старта — судья краснеет', ugol() ? '' : 'не заметил'); delete globalThis.kaplyaStartNaUglu; }
 process.exit(bad ? 1 : 0);
