@@ -3,6 +3,7 @@
 // Бот-новичок раз в 2 с решает: к ближней еде или дальше своей дорогой, раз в 6–10 с меняет сторону; не гибнет — меряем мир, а не ловкость.
 // «Встретил» — житель был в кадре телефона (390×844, камера как в main.js). Глава 1: жители глав 2–3 видны, только если у них есть «ranshe».
 // test_perepis: в каждой из KAP.perepis.partii партий за KAP.perepis.minut минут встречено не меньше KAP.perepis.vidov видов. --vse печатает, кто и на какой минуте.
+// test_perepis_novye: из них новых жителей блока К (perepis.novye) за novye_minut минут не меньше novyh — проверка daf250b: «новых почти не видно».
 // test_perepis_kaulo: каулобактеры с бродяжками не плодятся без предела (было: тысячи за 10 минут, лаги) — не больше KAP.perepis.kaulo_max.
 // Самопроверки: без новых жителей zhiteli.js и без ранних встреч судья краснеет; без предела na_kome, tesno, zhivyot — тоже. Партии идут разом в потоках (worker_threads).
 import fs from 'fs'; import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
@@ -43,6 +44,9 @@ else {
   if (process.argv.includes('--vse')) est.forEach(({ vstrecha: v }, i) => { const e = Object.entries(v).sort((a, b) => a[1] - b[1]); console.log(`  партия ${i + 1}: ${e.length} — ` + e.map(([k, t]) => `${k} ${(t / 60).toFixed(1)}`).join(' · '));
     console.log('    не встретил: ' + [...new Set(Object.values(VIDY))].filter(k => v[k] == null).join(', ')); });
   check(`test_perepis: за ${P.minut} мин новичок встречает ${P.vidov}+ видов в каждой из ${P.partii} партий (${est.map(v => Object.keys(v.vstrecha).length).join(', ')})`, sud(est));
+  const sudN = vse => { const n = vse.map(v => P.novye.filter(k => v.vstrecha[k] != null && v.vstrecha[k] <= P.novye_minut * 60).length); return n.some(k => k < P.novyh) ? `новых по партиям ${n.join(', ')}, нужно ${P.novyh}` : ''; };
+  check(`test_perepis_novye: за ${P.novye_minut} мин новичок встречает ${P.novyh}+ новых жителей блока К в каждой партии (проверка daf250b)`, sudN(est));
+  check('test_perepis_novye_samoproverka: без новых жителей судья краснеет', sudN(net) ? '' : 'не заметил');
   check(`test_perepis_kaulo: каулобактеры не плодятся без предела, до ${P.kaulo_max} с бродяжками (${est.map(v => v.kaulo).join(', ')})`, sudK(est));
   check(`test_perepis_samoproverka: без новых жителей и ранних встреч судья краснеет (${net.map(v => Object.keys(v.vstrecha).length).join(', ')})`, sud(net) ? '' : 'не заметил');
   check(`test_perepis_kaulo_samoproverka: без предела у матерей и бродяжек судья краснеет (${rost_.map(v => v.kaulo).join(', ')})`, sudK(rost_) ? '' : 'не заметил');
