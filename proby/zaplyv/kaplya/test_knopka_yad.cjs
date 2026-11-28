@@ -20,6 +20,6 @@ const sud = R => !R.podl ? 'нет тёмной подложки верха и �
     if (!ff.startsWith(KOREN) || !fs.existsSync(ff)) { s.writeHead(404); return s.end(); } s.writeHead(200, { 'Content-Type': TIP[path.extname(ff)] || 'application/octet-stream' }); fs.createReadStream(ff).pipe(s); }).listen(0);
   const pw = await import(process.env.PW || 'playwright').then(m => m.default || m), port = srv.address().port;
   const R = await scena(pw, port, false); console.log('  ' + JSON.stringify(R));
-  check('test_L132 test_knopka_yad: кнопка «Яд» крупная и видна при пустом запасе', R.errs.join(' | ') || sud(R));
+  check('test_L131 test_L132 test_knopka_yad: подложка верха и низа; кнопка «Яд» крупная и видна при пустом запасе', R.errs.join(' | ') || sud(R));
   if (!process.env.BEZ_SAMOPROVERKI) { const S = await scena(pw, port, true); console.log('  старое: ' + JSON.stringify(S)); check('test_knopka_yad_samoproverka: прежний чёрный круг — сторож краснеет', sud(S) && !/сцена не та/.test(sud(S)) ? '' : 'не заметил'); }
   srv.close(); process.exit(bad ? 1 : 0); })();

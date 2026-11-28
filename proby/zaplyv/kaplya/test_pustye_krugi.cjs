@@ -21,6 +21,6 @@ const sud = R => R.krug === undefined ? 'кольцо джойстика не п
     if (!ff.startsWith(KOREN) || !fs.existsSync(ff)) { s.writeHead(404); return s.end(); } s.writeHead(200, { 'Content-Type': TIP[path.extname(ff)] || 'application/octet-stream' }); fs.createReadStream(ff).pipe(s); }).listen(0);
   const pw = await import(process.env.PW || 'playwright').then(m => m.default || m), port = srv.address().port;
   const R = await scena(pw, port, false); console.log('  ' + JSON.stringify(R));
-  check('test_L133 test_pustye_krugi: нет пустого кольца джойстика и пустых портретов', R.errs.join(' | ') || sud(R));
+  check('test_L133 test_L134 test_pustye_krugi: пузыри с бликом; нет пустого кольца джойстика и пустых портретов', R.errs.join(' | ') || sud(R));
   if (!process.env.BEZ_SAMOPROVERKI) { const S = await scena(pw, port, true); console.log('  старое: ' + JSON.stringify(S)); check('test_pustye_krugi_samoproverka: прежние пустые круги — сторож краснеет', sud(S) && !/сцена не та/.test(sud(S)) ? '' : 'не заметил'); }
   srv.close(); process.exit(bad ? 1 : 0); })();
