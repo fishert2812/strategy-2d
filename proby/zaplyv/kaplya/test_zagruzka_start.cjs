@@ -34,7 +34,7 @@ let bad = 0; const check = (n, e) => { console.log((e ? '  ПРОВАЛ ' : '  �
   console.log(`  паспорт: первый кадр игры без загрузки ${mer.pervyy} с, с загрузкой ${est.pervyy} с, с тяжёлой ${tyazh.pervyy} с; кадров за 7 с: ${mer.za7} / ${est.za7} / ${tyazh.za7}; 20 кадров игры через ${mer.dvadcat} / ${est.dvadcat} / ${tyazh.dvadcat} с`);
   const huzhe = (z) => z.pervyy < 0 ? 'игра не нарисовала ни кадра за 7 с' : z.pervyy > mer.pervyy * 1.25 + 0.5 ? `первый кадр через ${z.pervyy} с против ${mer.pervyy} с` : z.dvadcat < 0 || z.dvadcat > mer.dvadcat * 1.5 + 0.5 ? `20 кадров игры через ${z.dvadcat} с против ${mer.dvadcat} с` : z.za7 < mer.za7 * 0.6 ? `кадров за 7 с ${z.za7} против ${mer.za7}` : '';
   check('test_zagruzka_start_vidit: тяжёлую загрузку сторож ловит', huzhe(tyazh) ? '' : 'тяжёлая загрузка прошла незамеченной');
-  check('test_zagruzka_start: с загрузочным экраном игра стартует не медленнее, чем без него', mer.pervyy < 0 ? 'игра не стартует и без загрузки' : huzhe(est));
+  check('test_L143 test_zagruzka_start: с загрузочным экраном игра стартует не медленнее, чем без него', mer.pervyy < 0 ? 'игра не стартует и без загрузки' : huzhe(est));
   check('test_zagruzka_start_bez_oshibok: на странице нет ошибок скрипта', est.oshibki.join('; '));
   await b.close(); srv.close();
   console.log(bad ? `ПРОВАЛ: ${bad}` : 'ок: загрузка не замедляет старт игры');
