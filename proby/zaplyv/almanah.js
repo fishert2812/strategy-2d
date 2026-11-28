@@ -29,7 +29,7 @@ export function shelf(K, E, met, sec = 'life', P = {}) {
 // Страница: модель, имя, ярлык, блоки книги; невстреченное — только где искать.
 export function page(k, K, E, cards, T, G, met) {
   const it = E[k], color = K.colors[it.group];
-  if (!met.has(k)) return { name: it.sec === 'gene' ? 'Ещё не было' : 'Ещё не встречал', line: it.hint || 'Плыви дальше', color, met: false };
+  if (!met.has(k)) { const grp = it.sec === 'gene' && K.schet && (G?.gruppa || {})[it.gene]; return { name: it.sec === 'gene' ? (grp ? 'Ген · ' + grp : 'Ещё не было') : 'Ещё не встречал', line: it.hint || 'Плыви дальше', color, met: false }; } /* «Капля», экраны 28.11: у закрытых генов видна их группа, заглушки не одинаковые */
   if (it.sec === 'gene') {
     const g = Object.values(G.geny).find(x => x.klyuch === it.gene), P = G.podpisi;
     const grp = (G.gruppa || {})[it.gene]; // подзаголовок — группа и номер записи, текст только в блоке (приёмка дизайнера)
@@ -74,7 +74,7 @@ export function almanahScreen({ K, cards, T, G, S, P = {}, met, snap, onSwim, on
     const box = $('shelf'); box.innerHTML = ''; queue = [];
     for (const k of S.list) {
       const P = pg(k), b = document.createElement('button');
-      b.className = 'kc' + (P.met ? '' : ' no'); b.dataset.k = k; b.style.setProperty('--g', P.met ? P.color : '');
+      b.className = 'kc' + (P.met ? '' : ' no') + (E[k].sec === 'gene' ? ' gen' : ''); b.dataset.k = k; b.style.setProperty('--g', P.met ? P.color : '');
       const img = document.createElement('img'); img.alt = ''; b.appendChild(img);
       if (shots.has(k)) img.src = shots.get(k); else queue.push({ k, img });
       const n = document.createElement('b'); n.textContent = P.name; b.appendChild(n);
