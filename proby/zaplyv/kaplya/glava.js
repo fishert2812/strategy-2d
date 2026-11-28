@@ -13,7 +13,7 @@ export function rasstavit(G, K, x0, y0, rnd, gde = null) { G.ochagi = []; G.t = 
     G.ochagi.push({ id: i + 1, x: best.x, y: best.y, sila: K.sila0 }); } return G; }
 // Ход. a — ты; ubity — [[ключ, житель]] из boj.posle_hoda; spawn(o, n) — выпустить n клеток очага o. События: ['ubil', o], ['chist', o] (очаг вычищен), ['pobeda'], ['porazhenie'].
 export function shag(G, w, dt, K, a, ubity, spawn) { const ev = []; if (G.konec || !G.ochagi.length) return ev; G.t += dt;
-  const minus = q => { const o = q && q.oc && G.ochagi.find(x => x === q.oc); G.sledim.delete(q); if (!o || o.sila <= 0 || q.uchten) return; q.uchten = true; o.sila = Math.max(0, o.sila - 1); ev.push(['ubil', o]); if (o.sila <= 0) ev.push(['chist', o]); };
+  const minus = q => { const o = q && q.oc && G.ochagi.find(x => x === q.oc); G.sledim.delete(q); if (!o || o.sila <= 0 || q.uchten) return; q.uchten = true; o.sila = Math.max(0, o.sila - 1); if (K.hvost && !globalThis.kaplyaStaryjHvost && o.sila < K.hvost) o.sila = 0; /* L126: дробный хвост роста (0,1–0,4) не требует лишней палочки */ ev.push(['ubil', o]); if (o.sila <= 0) ev.push(['chist', o]); };
   for (const [ck, q] of ubity || []) if (ck === K.kto) minus(q);
   const L = w[K.spisok] || []; for (const q of L) if (q.oc && !q.gone && !q.uchten) { G.sledim.add(q); q.ryadom = a ? Math.hypot(q.x - a.x, q.y - a.y) < K.vidno : false; } /* Т9 пачки 2: съел, растворил, проглотил — тоже минус очагу, а не только убил оружием */
   for (const q of [...G.sledim]) if (q.gone || !L.includes(q)) { if (q.ryadom) minus(q); else G.sledim.delete(q); }

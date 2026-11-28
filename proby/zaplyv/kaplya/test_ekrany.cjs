@@ -1,4 +1,4 @@
-// Сторож экранов «Капли» вне партии (урок L125, экраны 28.11; тред проверки vid_b44b767_ui.md п. 4–7, 15, 21, 22): node proby/zaplyv/kaplya/test_ekrany.cjs.
+// Сторож экранов «Капли» вне партии (урок L128, экраны 28.11; тред проверки vid_b44b767_ui.md п. 4–7, 15, 21, 22): node proby/zaplyv/kaplya/test_ekrany.cjs.
 // Живая игра 393×659 (iPhone 16 в Safari). Пауза → «Геном» → Альманах; потом гибель от туфельки → итог и снова Альманах.
 // test_ekrany_genom: под витками генов русские имена, ни одного латинского кода (flhDC, snap, steady), карточка без пунктира.
 // test_ekrany_almanah: шапка Альманаха непрозрачна, счёт в одну строку, у закрытых карточек нет пунктира, известные стоят первыми.
@@ -41,7 +41,7 @@ const sudPauza = P => !P.pereklyuchatel ? 'звук — просто надпи�
   console.log('  ' + JSON.stringify({ P, G, A, I, errs }));
   check('test_ekrany_genom: под витками русские имена, без латиницы и пунктира', sudGenom(G));
   check('test_ekrany_almanah: шапка непрозрачна, счёт в одну строку, без пунктира, известные первыми', sudAlmanah(A));
-  check('test_L125 test_ekrany_itog: портрет убийцы, убийца в Альманахе, без «Поколений: 0» и «Мутации», флажок не на карточке, «Альманах» без переноса', sudItog(I));
+  check('test_L128 test_ekrany_itog: портрет убийцы, убийца в Альманахе, без «Поколений: 0» и «Мутации», флажок не на карточке, «Альманах» без переноса', sudItog(I));
   check('test_ekrany_pauza: звук — переключатель', sudPauza(P));
   check('test_ekrany: без ошибок скрипта', errs.join('; '));
   const s1 = sudGenom({ ...G, latin: ['flhDC'] }), s2 = sudAlmanah({ ...A, punktir: true }), s3 = sudItog({ ...I, tvoy: true }), s4 = sudItog({ ...I, put: 'Поколений: 0 — в природе ≈ 0 мин' }), s5 = sudAlmanah({ ...A, schetStrok: 2 }), s6 = sudPauza({ pereklyuchatel: false, zvuk: 'Звук включён' });
