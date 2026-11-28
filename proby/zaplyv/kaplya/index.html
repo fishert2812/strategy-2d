@@ -177,7 +177,7 @@ button.ghost { background: transparent; min-height: 52px; font-size: 18px; }
 #toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 58px); transform: translate(-50%, -10px); padding: 8px 16px; border-radius: 16px;
   background: rgba(120, 220, 255, 0.16); border: 1px solid rgba(120, 220, 255, 0.4); font-size: 15px; width: max-content; max-width: calc(100vw - 32px); box-sizing: border-box; display: flex; align-items: center; /* длинная подпись переносится, а не уходит за край */
   opacity: 0; transition: opacity 0.3s, transform 0.3s; pointer-events: none; z-index: 4; }
-body:not(.staryjVerh) #toast { background: rgba(14, 44, 60, 0.9); } /* L103: плашка поверх знаков мира (☣, подписи) и не просвечивает — текст читается */
+body:not(.staryjVerh) #toast { background: rgba(14, 44, 60, 0.9); } #toast.vazhno { background: rgba(52, 30, 8, 0.95) !important; border: 2px solid #ffcf70; box-shadow: 0 0 18px rgba(255, 207, 112, 0.45); font-weight: 600; animation: tvazh 0.6s; } @keyframes tvazh { 0% { box-shadow: 0 0 40px #ffcf70; } 100% { box-shadow: 0 0 18px rgba(255, 207, 112, 0.45); } } /* L139: «Род жив» — заметная тёплая плашка со вспышкой */ /* L103: плашка поверх знаков мира (☣, подписи) и не просвечивает — текст читается */
 #toast.on { opacity: 0.95; transform: translate(-50%, 0); }
 button { width: min(340px, 86vw); min-height: 64px; border-radius: 22px; border: 1px solid rgba(120, 255, 210, 0.45);
   background: rgba(60, 255, 200, 0.12); color: #fff; font: inherit; font-size: 21px; padding: 10px 16px; }
