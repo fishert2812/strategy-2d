@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# kaplya_rost_vidno: полоса роста подписана, растёт от еды, шаг «Подросла» (урок L135); proby/zaplyv/kaplya/test_rost_vidno.cjs.
+# kaplya_rost_vidno: полоса роста подписана, растёт от еды, шаг «Рост!» (урок L135); proby/zaplyv/kaplya/test_rost_vidno.cjs.
 # Самопроверка (kaplyaStaryjRost) краснеет.
 set -u
 . "$(dirname "${BASH_SOURCE[0]}")/../check_mode.sh"; run_in fast || exit 0
