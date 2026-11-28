@@ -495,7 +495,7 @@ let paused = false; let ROST_CEL = null;
 const genome = genomeScreen({ G: genomeData, cfg, world: () => world, icon: g => icon(g),
   onOpen: () => { paused = true; document.body.classList.add('paused'); pad.end(0); down = null; finger = null; openTab(); },
   onClose: () => { paused = false; document.body.classList.remove('paused'); leaveTabs(); },
-  onSend: () => openMarks(), onDraw: () => { showMarks(); if (!window.kaplyaStaryeChisla) { const c = $('gchips').firstElementChild; if (c) c.textContent = `генов включено ${Object.keys(world.genes).filter(g => world.genes[g]).length}`; $('gsub').textContent = `поколение ${rodChisla(world).gen} · кишечная палочка`; } } }); /* L099: «Геном» говорит те же числа, что пауза (L084) */
+  onSend: () => openMarks(), onDraw: () => { showMarks(); if (!window.kaplyaStaryeChisla) { const c = $('gchips').firstElementChild; if (c) c.textContent = `генов включено ${Object.keys(world.genes).filter(g => world.genes[g]).length}`; $('gsub').textContent = `поколение ${pokSlovo(world)} · кишечная палочка`; } } }); /* L099: «Геном» говорит те же числа, что пауза (L084) */
 
 // Пауза — игровое меню (урок L037): уровень 1 «Пауза» (tab 'hub'): «Продолжить», «Новый заплыв», «Режимы», справочник строками.
 // Уровень 2 — раздел (Геном, Альманах, Карта): заголовок раздела, внизу «‹ Пауза» и «Продолжить». Пауза всегда открывается первым уровнем.
@@ -542,9 +542,10 @@ window.kaplyaMut = () => MUT; window.kaplyaSprosit = V => vybor(V, () => {}); /*
 const sloiPruda = seen => KAP.almanah_slova.sloi.replace('{n}', Math.max(0, ['ни одного', 'один', 'два', 'три', 'четыре'].indexOf(karta.count(cfg.pond, seen).split(' ')[2]))); /* экраны 28.11: без «Ты видел» — игра не знает твой род */
 // L084 (пачка 2, Т3): одни числа рода во всех экранах — поколение по летописи стаи, клеток — ты и стая
 const rodChisla = w => { if (window.kaplyaStaryeChisla) return { gen: w.stats.gen, kletok: w.me.length }; const L = STY && STY.letopis; return { gen: Math.max(w.stats.gen || 0, (L && L.pok) || 0), kletok: w.me.length + (w.staya || []).length }; }; window.kaplyaRodChisla = () => rodChisla(world);
+const pokSlovo = w => rodChisla(w).gen + (window.kaplyaStaryeChisla ? 0 : 1); /* шапка паузы и «Геном»: ты сам первое поколение, каждое деление рода +1; «поколение 0» игроку ничего не говорит */
 function hubFill() { // первый уровень паузы: что в каждом разделе — одной строкой, служебное — мелко
   const own = genomeData.arcs.flatMap(a => a.slots), deaths = KARTA.marks.filter(m => m.kind === 'death').length;
-  const RC = rodChisla(world); $('pstate').textContent = ($(`mscene`).querySelector(`.mo[data-m=${world.mode}] b`)?.textContent || 'Заплыв') + ' · поколение ' + RC.gen + ' · клеток ' + RC.kletok; /* L084: те же числа, что в «Стае» и на экране гибели */
+  const RC = rodChisla(world); $('pstate').textContent = ($(`mscene`).querySelector(`.mo[data-m=${world.mode}] b`)?.textContent || 'Заплыв') + ' · поколение ' + pokSlovo(world) + ' · клеток ' + RC.kletok; /* L084: те же числа, что в «Стае» и на экране гибели */
   $('pg').textContent = window.kaplyaStaryeChisla ? `включено ${own.filter(x => x.id && world.genes[x.id]).length} из ${own.length}` : `генов включено ${Object.keys(world.genes).filter(g => world.genes[g]).length}`; /* L084: «0 из 21» при включённом «Глотать» — гены «Капли» не в круге генома */
   $('pa').textContent = kab.label().replace(/^Альманах · /, ''); { const st = world.staya || []; $('pst').textContent = st.length ? `копий ${st.length} · мутанток ${st.filter(q => q.mut).length}` : 'пока никого'; }
   keepSeen(); $('pm').textContent = sloiPruda(new Set(KARTA.seen)) + (deaths ? ` · гибелей ${deaths}` : '');
