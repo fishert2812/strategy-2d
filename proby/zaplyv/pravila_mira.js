@@ -58,7 +58,7 @@ export function shag(w, dt, radius) {
       const r = radius(a.m) + u.zazor;
       for (const q of kogo) {
         if (q.gone || !(a.kasaetsya ? a.kasaetsya(q, u.k_r ? radius(q.m) * u.k_r : 0) : Math.hypot(a.x - q.x, a.y - q.y) < r + (u.k_r ? radius(q.m) * u.k_r : 0))) continue; // сначала касание: rost.can дорогой (ищет крупнейшую клетку)
-        if (pr.kogo.dostup == null || rost.can(w, dostup(pr, q))) sp(w, a, q, pr, dt);
+        if (pr.kogo.dostup == null || q.ubit || rost.can(w, dostup(pr, q))) sp(w, a, q, pr, dt); // «Капля» Ж.3: точки убитого (q.ubit) съедобны при любом росте — убил, значит, съел
       }
     }
     const ost = pr.itog.ostatok;

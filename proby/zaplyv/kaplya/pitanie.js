@@ -4,5 +4,5 @@
 // и они кормят в plotoyadnyy_k раз сильнее. «Глотать» не выпадает, пока не взят «Плотоядный» и ты короче glotat_ot_mkm мкм; сам не выдаётся никогда.
 // Числа — kaplya.json «pitanie».
 export const oruzhie = (w, B) => Object.keys(B.oruzhie).some(g => g !== '_' && w.genes[g]);
-// Пока у «Плотоядного» нет части на теле и картинки (его нет в boj.novye_geny), «Глотать» ждёт вместо него первого оружия.
-export function ne_dat(w, K, B, g, mkm) { if (g === 'plotoyadnyy') return !oruzhie(w, B); if (g === 'gulp') return !(B.novye_geny.includes('plotoyadnyy') ? w.genes.plotoyadnyy : oruzhie(w, B)) || mkm < K.glotat_ot_mkm; return false; }
+// «Плотоядный» выпадает картой, когда записан в pitanie.geny (или boj.novye_geny); иначе «Глотать» ждёт вместо него первого оружия.
+export function ne_dat(w, K, B, g, mkm) { if (g === 'plotoyadnyy') return !oruzhie(w, B); if (g === 'gulp') return !(B.novye_geny.includes('plotoyadnyy') || (K.geny || []).includes('plotoyadnyy') ? w.genes.plotoyadnyy : oruzhie(w, B)) || mkm < K.glotat_ot_mkm; return false; }
