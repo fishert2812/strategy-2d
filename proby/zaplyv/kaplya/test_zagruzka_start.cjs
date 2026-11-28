@@ -30,11 +30,16 @@ let bad = 0; const check = (n, e) => { console.log((e ? '  ПРОВАЛ ' : '  �
     await p.close(); return { pervyy, za7, dvadcat, oshibki };
   }
   await zahod('net'); // прогрев: браузер и диск, чтобы первый замер не был заведомо хуже
-  const mer = await zahod('net'), est = await zahod('est'), tyazh = await zahod('tyazh');
+  // L164: один замер на занятом раннере шатается. Меряем мерку и загрузку по два раза вперемешку и берём лучший из двух: помеха раннера замер только портит.
+  // Шум — расхождение двух замеров мерки; порог шире на шум (правило 3.4: порог не меньше шума).
+  const luchshiy = (x, y) => ({ pervyy: x.pervyy < 0 ? y.pervyy : y.pervyy < 0 ? x.pervyy : Math.min(x.pervyy, y.pervyy), dvadcat: x.dvadcat < 0 ? y.dvadcat : y.dvadcat < 0 ? x.dvadcat : Math.min(x.dvadcat, y.dvadcat), za7: Math.max(x.za7, y.za7), oshibki: [...x.oshibki, ...y.oshibki] });
+  const m1 = await zahod('net'), e1 = await zahod('est'), m2 = await zahod('net'), e2 = await zahod('est'), tyazh = await zahod('tyazh'), mer = luchshiy(m1, m2), est = luchshiy(e1, e2);
+  const shum = { pervyy: Math.abs(m1.pervyy - m2.pervyy), dvadcat: m1.dvadcat < 0 || m2.dvadcat < 0 ? 0 : Math.abs(m1.dvadcat - m2.dvadcat), za7: Math.abs(m1.za7 - m2.za7) };
+  console.log(`  паспорт шума: мерка дважды — первый кадр ${m1.pervyy} / ${m2.pervyy} с, 20 кадров ${m1.dvadcat} / ${m2.dvadcat} с, кадров за 7 с ${m1.za7} / ${m2.za7}`);
   console.log(`  паспорт: первый кадр игры без загрузки ${mer.pervyy} с, с загрузкой ${est.pervyy} с, с тяжёлой ${tyazh.pervyy} с; кадров за 7 с: ${mer.za7} / ${est.za7} / ${tyazh.za7}; 20 кадров игры через ${mer.dvadcat} / ${est.dvadcat} / ${tyazh.dvadcat} с`);
-  const huzhe = (z) => z.pervyy < 0 ? 'игра не нарисовала ни кадра за 7 с' : z.pervyy > mer.pervyy * 1.25 + 0.5 ? `первый кадр через ${z.pervyy} с против ${mer.pervyy} с` : z.dvadcat < 0 || z.dvadcat > mer.dvadcat * 1.5 + 0.5 ? `20 кадров игры через ${z.dvadcat} с против ${mer.dvadcat} с` : z.za7 < mer.za7 * 0.6 ? `кадров за 7 с ${z.za7} против ${mer.za7}` : '';
+  const huzhe = (z) => z.pervyy < 0 ? 'игра не нарисовала ни кадра за 7 с' : z.pervyy > mer.pervyy * 1.25 + 0.5 + shum.pervyy ? `первый кадр через ${z.pervyy} с против ${mer.pervyy} с` : z.dvadcat < 0 || z.dvadcat > mer.dvadcat * 1.5 + 0.5 + shum.dvadcat ? `20 кадров игры через ${z.dvadcat} с против ${mer.dvadcat} с` : z.za7 < mer.za7 * 0.6 - shum.za7 ? `кадров за 7 с ${z.za7} против ${mer.za7}` : '';
   check('test_zagruzka_start_vidit: тяжёлую загрузку сторож ловит', huzhe(tyazh) ? '' : 'тяжёлая загрузка прошла незамеченной');
-  check('test_L143 test_zagruzka_start: с загрузочным экраном игра стартует не медленнее, чем без него', mer.pervyy < 0 ? 'игра не стартует и без загрузки' : huzhe(est));
+  check('test_L143 test_zagruzka_start: с загрузочным экраном игра стартует не медленнее, чем без него', mer.pervyy < 0 ? 'игра не стартует и без загрузки' : mer.dvadcat < 0 ? 'мерка без загрузки не дала 20 кадров за 7 с — раннер слишком занят, замер ничего не значит' : huzhe(est));
   check('test_zagruzka_start_bez_oshibok: на странице нет ошибок скрипта', est.oshibki.join('; '));
   await b.close(); srv.close();
   console.log(bad ? `ПРОВАЛ: ${bad}` : 'ок: загрузка не замедляет старт игры');
