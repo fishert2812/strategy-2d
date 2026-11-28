@@ -14,6 +14,9 @@ export function shag(w, dt, K, a, lvl, grow) { const T = w.trupy || [], ev = [],
       q.x = vx; q.y = vy; const d = Math.min(q.m, P.m0 * dt / K.v_puzyre); q.m -= d; grow(a, d * K.syt);
       if (P.t >= K.smykanie + K.v_puzyre || q.m <= 1e-6) { t.gone = true; ev.push(['rastvoril', t.ck]); } continue; }
     if (a && lvl > 0 && n < mest && t.t < K.t && (q.m || 1) <= dol * a.m && Math.hypot(q.x - a.x, q.y - a.y) < R(a.m) + R(q.m || 1) * 0.8 + K.zazor) {
-      t.puz = { t: 0, m0: q.m || 1, i: n ? 1 : (mest > 1 ? 0 : null) }; q.m = q.m || 1; n++; ev.push(['obvolok', t.ck]); continue; } // мёртвое и мелкое — обволакиваешь
+      t.puz = { t: 0, m0: q.m || 1, i: n ? 1 : (mest > 1 ? 0 : null), dx: q.x - a.x, dy: q.y - a.y }; q.m = q.m || 1; n++; ev.push(['obvolok', t.ck]); continue; } // мёртвое и мелкое — обволакиваешь
     if (t.t >= K.t) lop.push(t); }
   w.trupy = T.filter(t => !t.gone && !lop.includes(t)); return { ev, lop }; }
+// Вид пузырька (main.js рисует его поверх твоего тела, по нарисованной палочке, а не по кругу массы: в партии 28.11 серое тело уходило под оболочку и пузырька не было видно).
+// Вернёт { f — доля смыкания 0…1, u — место на оси тела в долях полудлины (минус — к корме), k — во сколько раз добыча усохла }. K.mesto: один пузырёк, первый из двух, второй.
+export const vid = (K, P, m) => { const f = Math.min(1, P.t / K.smykanie), g = f * f * (3 - 2 * f); return { f, g, u: K.mesto[P.i == null ? 0 : P.i + 1], k: Math.sqrt(Math.max(K.ne_melche, m / P.m0)) }; };

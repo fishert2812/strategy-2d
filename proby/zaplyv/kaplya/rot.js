@@ -13,8 +13,8 @@ export const sozdat = () => ({ kuski: [] });
 export const dlitsya = K => K.t + (K.n - 1) * K.zaderzhka;
 export function shag(S, w, dt, K, radius, lvl, kPl = 1) { // kPl — во сколько раз сытнее всосанная точка убитого (kaplya.json pitanie.plotoyadnyy_k)
   for (const a of w.me) { const R = radius(a.m), C = konus(K, lvl), N = S.nos ? S.nos(a.m) : R; // Ж.2б: рот — у кончика тела, конус меряется радиусом
-    for (const f of w.food) { if (f.ubit && !w.genes.plotoyadnyy) continue; /* Ж.3: точки убитого водоворот берёт только у «Плотоядного» */ if (f.gone || f.pull || (w.mozhnoEst && !w.mozhnoEst(f)) || !(vKonuse(a, R, f, C, N) || Math.hypot(f.x - a.x, f.y - a.y) < R * K.bok + K.bok_zazor)) continue; // и та, что у бока: раньше касания она тоже рассыпается и обтекает тело к рту // еду, которую тянет ручной «Пищевой магнит», он ведёт сам
-      const [u, v] = mest(a, R, f.x, f.y, N), rnd = w.r ? w.r : Math.random; f.vzyat = true; if (f.ubit === 1) { f.s *= kPl; f.ubit = 2; } /* всосанное убитое сытнее крошки */
+    for (const f of w.food) { if (f.ubit && !w.genes.plotoyadnyy) continue; /* Ж.3: точки убитого водоворот берёт только у «Плотоядного» */ if (f.ubit === 1) { f.s *= kPl; f.ubit = 2; } /* у «Плотоядного» убитое сытнее крошки, каким бы путём ни попало в рот (в партии половину точек съедало касание боком, без прибавки) */ if (f.gone || f.pull || (w.mozhnoEst && !w.mozhnoEst(f)) || !(vKonuse(a, R, f, C, N) || Math.hypot(f.x - a.x, f.y - a.y) < R * K.bok + K.bok_zazor)) continue; // и та, что у бока: раньше касания она тоже рассыпается и обтекает тело к рту // еду, которую тянет ручной «Пищевой магнит», он ведёт сам
+      const [u, v] = mest(a, R, f.x, f.y, N), rnd = w.r ? w.r : Math.random; f.vzyat = true;
       S.kuski.push({ f, a, t: 0, u, v, nos: S.nos, faza: [...Array(K.n)].map(() => rnd() * 6.283), raz: [...Array(K.n)].map(() => [(rnd() - 0.5) * K.razbros * R, (rnd() - 0.5) * K.razbros * R]) }); } }
   if (S.kuski.length) w.food = w.food.filter(f => !f.vzyat);
   for (const k of S.kuski) { k.t += dt;
